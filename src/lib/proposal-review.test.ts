@@ -411,6 +411,43 @@ describe("saving", () => {
         expect(save).toHaveBeenCalledTimes(1);
     });
 
+    it("blocks issue when valid 30/70 rows share the screen with a third invalid abc row", () => {
+        const draft = {
+            ...draftFromProject(context.project, keys()),
+            payments: [
+                { key: "deposit", stage: "Deposit", when: "On booking", percentage: "30" },
+                { key: "balance", stage: "Balance", when: "On completion", percentage: "70" },
+                { key: "extra", stage: "Extra", when: "", percentage: "abc" },
+            ],
+        };
+        const readiness = reviewReadiness(context, draft);
+        expect(readiness.ready).toBe(false);
+        expect(readiness.missing.map((item) => item.key)).toContain("payment");
+        expect(readiness.missing.find((item) => item.key === "payment")!.fix).toContain("invalid");
+    });
+
+    it("keeps payment edits unsaved when a draft save omitted invalid rows but saved scope", async () => {
+        const store = storeFor(context);
+        const savedPayments = structuredClone(store.getState().saved.payments);
+        store.dispatch({
+            type: "draft/change",
+            patch: {
+                scope: "Scope saved while a payment row stays invalid.",
+                payments: [
+                    { key: "deposit", stage: "Deposit", when: "On booking", percentage: "30" },
+                    { key: "balance", stage: "Balance", when: "On completion", percentage: "70" },
+                    { key: "extra", stage: "Extra", when: "", percentage: "abc" },
+                ],
+            },
+        });
+        const save = vi.fn<SaveProposalDraft>().mockResolvedValue({ success: true });
+        await expect(saveDraft(store, save)).resolves.toBe("saved");
+        expect(save.mock.calls[0][0].paymentSchedule).toBeNull();
+        expect(store.getState().draft.scope).toBe("Scope saved while a payment row stays invalid.");
+        expect(store.getState().saved.payments).toEqual(savedPayments);
+        expect(reviewSaveStatus(store.getState())).toBe("unsaved");
+    });
+
     it("saves unrelated wording while payment rows on screen are incomplete", async () => {
         const store = storeFor(context);
         store.dispatch({
@@ -571,6 +608,27 @@ describe("send", () => {
         store.dispatch({ type: "confirm/set", confirmed: true });
         const publish = vi.fn();
         await expect(sendProposal(store, { ...deps(publish), readiness: () => ({ ready: false }) })).resolves.toBe("blocked");
+        expect(publish).not.toHaveBeenCalled();
+    });
+
+    it("does not publish when valid 30/70 rows omit a third invalid share from readiness", async () => {
+        const store = storeFor(context);
+        store.dispatch({ type: "confirm/set", confirmed: true });
+        store.dispatch({
+            type: "draft/change",
+            patch: {
+                payments: [
+                    { key: "deposit", stage: "Deposit", when: "On booking", percentage: "30" },
+                    { key: "balance", stage: "Balance", when: "On completion", percentage: "70" },
+                    { key: "extra", stage: "Extra", when: "", percentage: "abc" },
+                ],
+            },
+        });
+        const publish = vi.fn();
+        await expect(sendProposal(store, {
+            ...deps(publish),
+            readiness: () => reviewReadiness(context, store.getState().draft),
+        })).resolves.toBe("blocked");
         expect(publish).not.toHaveBeenCalled();
     });
 

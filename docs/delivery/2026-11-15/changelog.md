@@ -17,3 +17,7 @@
 | `src/lib/proposal-review.ts` | 339–377, 792 | `paymentBoundary: "draft"` omits non-100%/invalid payment rows from whole-draft saves; `saveDraft` uses draft boundary | PR #172: incomplete payment rows must not block scope/wording saves |
 | `src/lib/proposal-review.test.ts` | 168–188, 399–412 | Draft-boundary payload + `saveDraft` with partial payments | Regression: unrelated field + incomplete payments |
 | `src/app/dashboard/projects/proposal/actions.test.ts` | 193–204 | Server accepts `paymentSchedule: null` with scope edit while schedule unchanged | Save-boundary regression |
+| `src/lib/proposal-readiness.ts` | 57–58, 208–219 | `paymentHasUnusableRows` blocks issue even when valid rows alone reach 100% | Close #172 invalid-row publish bypass |
+| `src/lib/proposal-review.ts` | 314–321, 466–470, 613–655, 839–841 | `draftPaymentFieldErrors`, strict `reviewReadiness`, `paymentsPersisted` on save | Issue strict; invalid local rows not marked saved |
+| `src/lib/proposal-review.test.ts` | 399–438, 577–598 | 30/70+abc regression; unsaved payment after scope save; send blocked | Exact #172 regression |
+| `src/lib/proposal-readiness.test.ts` | 159–167 | `paymentHasUnusableRows` mandatory failure | Issue-boundary unit |

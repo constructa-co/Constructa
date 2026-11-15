@@ -55,6 +55,8 @@ export interface ProposalReadinessInput {
     projectStartDate?: string | null;
     programmeWorkingPattern?: unknown;
     paymentSchedule?: unknown[] | null;
+    /** When true, the on-screen payment draft has non-blank rows that cannot be issued. */
+    paymentHasUnusableRows?: boolean;
     /** Resolved terms as they would be published. */
     terms?: unknown[] | null;
     // Recommended — never block publication.
@@ -208,12 +210,14 @@ export function evaluateProposalReadiness(input: ProposalReadinessInput): Propos
         {
             key: "payment",
             label: "Payment stages",
-            ok: payments.some(isValidPaymentRow) && paymentsCoverFullPrice,
-            fix: paymentsExceedPrice
-                ? `Your payment stages add up to ${coverage}% of the price. Bring them down to 100% or less.`
-                : payments.some(isValidPaymentRow)
-                    ? `Your payment stages cover ${coverage ?? 0}% of the price. Add stages until they reach 100%.`
-                    : "Choose how you are paid: on completion, a deposit and balance, or your own stages.",
+            ok: !input.paymentHasUnusableRows && payments.some(isValidPaymentRow) && paymentsCoverFullPrice,
+            fix: input.paymentHasUnusableRows
+                ? "One of your payment stages has an invalid name or share. Fix or remove it before sending."
+                : paymentsExceedPrice
+                    ? `Your payment stages add up to ${coverage}% of the price. Bring them down to 100% or less.`
+                    : payments.some(isValidPaymentRow)
+                        ? `Your payment stages cover ${coverage ?? 0}% of the price. Add stages until they reach 100%.`
+                        : "Choose how you are paid: on completion, a deposit and balance, or your own stages.",
         },
         {
             key: "terms",

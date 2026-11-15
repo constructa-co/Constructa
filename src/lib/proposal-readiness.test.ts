@@ -157,6 +157,16 @@ describe("evaluateProposalReadiness", () => {
         })).toEqual([]);
     });
 
+    it("fails when the on-screen payment draft has an unusable row even if valid rows reach 100%", () => {
+        const result = evaluateProposalReadiness({
+            ...complete,
+            paymentSchedule: [{ stage: "Deposit", percentage: 30 }, { stage: "Balance", percentage: 70 }],
+            paymentHasUnusableRows: true,
+        });
+        expect(result.ready).toBe(false);
+        expect(result.missing.find((item) => item.key === "payment")?.fix).toContain("invalid");
+    });
+
     it("fails without a valid payment row", () => {
         expect(missingKeys({ ...complete, paymentSchedule: [] })).toEqual(["payment"]);
         expect(missingKeys({ ...complete, paymentSchedule: [{ stage: "", percentage: 20 }] })).toEqual(["payment"]);

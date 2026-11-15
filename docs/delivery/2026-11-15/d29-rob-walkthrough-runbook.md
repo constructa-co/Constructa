@@ -51,7 +51,7 @@ Per `AGENTS.md`, private execution records live in `the private Constructa execu
 | --- | --- | --- | --- | --- |
 | 1 | A086 protected Preview | Partial | Preview HOLD lifted [ROB] | Preview deployment |
 | 2 | A092 Cancel/Leave | Partial | A designated local session | None (local) |
-| 3 | A089 timing | Partial | Original slow host or its CI log | None |
+| 3 | A089 timing | Partial | Exact release CI or an approved walkthrough observation | None |
 | 4 | A105 / A106 containment | Partial | Operator vendor access | Revokes credentials |
 | 5 | A074 migration + activation | Partial | Rob approves SQL and env change | Live SQL, redeploy |
 | 6 | A038 live photo path | Partial | Rob approves migration + gate | Live SQL, env, storage |
@@ -189,7 +189,7 @@ Private receipt `d29/a089-…` and the CI or deployment receipt. Update A089 wit
    c. Revoke the exposed token in the same account settings.
    d. Confirm the issuer records revocation and verify a dependent using the replacement through an approved read-only check.
 5. **[OPERATOR-ONLY] Perplexity agent-proxy credential (A105):** use the issuing account to rotate and revoke it. Record issuer confirmation and verify approved dependents with the replacement.
-6. **[OPERATOR-ONLY]** After rotation, rerun the secret scan on the repo to confirm no live value remains in the tree and the rules still fire on a synthetic test string.
+6. **[OPERATOR-ONLY]** Record the issuer receipts and read the existing secret-scan result for the release candidate. Investigate any new finding through the private containment record.
 7. **[ROB]** History rewrite is a separate decision (A108 advises on it). Rotation does not depend on it and must not wait for it.
 
 ### Expected result
@@ -260,8 +260,8 @@ Private receipt `d29/a074-…`: candidate and deployed SHA, migration applied ye
 3. **[OPERATOR-ONLY]** Confirm the photos storage bucket and its policies exist. **[UNVERIFIED]** — read the photos migration to learn the expected names first.
 4. **Legacy path.** **[ROB]** On Company → Case Studies (older editor), attach three photos and save. Expected: saved; reload shows three. Attach a fourth and save. Expected: refusal message; draft keeps all four on screen, the saved record still holds three.
 5. **[OPERATOR-ONLY]** Set `CONSTRUCTA_CASE_LIBRARY=1` on the target, redeploy, record the deployed SHA.
-6. **Library path.** **[ROB]** Open the case-study library, create a case study, add up to three photos, save, reload. Expected: photos persist and display; a fourth is refused or not offered; deleting a photo removes it.
-7. **[ROB]** Tick that library case study on a draft proposal and view the proposal preview. Expected: the case study and its photos appear. Remove the env var and confirm a saved library tick still resolves (it is meant to ignore the switch).
+6. **Library path.** **[ROB]** Open the case-study library, create a case study, add up to three photos, save, reload. Expected: photos persist and display; a fourth is refused or not offered.
+7. **[ROB]** Tick that library case study on a draft proposal and view the proposal preview. Expected: the case study and its photos appear. A separate approved gate-off check can confirm a saved library selection still resolves.
 8. **AI enhancement.** Not exercised. Record NOT_RUN with the reason: off in source.
 
 ### Expected result

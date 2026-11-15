@@ -69,18 +69,23 @@ interface Props {
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
-const PHASE_COLORS = [
-    { key: "blue",    bg: "bg-blue-500" },
-    { key: "emerald", bg: "bg-emerald-500" },
-    { key: "orange",  bg: "bg-orange-500" },
-    { key: "purple",  bg: "bg-purple-500" },
-    { key: "red",     bg: "bg-red-500" },
-    { key: "teal",    bg: "bg-teal-500" },
-    { key: "indigo",  bg: "bg-indigo-500" },
-    { key: "pink",    bg: "bg-pink-500" },
-    { key: "yellow",  bg: "bg-yellow-500" },
-    { key: "cyan",    bg: "bg-cyan-500" },
-];
+// Colour says something about a stage, not which row it sits on. Tones reuse
+// facts the planner already shows (saved % complete, the "Check days" flag) and
+// add no new status rule; the critical-path ring is separate. The hex values are
+// the programme sage tokens (--overview-bar dark/light, --overview-bar-ink in
+// programme.module.css), written as literal classes so Tailwind generates them.
+type ActivityTone = "planned" | "complete" | "check";
+const ACTIVITY_TONES: Record<ActivityTone, { label: string; dot: string; bar: string; tick: string; grip: string; progress: string }> = {
+    planned:  { label: "Planned",       dot: "bg-[#83b89a]", bar: "bg-[#83b89a] text-[#10291b]",                                          tick: "border-[#10291b]/70", grip: "bg-[#10291b]/50", progress: "bg-[#10291b]/45" },
+    complete: { label: "Complete",      dot: "bg-[#315c49]", bar: "bg-[#315c49] border border-[#83b89a]/40 text-white",                   tick: "border-white/80",     grip: "bg-white/50",     progress: "bg-white/40" },
+    check:    { label: "Days to check", dot: "bg-amber-400", bar: "bg-amber-500/20 border border-dashed border-amber-400 text-amber-100", tick: "border-amber-200/80", grip: "bg-amber-200/60", progress: "bg-amber-200/60" },
+};
+const TONE_ORDER: ActivityTone[] = ["planned", "complete", "check"];
+
+function activityTone(phase: Phase, needsCheck: boolean): ActivityTone {
+    if (needsCheck) return "check";
+    return (phase.pct_complete ?? 0) >= 100 ? "complete" : "planned";
+}
 
 const ROW_H  = 52;
 const BAR_H  = 30;
@@ -398,6 +403,9 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
         });
         return s;
     })();
+
+    const toneOf = (phase: Phase, index: number) => ACTIVITY_TONES[activityTone(phase, reviewStages.includes(index))];
+    const tonesInUse = new Set(phases.map((phase, index) => activityTone(phase, reviewStages.includes(index))));
 
     // Label the whole axis with bounded calendar-week groups, always starting Monday.
     const weekHeaders = useMemo(
@@ -748,6 +756,16 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                     {weekHeaders[0].weeks > 1 && (
                         <span>Grid columns group up to {weekHeaders[0].weeks} calendar weeks; the last column may be shorter. Weekly move and resize snapping is unchanged.</span>
                     )}
+                    {tonesInUse.size > 1 && (
+                        <span data-planner-legend className="flex items-center gap-3">
+                            {TONE_ORDER.filter(tone => tonesInUse.has(tone)).map(tone => (
+                                <span key={tone} className="flex items-center gap-1.5">
+                                    <span className={`h-2 w-2 rounded-full ${ACTIVITY_TONES[tone].dot}`} />
+                                    {ACTIVITY_TONES[tone].label}
+                                </span>
+                            ))}
+                        </span>
+                    )}
                     {criticalSet.size > 0 && <span className="text-yellow-500/80">★ Critical path</span>}
                     {phases.some((p) => (p.dependsOn || []).length > 0) && (
                         <span className="text-amber-500/70">⟶ Dependencies shown</span>
@@ -798,21 +816,25 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
             {/* ── Gantt ── */}
             {phases.length > 0 && (
-                <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-x-auto">
+                // Desktop (lg+): a long programme scrolls inside the card under a fixed header, and the
+                // stage columns stay in view while the timeline scrolls sideways. Below lg nothing changes.
+                <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-x-auto lg:max-h-[75vh]">
 
                     {/* Column headers */}
-                    <div className="flex min-w-[900px] border-b border-slate-700/50 bg-slate-900/40">
-                        <div className="w-[216px] shrink-0 border-r border-slate-700/50 px-3 py-2.5">
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Phase / Trade</span>
-                        </div>
-                        <div className="w-14 shrink-0 border-r border-slate-700/50 text-center py-2.5">
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Calc</span>
-                        </div>
-                        <div className="w-16 shrink-0 border-r border-slate-700/50 text-center py-2.5">
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Days</span>
-                        </div>
-                        <div className="w-[108px] shrink-0 border-r border-slate-700/50 text-center py-2.5">
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Starts After</span>
+                    <div className="flex min-w-[900px] border-b border-slate-700/50 bg-slate-900/40 lg:sticky lg:top-0 lg:z-40 lg:bg-slate-900">
+                        <div className="flex shrink-0 lg:sticky lg:left-0 lg:z-10 lg:bg-slate-900">
+                            <div className="w-[216px] shrink-0 border-r border-slate-700/50 px-3 py-2.5">
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Phase / Trade</span>
+                            </div>
+                            <div className="w-14 shrink-0 border-r border-slate-700/50 text-center py-2.5">
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Calc</span>
+                            </div>
+                            <div className="w-16 shrink-0 border-r border-slate-700/50 text-center py-2.5">
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Days</span>
+                            </div>
+                            <div className="w-[108px] shrink-0 border-r border-slate-700/50 text-center py-2.5">
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Starts After</span>
+                            </div>
                         </div>
                         <div className="flex-1 flex">
                             {weekHeaders.map(wk => (
@@ -836,7 +858,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                     <div className="flex min-w-[900px]">
 
                         {/* Left panel */}
-                        <div className="shrink-0 border-r border-slate-700/50">
+                        <div className="shrink-0 border-r border-slate-700/50 lg:sticky lg:left-0 lg:z-30 lg:bg-slate-900">
                             {phases.map((phase, idx) => {
                                 const workingDur = phase.manualDays ?? phase.calculatedDays;
                                 const calDur     = toCalendarDays(workingDur, daysPerWeek);
@@ -844,7 +866,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                 const phaseStart = displayStage ? new Date(displayStage.start_date + "T00:00:00") : addDays(programmeStart, phase.startOffset);
                                 const phaseEnd   = displayStage ? new Date(displayStage.end_date + "T00:00:00") : addDays(programmeStart, phase.startOffset + calDur);
                                 const isCritical = criticalSet.has(idx);
-                                const colorDef   = PHASE_COLORS[idx % PHASE_COLORS.length];
+                                const tone       = toneOf(phase, idx);
                                 const predIdx    = phase.dependsOn?.[0];
 
                                 return (
@@ -853,7 +875,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                         {/* Name + dates */}
                                         <div className="w-[216px] px-3 flex flex-col justify-center border-r border-slate-700/30">
                                             <div className="flex items-center gap-1.5">
-                                                <div className={`w-2 h-2 rounded-full shrink-0 ${colorDef.bg}${isCritical ? " ring-1 ring-offset-1 ring-offset-slate-900 ring-yellow-400" : ""}`} />
+                                                <div className={`w-2 h-2 rounded-full shrink-0 ${tone.dot}${isCritical ? " ring-1 ring-offset-1 ring-offset-slate-900 ring-yellow-400" : ""}`} />
                                                 <input
                                                     className="flex-1 min-w-0 font-medium text-sm text-slate-100 bg-transparent border-b border-transparent hover:border-slate-600 focus:border-slate-500 outline-none truncate"
                                                     value={phase.name}
@@ -972,7 +994,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                 const workingDur  = phase.manualDays ?? phase.calculatedDays;
                                 const barLeftPct  = (barSpans[idx].startOffset / axisDays) * 100;
                                 const barWidthPct = (barSpans[idx].calendarDays / axisDays) * 100;
-                                const colorDef    = PHASE_COLORS[idx % PHASE_COLORS.length];
+                                const tone        = toneOf(phase, idx);
                                 const isCritical  = criticalSet.has(idx);
                                 const isActive    = isDragging && dragStateRef.current?.phaseIndex === idx;
 
@@ -989,24 +1011,24 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                     >
                                         <div data-planner-duration={idx} className={[
                                             "relative h-full w-full min-w-0 rounded-md overflow-hidden",
-                                            colorDef.bg,
+                                            tone.bar,
                                             isCritical ? "ring-2 ring-yellow-400 ring-offset-1 ring-offset-slate-900" : "",
                                             isActive ? "opacity-80 shadow-xl" : "opacity-90 hover:opacity-100 shadow-sm",
                                         ].join(" ")}>
                                             {/* % complete overlay */}
                                             {(phase.pct_complete ?? 0) > 0 && (
                                                 <div
-                                                    className="absolute bottom-0 left-0 h-1.5 bg-white/40 rounded-b-md"
+                                                    className={`absolute bottom-0 left-0 h-1.5 rounded-b-md ${tone.progress}`}
                                                     style={{ width: `${phase.pct_complete}%` }}
                                                 />
                                             )}
-                                            <span className="absolute inset-0 flex items-center pl-2 pr-4 text-white text-[10px] font-semibold truncate select-none pointer-events-none">
+                                            <span className="absolute inset-0 flex items-center pl-2 pr-4 text-[10px] font-semibold truncate select-none pointer-events-none">
                                                 {(phase.pct_complete ?? 0) > 0 ? `${phase.pct_complete}%` : `${workingDur}d`}
                                             </span>
                                         </div>
                                         {/* Interaction area and start tick never stretch the duration fill. */}
                                         <div data-planner-start-marker={idx} aria-hidden="true"
-                                            className="absolute left-0 top-0 bottom-0 border-l border-white/80 pointer-events-none" />
+                                            className={`absolute left-0 top-0 bottom-0 border-l pointer-events-none ${tone.tick}`} />
                                         <div data-planner-move-target={idx}
                                             className="absolute inset-0 z-10"
                                             style={{ minWidth: 24 }}
@@ -1020,8 +1042,8 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                                 handleBarMouseDown(e as unknown as React.MouseEvent, idx, "resize");
                                             }}
                                         >
-                                            <div className="w-px h-3 bg-white/50 rounded-full" />
-                                            <div className="w-px h-3 bg-white/50 rounded-full" />
+                                            <div className={`w-px h-3 rounded-full ${tone.grip}`} />
+                                            <div className={`w-px h-3 rounded-full ${tone.grip}`} />
                                         </div>
                                     </div>
                                 );
@@ -1087,6 +1109,7 @@ function LiveTrackingPanel({
     const overallPct = phases.length > 0
         ? Math.round(phases.reduce((s, p) => s + (p.pct_complete ?? 0), 0) / phases.length)
         : 0;
+    const reviewStages = plannerReviewStageIndexes(phases);
     const complete = phases.filter(p => (p.pct_complete ?? 0) === 100).length;
     const inProgress = phases.filter(p => (p.pct_complete ?? 0) > 0 && (p.pct_complete ?? 0) < 100).length;
     // The chart and tracking share the saved calendar and inclusive finish.
@@ -1184,13 +1207,14 @@ function LiveTrackingPanel({
                                     ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
                                     : "bg-slate-700/30 border-slate-600/30 text-slate-500";
 
-                        const colorDef = ["bg-blue-500","bg-emerald-500","bg-orange-500","bg-purple-500","bg-red-500","bg-teal-500","bg-indigo-500","bg-pink-500","bg-yellow-500","bg-cyan-500"];
+                        // The same tone as this stage's bar on the chart.
+                        const tone = ACTIVITY_TONES[activityTone(phase, reviewStages.includes(idx))];
 
                         return (
                             <tr key={idx} className={`border-b border-slate-700/30 hover:bg-slate-700/10 transition-colors ${idx === phases.length - 1 ? "border-0" : ""}`}>
                                 <td className="px-4 py-3">
                                     <div className="flex items-center gap-2">
-                                        <div className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${colorDef[idx % colorDef.length]}`} />
+                                        <div className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${tone.dot}`} />
                                         <span className="text-sm font-semibold text-slate-100">{phase.name}</span>
                                     </div>
                                 </td>

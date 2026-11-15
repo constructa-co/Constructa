@@ -15,6 +15,7 @@ import {
     MAX_WORKING_DAYS,
     MIN_STAGES,
     PROGRAMME_SAVE_ERROR,
+    PROGRAMME_STALE_ERROR,
     buildProgrammePhases,
     type SimpleProgrammeInput,
     type ProgrammeSaveResult,
@@ -47,6 +48,11 @@ const SimpleProgrammeSchema = z.object({
     timeBasis: z.literal("relative").optional(),
     workingPattern: WorkingPatternSchema.optional(),
     expectedWorkingPattern: WorkingPatternSchema.nullable().optional(),
+    expectedProgramme: z.object({
+        programme_phases: z.array(z.unknown()).nullable(),
+        start_date: z.string().nullable(),
+        updated_at: z.string().nullable().optional(),
+    }).strict().optional(),
     startDate: z.union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.literal("")]),
     stages: z.array(z.object({
         name: z.string().trim().min(1).max(MAX_STAGE_NAME_LENGTH),
@@ -67,7 +73,7 @@ const SimpleProgrammeSchema = z.object({
 export async function saveSimpleProgrammeAction(projectId: string, input: SimpleProgrammeInput): Promise<ProgrammeSaveResult> {
     const parsed = SimpleProgrammeSchema.safeParse({ projectId, ...input });
     if (!parsed.success) return { success: false, error: "Check the start date and durations, then save again." };
-    const { startDate, stages, timeBasis, workingPattern, expectedWorkingPattern } = parsed.data;
+    const { startDate, stages, timeBasis, workingPattern, expectedWorkingPattern, expectedProgramme } = parsed.data;
     const changesPattern = workingPattern !== undefined;
     if (changesPattern && expectedWorkingPattern === undefined) return { success: false, error: PROGRAMME_SAVE_ERROR };
 
@@ -97,6 +103,14 @@ export async function saveSimpleProgrammeAction(projectId: string, input: Simple
         console.error("saveSimpleProgrammeAction read failed", { projectId: parsed.data.projectId, code: readError?.code });
         return { success: false, error: PROGRAMME_SAVE_ERROR };
     }
+    // A change worked out from an older copy of the programme is refused before
+    // anything is built, so it cannot replace what is stored now.
+    const expectedUpdatedAt = expectedProgramme?.updated_at;
+    if (expectedProgramme && (
+        !isDeepStrictEqual(project.programme_phases ?? null, expectedProgramme.programme_phases)
+        || (project.start_date ?? null) !== expectedProgramme.start_date
+        || (expectedUpdatedAt !== undefined && (project.updated_at ?? null) !== expectedUpdatedAt)
+    )) return { success: false, error: PROGRAMME_STALE_ERROR, stale: true };
     if (readProgrammeInclusion(project.programme_phases).intent !== "include") {
         return { success: false, error: "Include the programme before editing its activities." };
     }
@@ -130,11 +144,25 @@ export async function saveSimpleProgrammeAction(projectId: string, input: Simple
         : update.eq("programme_phases", JSON.stringify(project.programme_phases));
     if (hasPatternColumn) update = project.programme_working_pattern == null ? update.is("programme_working_pattern", null)
         : update.eq("programme_working_pattern", JSON.stringify(project.programme_working_pattern));
-    const { data: returnedRow, error } = await update.select(changesPattern ? "id,programme_phases,programme_working_pattern,start_date" : "id").single();
+    // The write itself repeats the checks, so an edit landing between the read
+    // above and this update matches no row and nothing is written.
+    if (expectedProgramme) {
+        update = project.start_date == null ? update.is("start_date", null) : update.eq("start_date", project.start_date);
+        if (expectedUpdatedAt !== undefined) update = project.updated_at == null ? update.is("updated_at", null) : update.eq("updated_at", project.updated_at);
+    }
+    // A save bound to a snapshot hands back the snapshot it produced, so the page
+    // binds its next save to what is stored now rather than to what it loaded.
+    const returnsSnapshot = changesPattern || expectedProgramme !== undefined;
+    const hasUpdatedAtColumn = Object.hasOwn(project, "updated_at");
+    const snapshotColumns = ["id", "programme_phases", "start_date",
+        ...(hasPatternColumn ? ["programme_working_pattern"] : []), ...(hasUpdatedAtColumn ? ["updated_at"] : [])].join(",");
+    const { data: returnedRow, error } = await update.select(returnsSnapshot ? snapshotColumns : "id").single();
     const row: unknown = returnedRow;
     const saved = row && typeof row === "object" && !Array.isArray(row) ? row as Record<string, unknown> : null;
     if (error || !saved) {
         console.error("saveSimpleProgrammeAction update failed", { projectId: parsed.data.projectId, code: error?.code });
+        // No row matched: the guarded write lost to an edit made after the read.
+        if (expectedProgramme && error?.code === "PGRST116") return { success: false, error: PROGRAMME_STALE_ERROR, stale: true };
         return { success: false, error: PROGRAMME_SAVE_ERROR };
     }
     const savedPhases = Array.isArray(saved.programme_phases) ? saved.programme_phases : null;
@@ -146,9 +174,11 @@ export async function saveSimpleProgrammeAction(projectId: string, input: Simple
 
     revalidatePath("/dashboard/projects/schedule");
     revalidatePath("/dashboard/projects/proposal");
-    return changesPattern ? { success: true, confirmedProject: {
+    if (!returnsSnapshot) return { success: true };
+    return { success: true, confirmedProject: {
         programme_phases: savedPhases,
-        programme_working_pattern: workingPattern,
+        ...(changesPattern ? { programme_working_pattern: workingPattern } : {}),
         start_date: typeof saved.start_date === "string" ? saved.start_date : null,
-    } } : { success: true };
+        ...(hasUpdatedAtColumn ? { updated_at: typeof saved.updated_at === "string" ? saved.updated_at : null } : {}),
+    } };
 }

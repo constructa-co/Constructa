@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Analytics } from '@vercel/analytics/next';
 import {
-  PUBLIC_PAGEVIEW_MEASUREMENT_ENABLED,
+  isPublicPageviewMeasurementEnabled,
   filterPageviewEvent,
   hasSignedInSessionCookie,
   isPublicMeasurementRoute,
@@ -25,7 +25,7 @@ export default function PublicAnalytics() {
     setSignedOut(!hasSignedInSessionCookie(document.cookie));
   }, [pathname]);
 
-  if (!PUBLIC_PAGEVIEW_MEASUREMENT_ENABLED || !signedOut) return null;
+  if (!isPublicPageviewMeasurementEnabled() || !signedOut) return null;
   if (!pathname || !isPublicMeasurementRoute(pathname)) return null;
 
   return (

@@ -134,12 +134,14 @@ export function dispatchPublicMeasurementEvent<E extends PublicMeasurementEventN
 }
 
 /**
- * Vercel Web Analytics page views (A097). Separate from the custom-event flag
- * above: this only lets `<Analytics>` count page views on explicit public
- * routes. Custom events stay inert. Set to false to remove all page-view
- * collection without touching any other code.
+ * Vercel Web Analytics page views (A097 D12). Separate from the custom-event
+ * flag above. Default-off: existing deploys collect nothing unless both this
+ * opt-in (`NEXT_PUBLIC_CONSTRUCTA_VERCEL_WEB_ANALYTICS=1` at build time) and
+ * the Vercel project Web Analytics setting are enabled later.
  */
-export const PUBLIC_PAGEVIEW_MEASUREMENT_ENABLED = true;
+export function isPublicPageviewMeasurementEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_CONSTRUCTA_VERCEL_WEB_ANALYTICS === "1";
+}
 
 /**
  * True when a browser cookie header carries a Supabase session cookie
@@ -176,7 +178,7 @@ export function filterPageviewEvent<T extends { url: string }>(
   event: T,
   cookieHeader: string,
 ): T | null {
-  if (!PUBLIC_PAGEVIEW_MEASUREMENT_ENABLED) return null;
+  if (!isPublicPageviewMeasurementEnabled()) return null;
   if (hasSignedInSessionCookie(cookieHeader)) return null;
   const url = sanitizePageviewUrl(event.url);
   return url ? { ...event, url } : null;

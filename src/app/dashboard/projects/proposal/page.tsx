@@ -5,6 +5,7 @@ import ProjectNavBar from "@/components/project-navbar";
 import ProjectEntry from "@/components/project-entry";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import type { ProposalPublicationEstimateInput } from "@/lib/proposal-publication";
+import { isProposalCoverPhotoEnabled } from "@/lib/proposal-cover-photo";
 import ReviewSendClient, { type CaseStudyOption } from "./review-send-client";
 import { caseLibraryEnabled } from "@/lib/case-library/gate";
 import { readProposalLibrary } from "@/lib/case-library/proposal-read";
@@ -113,6 +114,7 @@ export default async function ProposalPage(props: { searchParams: Promise<{ proj
                 lockReason={getPrecontractEditLockReason(project)}
                 estimateIssue={estimateIssue}
                 publications={history}
+                coverPhotoEnabled={isProposalCoverPhotoEnabled()}
             />
         </DashboardRouteShell>
     );

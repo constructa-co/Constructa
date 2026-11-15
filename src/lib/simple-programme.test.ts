@@ -304,6 +304,50 @@ describe("saving", () => {
         await saveProgramme(store, vi.fn().mockResolvedValue({ success: true }));
         expect(store.getState().draft.stages.map((s) => s.source)).toEqual([0, 1, 2]);
     });
+
+    describe("bound to the stored programme the draft was opened from", () => {
+        const phases = [{ name: "Strip out", manualDays: 5, startOffset: 0 }];
+        const opened = { programme_phases: phases, start_date: MONDAY, updated_at: "t1" };
+        const confirmedProject = { programme_phases: [...phases, { name: "Added", manualDays: 5, startOffset: 7 }], start_date: MONDAY, updated_at: "t2" };
+
+        it("sends that snapshot's phases, start date and updated_at with the stages", async () => {
+            const store = storeFor(initialProgrammeState(staged, true, opened));
+            const save = vi.fn<SaveProgramme>().mockResolvedValue({ success: true });
+            await saveProgramme(store, save);
+            expect(save.mock.calls[0][0].expectedProgramme).toEqual(opened);
+        });
+
+        it("sends nothing extra for a draft that was not opened from a stored project", async () => {
+            const save = vi.fn<SaveProgramme>().mockResolvedValue({ success: true });
+            await saveProgramme(storeFor(initialProgrammeState(staged, false)), save);
+            expect(save.mock.calls[0][0]).not.toHaveProperty("expectedProgramme");
+        });
+
+        it("keeps sending the old snapshot until a save confirms a new one, so a stale save stays refusable", async () => {
+            const store = storeFor(initialProgrammeState(staged, true, opened));
+            const save = vi.fn<SaveProgramme>()
+                .mockResolvedValueOnce({ success: false, error: "x", stale: true })
+                .mockResolvedValueOnce({ success: true, confirmedProject })
+                .mockResolvedValueOnce({ success: true });
+            await saveProgramme(store, save);
+            expect(store.getState().opened).toEqual(opened);
+            store.dispatch({ type: "field/change", patch: { startDate: "2026-10-19" } });
+            await saveProgramme(store, save);
+            expect(save.mock.calls[1][0].expectedProgramme).toEqual(opened);
+            // The confirmed snapshot is what the next save is bound to.
+            const confirmed = { programme_phases: confirmedProject.programme_phases, start_date: MONDAY, updated_at: "t2" };
+            expect(store.getState().opened).toEqual(confirmed);
+            store.dispatch({ type: "field/change", patch: { startDate: MONDAY } });
+            await saveProgramme(store, save);
+            expect(save.mock.calls[2][0].expectedProgramme).toEqual(confirmed);
+        });
+
+        it("drops the snapshot when a save does not confirm the stored programme, rather than resending a stale one", async () => {
+            const store = storeFor(initialProgrammeState(staged, true, opened));
+            await saveProgramme(store, vi.fn<SaveProgramme>().mockResolvedValue({ success: true }));
+            expect(store.getState()).not.toHaveProperty("opened");
+        });
+    });
 });
 
 describe("continuing to the proposal", () => {

@@ -4,6 +4,12 @@ import { computeDisplayProgramme, hasRelativeProgramme, RELATIVE_PROGRAMME_BASIS
 import { readProgrammeInclusion } from "@/lib/programme-inclusion";
 import { isProposalResponseKind, responseWording, type ProposalResponseKind } from "@/lib/proposal-response";
 import { resolveSelectedCaseStudies, type LibraryRow } from "@/lib/case-library/resolve";
+import {
+    isProposalCoverPhotoEnabled,
+    parseProposalCoverPhotoChoice,
+    resolveProposalCoverPhoto,
+    type ProposalCoverPhoto,
+} from "@/lib/proposal-cover-photo";
 
 /** Said when a chosen past job cannot be sent. The proposal is not published short of it. */
 export const CASE_STUDY_UNSENDABLE_ERROR = "One of the past jobs you chose can't be sent. Untick it under Relevant experience, or fix it in Case Studies, then check the proposal again.";
@@ -34,6 +40,7 @@ export interface ProposalPublicationProjectInput {
     programme_working_pattern?: unknown;
     payment_schedule?: unknown[] | null;
     site_photos?: unknown[] | null;
+    proposal_cover_photo?: string | null;
     selected_case_study_ids?: unknown[] | null;
 }
 
@@ -212,6 +219,8 @@ export interface ProposalPublicationSnapshot {
     };
     case_studies?: ProposalCaseStudy[];
     photos?: ProposalPhoto[];
+    /** Absent on older publications and when no cover is chosen. */
+    cover_photo?: ProposalCoverPhoto;
 }
 
 export const PROGRAMME_REQUIRED_ERROR = "A start date and how long the job takes are required before send.";
@@ -558,6 +567,21 @@ export function buildProposalPublicationSnapshot(
         },
         case_studies: chosenCaseStudies.studies,
         photos: sanitisePhotos(input.project.site_photos),
+        ...(isProposalCoverPhotoEnabled()
+            ? ((): { cover_photo?: ProposalCoverPhoto } => {
+                const photos = sanitisePhotos(input.project.site_photos);
+                const cover = resolveProposalCoverPhoto(
+                    parseProposalCoverPhotoChoice(input.project.proposal_cover_photo),
+                    photos,
+                );
+                if (!cover) return {};
+                if (cover.kind === "site") {
+                    const url = safeImageUrl(cover.url);
+                    return url ? { cover_photo: { ...cover, url } } : {};
+                }
+                return { cover_photo: cover };
+            })()
+            : {}),
     };
 
     assertProposalPublicationIsClientSafe(snapshot);

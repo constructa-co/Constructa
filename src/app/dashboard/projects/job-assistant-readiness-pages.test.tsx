@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // CQ-2210: the three real pages over the real activation point and ledger, with
 // only the database answers and the page clients stood in for.
 const mocks = vi.hoisted(() => ({ createClient: vi.fn(), createAdminClient: vi.fn(), redirect: vi.fn() }));
-vi.mock("react", async original => ({ ...await original<typeof import("react")>(), useId: () => "panel-test", useSyncExternalStore: (_subscribe: unknown, read: () => unknown) => read() }));
+vi.mock("react", async original => ({ ...await original<typeof import("react")>(), useRef: (current: unknown) => ({ current }), useId: () => "panel-test", useSyncExternalStore: (_subscribe: unknown, read: () => unknown) => read() }));
 vi.mock("server-only", () => ({}));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));

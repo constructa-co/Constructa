@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({ pathname: "/" as string | null, signedOut: true }));
 
@@ -21,9 +21,21 @@ function render(pathname: string | null, signedOut = true) {
   return PublicAnalytics() as { type: unknown; props: { beforeSend: (e: { type: string; url: string }) => unknown } } | null;
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
 
 describe("PublicAnalytics mount gating", () => {
+  it("renders nothing when page-view activation is default-off", () => {
+    expect(render("/pricing")).toBeNull();
+  });
+
+  describe("with NEXT_PUBLIC_CONSTRUCTA_VERCEL_WEB_ANALYTICS=1", () => {
+    beforeEach(() => {
+      vi.stubEnv("NEXT_PUBLIC_CONSTRUCTA_VERCEL_WEB_ANALYTICS", "1");
+    });
+
   it.each(["/", "/landing", "/pricing", "/guides/site-surveys", "/apply"])(
     "mounts Vercel Web Analytics on public route %s", (pathname) => {
       expect(render(pathname)?.type).toBe("vercel-analytics-stub");
@@ -56,5 +68,6 @@ describe("PublicAnalytics mount gating", () => {
 
     vi.stubGlobal("document", { cookie: "sb-abcdefghij-auth-token=value" });
     expect(send({ type: "pageview", url: "https://www.constructa.co/pricing" })).toBeNull();
+  });
   });
 });

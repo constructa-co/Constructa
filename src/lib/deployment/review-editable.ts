@@ -1,3 +1,4 @@
+import { isProposalCoverPhotoEnabled } from "@/lib/proposal-cover-photo";
 import { REVIEW_ORIGIN, REVIEW_USER } from "./review-policy";
 
 export const REVIEW_JOBS = ["5e96e56c-8287-4f3a-960d-b6fd1d085884", "de80fa98-8ec2-4e6b-a64e-9c4f0a8a83d1"];
@@ -6,10 +7,16 @@ const routes = new Set(["/dashboard/projects/costs", "/dashboard/projects/schedu
 export const editablePage = (method: string, pathname: string) => method === "POST" && routes.has(pathname);
 type Row = Record<string, unknown>;
 export type ReviewLookup = (table: "projects" | "estimates" | "estimate_lines" | "estimate_line_components", id: string) => Promise<Row | null>;
-const projectFields = new Set([
+const PROJECT_FIELDS_BASE = [
   "programme_phases", "start_date", "proposal_introduction", "scope_text", "exclusions_text", "clarifications_text",
   "closing_statement", "validity_days", "site_photos", "selected_case_study_ids", "tc_overrides", "payment_schedule", "status",
-]);
+] as const;
+
+function projectFields(): Set<string> {
+  const fields = new Set<string>(PROJECT_FIELDS_BASE);
+  if (isProposalCoverPhotoEnabled()) fields.add("proposal_cover_photo");
+  return fields;
+}
 const estimateFields = new Set(["project_id", "version_name", "overhead_pct", "profit_pct", "risk_pct", "prelims_pct", "is_active", "total_cost", "manual_duration_days"]);
 const lineFields = new Set(["estimate_id", "trade_section", "description", "quantity", "unit", "unit_rate", "line_total", "line_type", "cost_library_item_id", "mom_item_code", "notes"]);
 const componentFields = new Set(["estimate_line_id", "component_type", "description", "quantity", "unit", "unit_rate", "manhours_per_unit", "sort_order"]);
@@ -51,7 +58,7 @@ export async function assertEditableReviewFetch(request: Request, lookup: Review
     return row;
   };
   const table = url.pathname.slice("/rest/v1/".length);
-  const allowed = table === "projects" ? projectFields : table === "estimates" ? estimateFields : table === "estimate_lines" ? lineFields : table === "estimate_line_components" ? componentFields : null;
+  const allowed = table === "projects" ? projectFields() : table === "estimates" ? estimateFields : table === "estimate_lines" ? lineFields : table === "estimate_line_components" ? componentFields : null;
   if (!url.pathname.startsWith("/rest/v1/") || !allowed || Object.keys(payload).some(k => !allowed.has(k))) refuse();
   if (request.method === "PATCH" && ["project_id", "estimate_id", "estimate_line_id", "component_type"].some(k => k in payload)) refuse();
   if (table === "projects") {

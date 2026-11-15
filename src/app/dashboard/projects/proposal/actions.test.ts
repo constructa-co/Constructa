@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { PROPOSAL_COVER_PHOTO_ENV } from "@/lib/proposal-cover-photo";
 import { fakeSupabase } from "@/lib/__fixtures__/fake-supabase";
 import { representativeInput } from "@/lib/__fixtures__/proposal";
 
@@ -117,6 +118,7 @@ const payload: ProposalDraftPayload = {
     clarifications: "",
     closing: "",
     validityDays: 21,
+    coverPhoto: null,
     paymentSchedule: [{ id: "p1", stage: "Deposit", description: "On booking", percentage: 30 }],
     photos: [{ url: "https://images.example.test/a.jpg", caption: "Before" }],
     caseStudyIds: ["cs-1"],
@@ -131,7 +133,31 @@ beforeEach(() => {
     vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://app.example.test");
 });
 
+afterEach(() => {
+    vi.unstubAllEnvs();
+});
+
 describe("saveProposalDraftAction", () => {
+    it("does not write proposal_cover_photo while the rollout gate is off (pre-migration)", async () => {
+        vi.stubEnv(PROPOSAL_COVER_PHOTO_ENV, "");
+        const { db } = setup();
+        await expect(saveProposalDraftAction(PROJECT_ID, {
+            ...payload,
+            coverPhoto: "illustrative_render",
+        })).resolves.toEqual({ success: true });
+        expect(db.updates[0].values).not.toHaveProperty("proposal_cover_photo");
+    });
+
+    it("persists proposal_cover_photo only after the rollout gate is on", async () => {
+        vi.stubEnv(PROPOSAL_COVER_PHOTO_ENV, "1");
+        const { db } = setup();
+        await expect(saveProposalDraftAction(PROJECT_ID, {
+            ...payload,
+            coverPhoto: "illustrative_render",
+        })).resolves.toEqual({ success: true });
+        expect(db.updates[0].values.proposal_cover_photo).toBe("illustrative_render");
+    });
+
     it("saves the contractor's wording and choices in one owner-scoped update", async () => {
         const { db } = setup();
         await expect(saveProposalDraftAction(PROJECT_ID, payload)).resolves.toEqual({ success: true });

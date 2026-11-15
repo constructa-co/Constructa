@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   PUBLIC_MEASUREMENT_COLLECTION_ENABLED,
   __setPublicMeasurementTestSink,
@@ -6,6 +6,7 @@ import {
   filterPageviewEvent,
   hasSignedInSessionCookie,
   isPublicMeasurementRoute,
+  isPublicPageviewMeasurementEnabled,
   trackContactFormSubmitAccepted,
   trackTryConstructaClick,
   trackWaitlistSubmitAttempt,
@@ -171,8 +172,32 @@ describe("A097 offline evidence boundaries", () => {
   });
 });
 
+describe("A097 D12 Vercel Web Analytics activation", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("is default-off unless NEXT_PUBLIC_CONSTRUCTA_VERCEL_WEB_ANALYTICS is exactly 1", () => {
+    expect(isPublicPageviewMeasurementEnabled()).toBe(false);
+    vi.stubEnv("NEXT_PUBLIC_CONSTRUCTA_VERCEL_WEB_ANALYTICS", "true");
+    expect(isPublicPageviewMeasurementEnabled()).toBe(false);
+    vi.stubEnv("NEXT_PUBLIC_CONSTRUCTA_VERCEL_WEB_ANALYTICS", "1");
+    expect(isPublicPageviewMeasurementEnabled()).toBe(true);
+  });
+});
+
 describe("A097 Vercel Web Analytics page-view filter", () => {
+  beforeEach(() => {
+    vi.stubEnv("NEXT_PUBLIC_CONSTRUCTA_VERCEL_WEB_ANALYTICS", "1");
+  });
+  afterEach(() => vi.unstubAllEnvs());
+
   const view = (url: string) => ({ type: "pageview" as const, url });
+
+  it("cancels every page view while activation is off", () => {
+    vi.unstubAllEnvs();
+    expect(
+      filterPageviewEvent(view("https://www.constructa.co/pricing"), ""),
+    ).toBeNull();
+  });
 
   it("keeps only origin and path on public routes", () => {
     expect(

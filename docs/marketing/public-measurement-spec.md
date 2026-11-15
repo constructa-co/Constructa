@@ -11,7 +11,7 @@
 | `src/lib/public-measurement.ts` | Shared typed event contract and route guard; dispatch is inert in production (test sink only in unit tests) |
 | Marketing handlers | Wired to real UX boundaries on `/` and `/landing` only in this increment |
 | Custom events | **Disabled** (`PUBLIC_MEASUREMENT_COLLECTION_ENABLED = false`). Handlers may call dispatch, but nothing is forwarded to a collector: no `track()`, forwarder, cookies or storage. Unchanged by the page-view work below. |
-| Page views | Vercel Web Analytics via the official `@vercel/analytics` package, mounted by `src/components/public-analytics.tsx` from the root layout. Gated by `PUBLIC_PAGEVIEW_MEASUREMENT_ENABLED` (one-line kill switch). **Partial** until the hosted setting is enabled and a deployed page view is observed. |
+| Page views | Vercel Web Analytics via `@vercel/analytics`, mounted by `src/components/public-analytics.tsx` from the root layout. **Default-off (A097 D12):** nothing mounts unless `NEXT_PUBLIC_CONSTRUCTA_VERCEL_WEB_ANALYTICS=1` at build time. Vercel dashboard Web Analytics remains a separate, later step. |
 
 ## Event definitions (truthful outcomes)
 
@@ -36,8 +36,9 @@ Dispatch and page views run only on explicit public marketing paths (`/`, `/land
 
 ## Vercel Web Analytics page views
 
-Four independent layers; any one of them stops a page view:
+Five independent layers; any one of them stops a page view:
 
+0. **Activation:** `isPublicPageviewMeasurementEnabled()` is false unless `NEXT_PUBLIC_CONSTRUCTA_VERCEL_WEB_ANALYTICS=1` at build time. Unset on every existing deployment → no collector script, no beacons.
 1. **Server:** root layout omits `<PublicAnalytics />` when `CONSTRUCTA_REVIEW_ONLY === '1'`.
 2. **Mount:** the client component renders nothing until after hydration, nothing off `isPublicMeasurementRoute(usePathname())`, and nothing while a Supabase session cookie (`sb-*-auth-token`) is present. It re-evaluates on every route change, so client navigation into the app unmounts it. Only the cookie *name* is inspected.
 3. **Send time:** `beforeSend` (`filterPageviewEvent`) re-checks the cookie and route, then rewrites the URL to origin + path. Query string, fragment and credentials are dropped, so campaign parameters, emails and tokens never leave the browser.

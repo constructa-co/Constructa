@@ -34,6 +34,7 @@ import {
     MAX_PHOTOS,
     PAYMENT_PRESETS,
     REVIEW_STATUS_LABEL,
+    EMAIL_RECIPIENT_CONFIRM_ERROR,
     SEND_BLOCK_MESSAGE,
     TEXT_LIMITS,
     applyCompanyClosingMessage,
@@ -183,6 +184,8 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
     const setDocumentViewOpen = (open: boolean) => setDocumentView({ open, projectId: project.id, lockReason });
     const [termsOpen, setTermsOpen] = useState(false);
     const [deliverByEmail, setDeliverByEmail] = useState(false);
+    const [emailRecipientConfirmed, setEmailRecipientConfirmed] = useState(false);
+    const [retryEmailConfirmed, setRetryEmailConfirmed] = useState(false);
     const [upload, setUpload] = useState<{ busy: boolean; error: string }>({ busy: false, error: "" });
     const [copy, setCopy] = useState("");
     const [companyClosingNote, setCompanyClosingNote] = useState("");
@@ -218,7 +221,9 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
     const previewProblem = !preview && context.estimate && project.name.trim()
         ? ["This draft cannot be previewed. Review the current proposal details and terms.", ...previewTermIssues].join(" ")
         : null;
-    const block = sendBlock(state, readiness);
+    const emailRecipientPending = Boolean(project.client_email && deliverByEmail && !emailRecipientConfirmed);
+    type ReviewSendBlock = ReturnType<typeof sendBlock> | "email-not-confirmed";
+    const block: ReviewSendBlock = sendBlock(state, readiness) ?? (emailRecipientPending ? "email-not-confirmed" : null);
     const current = publications[0] ?? null;
 
     // The check code of the draft on screen: a short fingerprint of everything
@@ -264,22 +269,35 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
         // A proposal that changed under the contractor: reload what it now says.
         if (sendStatus === "published" || sendStatus === "unknown" || (sendStatus === "failed" && sendChanged)) router.refresh();
     }, [sendStatus, sendChanged, router]);
+    useEffect(() => {
+        if (state.published?.delivery.status !== "failed") setRetryEmailConfirmed(false);
+    }, [state.published?.delivery.status]);
 
     const edit = (patch: Partial<ProposalDraft>) => store.dispatch({ type: "draft/change", patch });
     // What the chosen past jobs really come to, by the same resolver publication uses.
     const pastJobs = buildPastJobs({ olderStored: context.profile.case_studies, selected: draft.caseStudyIds, library: context.caseStudyLibrary });
     const handleSave = () => void saveDraft(store, api.save);
-    const handleSend = () => void sendProposal(store, {
-        save: api.save,
-        publish: api.publish,
-        readiness: () => reviewReadiness(context, store.getState().draft),
-        deliverByEmail: deliverByEmail && Boolean(project.client_email),
-        reviewedContent: async () => {
-            const { draft: confirmedDraft, responseKind } = store.getState();
-            const confirmed = buildPreviewSnapshot(context, confirmedDraft, responseKind, previewTime);
-            return confirmed ? hashProposalContent(confirmed) : null;
-        },
-    });
+    const willEmailClient = deliverByEmail && emailRecipientConfirmed && Boolean(project.client_email);
+    const handleSend = () => {
+        if (deliverByEmail && !emailRecipientConfirmed) return;
+        void sendProposal(store, {
+            save: api.save,
+            publish: api.publish,
+            readiness: () => reviewReadiness(context, store.getState().draft),
+            deliverByEmail: willEmailClient,
+            emailRecipientConfirmed: willEmailClient || undefined,
+            reviewedContent: async () => {
+                const { draft: confirmedDraft, responseKind } = store.getState();
+                const confirmed = buildPreviewSnapshot(context, confirmedDraft, responseKind, previewTime);
+                return confirmed ? hashProposalContent(confirmed) : null;
+            },
+        });
+    };
+    const handleRetryEmail = () => {
+        if (!retryEmailConfirmed || !state.published) return;
+        void retryDelivery(store, (input) => api.retry({ ...input, recipientEmailConfirmed: true }));
+        setRetryEmailConfirmed(false);
+    };
 
     // ── Payment stages ───────────────────────────────────────────────────────
 
@@ -1253,7 +1271,11 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                     className="mt-1 w-5 h-5 flex-shrink-0"
                                     checked={deliverByEmail}
                                     disabled={state.send.status === "publishing"}
-                                    onChange={(e) => setDeliverByEmail(e.target.checked)}
+                                    onChange={(e) => {
+                                        const next = e.target.checked;
+                                        setDeliverByEmail(next);
+                                        setEmailRecipientConfirmed(false);
+                                    }}
                                     data-deliver-by-email
                                 />
                                 <span className="min-w-0 break-words">
@@ -1270,6 +1292,28 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                             </div>
                         )}
                     </div>
+
+                    {deliverByEmail && project.client_email && (
+                        <div>
+                            <label className={`flex items-start gap-3 min-h-11 py-1 text-base ${s.body}`}>
+                                <input
+                                    type="checkbox"
+                                    className="mt-1 w-5 h-5 flex-shrink-0"
+                                    checked={emailRecipientConfirmed}
+                                    disabled={state.send.status === "publishing"}
+                                    onChange={(e) => setEmailRecipientConfirmed(e.target.checked)}
+                                    data-email-recipient-confirm
+                                />
+                                <span className="min-w-0 break-words">
+                                    I confirm Constructa should email the proposal link to{" "}
+                                    <strong>{project.client_email}</strong>.
+                                    <span className={`block text-sm ${s.muted} font-normal`}>
+                                        Separate from the preview check below — confirming the preview does not send email by itself.
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+                    )}
 
                     {/* Why sending is not available yet, with the way to fix each thing, right where the controls are. */}
                     {block === "not-ready" && (
@@ -1333,7 +1377,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
 
                     {block && block !== "publishing" && block !== "not-ready" && (
                         <div id="send-block-reason" className={`text-sm ${s.muted}`} data-send-block={block}>
-                            <p>{SEND_BLOCK_MESSAGE[block]}</p>
+                            <p>{block === "email-not-confirmed" ? EMAIL_RECIPIENT_CONFIRM_ERROR : SEND_BLOCK_MESSAGE[block]}</p>
                             {block === "save-failed" && (
                                 <button type="button" onClick={handleSave} className={`${s.quietButton} -ml-3`}>Save now</button>
                             )}
@@ -1390,10 +1434,24 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                             The proposal is published, but the email to {state.published.delivery.email} could not be sent.
                                             Share the link below yourself, or try the email again.
                                         </p>
+                                        <label className={`flex items-start gap-3 min-h-11 py-1 text-base ${s.body}`}>
+                                            <input
+                                                type="checkbox"
+                                                className="mt-1 w-5 h-5 flex-shrink-0"
+                                                checked={retryEmailConfirmed}
+                                                disabled={state.delivery.status === "sending"}
+                                                onChange={(e) => setRetryEmailConfirmed(e.target.checked)}
+                                                data-retry-email-confirm
+                                            />
+                                            <span className="min-w-0 break-words">
+                                                I confirm resending the proposal link to{" "}
+                                                <strong>{state.published.delivery.email}</strong>.
+                                            </span>
+                                        </label>
                                         <button
                                             type="button"
-                                            onClick={() => void retryDelivery(store, api.retry)}
-                                            disabled={state.delivery.status === "sending"}
+                                            onClick={handleRetryEmail}
+                                            disabled={state.delivery.status === "sending" || !retryEmailConfirmed}
                                             className={`${s.secondaryButton} min-h-11 text-sm`}
                                         >
                                             {state.delivery.status === "sending"

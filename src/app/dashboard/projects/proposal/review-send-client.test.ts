@@ -255,6 +255,16 @@ describe("Review and Send", () => {
         const emailOptIn = send.match(/<input[^>]*data-deliver-by-email[^>]*>/)![0];
         expect(emailOptIn).not.toContain("checked");
         expect(send).toContain("Leave unticked to publish a private link only");
+        expect(send).not.toContain("data-email-recipient-confirm");
+    });
+
+    it("keeps preview confirmation and recipient email confirmation as separate controls", () => {
+        const source = readFileSync(path.join(import.meta.dirname, "review-send-client.tsx"), "utf8");
+        expect(source).toContain("data-email-recipient-confirm");
+        expect(source).toContain("data-retry-email-confirm");
+        expect(source).toContain("data-send-confirm");
+        expect(source).toMatch(/deliverByEmail && !emailRecipientConfirmed/);
+        expect(source).toContain("confirming the preview does not send email by itself");
     });
 
     it("offers payment on completion, a deposit and balance, or custom stages, and opens on what is saved", () => {

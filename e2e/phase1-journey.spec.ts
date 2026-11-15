@@ -443,6 +443,7 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
         const publish = async (version: number, options?: { emailClient?: boolean }): Promise<string> => {
             if (options?.emailClient) {
                 await use.check(send.getByRole("checkbox", { name: /Email the link to/ }));
+                await use.check(send.getByRole("checkbox", { name: /confirm Constructa should email the proposal link/i }));
             }
             await use.check(send.getByRole("checkbox", { name: /I have read the preview/ }));
             await use.activate(button(`Send version ${version}`, send));
@@ -573,6 +574,7 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
             if (!keyboardRun) {
                 await expect(send.locator('[data-delivery="failed"]')).toContainText("The proposal is published, but the email");
                 await recorder.checkpoint("published-email-failed", { scope: "main main", focusOn: send.locator('[data-send-result="published"]') });
+                await use.check(send.getByRole("checkbox", { name: /confirm resending the proposal link/i }));
                 await use.activate(button("Try the email again", send));
             }
             await expect(send.locator('[data-delivery="sent"]')).toContainText(JOB.clientEmail);

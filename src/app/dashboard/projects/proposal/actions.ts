@@ -30,6 +30,7 @@ import {
     AI_UNAVAILABLE_ERROR,
     DELIVERY_ERROR,
     DRAFT_SAVE_ERROR,
+    EMAIL_RECIPIENT_CONFIRM_ERROR,
     MAX_PAYMENT_STAGES,
     MAX_PHOTOS,
     MAX_TERMS,
@@ -432,13 +433,21 @@ export type PublishProposalResult =
  */
 export async function publishProposalAction(
     projectId: string,
-    input: { responseKind: ProposalResponseKind; deliverByEmail: boolean; reviewedContent: string },
+    input: {
+        responseKind: ProposalResponseKind;
+        deliverByEmail: boolean;
+        emailRecipientConfirmed?: boolean;
+        reviewedContent: string;
+    },
 ): Promise<PublishProposalResult> {
     if (!z.string().uuid().safeParse(projectId).success || !isProposalResponseKind(input?.responseKind)) {
         return { success: false, error: PUBLISH_ERROR };
     }
     if (typeof input.reviewedContent !== "string" || !/^[a-f0-9]{64}$/.test(input.reviewedContent)) {
         return { success: false, error: REVIEW_CHANGED_ERROR, changed: true };
+    }
+    if (input.deliverByEmail === true && input.emailRecipientConfirmed !== true) {
+        return { success: false, error: EMAIL_RECIPIENT_CONFIRM_ERROR };
     }
     const deliverByEmail = input.deliverByEmail === true;
 
@@ -623,8 +632,11 @@ export async function publishProposalAction(
  */
 export async function retryProposalDeliveryAction(
     projectId: string,
-    input: { publicationId: string; url: string },
+    input: { publicationId: string; url: string; recipientEmailConfirmed?: boolean },
 ): Promise<{ success: true; delivery: DeliveryOutcome } | Failure> {
+    if (input?.recipientEmailConfirmed !== true) {
+        return { success: false, error: EMAIL_RECIPIENT_CONFIRM_ERROR };
+    }
     const token = String(input?.url ?? "").split("/").pop() ?? "";
     if (!z.string().uuid().safeParse(projectId).success || !z.string().uuid().safeParse(input?.publicationId).success) {
         return { success: false, error: DELIVERY_ERROR };

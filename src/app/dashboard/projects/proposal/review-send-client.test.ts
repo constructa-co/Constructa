@@ -303,8 +303,9 @@ describe("Review and Send", () => {
         const pdf = html.slice(html.indexOf("data-presend-pdf"), html.indexOf('id="review-preview"'));
         const button = pdf.match(/<button[^>]*>/)![0];
         expect(button).not.toContain('disabled=""');
-        expect(pdf).toContain("Download this draft as a PDF");
-        expect(pdf).toContain("The PDF your client will get, marked as a draft. Downloading it sends nothing.");
+        expect(pdf).toContain("Download client-ready PDF");
+        expect(pdf).toContain("Download marked draft PDF");
+        expect(pdf).toContain("Download the exact PDF for your client (no draft watermark)");
         // It sits outside the collapsible preview, so it is there when the preview is closed.
         expect(html.indexOf("data-presend-pdf")).toBeLessThan(html.indexOf('id="review-preview"'));
         // With nothing to price there is nothing to draw, and the button says why.

@@ -11,6 +11,7 @@ import {
     listItems,
     paymentRows,
     proposalReference,
+    publicationClientDisplayName,
     textBlocks,
     vatLines,
     vatNote,
@@ -52,6 +53,22 @@ function htmlText(doc: ProposalDocument): string {
 const blocksOf = (doc: ProposalDocument, id: string) => doc.sections.find((section) => section.id === id)?.blocks ?? [];
 const blockOf = <T extends DocBlock["type"]>(doc: ProposalDocument, id: string, type: T) =>
     blocksOf(doc, id).find((block): block is Extract<DocBlock, { type: T }> => block.type === type);
+
+describe("publication client identity", () => {
+    const base = representativeInput().project;
+
+    it("uses only the saved client name and drops job-title or site mistaken for the client", () => {
+        expect(publicationClientDisplayName({ ...base, client_name: "Alex Client" })).toBe("Alex Client");
+        expect(publicationClientDisplayName({ ...base, client_name: base.name })).toBeNull();
+        expect(publicationClientDisplayName({ ...base, client_name: base.site_address! })).toBeNull();
+        const doc = buildProposalDocument(buildProposalPublicationSnapshot({
+            ...representativeInput(),
+            project: { ...base, client_name: base.name },
+        }));
+        expect(doc.clientName).toBeNull();
+        expect(pdfStrings(doc)).not.toContain(`Prepared for ${base.name}`);
+    });
+});
 
 describe("independent site address in the document", () => {
     it.each([null, "", "SITE ONLY - Plot 9\nNo postal address"])("uses only the saved site value %j, never the client's address", (site) => {
@@ -141,7 +158,7 @@ describe("price", () => {
         ]);
         expect(vatNote(snapshot.commercial)).toBeNull();
         const price = blockOf(document, "price", "price")!;
-        expect(price.totals).toEqual(vatLines(snapshot.commercial));
+        expect(price.totals).toEqual(vatLines(snapshot.commercial).slice(0, 2));
         expect(price.groups.map((group) => group.title)).toEqual(["Demolition", "Plumbing", "Finishes"]);
     });
 
@@ -159,7 +176,7 @@ describe("price", () => {
         expect(vatNote(reverse.commercial)).toContain("domestic reverse charge");
         const historic = { ...reverse.commercial, vat_treatment: undefined };
         expect(vatNote(historic)).toBe("No VAT is charged on this proposal.");
-        expect(buildProposalDocument(reverse).keyFacts[0]).toEqual({ label: "Price", value: "£7,552.05" });
+        expect(buildProposalDocument(reverse).keyFacts.map((fact) => fact.label)).not.toContain("Price");
     });
 
     it("makes payment stages add up to the price exactly", () => {
@@ -259,12 +276,14 @@ describe("public page and PDF agree", () => {
     const pdf = pdfStrings(document).replace(/\n/g, " ");
 
     it("state the same price, VAT and totals", () => {
-        for (const line of vatLines(snapshot.commercial)) {
+        const price = blockOf(document, "price", "price")!;
+        for (const line of [...document.keyFacts, ...price.totals]) {
             expect(html).toContain(line.label);
             expect(html).toContain(line.value);
-            expect(pdf).toContain(line.label);
             expect(pdf).toContain(line.value);
+            expect(pdf.toUpperCase()).toContain(line.label.toUpperCase());
         }
+        expect(document.keyFacts.map((fact) => fact.label)).toContain("Price including VAT");
         for (const row of paymentRows(snapshot.commercial)) {
             expect(html).toContain(row.amount);
             expect(pdf).toContain(row.amount);

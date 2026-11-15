@@ -121,6 +121,31 @@ function lines(text: string | null | undefined): string[] {
     return (text ?? "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
 }
 
+/** Collapses newlines so site lines can be compared to a single client name string. */
+function singleLineAddress(value: string | null | undefined): string | null {
+    const trimmed = value?.trim();
+    if (!trimmed) return null;
+    return trimmed.replace(/\s*\n\s*/g, ", ");
+}
+
+/**
+ * The client name shown on the PDF and public proposal.
+ * Uses only the saved client name, and drops values that are just the job
+ * title or the site address mistyped into the client field.
+ */
+export function publicationClientDisplayName(project: {
+    name: string;
+    client_name: string | null;
+    site_address?: string | null;
+}): string | null {
+    const client = project.client_name?.trim();
+    if (!client) return null;
+    if (client === project.name.trim()) return null;
+    const site = singleLineAddress(project.site_address);
+    if (site && client === site) return null;
+    return client;
+}
+
 /** A list field: one item per line, with any typed bullet mark removed. */
 export function listItems(text: string | null | undefined): string[] {
     return lines(text).map((line) => line.replace(BULLET, "").trim()).filter(Boolean);
@@ -320,10 +345,12 @@ function priceSection(snapshot: ProposalPublicationSnapshot): DocSection | null 
     }
     if (groups.length === 1 && groups[0].title === "General") groups[0].title = null;
 
+    const totals = vatLines(commercial);
     const blocks: DocBlock[] = [{
         type: "price",
         groups,
-        totals: vatLines(commercial),
+        // The cover headline already states the including-VAT total; the breakdown stops at the VAT line.
+        totals: commercial.vat_rate > 0 && totals.length === 3 ? totals.slice(0, 2) : totals,
         note: vatNote(commercial),
     }];
 
@@ -407,10 +434,8 @@ export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, opt
     const wording = responseWording(kind);
 
     const keyFacts: DocFact[] = [];
-    if (commercial.contract_sum_ex_vat > 0) {
-        keyFacts.push(commercial.vat_rate > 0
-            ? { label: "Price including VAT", value: formatGbp(commercial.contract_sum_inc_vat) }
-            : { label: "Price", value: formatGbp(commercial.contract_sum_ex_vat) });
+    if (commercial.contract_sum_ex_vat > 0 && commercial.vat_rate > 0) {
+        keyFacts.push({ label: "Price including VAT", value: formatGbp(commercial.contract_sum_inc_vat) });
     }
     if (plan) {
         keyFacts.push(...programmeFacts(plan, "short"));
@@ -439,7 +464,7 @@ export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, opt
         },
         reference: options.isDraft ? "Draft" : proposalReference(snapshot),
         title: snapshot.project.name,
-        clientName: snapshot.project.client_name,
+        clientName: publicationClientDisplayName(snapshot.project),
         siteAddress: snapshot.project.site_address || null,
         projectType: snapshot.project.project_type,
         issued: formatLongDate(snapshot.publication.sent_at),

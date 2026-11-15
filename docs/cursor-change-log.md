@@ -1,5 +1,15 @@
 # Cursor change log
 
+## 2026-11-15 — D36 CON-005/014 PDF identity and price repair (cursor/d36-pdf-identity-and-price-repair-141e)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/proposal-document.ts` | `publicationClientDisplayName`, `buildProposalDocument`, `priceSection` | Drop job title/site mistaken for client; headline inc-VAT on cover only; price block ends at VAT line | CON-005 wrong client; CON-014 duplicate inc-VAT in PDF |
+| `src/lib/pdf/proposal-pdf-data.test.ts` | (new) | PDF string counts for client, prices, draft vs clean | Generated PDF data regression |
+| `src/lib/proposal-document.test.ts` | identity + price totals | Client identity + shortened price totals | Document layer regression |
+| `src/components/proposal/proposal-metric-alignment.test.tsx` | reverse-charge key facts | No cover price when VAT is 0 | Align UI test with deduped cover |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | presend PDF actions | Client-ready download without draft watermark + marked draft | CON-014 clean pre-send PDF |
+
 ## 2026-11-15 — D38 CON-007 recipient email confirmation (cursor/d38-con-007-proposal-email-default-off-20261115)
 
 | File | Lines (approx.) | Change | Intent |

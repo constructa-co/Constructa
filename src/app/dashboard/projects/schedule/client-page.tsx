@@ -17,7 +17,8 @@ import {
     sequencePlannerPhases,
     type PlannerPhase,
 } from "@/lib/planner-phases";
-import { addJobWorkingDays, jobCalendarOffset, jobProductiveMinutesPerDay, nextJobWorkingDayAfter, resolveJobWorkingPattern } from "@/lib/job-working-pattern";
+import { addJobWorkingDays, jobCalendarOffset, jobProductiveMinutesPerDay, nextJobWorkingDayAfter, resolveJobWorkingPattern, resolveProgrammeCalendar } from "@/lib/job-working-pattern";
+import { resolveUkBankHolidayDivision } from "@/lib/uk-bank-holidays";
 import { programmeBasisNote } from "@/lib/relative-programme";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -60,6 +61,7 @@ interface Props {
         id: string;
         name: string;
         start_date?: string;
+        region?: string | null;
         timeline_phases?: Phase[];
         programme_phases?: Phase[];
         programme_working_pattern?: unknown;
@@ -142,6 +144,8 @@ interface DragState {
 // ─── Main Component ──────────────────────────────────────────────────────────
 export default function ClientSchedulePage({ project, estimate, projectId }: Props) {
     const workingPattern = resolveJobWorkingPattern(project.programme_working_pattern);
+    const bankHolidayDivision = resolveUkBankHolidayDivision(project.region);
+    const programmeCalendar = resolveProgrammeCalendar(project.programme_working_pattern, bankHolidayDivision);
     const usesSavedCalendar = project.programme_working_pattern != null;
     const daysPerWeek = workingPattern?.weekdays.length ?? 5;
     const expectedWorkingPattern = project.programme_working_pattern == null ? undefined : workingPattern;
@@ -350,11 +354,11 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     // ── Computed values ───────────────────────────────────────────────────
     const gridStart = axisMonday(programmeStart);
     const axisLead = jobCalendarOffset(toInputDate(gridStart), toInputDate(programmeStart)) ?? 0;
-    const phaseSpan = (phase: Phase) => (usesSavedCalendar ? plannerPhaseSpan(toInputDate(programmeStart), phase, workingPattern) : null)
+    const phaseSpan = (phase: Phase) => (usesSavedCalendar ? plannerPhaseSpan(toInputDate(programmeStart), phase, workingPattern, bankHolidayDivision) : null)
         ?? { startOffset: phase.startOffset, calendarDays: toCalendarDays(phase.manualDays ?? phase.calculatedDays, daysPerWeek) };
     const nextOffset = (phase: Phase) => {
-        const plan = plannerDisplayPlan(toInputDate(programmeStart), [phase], daysPerWeek, workingPattern);
-        const next = plan && nextJobWorkingDayAfter(plan.end_date, workingPattern);
+        const plan = plannerDisplayPlan(toInputDate(programmeStart), [phase], daysPerWeek, workingPattern, bankHolidayDivision);
+        const next = plan && nextJobWorkingDayAfter(plan.end_date, programmeCalendar ?? workingPattern);
         return next ? jobCalendarOffset(toInputDate(programmeStart), next) ?? 0
             : phase.startOffset + toCalendarDays(phase.manualDays ?? phase.calculatedDays, daysPerWeek);
     };
@@ -373,7 +377,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     useEffect(() => { axisDaysRef.current = axisDays; }, [axisDays]);
 
     const totalManhours = phases.reduce((s, p) => s + p.manhours, 0);
-    const displayPlan = plannerDisplayPlan(toInputDate(programmeStart), phases, daysPerWeek, workingPattern);
+    const displayPlan = plannerDisplayPlan(toInputDate(programmeStart), phases, daysPerWeek, workingPattern, bankHolidayDivision);
     const reviewStages = plannerReviewStageIndexes(phases);
     // Stage offsets are relative to the plan's first activity, not the weekly axis.
     const planAxisOffset = displayPlan

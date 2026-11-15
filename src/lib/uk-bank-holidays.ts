@@ -81,6 +81,11 @@ const SCOTLAND_REGION = /\b(scotland|scottish|highlands?|edinburgh|glasgow|aberd
 const NORTHERN_IRELAND_REGION = /\b(northern ireland|ulster|belfast|antrim|down|armagh|tyrone|fermanagh|londonderry|derry|lisburn|newry)\b/i;
 
 /** Infer the GOV.UK division from a saved project region label. Defaults to England and Wales. */
+export function parseUkBankHolidayDivision(value: unknown): UkBankHolidayDivision | null {
+    if (typeof value !== "string" || !value.trim()) return null;
+    return (UK_BANK_HOLIDAY_DIVISIONS as readonly string[]).includes(value) ? (value as UkBankHolidayDivision) : null;
+}
+
 export function resolveUkBankHolidayDivision(region?: string | null): UkBankHolidayDivision {
     const text = typeof region === "string" ? region.trim() : "";
     if (!text) return "england-and-wales";

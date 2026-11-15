@@ -3,9 +3,11 @@ import {
     addWorkingDays,
     countWorkingDays,
 } from "./programme-plan";
+import { resolveProgrammeCalendar } from "./job-working-pattern";
 import {
     isUkBankHoliday,
     mergeGovUkBankHolidayFeed,
+    parseUkBankHolidayDivision,
     programmeBankHolidayBasisNote,
     resetUkBankHolidayFeedOverlayForTests,
     resolveUkBankHolidayDivision,
@@ -15,6 +17,17 @@ import {
 import bundled from "@/data/uk-bank-holidays-bundled.json";
 
 describe("UK bank holidays (CON-004)", () => {
+    it("rejects malformed persisted holiday divisions and falls back to the job region", () => {
+        expect(parseUkBankHolidayDivision("wales")).toBeNull();
+        expect(parseUkBankHolidayDivision("")).toBeNull();
+        expect(parseUkBankHolidayDivision(null)).toBeNull();
+        const calendar = resolveProgrammeCalendar(
+            { pattern: { version: 1, weekdays: [1, 2, 3, 4, 5] }, bankHolidayDivision: "invalid-region" },
+            resolveUkBankHolidayDivision("Glasgow"),
+        );
+        expect(calendar?.bankHolidayDivision).toBe("scotland");
+    });
+
     it("resolves GOV.UK divisions from project regions", () => {
         expect(resolveUkBankHolidayDivision(null)).toBe("england-and-wales");
         expect(resolveUkBankHolidayDivision("London")).toBe("england-and-wales");

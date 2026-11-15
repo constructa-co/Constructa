@@ -5,6 +5,7 @@ import {
 } from "./job-working-local";
 import {
     isUkBankHoliday,
+    parseUkBankHolidayDivision,
     resolveUkBankHolidayDivision,
     ukBankHolidayWorkingDayClause,
     type UkBankHolidayDivision,
@@ -232,10 +233,7 @@ export function resolveProgrammeCalendar(
         if (isCalendarRow(row)) {
             const pattern = resolveJobWorkingPattern(row.pattern ?? row.workingPattern);
             if (!pattern) return null;
-            const fromRow = row.bankHolidayDivision;
-            const resolvedDivision = typeof fromRow === "string"
-                ? (fromRow as UkBankHolidayDivision)
-                : division;
+            const resolvedDivision = parseUkBankHolidayDivision(row.bankHolidayDivision) ?? division;
             return { pattern, bankHolidayDivision: resolvedDivision };
         }
     }

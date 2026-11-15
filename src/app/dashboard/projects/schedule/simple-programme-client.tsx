@@ -22,7 +22,8 @@ import { createPlanningRequestGenerator } from "@/lib/job-assistant-client";
 import { bindProgrammeSave } from "@/lib/programme-save-binding";
 import type { JobAssistantOffReason } from "@/lib/job-assistant-readiness";
 import { planningAssistantTurnAction } from "./assistant-actions";
-import { formatPlanDate, formatWorkingDuration, PROGRAMME_BASIS_NOTE } from "@/lib/programme-plan";
+import { formatPlanDate, formatWorkingDuration } from "@/lib/programme-plan";
+import { programmeBankHolidayBasisNote, resolveUkBankHolidayDivision } from "@/lib/uk-bank-holidays";
 import { hasRelativeProgramme, programmeBasisNote, RELATIVE_PROGRAMME_BASIS, RELATIVE_PROGRAMME_NOTE } from "@/lib/relative-programme";
 import { resolveJobWorkingPattern, type JobWorkingInterval } from "@/lib/job-working-pattern";
 import {
@@ -75,6 +76,7 @@ interface ProgrammeProject {
     id: string;
     name: string;
     client_name?: string | null;
+    region?: string | null;
     start_date?: string | null;
     programme_phases?: unknown[] | null;
     gantt_phases?: unknown[] | null;
@@ -774,7 +776,7 @@ function ProgrammeEditor({
                             ? <>Finishes <strong className={s.heading}>{plan.basis === RELATIVE_PROGRAMME_BASIS ? `Day ${plan.working_days}` : formatPlanDate(plan.end_date)}</strong> ({formatWorkingDuration(plan.working_days, draft.workingPattern)}).</>
                             : <span className={s.muted}>{relative ? "The finish day appears here once there is a valid length." : "The finish date appears here once there is a start date and a length."}</span>}
                     </p>
-                    <p className={`text-sm ${s.muted}`}>{plan ? programmeBasisNote(plan) : relative ? RELATIVE_PROGRAMME_NOTE : PROGRAMME_BASIS_NOTE}</p>
+                    <p className={`text-sm ${s.muted}`}>{plan ? programmeBasisNote(plan) : relative ? RELATIVE_PROGRAMME_NOTE : programmeBankHolidayBasisNote(resolveUkBankHolidayDivision(project.region))}</p>
                 </section>
 
                 {/* Stages */}

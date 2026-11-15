@@ -53,7 +53,8 @@ describe("working days", () => {
     });
 
     it("crosses a month end, a year end and a leap day", () => {
-        expect(addWorkingDays("2026-12-21", 5)).toBe("2026-12-29");
+        expect(isWorkingDay("2027-01-01")).toBe(false);
+        expect(addWorkingDays("2026-12-24", 5)).toBe("2027-01-04");
         expect(addWorkingDays("2028-02-28", 3)).toBe("2028-03-01");
     });
 

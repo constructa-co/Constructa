@@ -16,6 +16,7 @@ import { SIMPLE_LINE_SECTION } from "./simple-estimate";
 import { WHOLE_JOB_NAME } from "./simple-programme";
 import { computeProgrammePlan, phaseWorkingDays, WORKING_DAYS_PER_WEEK, type ProgrammePlan } from "./programme-plan";
 import { addJobWorkingDays, jobCalendarOffset, jobProductiveMinutesPerDay, nextJobWorkingDayAfter } from "./job-working-pattern";
+import type { UkBankHolidayDivision } from "./uk-bank-holidays";
 
 export interface PlannerPhase {
     name: string;
@@ -50,9 +51,15 @@ export function plannerCalendarDays(workingDays: number, daysPerWeek: number): n
 }
 
 /** Display-only dates; never show a partial plan that silently leaves stages out. */
-export function plannerDisplayPlan(startDate: string, phases: PlannerPhase[], daysPerWeek: number, workingPattern?: unknown): ProgrammePlan | null {
+export function plannerDisplayPlan(
+    startDate: string,
+    phases: PlannerPhase[],
+    daysPerWeek: number,
+    workingPattern?: unknown,
+    bankHolidayDivision?: UkBankHolidayDivision | null,
+): ProgrammePlan | null {
     if (workingPattern === undefined && daysPerWeek !== WORKING_DAYS_PER_WEEK) return null;
-    const plan = computeProgrammePlan(startDate, phases, workingPattern);
+    const plan = computeProgrammePlan(startDate, phases, workingPattern, bankHolidayDivision);
     return plan && plan.stages.length === phases.length ? plan : null;
 }
 
@@ -66,8 +73,13 @@ export function plannerReviewStageIndexes(phases: readonly PlannerPhase[]): numb
 }
 
 /** Exact geometry from the same inclusive calendar used by proposals. */
-export function plannerPhaseSpan(startDate: string, phase: PlannerPhase, workingPattern: unknown): { startOffset: number; calendarDays: number } | null {
-    const stage = computeProgrammePlan(startDate, [phase], workingPattern)?.stages[0];
+export function plannerPhaseSpan(
+    startDate: string,
+    phase: PlannerPhase,
+    workingPattern: unknown,
+    bankHolidayDivision?: UkBankHolidayDivision | null,
+): { startOffset: number; calendarDays: number } | null {
+    const stage = computeProgrammePlan(startDate, [phase], workingPattern, bankHolidayDivision)?.stages[0];
     const offset = stage ? jobCalendarOffset(startDate, stage.start_date) : null;
     return stage && offset !== null ? { startOffset: offset, calendarDays: stage.span_days } : null;
 }

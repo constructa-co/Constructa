@@ -39,6 +39,12 @@ describe("planning context comes from the selected job's saved programme only", 
         expect(context).toMatchObject({ basis: "relative", start: null, finish: null });
         expect(context.stages[1]).toMatchObject({ name: "Dormer", from: "Day 6", to: "Day 20" });
     });
+    it("uses the job region when describing UK bank holidays", () => {
+        expect(buildPlanningContext({ ...DATED, region: "Edinburgh" })!.working_week).toContain("Scotland");
+        expect(buildPlanningContext(DATED)!.working_week).toContain("England and Wales");
+        expect(JSON.stringify(buildPlanningContext({ ...DATED, region: "Edinburgh" }))).not.toBe(JSON.stringify(buildPlanningContext(DATED)));
+    });
+
     it("carries the job's saved working week, and a changed saved pattern changes the context the server compares", () => {
         const none = { id: "job-c", name: "New", programme_phases: null };
         const fourDay = { ...none, programme_working_pattern: { version: 1, weekdays: [1, 2, 3, 4] } };

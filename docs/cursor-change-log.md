@@ -1,5 +1,23 @@
 # Cursor change log
 
+## 2026-11-15 — D38 CON-004 BLOCK #171 follow-up (cursor/constructa-d38-con-004-b37b)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/uk-bank-holidays.ts` | parseUkBankHolidayDivision | Validate persisted GOV.UK division strings | Reject malformed stored divisions |
+| `src/lib/job-working-pattern.ts` | resolveProgrammeCalendar | Fall back to job region when stored division invalid | Safe calendar resolution |
+| `src/instrumentation.ts` | register | Fire-and-forget GOV.UK feed refresh on Node boot | Wire official holiday feed with bundled fallback |
+| `src/lib/server/planning-request.ts` | verifyPlanningRequest select | Include `region` for planning fingerprint/context | Regional holidays in planning request path |
+| `src/lib/planner-phases.ts` | plannerDisplayPlan, plannerPhaseSpan | Optional `bankHolidayDivision` passed to canonical plan | Planner display uses job region |
+| `src/app/dashboard/projects/schedule/client-page.tsx` | display plan + offsets | Resolve division from `project.region` | Detailed planner calendar matches region |
+| `src/app/dashboard/projects/programme/*` | page + client | Region-aware baseline via `programmePlanForProject` / basis note | As-built baseline matches proposal calendar |
+| `src/app/dashboard/projects/schedule/simple-programme-client.tsx` | basis fallback | Region-specific basis when no plan rendered | Simple programme empty-state copy |
+| `src/lib/programme-plan.test.ts` | year-end case | 5 days from 2026-12-24 → 2027-01-04 skips New Year BH | Meaningful year-end regression |
+| `src/lib/uk-bank-holidays.test.ts` | malformed division | Calendar rejects invalid stored division | Malformed persisted division validation |
+| `src/lib/planning-conversation.test.ts` | region case | Scotland wording in planning context | Region propagation evidence |
+| `src/lib/proposal-document.test.ts` | PDF/HTML basis | `programmeBasisNote(plan)` not static default | Fix stale PDF assertion |
+| `docs/temp-files/d38-con-004-test-evidence.md` | (pending update) | BLOCK #171 receipts | Test evidence for review |
+
 ## 2026-11-15 — D38 CON-004 UK bank holidays in programme math (cursor/constructa-d38-con-004-b37b)
 
 | File | Lines (approx.) | Change | Intent |

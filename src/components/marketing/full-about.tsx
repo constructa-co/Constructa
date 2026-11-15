@@ -14,7 +14,7 @@ function AboutImage({
   height: number;
   className?: string;
 }) {
-  return <Image src={src} alt={alt} width={width} height={height} className={className} />;
+  return <Image src={src} alt={alt} width={width} height={height} sizes="(max-width: 900px) 100vw, 42vw" className={className} />;
 }
 
 export function FullAboutPage() {
@@ -26,7 +26,7 @@ export function FullAboutPage() {
 
       <section className="max-w-6xl mx-auto px-4 pt-32 pb-24 grid md:grid-cols-2 gap-12 items-center">
         <figure>
-          <AboutImage src="/images/about-hero.png" alt="Three people in hard hats gathered around a laptop" width={720} height={480} />
+          <AboutImage src="/images/about-hero.png" alt="Three people in hard hats gathered around a laptop" width={2048} height={2048} />
           <figcaption className="mt-2 text-sm">AI-generated illustration. The people shown are not Constructa staff or clients.</figcaption>
         </figure>
         <div className="text-left">
@@ -60,13 +60,13 @@ export function FullAboutPage() {
           </p>
         </div>
         <div>
-          <AboutImage src="/images/about-problem1.png" alt="Illustration of three colleagues discussing drawings on a building site" width={720} height={480} />
+          <AboutImage src="/images/about-problem1.png" alt="Illustration of three colleagues discussing drawings on a building site" width={1024} height={1024} />
         </div>
       </section>
 
       <section className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
         <div>
-          <AboutImage src="/images/about-solution.png" alt="Illustration of a project team around a table with a glowing programme timeline overlaid" width={720} height={480} />
+          <AboutImage src="/images/about-solution.png" alt="Illustration of a project team around a table with a glowing programme timeline overlaid" width={1024} height={1024} />
         </div>
         <div className="text-left">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">The solution we&apos;re building</h2>
@@ -95,7 +95,7 @@ export function FullAboutPage() {
           <div className="not-italic font-semibold">— Robert Smith</div>
         </div>
         <figure>
-          <AboutImage src="/images/founder-message.png" alt="AI-generated illustration of a man standing behind a desk at sunset" width={720} height={480} />
+          <AboutImage src="/images/founder-message.png" alt="AI-generated illustration of a man standing behind a desk at sunset" width={1024} height={1024} />
           <figcaption className="mt-2 text-sm">AI-generated illustration. The person shown is not Robert Smith.</figcaption>
         </figure>
       </section>

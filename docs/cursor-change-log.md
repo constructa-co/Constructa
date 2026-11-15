@@ -17,6 +17,16 @@
 | `src/components/marketing/cohort-about.tsx`, `cohort-about.module.css`, `full-about.tsx` | `figureImage`, intrinsic sizes | Hero 2048² + founder 1024² sizing; **problem** panel stays `about-problem1.png` | Preventive fix on captioned hero/founder panels (reported blanks); problem illustration unchanged |
 | `src/components/marketing/cohort-about-illustrations.test.tsx` | (new) | Static markup guards cohort + full | Regression on captioned figures |
 
+## 2026-11-15 — Marketing About captioned panels follow-up (cursor/marketing-about-illustrations-e459)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/components/marketing/cohort-about.tsx` | hero, founder, `AboutFigure` | `figureImage` on captioned + split panels; intrinsic sizes on hero/founder; **problem stays `about-problem1.png`** | Target hero/founder caption panels (reported blank), not problem asset swap |
+| `src/components/marketing/cohort-about.module.css` | `.figureImage` | Module class on `Image` instead of `.figure img` only | Next optimizer wrapper sizing for captioned panels |
+| `src/components/marketing/full-about.tsx` | hero/founder sizes | 2048² hero, 1024² founder; problem1 unchanged | Full-profile decode parity |
+| `src/components/marketing/cohort-about-illustrations.test.tsx` | (new) | Hero/founder caption + dimension guards for cohort and full | Synthetic render proof |
+| `docs/temp-files/verify-about-images-playwright.mjs` | (new) | Playwright `naturalWidth` / visibility on named host | Browser decode evidence (read-only) |
+
 ## 2026-11-15 — A001 D28 route palette walkthrough (cursor/a001-d28-route-palette-walkthrough-2527)
 
 | File | Lines (approx.) | Change | Intent |

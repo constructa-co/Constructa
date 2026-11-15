@@ -30,13 +30,13 @@ Private receipts: `d29/<register-id>-<UTC-date>.md` in the private execution rec
 | 11 | **A103** | Rob fact/tone pass on draft guide; code change, build guards and explicit merge yes are **out of band** for this sitting (#159 §12). Record go/no-go and pilot gate only here. | [ROB], **[HELD]** merge/deploy | `d29/a103-…` | 15–25 min | Separate PR/build/merge if approved |
 | 12 | **A001** | Rob walks **remaining** charcoal/sage palette gaps not covered by offline fixtures: authenticated, dynamic and full-profile surfaces (#159 limits; register Partial). See checklist below. | [ROB], [OPERATOR-ONLY] session | `d29/a001-…` | 35–75 min | Preview or local session setup; optional screenshots |
 
-**Active total (if every step runs):** about 310–475 min. A single sitting will usually defer **[HELD]** rows; partial runs are expected.
+**Active total (if every step runs):** about 300–465 min. A single sitting will usually defer **[HELD]** rows; partial runs are expected.
 
 **A079** recovery archive/scratch drill is a separate checklist (PR #164), not part of this order.
 
 ---
 
-## A001 — remaining visual checks (order 12)
+## A001 (D33) — remaining visual checks (order 12)
 
 Static dashboard coverage already passes Vitest (`a001-palette-audit`, `a001-*` tests) and offline Playwright (`navigation-palette`, `a003-palette`, `shell-hierarchy`). This step records **hosted or session visual** gaps only.
 
@@ -45,15 +45,13 @@ Static dashboard coverage already passes Vitest (`a001-palette-audit`, `a001-*` 
 | Area | Routes / surfaces to spot-check | Notes |
 | --- | --- | --- |
 | Authenticated — platform | `/admin`, `/onboarding` | Session + layout chrome |
-| Authenticated — job modules (no offline entry) | overview, billing, variations, live P&L, reporting, intelligence, `data/*`, foundations, mobile hub, management-accounts, archive, communications, full contract-admin page, programme (standalone), library templates, case-study library editor, profile import/interview/readiness, integrations, api-keys | Primary actions on sage/charcoal, not legacy brand blue |
+| Authenticated — job modules (no offline entry) | overview, billing, variations, drawings, change management, final account, handover documents, lessons learned, quick quote, live dashboard, P&L, reporting, intelligence, `data/*`, foundations, mobile hub, management-accounts, archive, communications, full contract-admin page, programme (standalone), library templates, case-study library editor, profile import/interview/readiness, integrations, api-keys | Primary actions on sage/charcoal, not legacy brand blue |
 | Full-profile chrome | `ProjectNavBar` full tab row (overview → communications) | Static test exists; confirm in session |
 | Auth lifecycle | `/auth/*`, password reset flows | Palette on forms and focus rings |
 | Dynamic public | `/proposal/[token]`, `/supervisor/[token]`, `/guides/[slug]` | Token/slug-specific rendering |
 | Company profile | `/dashboard/settings/profile` section chooser | Optional: offline `profile-sections` fixture first |
 | Marketing (separate scope) | `/`, `/landing`, `/about`, `/apply`, … | A001 register: whole marketing site still Partial; note intentional deferral unless Rob expands scope |
 
-Record PASS / NOT_RUN / FINDING per area in `d29/a001-…`. A001 stays **Partial** until marketing and every hosted row above are either walked or explicitly deferred in the inbox.
+Use the D28 route inventory in `docs/temp-files/a001-d28-evidence/verification.md` to enumerate any additional gap and record its result or explicit inbox deferral. Record PASS / NOT_RUN / FINDING per area in `d29/a001-…`. A001 stays **Partial** until marketing and every hosted row above are either walked or explicitly deferred in the inbox.
 
 ---
-
-Codex preparation draft for Kimi and Grok review. Independent review of amended source is separate.

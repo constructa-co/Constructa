@@ -153,6 +153,39 @@ export function budgetInspector(env: E2EEnv = readE2EEnv(), options: { timeoutMs
     };
 }
 
+/** What the disposable database holds for a project brief. Read-only; mirrors CI smoke assertions. */
+export interface SavedProjectBrief {
+    name: string;
+    clientName: string;
+    briefScope: string;
+    briefCompleted: boolean;
+    briefTradeSections: string[];
+    clientType: string | null;
+    startDate: string | null;
+}
+
+export async function savedProjectBrief(projectId: string, ownerEmail: string): Promise<SavedProjectBrief | null> {
+    assertSynthetic(ownerEmail);
+    const { data, error } = await admin(readE2EEnv())
+        .from("projects")
+        .select("name, client_name, brief_scope, brief_completed, brief_trade_sections, client_type, start_date")
+        .eq("id", projectId)
+        .maybeSingle();
+    if (error) throw new Error(`Could not read the project brief: ${error.message}`);
+    if (!data) return null;
+    return {
+        name: String(data.name ?? ""),
+        clientName: String(data.client_name ?? ""),
+        briefScope: String(data.brief_scope ?? ""),
+        briefCompleted: Boolean(data.brief_completed),
+        briefTradeSections: Array.isArray(data.brief_trade_sections)
+            ? data.brief_trade_sections.map((row) => String(row))
+            : [],
+        clientType: data.client_type != null ? String(data.client_type) : null,
+        startDate: data.start_date != null ? String(data.start_date).slice(0, 10) : null,
+    };
+}
+
 /** How many budgeted attempts a synthetic account has for the Brief suggestion. A read. */
 export async function briefAiAttempts(userId: string, email: string): Promise<number> {
     assertSynthetic(email);

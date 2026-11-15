@@ -1,5 +1,17 @@
 # Cursor change log
 
+## 2026-11-15 — D38 CON-001 / CON-002 browser reproduction (cursor/constructa-d38-con-001-002-browser-reproduction-bd36)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `scripts/verify-phase1-smoke.sql` | ~157–182 | PR #170 `save_phase1_brief` RPC + persistence EXISTS check before publication smoke | CON-002 SQL replay; prior disposable assertions unchanged |
+| `e2e/support/backend.ts` | ~156–188 | `savedProjectBrief` read-back helper | Mirror SQL read-back after browser save |
+| `e2e/d38-con-001-002-browser.qa.ts` | (new) | Hosted Playwright: QA sign-in, new project, brief save, reload, DB check | CON-001/002 browser reproduction |
+| `playwright.d38-con-brief-persistence.config.ts` | (new) | Single-project harness reusing no-publish global setup | Isolated from full journey matrix |
+| `e2e/D38-CON-BRIEF-PERSISTENCE.md` | (new) | Operator prerequisites and honest limits | Evidence handoff |
+| `docs/temp-files/d38-con-001-002-browser-evidence.md` | (new) | Green/red table for this agent run | Honest environment limits |
+| `package.json` | scripts | `e2e:d38-con-brief-persistence` | Discoverable entry command |
+
 ## 2026-11-15 — Marketing Features example screens follow-up (cursor/marketing-features-captures-e459)
 
 | File | Lines (approx.) | Change | Intent |

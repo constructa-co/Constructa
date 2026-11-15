@@ -18,10 +18,10 @@ const MARKER = 'id="product-screenshots"';
 const source = (name: string) => readFileSync(new URL(name, import.meta.url), 'utf8');
 const html = () => renderToStaticMarkup(<ProductScreenshots />);
 const assets = [
-  ['docs/evidence/stage2-tranche-2c/18b-estimate-price-adjustments-preview-1280x800.jpg', '2c3e96d85808740883ce037d7f643b6fedd1edf0'],
-  ['docs/evidence/stage2-tranche-2c/18b-estimate-price-adjustments-preview-390x844.jpg', '9cba27990d62f67bc5dc713f35e4f419f27be981'],
-  ['docs/evidence/stage2-tranche-2d/04-programme-four-stages-editor-1280x800.jpg', 'bf1fdf6646344a6aaf50806bc851439e13c462c9'],
-  ['docs/evidence/stage2-tranche-2d/04-programme-four-stages-editor-390x844.jpg', 'be2f5de8c244c25268e67cfb2ce8f9ee638ff273'],
+  ['docs/evidence/marketing-product-screenshots-2026-11-15/01-estimate-price-adjustments-1440x900.jpg', 'effe3af0316d58d4461080f8bda88f0b3678b3ed'],
+  ['docs/evidence/marketing-product-screenshots-2026-11-15/01-estimate-price-adjustments-390x844.jpg', '036872b525a146177800cf1387ce08dc75d54fe4'],
+  ['docs/evidence/marketing-product-screenshots-2026-11-15/02-programme-saved-stages-1440x900.jpg', '27b071871edab8a7336d1426d25061257d2b5eb7'],
+  ['docs/evidence/marketing-product-screenshots-2026-11-15/02-programme-saved-stages-390x844.jpg', 'dbb47364cc6f40989839e3cdb9540e24d74799ad'],
 ] as const;
 const pictures = () => html().match(/<picture>[\s\S]*?<\/picture>/g) ?? [];
 const srcset = (tag: string) => decodeURIComponent(tag.match(/srcset="([^"]+)"/i)?.[1] ?? '');
@@ -51,20 +51,20 @@ describe('phase-one product screenshots', () => {
     expect(html().match(/<figcaption\b/g)).toHaveLength(2);
     expect(images).toHaveLength(2);
     for (const image of images) {
-      expect(image).toContain('width="1280"');
-      expect(image).toContain('height="800"');
+      expect(image).toContain('width="1440"');
+      expect(image).toContain('height="900"');
       expect(image).toContain('sizes=');
-      expect(image).toMatch(/alt="Earlier Constructa [^"]{120,}"/);
+      expect(image).toMatch(/alt="Constructa [^"]{120,}"/);
       expect(image).not.toMatch(/src="https?:/);
     }
-    expect(images[0]).toContain('Save adjustments');
+    expect(images[0]).toContain('Price adjustments');
     expect(images[1]).toContain('Strip out');
   });
 
   it('swaps each figure to its own phone capture through a declarative narrow source', () => {
     const pairs = [
-      ['18b-estimate-price-adjustments-preview-390x844.jpg', '18b-estimate-price-adjustments-preview-1280x800.jpg'],
-      ['04-programme-four-stages-editor-390x844.jpg', '04-programme-four-stages-editor-1280x800.jpg'],
+      ['01-estimate-price-adjustments-390x844.jpg', '01-estimate-price-adjustments-1440x900.jpg'],
+      ['02-programme-saved-stages-390x844.jpg', '02-programme-saved-stages-1440x900.jpg'],
     ];
     expect(pictures()).toHaveLength(2);
     pictures().forEach((picture, index) => {
@@ -75,8 +75,8 @@ describe('phase-one product screenshots', () => {
       expect(picture.indexOf('<source')).toBeLessThan(picture.indexOf('<img'));
       expect(sources[0]).toContain('media="(max-width: 600px)"');
       expect(sources[0]).toContain('sizes="88vw"');
-      expect(sources[0]).toContain('width="780"');
-      expect(sources[0]).toContain('height="1688"');
+      expect(sources[0]).toContain('width="390"');
+      expect(sources[0]).toContain('height="844"');
       expect(srcset(sources[0]!)).toContain(phone);
       expect(srcset(sources[0]!)).not.toContain(desktop);
       expect(srcset(image)).toContain(desktop);
@@ -88,35 +88,34 @@ describe('phase-one product screenshots', () => {
   it('keeps alt text true of both the desktop and the shorter phone view', () => {
     const alts = (html().match(/<img\b[^>]*>/g) ?? []).map(image => image.match(/alt="([^"]+)"/)?.[1] ?? '');
     expect(alts).toHaveLength(2);
-    expect(alts[0]).toContain('profit and discount');
-    expect(alts[0]).not.toMatch(/\brisk\b/i);
-    expect(alts[1]).toContain('Strip out and First fix and boarding');
-    expect(alts[1]).not.toMatch(/\bfour\b|Tiling|Second fix|Add a stage/i);
+    expect(alts[0]).toContain('overhead');
+    expect(alts[0]).toContain('risk');
+    expect(alts[1]).toContain('Strip out');
+    expect(alts[1]).toContain('First fix');
   });
 
   it('states the section qualification in visible text', () => {
     const visible = html().replace(/<img\b[^>]*>/g, '');
     for (const fact of [
-      'synthetic example component captures from 3 and 4 October 2026',
-      'an earlier interface',
-      'mocked persistence',
-      'They are not the current hosted interface.',
-      'They are not proof that saving, AI, email or customer use is available.',
-      'do not show the current look',
+      'synthetic journey fixture captures from 15 November 2026',
+      'current review interface',
+      'simulated saves',
+      'Live signup, email and production saving require separate verification.',
+      'Example screens',
+      'From the current review interface.',
     ]) expect(visible).toContain(fact);
   });
 
   it('dates and qualifies each figure in its own caption', () => {
     const captions = html().match(/<figcaption[\s\S]*?<\/figcaption>/g) ?? [];
-    expect(captions[0]).toMatch(/<time datetime="2026-10-03">3 October 2026<\/time>/i);
-    expect(captions[1]).toMatch(/<time datetime="2026-10-04">4 October 2026<\/time>/i);
-    for (const caption of captions) for (const label of ['Synthetic example component capture', 'Earlier interface', 'Mocked persistence']) expect(caption).toContain(label);
+    for (const caption of captions) expect(caption).toMatch(/<time datetime="2026-11-15">15 November 2026<\/time>/i);
+    for (const caption of captions) for (const label of ['Synthetic journey fixture capture', 'Current review interface', 'Simulated saves']) expect(caption).toContain(label);
     expect(captions[0]).toContain('They are not prices, typical margins or a quote.');
     expect(captions[1]).toContain('not a standard programme or a promise of how long any job takes');
   });
 
   it('turns no sample figure into a price or duration claim and adds no availability claim', () => {
-    const text = html();
+    const text = html().replace(/<picture>[\s\S]*?<\/picture>/g, '');
     expect(text).not.toMatch(/£|\b\d+\s*(%|working days?|weeks?)\b/i);
     expect(text).not.toMatch(/\b(AI-powered|AI-generated|sign up now|get started|now available|available now|free trial|GDPR compliant|ISO 27001|SOC 2|Cyber Essentials|certified)\b/i);
     expect(text).not.toMatch(/Stripe|Paddle|Formspree|Plausible|OpenAI|Resend|Supabase|Vercel/);

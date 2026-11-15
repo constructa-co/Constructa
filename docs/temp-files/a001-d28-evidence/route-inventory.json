@@ -1,0 +1,314 @@
+{
+  "generatedAt": "2026-11-15T02:49:30.430Z",
+  "total": 77,
+  "routes": [
+    {
+      "route": "/about",
+      "kind": "public"
+    },
+    {
+      "route": "/admin",
+      "kind": "admin"
+    },
+    {
+      "route": "/apply",
+      "kind": "public"
+    },
+    {
+      "route": "/auth/confirm",
+      "kind": "auth"
+    },
+    {
+      "route": "/auth/forgot-password",
+      "kind": "auth"
+    },
+    {
+      "route": "/auth/platform-terms",
+      "kind": "auth"
+    },
+    {
+      "route": "/auth/reset-password",
+      "kind": "auth"
+    },
+    {
+      "route": "/contact",
+      "kind": "public"
+    },
+    {
+      "route": "/customers",
+      "kind": "public"
+    },
+    {
+      "route": "/dashboard",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/accounting",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/cis",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/data/labor",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/data/materials",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/data/plant",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/foundations",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/home",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/intelligence",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/library",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/library/templates",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/library/templates/:id",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/live",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/management-accounts",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/materials",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/mobile",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/projects",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/projects/archive",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/projects/billing",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/projects/brief",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/projects/change-management",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/projects/communications",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/projects/contract-admin",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/projects/contracts",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/projects/costs",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/projects/drawings",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/projects/final-account",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/projects/handover-documents",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/projects/lessons-learned",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/projects/new",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/projects/overview",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/projects/p-and-l",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/projects/programme",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/projects/proposal",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/projects/quick-quote",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/projects/schedule",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/projects/settings",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/projects/variations",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/reporting",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/resources",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/resources/plant",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/resources/portfolio",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/resources/staff",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/settings/api-keys",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/settings/case-studies",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/settings/case-studies/library/:id",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/settings/case-studies/library/:id/guided",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/settings/case-studies/library/new",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/settings/case-studies/library/new/guided",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/settings/integrations",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/settings/profile",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/settings/profile/import",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/settings/profile/interview",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/dashboard/settings/profile/readiness",
+      "kind": "authenticated"
+    },
+    {
+      "route": "/features",
+      "kind": "public"
+    },
+    {
+      "route": "/guides",
+      "kind": "public"
+    },
+    {
+      "route": "/guides/:slug",
+      "kind": "public"
+    },
+    {
+      "route": "/landing",
+      "kind": "public"
+    },
+    {
+      "route": "/login",
+      "kind": "public"
+    },
+    {
+      "route": "/offline",
+      "kind": "public"
+    },
+    {
+      "route": "/onboarding",
+      "kind": "onboarding"
+    },
+    {
+      "route": "/page.tsx",
+      "kind": "public"
+    },
+    {
+      "route": "/pricing",
+      "kind": "public"
+    },
+    {
+      "route": "/privacy-policy",
+      "kind": "public"
+    },
+    {
+      "route": "/product",
+      "kind": "public"
+    },
+    {
+      "route": "/proposal/:token",
+      "kind": "public"
+    },
+    {
+      "route": "/supervisor/:token",
+      "kind": "public"
+    },
+    {
+      "route": "/terms-of-service",
+      "kind": "public"
+    }
+  ]
+}

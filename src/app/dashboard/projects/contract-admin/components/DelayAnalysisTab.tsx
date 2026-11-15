@@ -22,6 +22,7 @@ import {
     draftDelayNarrativeAction,
     type DelayMethodology,
 } from "../actions";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 const METHODOLOGIES: { value: DelayMethodology; label: string; description: string }[] = [
     { value: "as_planned_vs_as_built", label: "As-Planned vs As-Built", description: "Compares baseline finish dates to actual finish dates per phase" },
@@ -118,7 +119,7 @@ export function DelayAnalysisTab({ projectId, projectName, contractType }: Props
 
                 <button
                     onClick={handleRun} disabled={running}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors disabled:opacity-50"
+                    className={`flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors disabled:opacity-50 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                 >
                     {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
                     {running ? "Analysing..." : "Run Analysis"}

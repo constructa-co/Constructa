@@ -22,8 +22,18 @@ jobs:
   d38-ephemeral-browser:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: d38-replay
     steps:
       - uses: actions/checkout@v7
+
+      - name: Prepare disposable source tree without hosted link metadata
+        working-directory: .
+        run: |
+          mkdir d38-replay
+          git archive HEAD | tar --exclude=supabase/.temp -xf - -C d38-replay
+          test ! -e d38-replay/supabase/.temp
 
       - uses: actions/setup-node@v4
         with:
@@ -45,6 +55,7 @@ jobs:
 
       - name: Start ephemeral Supabase and run D38 browser test
         env:
+          SUPABASE_CLI_VERSION: 2.75.0
           E2E_D38_AUTH: seed
           E2E_EVIDENCE: "0"
         run: bash scripts/ephemeral-replay/d38-ephemeral-browser.sh

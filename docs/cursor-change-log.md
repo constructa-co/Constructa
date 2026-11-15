@@ -1,5 +1,27 @@
 # Cursor change log
 
+## 2026-11-15 — D38 CON-007 recipient email confirmation (cursor/d38-con-007-proposal-email-default-off-20261115)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/proposal-review.ts` | types, `sendProposal`, `EMAIL_RECIPIENT_CONFIRM_ERROR` | Pass `emailRecipientConfirmed`; retry accepts `recipientEmailConfirmed` | Separate preview send from recipient-specific email consent |
+| `src/app/dashboard/projects/proposal/actions.ts` | `publishProposalAction`, `retryProposalDeliveryAction` | Refuse email when confirmation flags are not exactly `true` | Server cannot email on preview confirmation alone |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | send + retry UI | Recipient checkbox after opt-in; retry checkbox; send blocked until confirmed | CON-007 explicit confirm before client email |
+| `src/app/dashboard/projects/proposal/review-send-email-confirm.test.tsx` | (new) | Replay harness: no publish when opt-in without recipient confirm | Cancelled / withheld email path |
+| `src/app/dashboard/projects/proposal/review-send-client.test.ts` | source guard | Separate `data-send-confirm` vs `data-email-recipient-confirm` | Preview confirm does not stand in for email |
+| `src/app/dashboard/projects/proposal/actions.test.ts` | publish + retry | Mock transport: no send without `emailRecipientConfirmed` / `recipientEmailConfirmed` | Focused server regression |
+| `src/lib/proposal-review.test.ts` | `sendProposal` | Pass-through of recipient confirmation | Controller wiring |
+| `e2e/phase1-journey.spec.ts` | publish + retry | Tick recipient confirm when exercising mocked email | Preserve optional email journey |
+
+## 2026-11-15 — D38 CON-007 proposal client email default off (cursor/d38-con-007-proposal-email-default-off-20261115)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | `deliverByEmail` state, email checkbox | Default `useState(false)`; `data-deliver-by-email`; optional helper copy | CON-007: no client email unless contractor explicitly opts in; send confirmation unchanged |
+| `src/app/dashboard/projects/proposal/review-send-client.test.ts` | new `it` | SSR guard: email opt-in unchecked by default | Focused D38 regression |
+| `src/lib/proposal-review.test.ts` | new `it` | `sendProposal` with `deliverByEmail: false` | Controller still publishes link-only delivery |
+| `e2e/phase1-journey.spec.ts` | `publish()` helper | `{ emailClient: true }` opts in before send | Preserve mocked email journey when explicitly requested |
+
 ## 2026-11-15 — D38 ephemeral hardening (post-8624f49, pre-PR)
 
 | File | Change | Intent |

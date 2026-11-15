@@ -25,6 +25,7 @@ import {
     AI_UNAVAILABLE_ERROR,
     DELIVERY_ERROR,
     DRAFT_SAVE_ERROR,
+    EMAIL_RECIPIENT_CONFIRM_ERROR,
     PUBLISH_ERROR,
     REVIEW_CHANGED_ERROR,
     buildPreviewSnapshot,
@@ -71,8 +72,13 @@ async function reviewedContent(responseKind: ProposalResponseKind): Promise<stri
 }
 
 /** Sends the proposal as the review screen does: with the fingerprint of what is on screen. */
-async function publishAsReviewed(responseKind: ProposalResponseKind, deliverByEmail: boolean) {
-    return publishProposalAction(PROJECT_ID, { responseKind, deliverByEmail, reviewedContent: await reviewedContent(responseKind) });
+async function publishAsReviewed(responseKind: ProposalResponseKind, deliverByEmail: boolean, emailRecipientConfirmed = deliverByEmail) {
+    return publishProposalAction(PROJECT_ID, {
+        responseKind,
+        deliverByEmail,
+        emailRecipientConfirmed: deliverByEmail ? emailRecipientConfirmed : undefined,
+        reviewedContent: await reviewedContent(responseKind),
+    });
 }
 
 function setup(projectPatch: Record<string, unknown> = {}, publications: Record<string, unknown>[] = []) {
@@ -309,6 +315,20 @@ describe("publishProposalAction", () => {
         expect(mocks.sendProposalEmail).not.toHaveBeenCalled();
     });
 
+    it("sends no email when deliverByEmail is true but the recipient address was not confirmed", async () => {
+        const { db } = setup();
+        const reviewed = await reviewedContent("acknowledgement");
+        const result = await publishProposalAction(PROJECT_ID, {
+            responseKind: "acknowledgement",
+            deliverByEmail: true,
+            emailRecipientConfirmed: false,
+            reviewedContent: reviewed,
+        });
+        expect(result).toEqual({ success: false, error: EMAIL_RECIPIENT_CONFIRM_ERROR });
+        expect(db.rpcCalls).toEqual([]);
+        expect(mocks.sendProposalEmail).not.toHaveBeenCalled();
+    });
+
     it("emails the client only after the publication commits, worded for the chosen response", async () => {
         const { db, admin } = setup();
         const result = await publishAsReviewed("non_binding_intent", true);
@@ -386,7 +406,9 @@ describe("what is published is what was reviewed", () => {
         const { db } = setup();
         const reviewed = await reviewedContent("acknowledgement");
         change();
-        const result = await publishProposalAction(PROJECT_ID, { responseKind: "acknowledgement", deliverByEmail: true, reviewedContent: reviewed });
+        const result = await publishProposalAction(PROJECT_ID, {
+            responseKind: "acknowledgement", deliverByEmail: true, emailRecipientConfirmed: true, reviewedContent: reviewed,
+        });
         expect(result).toEqual({ success: false, error: REVIEW_CHANGED_ERROR, changed: true });
         expect(db.rpcCalls).toEqual([]);
         expect(mocks.sendProposalEmail).not.toHaveBeenCalled();
@@ -438,9 +460,18 @@ describe("retryProposalDeliveryAction", () => {
         return world;
     }
 
+    it("sends no email on retry without recipient confirmation", async () => {
+        await arrange();
+        await expect(retryProposalDeliveryAction(PROJECT_ID, { publicationId: PUBLICATION_ID, url })).resolves.toEqual({
+            success: false,
+            error: EMAIL_RECIPIENT_CONFIRM_ERROR,
+        });
+        expect(mocks.sendProposalEmail).not.toHaveBeenCalled();
+    });
+
     it("sends the email again for the same publication, worded from its own snapshot", async () => {
         const { db, admin } = await arrange();
-        await expect(retryProposalDeliveryAction(PROJECT_ID, { publicationId: PUBLICATION_ID, url })).resolves.toEqual({
+        await expect(retryProposalDeliveryAction(PROJECT_ID, { publicationId: PUBLICATION_ID, url, recipientEmailConfirmed: true })).resolves.toEqual({
             success: true,
             delivery: { status: "sent", email: "alex@example.test" },
         });
@@ -458,7 +489,7 @@ describe("retryProposalDeliveryAction", () => {
     it("reports a second failure as a failed email, not as an error in the publication", async () => {
         await arrange();
         mocks.sendProposalEmail.mockRejectedValue(new Error("provider down"));
-        await expect(retryProposalDeliveryAction(PROJECT_ID, { publicationId: PUBLICATION_ID, url })).resolves.toEqual({
+        await expect(retryProposalDeliveryAction(PROJECT_ID, { publicationId: PUBLICATION_ID, url, recipientEmailConfirmed: true })).resolves.toEqual({
             success: true,
             delivery: { status: "failed", email: "alex@example.test" },
         });
@@ -466,19 +497,19 @@ describe("retryProposalDeliveryAction", () => {
 
     it("refuses a link that does not belong to the publication", async () => {
         await arrange();
-        await expect(retryProposalDeliveryAction(PROJECT_ID, { publicationId: PUBLICATION_ID, url: `https://evil.example.test/proposal/${"cd".repeat(32)}` }))
+        await expect(retryProposalDeliveryAction(PROJECT_ID, { publicationId: PUBLICATION_ID, url: `https://evil.example.test/proposal/${"cd".repeat(32)}`, recipientEmailConfirmed: true }))
             .resolves.toEqual({ success: false, error: DELIVERY_ERROR });
-        await expect(retryProposalDeliveryAction(PROJECT_ID, { publicationId: PUBLICATION_ID, url: "not a link" }))
+        await expect(retryProposalDeliveryAction(PROJECT_ID, { publicationId: PUBLICATION_ID, url: "not a link", recipientEmailConfirmed: true }))
             .resolves.toEqual({ success: false, error: DELIVERY_ERROR });
         expect(mocks.sendProposalEmail).not.toHaveBeenCalled();
     });
 
     it("does not email a version that is no longer open, or one already delivered", async () => {
         await arrange("revoked");
-        const closed = await retryProposalDeliveryAction(PROJECT_ID, { publicationId: PUBLICATION_ID, url });
+        const closed = await retryProposalDeliveryAction(PROJECT_ID, { publicationId: PUBLICATION_ID, url, recipientEmailConfirmed: true });
         expect(closed.success).toBe(false);
         await arrange("sent", "sent");
-        await expect(retryProposalDeliveryAction(PROJECT_ID, { publicationId: PUBLICATION_ID, url })).resolves.toEqual({
+        await expect(retryProposalDeliveryAction(PROJECT_ID, { publicationId: PUBLICATION_ID, url, recipientEmailConfirmed: true })).resolves.toEqual({
             success: true,
             delivery: { status: "sent", email: "alex@example.test" },
         });
@@ -488,7 +519,7 @@ describe("retryProposalDeliveryAction", () => {
     it("refuses another user's project", async () => {
         await arrange();
         mocks.requireProjectAccess.mockRejectedValue(new Error("Unauthorized project access."));
-        await expect(retryProposalDeliveryAction(PROJECT_ID, { publicationId: PUBLICATION_ID, url })).resolves.toEqual({ success: false, error: "You can't send this proposal." });
+        await expect(retryProposalDeliveryAction(PROJECT_ID, { publicationId: PUBLICATION_ID, url, recipientEmailConfirmed: true })).resolves.toEqual({ success: false, error: "You can't send this proposal." });
     });
 });
 
@@ -604,7 +635,7 @@ describe("publishing unreadable saved terms", () => {
         const { db } = setup({ tc_overrides: terms });
         const before = JSON.stringify(db.tables);
         await expect(publishProposalAction(PROJECT_ID, {
-            responseKind: "acknowledgement", deliverByEmail: true, reviewedContent: "0".repeat(64),
+            responseKind: "acknowledgement", deliverByEmail: false, reviewedContent: "0".repeat(64),
         })).resolves.toEqual({
             success: false, error: "The saved proposal terms could not be read. Review and save them before sending.",
         });

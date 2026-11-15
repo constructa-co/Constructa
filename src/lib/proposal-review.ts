@@ -741,6 +741,10 @@ export const SEND_BLOCK_MESSAGE: Record<Exclude<SendBlock, null>, string> = {
     "not-confirmed": "Tick the box to confirm this proposal is ready to go to your client.",
 };
 
+/** Shown when the contractor opted in to email but has not confirmed the recipient address. */
+export const EMAIL_RECIPIENT_CONFIRM_ERROR =
+    "Tick the box to confirm emailing this address. Preview confirmation alone does not send an email.";
+
 // ── Controllers ──────────────────────────────────────────────────────────────
 
 export interface ReviewStore {
@@ -772,10 +776,17 @@ export type AskWording = (field: WordingField, text: string) => Promise<{ ok: tr
 export type PublishProposal = (input: {
     responseKind: ProposalResponseKind;
     deliverByEmail: boolean;
+    /** Required when deliverByEmail is true — confirms the saved client email recipient. */
+    emailRecipientConfirmed?: boolean;
     /** The fingerprint of the content the contractor confirmed. */
     reviewedContent: string;
 }) => Outcome<Omit<PublishedResult, "responseKind">>;
-export type RetryDelivery = (input: { publicationId: string; url: string }) => Outcome<{ delivery: DeliveryOutcome }>;
+export type RetryDelivery = (input: {
+    publicationId: string;
+    url: string;
+    /** Confirms the contractor still intends to email the recipient on this publication. */
+    recipientEmailConfirmed?: boolean;
+}) => Outcome<{ delivery: DeliveryOutcome }>;
 
 export type DraftSaveOutcome = "saved" | "failed" | "invalid" | "busy";
 
@@ -855,6 +866,7 @@ export async function sendProposal(
         publish: PublishProposal;
         readiness: () => Pick<ProposalReadiness, "ready">;
         deliverByEmail: boolean;
+        emailRecipientConfirmed?: boolean;
         /**
          * The fingerprint of the proposal as it stands on screen now, or null
          * when there is nothing that could be sent. Read after any save, so
@@ -889,7 +901,12 @@ export async function sendProposal(
     }
 
     try {
-        const result = await deps.publish({ responseKind, deliverByEmail: deps.deliverByEmail, reviewedContent });
+        const result = await deps.publish({
+            responseKind,
+            deliverByEmail: deps.deliverByEmail,
+            emailRecipientConfirmed: deps.emailRecipientConfirmed,
+            reviewedContent,
+        });
         if (!result.success) {
             store.dispatch({ type: "send/failed", error: result.error || PUBLISH_ERROR, changed: result.changed === true });
             return "failed";

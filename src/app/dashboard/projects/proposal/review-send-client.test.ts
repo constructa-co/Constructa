@@ -250,6 +250,23 @@ describe("Review and Send", () => {
         expect(send.match(/<input[^>]*data-send-confirm[^>]*>/)![0]).not.toContain("disabled");
     });
 
+    it("does not opt in to client email by default when a client email is saved", () => {
+        const send = html.slice(html.indexOf("data-review-send"));
+        const emailOptIn = send.match(/<input[^>]*data-deliver-by-email[^>]*>/)![0];
+        expect(emailOptIn).not.toContain("checked");
+        expect(send).toContain("Leave unticked to publish a private link only");
+        expect(send).not.toContain("data-email-recipient-confirm");
+    });
+
+    it("keeps preview confirmation and recipient email confirmation as separate controls", () => {
+        const source = readFileSync(path.join(import.meta.dirname, "review-send-client.tsx"), "utf8");
+        expect(source).toContain("data-email-recipient-confirm");
+        expect(source).toContain("data-retry-email-confirm");
+        expect(source).toContain("data-send-confirm");
+        expect(source).toMatch(/deliverByEmail && !emailRecipientConfirmed/);
+        expect(source).toContain("confirming the preview does not send email by itself");
+    });
+
     it("offers payment on completion, a deposit and balance, or custom stages, and opens on what is saved", () => {
         const presets = (markup: string) => (markup.match(/<input[^>]*name="payment-preset"[^>]*>/g) ?? []).map((radio) => radio.includes("checked"));
         expect(html.match(/data-payment-preset="[^"]+"/g)).toEqual([

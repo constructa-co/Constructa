@@ -1,5 +1,47 @@
 # Cursor change log
 
+## 2026-11-15 — D38 ephemeral hardening (post-8624f49, pre-PR)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `scripts/ephemeral-replay/parse-supabase-status-env.sh` | (new) Whitelist parse of `supabase status -o env`; no eval; no value logging | CI/local safety |
+| `scripts/ephemeral-replay/guards.sh` | DB URL, link, Vercel, return-based failures | Local-only reset; guards testable |
+| `scripts/test-ephemeral-replay-guards.sh` | (new) Shell validation | `npm run test:ephemeral-replay-guards` |
+| `scripts/ephemeral-replay/d38-ephemeral-browser.sh` | Parse before reset; loopback DB_URL guard | Explicit local reset |
+| `.github/workflows/d38-con-browser-replay.yml` | Chromium `--with-deps`; guard step | Clean Ubuntu CI |
+| `src/lib/deployment/supabase-target.mjs` | Loopback forbidden in preview/E2E/Vercel | Test-only loopback |
+| `playwright.d38-ephemeral-replay.config.ts` | `browserName: chromium` | CI browser install match |
+
+## 2026-11-15 — D38 ephemeral Supabase browser replay (continuation on cursor/constructa-d38-con-001-002-browser-reproduction-bd36)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/deployment/supabase-target.mjs` | context + URL + compiled | `e2e-replay` context; loopback `:54321` API URL; allow empty `.supabase.co` refs in bundle | Build/start guard for ephemeral CLI stack |
+| `src/lib/deployment/supabase-target.test.ts` | tests | Ephemeral loopback pass/fail cases | Regression |
+| `e2e/support/ephemeral-replay-env.ts` | (new) | Fail-closed env; no hosted credentials | D38 ephemeral harness |
+| `e2e/support/ephemeral-replay-env.test.ts` | (new) | Unit tests | |
+| `e2e/support/ephemeral-replay-global-setup.ts` | (new) | Local auth health; no production in build | |
+| `playwright.d38-ephemeral-replay.config.ts` | (new) | Playwright + `e2e-replay` server env | |
+| `e2e/d38-con-001-002-browser.qa.ts` | auth steps | Ephemeral sign-up/seed + hosted QA dual mode | No hosted secrets on ephemeral path |
+| `e2e/support/backend.ts` | admin | Allow loopback ephemeral replay read-back | |
+| `scripts/ephemeral-replay/*` | (new) | Guards, seed auth, orchestrator | Runnable local/CI startup |
+| `supabase/config.toml` | (new) | Local CLI project id `ephemeralreplay00001` | Ephemeral stack |
+| `.github/workflows/d38-con-browser-replay.yml` | (new) | CI job without E2E secrets | CI-only browser when Docker present |
+| `docs/temp-files/d38-ephemeral-ci-execution-plan.md` | (new) | Blocker + steps | Agent VM without Docker |
+| `package.json` | scripts | `e2e:d38-ephemeral-replay` | |
+
+## 2026-11-15 — D38 CON-001 / CON-002 browser reproduction (cursor/constructa-d38-con-001-002-browser-reproduction-bd36)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `scripts/verify-phase1-smoke.sql` | ~157–182 | PR #170 `save_phase1_brief` RPC + persistence EXISTS check before publication smoke | CON-002 SQL replay; prior disposable assertions unchanged |
+| `e2e/support/backend.ts` | ~156–188 | `savedProjectBrief` read-back helper | Mirror SQL read-back after browser save |
+| `e2e/d38-con-001-002-browser.qa.ts` | (new) | Hosted Playwright: QA sign-in, new project, brief save, reload, DB check | CON-001/002 browser reproduction |
+| `playwright.d38-con-brief-persistence.config.ts` | (new) | Single-project harness reusing no-publish global setup | Isolated from full journey matrix |
+| `e2e/D38-CON-BRIEF-PERSISTENCE.md` | (new) | Operator prerequisites and honest limits | Evidence handoff |
+| `docs/temp-files/d38-con-001-002-browser-evidence.md` | (new) | Green/red table for this agent run | Honest environment limits |
+| `package.json` | scripts | `e2e:d38-con-brief-persistence` | Discoverable entry command |
+
 ## 2026-11-15 — Marketing Features example screens follow-up (cursor/marketing-features-captures-e459)
 
 | File | Lines (approx.) | Change | Intent |

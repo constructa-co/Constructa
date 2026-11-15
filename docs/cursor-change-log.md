@@ -1,12 +1,21 @@
 # Cursor change log
 
-## 2026-11-15 — Marketing Features example screens (cursor/marketing-features-captures-e459)
+## 2026-11-15 — Marketing Features example screens follow-up (cursor/marketing-features-captures-e459)
 
 | File | Lines (approx.) | Change | Intent |
 |------|-----------------|--------|--------|
-| `src/components/marketing/product-screenshots.tsx` | imports, captures, qualification | Stage 2F journey fixtures (`07-estimate-priced`, `12-programme-saved`); retains **Example screens** eyebrow | Replace October 3–4 earlier-interface captures with current-review synthetic journey evidence |
-| `src/components/marketing/product-screenshots.test.tsx` | assets SHA1, copy, dimensions | Expect 1440×900 desktop, 390×844 phone, 5 Oct 2026 labels | Guard new evidence wiring and honest qualification copy |
-| `docs/temp-files/marketing-public-image-sweep-2026-11-15.md` | (new) | Read-only route/image sweep on constructa-nu.vercel.app | 15 Nov UAE sweep evidence; zero broken URLs |
+| `src/components/marketing/product-screenshots.tsx` | imports, alt, dates | `docs/evidence/marketing-product-screenshots-2026-11-15/*` from synthetic `journey` fixture at `527c7cf9` | Replace 5 Oct Stage 2F JPEGs with current-interface desktop+mobile captures; keep **Example screens** + synthetic labels |
+| `src/components/marketing/product-screenshots.test.tsx` | blob SHA1, filenames, qualification | 15 Nov 2026 labels; strip `<picture>` before price-claim regex | Guard evidence paths and copy; avoid false positives from encoded image URLs |
+| `docs/evidence/marketing-product-screenshots-2026-11-15/*.jpg` | (new, 4) | Playwright full-page JPEGs 1440×900 + 390×844 | Committed marketing evidence |
+| `e2e/local-phase1/marketing-product-captures.spec.ts`, `playwright.local-marketing-captures.config.ts`, `docs/temp-files/run-marketing-product-captures.sh` | (new) | Offline journey build → capture harness | Regenerate fixtures without hosted writes |
+| `docs/temp-files/marketing-public-image-sweep-2026-11-15.md` | routes | Extended sweep: sitemap paths + `/customers` + both guide slugs; 76 refs, 0 broken | Read-only constructa-nu.vercel.app coverage |
+
+## 2026-11-15 — Marketing About hero/founder (cursor/marketing-about-illustrations-e459)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/components/marketing/cohort-about.tsx`, `cohort-about.module.css`, `full-about.tsx` | `figureImage`, intrinsic sizes | Hero 2048² + founder 1024² sizing; **problem** panel stays `about-problem1.png` | Preventive fix on captioned hero/founder panels (reported blanks); problem illustration unchanged |
+| `src/components/marketing/cohort-about-illustrations.test.tsx` | (new) | Static markup guards cohort + full | Regression on captioned figures |
 
 ## 2026-11-15 — A001 D28 route palette walkthrough (cursor/a001-d28-route-palette-walkthrough-2527)
 

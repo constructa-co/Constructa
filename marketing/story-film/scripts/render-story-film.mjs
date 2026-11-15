@@ -60,7 +60,7 @@ function shrinkToBudget(inMp4, outMp4, height) {
   return size;
 }
 
-async function main() {
+async function renderVideo() {
   mkdirSync(TMP, { recursive: true });
   mkdirSync(OUT_DIR, { recursive: true });
   mkdirSync(ARTIFACTS, { recursive: true });
@@ -126,8 +126,18 @@ async function main() {
     underSixMb: size1080 <= MAX_BYTES && size720 <= MAX_BYTES,
   };
   writeFileSync(join(ARTIFACTS, "render-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
-
   console.log(JSON.stringify(manifest, null, 2));
+
+  const { spawnSync: muxSpawn } = await import("node:child_process");
+  const mux = muxSpawn(process.execPath, [join(ROOT, "marketing/story-film/scripts/mux-story-film-audio.mjs")], {
+    stdio: "inherit",
+    env: process.env,
+  });
+  if (mux.status !== 0) process.exit(mux.status ?? 1);
+}
+
+async function main() {
+  await renderVideo();
 }
 
 main().catch((err) => {

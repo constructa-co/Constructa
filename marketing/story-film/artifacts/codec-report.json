@@ -1,0 +1,53 @@
+{
+  "measuredAt": "2026-11-15T14:16:50.437Z",
+  "audioSource": "marketing/story-film/scripts/compose-story-film-audio.mjs",
+  "files": {
+    "1080p": {
+      "path": "public/marketing/story-film/constructa-story-1080p.mp4",
+      "bytes": 482164,
+      "probe": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1920,
+            "height": 1080
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "38.000000",
+          "size": "482164"
+        }
+      }
+    },
+    "720p": {
+      "path": "public/marketing/story-film/constructa-story-720p.mp4",
+      "bytes": 325866,
+      "probe": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1280,
+            "height": 720
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "duration": "38.000000",
+          "size": "325866"
+        }
+      }
+    }
+  },
+  "underSixMb": true
+}

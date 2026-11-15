@@ -1,0 +1,21 @@
+{
+  "measuredAt": "2026-11-15T14:23:06.670Z",
+  "environment": "synthetic-guarded-e2e-next-start",
+  "deployContext": "e2e",
+  "nonprodRef": "umqtzfsnyoofmgfbnrgv",
+  "baselineSha": "ae6a53df0c639d127341d1ed31acd1af0d25aecf",
+  "candidateSha": "db9a588f86e86ff7551b37d8e14d8b0ea7d77025",
+  "mobileLighthouse": {
+    "baseline": {
+      "lcpMs": 913.2176,
+      "reportPath": "marketing/story-film/artifacts/lighthouse-baseline.json"
+    },
+    "candidate": {
+      "lcpMs": 914.2612999999999,
+      "reportPath": "marketing/story-film/artifacts/lighthouse-candidate.json"
+    },
+    "deltaMs": 1.0436999999999443,
+    "passDeltaUnder300ms": true
+  },
+  "applyCtaVisibleOnCandidate": true
+}

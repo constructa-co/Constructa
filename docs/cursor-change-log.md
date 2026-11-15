@@ -1,5 +1,17 @@
 # Cursor change log
 
+## 2026-11-15 — Story film #165 audio + LCP evidence (codex/story-film-storyboard-20261115)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `marketing/story-film/scripts/compose-story-film-audio.mjs` | (new) | Original restrained 38s AAC score | Sound track for unmuted playback |
+| `marketing/story-film/scripts/mux-story-film-audio.mjs` | (new) | Mux audio into 1080p/720p; codec report | h264+aac under 6 MB |
+| `marketing/story-film/scripts/measure-home-lighthouse-lcp.mjs` | (new) | Matched mobile Lighthouse vs ae6a53d baseline | Real Next pages, guarded e2e env |
+| `marketing/story-film/scripts/verify-story-film-playback.mjs` | (new) | Playwright Apply/reduced-motion/keyboard checks | Cloud browser evidence |
+| `src/components/marketing/story-film-hero.tsx` | watchWithSound | Restart at 0 when enabling sound | Align sound control with full story |
+| `package-lock.json` | restore | Reverted to ae6a53d lockfile | Scripts-only package.json delta |
+| `public/marketing/story-film/*.mp4` | replace | Re-muxed with AAC | Audible story when user unmutes |
+
 ## 2026-11-15 — Story film #165 first cut (cloud / codex/story-film-storyboard-20261115)
 
 | File | Lines (approx.) | Change | Intent |

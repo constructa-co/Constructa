@@ -1,0 +1,11 @@
+{
+  "measuredAt": "2026-11-15T14:23:07.064Z",
+  "baseUrl": "http://127.0.0.1:3011",
+  "checks": {
+    "applyCtaVisible": true,
+    "reducedMotionPosterOnly": true,
+    "reducedMotionPosterVisible": true,
+    "keyboardReachWatch": true,
+    "introControlDefaultOff": true
+  }
+}

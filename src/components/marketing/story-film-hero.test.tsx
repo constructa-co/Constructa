@@ -22,6 +22,12 @@ describe('StoryFilmHero', () => {
     expect(html).toMatch(/muted/);
   });
 
+  it('exposes watch control for sound-on-request playback', () => {
+    const html = renderToStaticMarkup(<StoryFilmHero />);
+    expect(html).toContain('Watch the 40-second story');
+    expect(html).toMatch(/type="video\/mp4"/);
+  });
+
   it('hides intro preview control unless env preview flag is set', () => {
     const off = renderToStaticMarkup(<StoryFilmHero />);
     expect(off).not.toContain('Preview one-time intro');

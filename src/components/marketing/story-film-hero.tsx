@@ -59,6 +59,7 @@ export function StoryFilmHero({ className }: StoryFilmHeroProps) {
   const watchWithSound = useCallback(async () => {
     const el = videoRef.current;
     if (!el) return;
+    el.currentTime = 0;
     el.muted = false;
     setSoundOn(true);
     try {

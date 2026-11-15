@@ -24,7 +24,18 @@
 
 ## Mobile LCP delta
 
-See `marketing/story-film/artifacts/lcp-comparison.json` — synthetic Pixel 5 static markup; delta must be ≤ 300ms.
+- Static markup: `lcp-comparison.json`
+- Matched Lighthouse on real Next home (ae6a53d vs candidate, guarded e2e env): `lighthouse-lcp-comparison.json`
+- Playwright Apply / reduced motion / keyboard / intro default-off: `playback-evidence.json`
+
+## Audio
+
+- Score: `compose-story-film-audio.mjs` (original synth AAC)
+- Mux: `mux-story-film-audio.mjs` — h264 + aac; see `codec-report.json`
+
+## Hosted Preview
+
+- `preview-deployment-blocker.json` — Vercel Preview **Error** on db9a588 deploy; evidence from local guarded servers (no settings changes).
 
 ## CI workflow (push not performed)
 

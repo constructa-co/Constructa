@@ -35,7 +35,9 @@
     "eval:interview": "EVAL_WRITE=1 vitest run src/lib/company-interview/eval",
     "eval:cohort-ai": "EVAL_WRITE=1 vitest run src/lib/cohort-ai/eval",
     "story-film:render": "node marketing/story-film/scripts/render-story-film.mjs",
-    "story-film:lcp": "node marketing/story-film/scripts/measure-story-film-lcp.mjs"
+    "story-film:mux-audio": "node marketing/story-film/scripts/mux-story-film-audio.mjs",
+    "story-film:lcp": "node marketing/story-film/scripts/measure-story-film-lcp.mjs",
+    "story-film:lcp-next": "node marketing/story-film/scripts/measure-home-lighthouse-lcp.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.4",

@@ -71,6 +71,8 @@ Record private receipt with: checksums, expected/observed refs, scope, scratch t
 | Check | Pass when |
 | --- | --- |
 | Manifest | `node scripts/recovery-manifest-check.mjs "$EXPORT_DEST/manifest.json" --root "$EXPORT_DEST"` exit `0` (`COMPLETE_SET`; `--root` required for byte verification) |
+| Gates G1–G3 | Record the outcome of each gate in the private receipt and cite its evidence before accepting reconciliation |
+| Boundary and identity | Record and cite the completed non-secret `auth/config-boundary.md` and `deployment/identity.json` in the private receipt |
 | Reconcile | `recovery-reconcile.mjs` exit `0` on export-time vs restored inventories |
 | Git bundles | `git bundle verify` + every `git.requiredRefs` entry matches bundle heads |
 | Private work | §6 reconciliation list signed by owner |

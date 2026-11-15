@@ -1,5 +1,13 @@
 # Cursor change log
 
+## 2026-11-15 — Marketing Features example screens (cursor/marketing-features-captures-e459)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/components/marketing/product-screenshots.tsx` | imports, captures, qualification | Stage 2F journey fixtures (`07-estimate-priced`, `12-programme-saved`); retains **Example screens** eyebrow | Replace October 3–4 earlier-interface captures with current-review synthetic journey evidence |
+| `src/components/marketing/product-screenshots.test.tsx` | assets SHA1, copy, dimensions | Expect 1440×900 desktop, 390×844 phone, 5 Oct 2026 labels | Guard new evidence wiring and honest qualification copy |
+| `docs/temp-files/marketing-public-image-sweep-2026-11-15.md` | (new) | Read-only route/image sweep on constructa-nu.vercel.app | 15 Nov UAE sweep evidence; zero broken URLs |
+
 ## 2026-11-15 — A001 D28 route palette walkthrough (cursor/a001-d28-route-palette-walkthrough-2527)
 
 | File | Lines (approx.) | Change | Intent |

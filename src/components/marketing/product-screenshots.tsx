@@ -1,9 +1,9 @@
 /// <reference types="next/image-types/global" />
 import { getImageProps } from 'next/image';
-import estimateCapture from '../../../docs/evidence/stage2-tranche-2c/18b-estimate-price-adjustments-preview-1280x800.jpg';
-import estimatePhoneCapture from '../../../docs/evidence/stage2-tranche-2c/18b-estimate-price-adjustments-preview-390x844.jpg';
-import programmeCapture from '../../../docs/evidence/stage2-tranche-2d/04-programme-four-stages-editor-1280x800.jpg';
-import programmePhoneCapture from '../../../docs/evidence/stage2-tranche-2d/04-programme-four-stages-editor-390x844.jpg';
+import estimateCapture from '../../../docs/evidence/stage2-tranche-2f/07-estimate-priced-1440x900.jpg';
+import estimatePhoneCapture from '../../../docs/evidence/stage2-tranche-2f/07-estimate-priced-390x844.jpg';
+import programmeCapture from '../../../docs/evidence/stage2-tranche-2f/12-programme-saved-1440x900.jpg';
+import programmePhoneCapture from '../../../docs/evidence/stage2-tranche-2f/12-programme-saved-390x844.jpg';
 import ui from './phase-one.module.css';
 import shots from './product-screenshots.module.css';
 
@@ -11,32 +11,32 @@ const captures = [
   {
     src: estimateCapture,
     phoneSrc: estimatePhoneCapture,
-    alt: 'Earlier Constructa estimating screen from a synthetic example job. It shows percentage fields for profit and discount, a field for the discount reason, a note reading Not saved yet with a preview of the total before VAT, and a blue Save adjustments button.',
-    title: 'Price adjustments, before you save',
-    description: 'Enter risk, profit and discount percentages and preview the total before saving. The note marks the new total as not saved yet.',
+    alt: 'Constructa estimating screen from a synthetic phase-one journey. It shows percentage fields for overhead, risk and profit, an optional discount reason, and a grey action reading No changes to save.',
+    title: 'Price percentages on an estimate',
+    description: 'Adjust overhead, risk, profit and discount on a priced estimate. The control stays inactive while nothing has changed.',
     sample: 'All figures belong to a synthetic bathroom refit. They are not prices, typical margins or a quote.',
-    capturedOn: '2026-10-03',
-    capturedLabel: '3 October 2026',
+    capturedOn: '2026-10-05',
+    capturedLabel: '5 October 2026',
   },
   {
     src: programmeCapture,
     phoneSrc: programmePhoneCapture,
-    alt: 'Earlier Constructa programme screen from a synthetic example job. It shows optional stages in order, starting with Strip out and First fix and boarding, with a length for each stage and controls to reorder or remove them.',
-    title: 'Optional programme stages',
-    description: 'Break a job into stages in your own words, give each one a length and change their order. Stages are optional.',
-    sample: 'The stage names and lengths are synthetic entries. They are not a standard programme or a promise of how long any job takes.',
-    capturedOn: '2026-10-04',
-    capturedLabel: '4 October 2026',
+    alt: 'Constructa programme screen from a synthetic phase-one journey. It shows three saved stages named Strip out, First fix and tiling, and Second fix and finish, each with working-day lengths and dates in the proposal preview.',
+    title: 'Saved programme stages',
+    description: 'Name stages in your own words, set lengths, and preview how they read on the proposal before continuing.',
+    sample: 'The stage names, lengths and dates are synthetic entries. They are not a standard programme or a promise of how long any job takes.',
+    capturedOn: '2026-10-05',
+    capturedLabel: '5 October 2026',
   },
 ] as const;
 
 function CapturePicture({ capture }: { capture: (typeof captures)[number] }) {
   const { alt, src, phoneSrc } = capture;
   const { props: { srcSet: phoneSrcSet } } = getImageProps({ src: phoneSrc, alt, width: 780, height: 1688, sizes: '88vw' });
-  const { props: desktop } = getImageProps({ src, alt, width: 1280, height: 800, sizes: '(max-width: 1422px) 100vw, 1280px' });
+  const { props: desktop } = getImageProps({ src, alt, width: 1440, height: 900, sizes: '(max-width: 1422px) 100vw, 1440px' });
   return (
     <picture>
-      <source media="(max-width: 600px)" srcSet={phoneSrcSet} sizes="88vw" width={780} height={1688} />
+      <source media="(max-width: 600px)" srcSet={phoneSrcSet} sizes="88vw" width={390} height={844} />
       <img {...desktop} alt={alt} />
     </picture>
   );
@@ -47,22 +47,22 @@ export function ProductScreenshots() {
     <section id="product-screenshots" aria-labelledby="product-screenshots-title" className={`${ui.section} ${shots.screenshots}`}>
       <div className={ui.sectionIntro}>
         <p className={ui.eyebrow}>Example screens</p>
-        <h2 id="product-screenshots-title">Two example screens.<br />From an earlier interface.</h2>
-        <p>A closer look at two steps in the guide above: adjusting a price before saving it, and setting out a programme in stages.</p>
+        <h2 id="product-screenshots-title">Two example screens.<br />From the current review interface.</h2>
+        <p>A closer look at two steps in the guide above: setting price percentages on an estimate, and saving a programme ready for proposal review.</p>
       </div>
 
       <p className={shots.qualification}>
-        These are synthetic example component captures from 3 and 4 October 2026. They show an earlier interface, with made-up data and mocked persistence, so nothing was saved to a database. They are not the current hosted interface. They are not proof that saving, AI, email or customer use is available. The blue controls belong to that earlier interface and do not show the current look.
+        These are synthetic journey fixture captures from 5 October 2026. They show the current review interface on a disposable test database with made-up data. They are not proof that live customer sign-up, email send or production saving is available. Controls may still change before release.
       </p>
 
       <div className={shots.figures}>
         {captures.map(capture => (
-          <figure key={capture.capturedOn} className={shots.figure}>
+          <figure key={capture.title} className={shots.figure}>
             <CapturePicture capture={capture} />
             <figcaption>
               <div>
                 <h3>{capture.title}</h3>
-                <p className={shots.capturedLine}>Synthetic example component capture · <time dateTime={capture.capturedOn}>{capture.capturedLabel}</time> · Earlier interface · Mocked persistence</p>
+                <p className={shots.capturedLine}>Synthetic journey fixture capture · <time dateTime={capture.capturedOn}>{capture.capturedLabel}</time> · Current review interface · Disposable test database</p>
               </div>
               <div>
                 <p>{capture.description}</p>

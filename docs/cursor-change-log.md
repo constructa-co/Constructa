@@ -12,6 +12,18 @@
 | `e2e/local-navigation/compile.mjs` | `read()` | GNU/Linux-tolerant `stat` probe | Cloud agent offline fixture build |
 | `docs/temp-files/a001-d28-evidence/*` | new | Route inventory, verification report, Chromium Playwright configs, nav screenshot script | D28 evidence (screenshots under `/opt/cursor/artifacts/a001-d28-palette/`) |
 
+## 2026-11-14 — A109 Apply entry on full-profile marketing nav (cursor/a109-apply-marketing-nav-c539)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/components/Header.tsx` | landing + default header | Primary CTA → `/apply`; remove Sign up and waitlist scroll; keep Log in → `/login` | A109: one clear apply entry separate from sign-in on full-profile public chrome |
+| `src/components/Footer.tsx` | Connect column | Apply + Log in links before contact | Footer matches cohort apply/sign-in split |
+| `src/components/marketing/full-home.tsx` | hero + pricing cards | Apply copy; pricing card buttons → `/apply` | Full home CTAs no longer masquerade as sign-up |
+| `src/components/marketing/full-features.tsx` | highlight bar | `/login` → `/apply` with founding cohort label | Features page bottom CTA is apply not sign-in |
+| `src/components/marketing/full-pricing.tsx` | plan cards | Get Started buttons → `/apply` Apply links | Pricing tier actions route to application |
+| `Header.a109-full-apply-nav.test.tsx`, `Footer.a109-apply-entry.test.tsx`, `full-features-apply-cta.test.tsx` | new | Focused full-profile nav regression | A109 evidence without broad rewrites |
+| `Header.test.tsx`, `full-home-cta.test.tsx`, `phase-one.test.tsx` | expectations | Updated markers for Apply wording | Keep existing marketing integration guards green |
+
 ## 2026-11-14 — A074 proposal cover photo choice (cursor/a074-proposal-cover-choice-7129)
 
 | File | Lines (approx.) | Change | Intent |

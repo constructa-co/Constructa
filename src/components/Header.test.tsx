@@ -16,6 +16,6 @@ describe("full-profile shared wordmark (A002)", () => {
         expect(html).toContain(brand);
         expect(html).not.toMatch(/>\s*CONSTRUCTA\s*</);
         expect(html).toContain(`<a href="/" class="text-2xl font-semibold text-white hover:opacity-90 transition-opacity">${brand}</a>`);
-        expect(html).toContain(pathname === "/landing" ? "Join the waitlist" : "Features");
+        expect(html).toContain(pathname === "/landing" ? "Apply to the founding cohort" : "Features");
     });
 });

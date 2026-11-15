@@ -1,6 +1,6 @@
 # A001 D28 — whole-route palette walkthrough (synthetic)
 
-**Branch:** `cursor/a001-d28-route-palette-walkthrough-2527`  
+**Branch:** `cursor/a001-d28-route-palette-walkthrough-2527`
 **Scope:** Approved charcoal/sage primary palette (`src/lib/core-editing-palette.ts`). Semantic status/link blues preserved. Marketing `(marketing)/` not edited (inspection only). No production writes, auth, or hosted navigation.
 
 ## Confirmed deviations corrected

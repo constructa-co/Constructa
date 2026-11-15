@@ -3,6 +3,7 @@
 
 import type { Estimate, EstimateLine } from "./types";
 import { requireLaunchCapability } from "@/lib/launch-profile";
+import { computeContractSum, MARKUP_METHOD_NOTE } from "@/lib/financial";
 
 function formatGBP(n: number): string {
     return n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -94,22 +95,19 @@ export async function exportBoQToExcel(estimate: Estimate): Promise<void> {
 
     const summaryRows: [string, string][] = [];
 
-    const directCost = lines
-        .filter(l => l.trade_section !== "Preliminaries" && l.line_total > 0)
-        .reduce((s, l) => s + l.line_total, 0);
-
-    const explicitPrelims = lines.filter(l => l.trade_section === "Preliminaries");
-    const prelimsTotal = explicitPrelims.length > 0
-        ? explicitPrelims.reduce((s, l) => s + l.line_total, 0)
-        : directCost * (estimate.prelims_pct / 100);
-
-    const constructionTotal = directCost + prelimsTotal;
-    const overhead = constructionTotal * (estimate.overhead_pct / 100);
-    const risk = (constructionTotal + overhead) * (estimate.risk_pct / 100);
-    const profit = (constructionTotal + overhead + risk) * (estimate.profit_pct / 100);
-    const contractSum = constructionTotal + overhead + risk + profit;
-    const discountAmt = contractSum * ((estimate.discount_pct || 0) / 100);
-    const contractSumAfterDiscount = contractSum - discountAmt;
+    // One calculation for every screen and export: the canonical contract sum,
+    // which applies the estimate's own markup method.
+    const {
+        directCost,
+        prelimsTotal,
+        totalConstructionCost: constructionTotal,
+        overheadAmount: overhead,
+        riskAmount: risk,
+        profitAmount: profit,
+        discountAmount: discountAmt,
+        contractSum: contractSumAfterDiscount,
+        markupMethod,
+    } = computeContractSum(estimate, lines);
     const vat = contractSumAfterDiscount * 0.2;
 
     summaryRows.push(["Direct Construction Cost", formatGBP(directCost)]);
@@ -122,6 +120,9 @@ export async function exportBoQToExcel(estimate: Estimate): Promise<void> {
     summaryRows.push(["CONTRACT SUM (exc. VAT)", formatGBP(contractSumAfterDiscount)]);
     summaryRows.push(["VAT (20%)", formatGBP(vat)]);
     summaryRows.push(["TOTAL inc. VAT", formatGBP(contractSumAfterDiscount + vat)]);
+    if (estimate.overhead_pct > 0 || estimate.risk_pct > 0 || estimate.profit_pct > 0) {
+        summaryRows.push([MARKUP_METHOD_NOTE[markupMethod], ""]);
+    }
 
     for (const [label, value] of summaryRows) {
         const row: Row = Array(colCount).fill("");

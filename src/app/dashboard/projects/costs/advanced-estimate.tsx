@@ -31,6 +31,7 @@ import ui from "@/components/estimating.module.css";
 import type { EstimateLineComponent, EstimateLine, Estimate, CostLibraryItem, LabourRate, RateBuildup } from "./types";
 import { savePriceLineActivityAction } from "./activity-actions";
 import { workspaceStyles } from "@/lib/workspace-styles";
+import { MARKUP_METHOD_NOTE, resolveMarkupMethod } from "@/lib/financial";
 import type { ComponentProps } from "react";
 
 interface Props {
@@ -1575,6 +1576,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
 
                     {/* ESTIMATE HEADER */}
                     <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 space-y-4">
+                        <p className="text-xs text-slate-400" data-markup-method-printed>{MARKUP_METHOD_NOTE[resolveMarkupMethod(currentEstimate.markup_method)]}</p>
                         <div className="flex flex-wrap items-end gap-4">
                             <div className="w-24">
                                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 block mb-1">Prelims %</label>

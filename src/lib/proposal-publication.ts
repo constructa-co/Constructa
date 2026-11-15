@@ -1,4 +1,4 @@
-import { computeContractSum, roundMoney, toNumber } from "@/lib/financial";
+import { computeContractSum, MARKUP_METHOD_NOTE, roundMoney, toNumber } from "@/lib/financial";
 import { planCoversEveryPhase, resolveProgrammeSource } from "@/lib/programme-plan";
 import { computeDisplayProgramme, hasRelativeProgramme, RELATIVE_PROGRAMME_BASIS, type DisplayProgrammePlan } from "@/lib/relative-programme";
 import { readProgrammeInclusion } from "@/lib/programme-inclusion";
@@ -78,6 +78,8 @@ export interface ProposalPublicationEstimateInput {
     risk_pct?: number | string | null;
     profit_pct?: number | string | null;
     discount_pct?: number | string | null;
+    /** Read by computeContractSum; null/absent means compounded. Never written into the snapshot. */
+    markup_method?: string | null;
     estimate_lines: ProposalPublicationEstimateLineInput[];
 }
 
@@ -178,6 +180,12 @@ export interface ProposalPublicationSnapshot {
         contract_sum_inc_vat: number;
         /** Absent on publications made before it was recorded. */
         vat_treatment?: ProposalVatTreatment;
+        /**
+         * One sentence naming how overhead, risk and profit were calculated.
+         * No percentages or amounts. Absent on publications made before D36,
+         * which print nothing rather than a method they did not record.
+         */
+        calculation_note?: string;
         fee_items: Array<{
             id: string;
             trade_section: string;
@@ -548,6 +556,7 @@ export function buildProposalPublicationSnapshot(
             vat_amount: vatAmount,
             contract_sum_inc_vat: roundMoney(contractSumExVat + vatAmount),
             ...(input.vatTreatment ? { vat_treatment: input.vatTreatment } : {}),
+            calculation_note: MARKUP_METHOD_NOTE[breakdown.markupMethod],
             fee_items: buildFeeItems(input.estimate, contractSumExVat),
             payment_schedule: sanitisePaymentSchedule(input.project.payment_schedule),
         },

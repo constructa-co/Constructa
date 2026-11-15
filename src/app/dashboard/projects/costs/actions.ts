@@ -12,6 +12,7 @@ import {
     requireEstimateLineAccess,
 } from "@/lib/supabase/project-resource-access";
 import { revalidatePath } from "next/cache";
+import { companyMarkupMethod } from "@/lib/server/company-markup-method";
 import { recalcEstimateTotal } from "./estimate-total";
 import type { EstimateLine, EstimateLineComponent } from "./types";
 
@@ -46,12 +47,13 @@ async function assertEstimateEditable(
 }
 
 export async function createEstimateAction(projectId: string, name: string) {
-    const { supabase } = await requireEditableProjectAccess(projectId);
+    const { supabase, user } = await requireEditableProjectAccess(projectId);
     const { data, error } = await supabase
         .from("estimates")
         .insert({
             project_id: projectId,
             version_name: name,
+            markup_method: await companyMarkupMethod(supabase, user?.id ?? ""),
             overhead_pct: 10,
             profit_pct: 15,
             risk_pct: 0,

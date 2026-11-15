@@ -36,6 +36,7 @@ import {
     type PriceLineDraft,
     type PriceSummary,
 } from "@/lib/simple-estimate";
+import { MARKUP_METHOD_NOTE } from "@/lib/financial";
 import {
     deleteSimplePriceLineAction,
     loadAdvancedEstimatingDataAction,
@@ -1470,6 +1471,10 @@ function TotalCard({
                 </div>
             </dl>
 
+            {summary.adjustments.some((a) => a.key === "overhead" || a.key === "risk" || a.key === "profit") && (
+                <p className={`mt-3 text-sm ${s.muted}`} data-markup-method-printed>{MARKUP_METHOD_NOTE[summary.markupMethod]}</p>
+            )}
+
             {estimate && summary.adjustments.length === 0 && (
                 <p className={`mt-3 text-sm ${s.muted}`}>
                     Nothing has been added on top of your lines for overhead, risk or profit. If your prices already allow for them, leave it as it is.
@@ -1498,8 +1503,9 @@ function TotalCard({
                         ) : (
                             <form noValidate onSubmit={(e) => { e.preventDefault(); onSave(); }} className="space-y-4">
                                 <p className={`text-sm ${s.muted}`}>
-                                    Each percentage is added on top of your lines, in this order. The client sees your price, not the overhead, risk or profit behind it.
+                                    Each percentage is added on top of your lines. The client sees your price, not the overhead, risk or profit behind it.
                                 </p>
+                                <p data-markup-method-note className={`text-sm ${s.muted}`}>{MARKUP_METHOD_NOTE[summary.markupMethod]}</p>
                                 {ADJUSTMENT_ORDER.map((key) => (
                                     <div key={key}>
                                         <label htmlFor={`adjust-${key}`} className={s.label}>{ADJUSTMENT_HELP[key].label} (%)</label>

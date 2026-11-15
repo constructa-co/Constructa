@@ -324,7 +324,7 @@ function priceSection(snapshot: ProposalPublicationSnapshot): DocSection | null 
         type: "price",
         groups,
         totals: vatLines(commercial),
-        note: vatNote(commercial),
+        note: [vatNote(commercial), commercial.calculation_note].filter(Boolean).join(" ") || null,
     }];
 
     const payments = paymentRows(commercial);

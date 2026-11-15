@@ -26,6 +26,7 @@ import {
     type SimpleResult,
     type UpdatePriceLineResult,
 } from "@/lib/simple-estimate";
+import { companyMarkupMethod } from "@/lib/server/company-markup-method";
 import { recalcEstimateTotal } from "./estimate-total";
 import { toEstimate, toEstimateLine } from "./estimate-mapping";
 import type { CostLibraryItem, LabourRate, RateBuildup } from "./types";
@@ -132,6 +133,7 @@ export async function saveSimplePriceLineAction(request: SavePriceLineRequest): 
                     id: newEstimateId,
                     project_id: projectId,
                     organization_id: project.organization_id ?? null,
+                    markup_method: await companyMarkupMethod(supabase, user.id),
                     version_name: "Estimate v1",
                     total_cost: 0,
                     prelims_pct: 0,

@@ -1,3 +1,4 @@
+import { MARKUP_METHOD_NOTE } from "@/lib/financial";
 /**
  * Parity regression: one saved programme and one reviewed draft drive every
  * place a proposal appears.
@@ -344,7 +345,7 @@ describe("a three-stage programme and a payment preset, from the editor to the c
         }
         for (const words of [draftPdf, sentPdf]) expect(words).toContain(notice);
         for (const [where, text] of [["preview", visible(html(previewDoc))], ["client's page", visible(html(sentDoc))], ["pre-send PDF", draftPdf], ["client's PDF", sentPdf]] as const) {
-            expect(text, where).not.toMatch(INTERNAL_BUILD_UP);
+            expect(text.replace(MARKUP_METHOD_NOTE.compound, ""), where).not.toMatch(INTERNAL_BUILD_UP);
             expect(text, where).not.toMatch(/accept this proposal|sign and accept/i);
         }
         expect(JSON.stringify(sent)).not.toMatch(/overhead_pct|profit_pct|risk_pct|prelims_pct|unit_rate|total_cost/);

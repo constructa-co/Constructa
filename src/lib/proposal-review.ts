@@ -18,7 +18,11 @@
 
 import { buildPastJobs, type ProposalLibrary } from "@/lib/case-library/past-jobs";
 import { computeContractSum, roundMoney } from "./financial";
-import { paymentStagesExceedHundredPercent, paymentStagesUnderHundredPercent } from "./proposal-payment-percentages";
+import {
+    paymentStagesExceedHundredPercent,
+    paymentStagesMeetHundredPercent,
+    paymentStagesUnderHundredPercent,
+} from "./proposal-payment-percentages";
 import { splitScope } from "./guided-brief";
 import { resolveProgrammeSource } from "./programme-plan";
 import {
@@ -336,7 +340,14 @@ export type BuildPayloadResult =
     | { ok: true; payload: ProposalDraftPayload }
     | { ok: false; fieldErrors: ReviewFieldErrors };
 
-export function buildProposalPayload(draft: ProposalDraft): BuildPayloadResult {
+/** When `draft`, incomplete or non-100% payment rows are omitted (`null`) so other fields can save. */
+export type ProposalPaymentBoundary = "draft" | "persist";
+
+export function buildProposalPayload(
+    draft: ProposalDraft,
+    options?: { paymentBoundary?: ProposalPaymentBoundary },
+): BuildPayloadResult {
+    const paymentBoundary = options?.paymentBoundary ?? "persist";
     const fieldErrors: ReviewFieldErrors = {};
 
     for (const field of WORDING_FIELDS) {
@@ -349,7 +360,24 @@ export function buildProposalPayload(draft: ProposalDraft): BuildPayloadResult {
     const validityDays = /^\d{1,3}$/.test(validity) ? Number(validity) : NaN;
     if (!(validityDays >= 1 && validityDays <= 365)) fieldErrors.validityDays = "Enter a number of days between 1 and 365.";
 
-    const paymentSchedule = draft.fixedPayments ? null : builtPayments(draft, fieldErrors);
+    let paymentSchedule: ProposalDraftPayload["paymentSchedule"] = null;
+    if (!draft.fixedPayments) {
+        const paymentErrors: ReviewFieldErrors = {};
+        const rows = builtPayments(draft, paymentErrors);
+        if (paymentBoundary === "persist") {
+            Object.assign(fieldErrors, paymentErrors);
+            paymentSchedule = rows;
+        } else {
+            const total = roundMoney(rows.reduce((sum, row) => sum + row.percentage, 0));
+            if (
+                Object.keys(paymentErrors).length === 0
+                && rows.length > 0
+                && paymentStagesMeetHundredPercent(total)
+            ) {
+                paymentSchedule = rows;
+            }
+        }
+    }
 
     let terms: ProposalTermsClause[] | null = null;
     if (draft.terms) {
@@ -789,7 +817,7 @@ export async function saveDraft(store: ReviewStore, save: SaveProposalDraft): Pr
     const state = store.getState();
     if (state.save.status === "saving") return "busy";
 
-    const built = buildProposalPayload(state.draft);
+    const built = buildProposalPayload(state.draft, { paymentBoundary: "draft" });
     if (!built.ok) {
         store.dispatch({ type: "save/failed", error: "Fix the highlighted details, then save.", fieldErrors: built.fieldErrors });
         return "invalid";

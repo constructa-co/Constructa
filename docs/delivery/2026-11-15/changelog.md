@@ -14,3 +14,6 @@
 | `src/app/dashboard/projects/proposal/pricing-payments.test.ts` | 11–12, 75–87 | 100% fixtures; partial save refused | Pricing save boundary |
 | `src/app/dashboard/projects/costs/payment-stages.test.tsx` | 42–50, 59–74 | `draftTotalling100` helper; partial draft blocked on submit | UI draft vs save boundary |
 | `src/lib/proposal-payment-save.test.ts` | 5 | Fixture schedule at 100% | Keep editor baseline test valid |
+| `src/lib/proposal-review.ts` | 339–377, 792 | `paymentBoundary: "draft"` omits non-100%/invalid payment rows from whole-draft saves; `saveDraft` uses draft boundary | PR #172: incomplete payment rows must not block scope/wording saves |
+| `src/lib/proposal-review.test.ts` | 168–188, 399–412 | Draft-boundary payload + `saveDraft` with partial payments | Regression: unrelated field + incomplete payments |
+| `src/app/dashboard/projects/proposal/actions.test.ts` | 193–204 | Server accepts `paymentSchedule: null` with scope edit while schedule unchanged | Save-boundary regression |

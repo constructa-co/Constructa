@@ -193,6 +193,19 @@ describe("saveProposalDraftAction", () => {
         expect(db.updates[0].values).not.toHaveProperty("payment_schedule");
     });
 
+    it("persists unrelated draft fields when payment stages are omitted for an in-progress payment draft", async () => {
+        const { db } = setup();
+        const before = structuredClone(db.tables.projects[0].payment_schedule);
+        await expect(saveProposalDraftAction(PROJECT_ID, {
+            ...payload,
+            scope: "Scope saved while payment percentages are incomplete on screen.",
+            paymentSchedule: null,
+        })).resolves.toEqual({ success: true });
+        expect(db.tables.projects[0].scope_text).toBe("Scope saved while payment percentages are incomplete on screen.");
+        expect(db.tables.projects[0].payment_schedule).toEqual(before);
+        expect(db.updates[0].values).not.toHaveProperty("payment_schedule");
+    });
+
     it("keeps nothing from a failed save, and the same payload succeeds on retry", async () => {
         const { db } = setup();
         db.fail("projects", "update", "57014");

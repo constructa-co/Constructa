@@ -1,5 +1,18 @@
 # Cursor change log
 
+## 2026-11-15 — Story film #165 first cut (cloud / codex/story-film-storyboard-20261115)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `marketing/story-film/source/scenes.ts`, `story-film-frame.css`, `preview/index.html` | (new) | Editable 38s scene copy + CSS timeline | Original film source per storyboard |
+| `marketing/story-film/scripts/render-story-film.mjs` | (new) | Playwright + ffmpeg cloud render | 1080p/720p MP4 under 6 MB + poster |
+| `marketing/story-film/scripts/measure-story-film-lcp.mjs` | (new) | Synthetic mobile LCP delta | ≤0.3s regression evidence |
+| `public/marketing/story-film/*` | (new) | Rendered MP4s + poster | Committed marketing artifacts |
+| `src/components/marketing/story-film-hero.tsx`, `story-film-hero.module.css` | (new) | Muted hero, sound control, optional intro | Homepage playback per storyboard |
+| `src/components/marketing/phase-one.tsx` | hero | `ProposalIllustration` → `StoryFilmHero` | Cohort home hero film slot |
+| `package.json` | scripts | `story-film:render`, `story-film:lcp` | Regenerate film + evidence |
+| `src/components/marketing/*.test.tsx` | expectations | Poster/film hero assertions | Test alignment |
+
 ## 2026-11-15 — Marketing Features example screens follow-up (cursor/marketing-features-captures-e459)
 
 | File | Lines (approx.) | Change | Intent |

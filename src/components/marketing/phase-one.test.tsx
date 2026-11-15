@@ -67,7 +67,8 @@ describe('phase-one marketing integration', () => {
     expect(html).toContain('Founding cohort opens 7 December 2026.');
     expect(html).toContain('id="how-it-works"');
     expect(html).toContain('id="marketing-content"');
-    expect(html).toContain('Illustrative example');
+    expect(html).toContain('Watch the 40-second story');
+    expect(html).toContain('constructa-story-poster.webp');
     expect(html).not.toMatch(/<form|<script|<iframe|href="[^\"]*checkout|Paddle|Formspree/i);
   });
 

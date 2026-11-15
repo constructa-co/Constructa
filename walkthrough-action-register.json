@@ -163,7 +163,8 @@
       "id": "A025",
       "phase": "Later",
       "requested": "Scope future regional/discipline pricing and programme benchmarks and reconcile the existing benchmark checkbox.",
-      "status": "Partial"
+      "status": "Partial",
+      "evidence20261115": "cursor/a025-benchmark-scope-20261115: docs-only scope at docs/delivery/2026-11-15/a025-benchmark-scope-decision.md + a025-benchmark-audit-evidence.json; audit confirms single profile data_consent (default false) gates fn_benchmark_on_archive → project_benchmarks only; no estimate/programme checkboxes; rate/programme/variation tables schema-only. No collection/settings/SQL/deploy. Push/PR held for Codex workflow preflight."
     },
     {
       "id": "A026",

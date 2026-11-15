@@ -1,0 +1,102 @@
+{
+  "actionId": "A025",
+  "baseSha": "33d8fd3f",
+  "branch": "cursor/a025-benchmark-scope-20261115",
+  "auditedAt": "2026-11-15",
+  "type": "static-code-audit",
+  "summary": "Single profile checkbox (data_consent) defaults false; gates fn_benchmark_on_archive → project_benchmarks only. No estimate/programme-specific checkboxes. rate/programme/variation benchmark tables have no write triggers.",
+  "consentControl": {
+    "ui": {
+      "file": "src/app/dashboard/settings/profile/profile-form.tsx",
+      "sectionId": "company-consent",
+      "sectionNavLabel": "Data consent",
+      "heading": "Industry Benchmarking",
+      "inputName": "data_consent",
+      "inputValueWhenChecked": "true",
+      "defaultCheckedExpression": "profile?.data_consent ?? false",
+      "lines": {
+        "section": "834-857",
+        "navEntry": "109"
+      }
+    },
+    "serverMapping": {
+      "file": "src/lib/profile-update.ts",
+      "data_consent": "formData.get('data_consent') === 'true'",
+      "data_consent_at": "set to ISO timestamp when checked, else null",
+      "lines": "44-45"
+    },
+    "tests": [
+      "src/app/dashboard/settings/profile/update-profile.test.ts",
+      "src/app/dashboard/settings/profile/profile-sections.test.tsx",
+      "e2e/local-phase1/profile-sections.spec.ts"
+    ]
+  },
+  "databaseDefaults": {
+    "migration": "supabase/migrations/20260409100000_sprint42_benchmarks.sql",
+    "profiles.data_consent": "BOOLEAN DEFAULT false",
+    "profiles.data_consent_at": "TIMESTAMPTZ nullable"
+  },
+  "collectionPipeline": {
+    "trigger": "trg_benchmark_on_archive ON projects AFTER UPDATE",
+    "function": "public.fn_benchmark_on_archive()",
+    "hardenedMigration": "supabase/migrations/20260930180000_harden_legacy_definer_functions.sql",
+    "preconditions": [
+      "NEW.is_archived IS TRUE and OLD.is_archived IS NOT TRUE",
+      "profiles.data_consent IS TRUE for NEW.user_id",
+      "latest archive_snapshots row exists for project_id"
+    ],
+    "targetTable": "project_benchmarks",
+    "fieldsWritten": [
+      "project_type",
+      "region (from projects.site_address — audit flag)",
+      "contract_value_band",
+      "gross_margin_pct",
+      "planned_duration_days",
+      "actual_duration_days",
+      "programme_delay_days",
+      "variation_count",
+      "variation_rate_pct",
+      "subcontract_cost_pct"
+    ],
+    "tablesWithoutWriteTriggers": [
+      "rate_benchmarks",
+      "programme_benchmarks",
+      "variation_benchmarks"
+    ]
+  },
+  "estimateProgrammeSurfaces": {
+    "estimatingRoute": "/dashboard/projects/costs",
+    "programmeRoute": "/dashboard/projects/schedule",
+    "benchmarkConsentCheckboxOnThosePages": false,
+    "note": "Register wording 'estimate/programme benchmarks' maps to outcome fields in project_benchmarks sourced from archive_snapshots, not per-tab toggles"
+  },
+  "terminologyCollisions": [
+    {
+      "term": "market benchmarks",
+      "location": "src/app/dashboard/library/page.tsx",
+      "meaning": "System cost-library seed rates (mom_items), not cross-contractor consent"
+    },
+    {
+      "term": "Business Intelligence",
+      "location": "src/app/dashboard/intelligence/page.tsx",
+      "meaning": "Redirected/disabled for beta; intelligence-client references hasConsent nudge when enabled"
+    },
+    {
+      "term": "benchmark-api",
+      "location": "src/lib/launch-profile.ts",
+      "meaning": "Capability enabled only in full launch profile; cohort returns 404 on /api/v1/benchmarks"
+    }
+  ],
+  "syntheticFixtureReferences": [
+    {
+      "file": "scripts/verify-phase1-smoke.sql",
+      "lines": "229-335",
+      "describes": "Consent on + archive → single project_benchmarks row expectations inside ROLLBACK"
+    }
+  ],
+  "relatedActions": {
+    "A023": "Platform terms / stored consent — prerequisite for purpose-split consent",
+    "A024": "Privacy copy — Complete",
+    "A026": "Customer insights on pricing/durations — downstream consumer of aggregates"
+  }
+}

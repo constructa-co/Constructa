@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/supabase/admin-auth";
 import AdminClient from "./admin-client";
 import {
     PLAN_PRICE_GBP,
@@ -226,6 +227,7 @@ async function fetchPlausible(): Promise<PlausibleMetrics> {
 // ─── Main page component ──────────────────────────────────────────────────────
 
 export default async function AdminPage() {
+    await requireAdmin();
     const supabase = createAdminClient();
 
     // ── 1. Fetch all data in parallel ────────────────────────────────────────

@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { HARNESS_ROUTE, refusal } from "./prepare.mjs";
 
 const root = path.resolve(__dirname, "../..");
@@ -21,6 +21,13 @@ const GIT_SUBPROCESS_CONFIG = ["-c", "core.fsmonitor=false", "-c", "core.untrack
 
 type ExecResult = { stdout: string };
 
+// A089 D24: elapsed time of each bounded Git subprocess, kept apart from the case's own clock
+// so a slow run shows whether the time went to Git or to the rest of the case. Observation only.
+const gitTimings: Array<{ subcommand: string; deadlineMs: number; elapsedMs: number; outcome: string }> = [];
+afterAll(() => {
+    console.info(`[A089 D24] git subprocess timings: ${JSON.stringify(gitTimings)}`);
+});
+
 function argvForGit(binary: string, subcommand: string, args: string[]): string[] {
     return binary === "git" ? [...GIT_SUBPROCESS_CONFIG, subcommand, ...args] : [subcommand, ...args];
 }
@@ -32,13 +39,28 @@ async function runGit(
     options: { cwd: string; deadlineMs?: number; env?: NodeJS.ProcessEnv },
 ): Promise<ExecResult> {
     const deadlineMs = options.deadlineMs ?? GIT_DEADLINE_MS;
-    return run(binary, argvForGit(binary, subcommand, args), {
-        cwd: options.cwd,
-        env: options.env ?? process.env,
-        encoding: "utf8",
-        timeout: deadlineMs,
-        killSignal: "SIGKILL",
-    }) as Promise<ExecResult>;
+    const started = performance.now();
+    const record = (outcome: string) => gitTimings.push({
+        subcommand,
+        deadlineMs,
+        elapsedMs: Math.round((performance.now() - started) * 10) / 10,
+        outcome,
+    });
+    try {
+        const result = await (run(binary, argvForGit(binary, subcommand, args), {
+            cwd: options.cwd,
+            env: options.env ?? process.env,
+            encoding: "utf8",
+            timeout: deadlineMs,
+            killSignal: "SIGKILL",
+        }) as Promise<ExecResult>);
+        record("ok");
+        return result;
+    } catch (error) {
+        const { code, signal } = error as NodeJS.ErrnoException & { signal?: string };
+        record(signal ? `signal:${signal}` : `code:${String(code)}`);
+        throw error;
+    }
 }
 
 // Asynchronous so the event loop, and with it the Vitest timer, survives a child that cannot be killed.

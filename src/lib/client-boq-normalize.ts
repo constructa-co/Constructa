@@ -17,6 +17,17 @@ function parseQuantity(raw: unknown): { quantity: number | null; malformed: bool
     return Number.isFinite(value) ? { quantity: value, malformed: false } : { quantity: null, malformed: true };
 }
 
+function parseLineTotal(raw: unknown): { total: number | null; malformed: boolean } {
+    if (raw === null || raw === undefined || raw === "") return { total: null, malformed: false };
+    if (typeof raw === "number") {
+        return Number.isFinite(raw) ? { total: raw, malformed: false } : { total: null, malformed: true };
+    }
+    const text = String(raw).trim();
+    if (!text || text === "-") return { total: null, malformed: false };
+    const value = Number(text.replace(/,/g, ""));
+    return Number.isFinite(value) ? { total: value, malformed: false } : { total: null, malformed: true };
+}
+
 function parseRate(raw: unknown): { unit_rate: number; malformed: boolean } {
     if (raw === null || raw === undefined || raw === "") return { unit_rate: 0, malformed: false };
     if (typeof raw === "number") {
@@ -65,11 +76,14 @@ export function normalizeClientBoQLines(rawLines: unknown[]): ClientBoQLine[] {
         const qty = parseQuantity(row.quantity);
         const rate = parseRate(row.unit_rate);
 
+        const lineTotalParsed = parseLineTotal(row.line_total);
         const parse_warnings: string[] = [];
         if (qty.malformed) parse_warnings.push("quantity");
         if (rate.malformed) parse_warnings.push("unit_rate");
+        if (lineTotalParsed.malformed) parse_warnings.push("line_total");
 
-        if (isDescriptionOnlyHeading(description, qty.quantity, unit, rate.unit_rate)) {
+        const hasPricingSignal = qty.quantity !== null || rate.unit_rate !== 0 || lineTotalParsed.total !== null;
+        if (!parse_warnings.length && !hasPricingSignal && isDescriptionOnlyHeading(description, qty.quantity, unit, rate.unit_rate)) {
             if (sectionText) currentSection = sectionText;
             else if (looksLikeSectionTitle(description, unit)) currentSection = description;
             const headingSection = sectionText || currentSection;
@@ -88,9 +102,12 @@ export function normalizeClientBoQLines(rawLines: unknown[]): ClientBoQLine[] {
 
         const quantity = qty.malformed ? null : qty.quantity;
         const unit_rate = rate.malformed ? 0 : rate.unit_rate;
-        const line_total = quantity !== null && !qty.malformed && !rate.malformed
-            ? quantity * unit_rate
-            : 0;
+        const explicitTotal = lineTotalParsed.malformed ? null : lineTotalParsed.total;
+        const line_total = explicitTotal !== null
+            ? explicitTotal
+            : quantity !== null && !qty.malformed && !rate.malformed
+                ? quantity * unit_rate
+                : 0;
 
         lines.push({
             client_ref: asTrimmedString(row.client_ref),

@@ -5,6 +5,7 @@
 // the simple pricing screen, which owns the estimates and the running total.
 
 import { useState, useTransition, useRef, useCallback, useId, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -28,6 +29,7 @@ import { isCapabilityEnabled } from "@/lib/launch-profile";
 import { formatGBP, parseAdvancedQuantityDraft, type AdvancedRunningTotalDraft } from "@/lib/simple-estimate";
 import { computeAdvancedRunningTotalDraft } from "@/lib/advanced-running-total-draft";
 import ui from "@/components/estimating.module.css";
+import { catalogueDropdownPanel } from "./catalogue-library-dropdown";
 import type { EstimateLineComponent, EstimateLine, Estimate, CostLibraryItem, LabourRate, RateBuildup } from "./types";
 import { savePriceLineActivityAction } from "./activity-actions";
 import { workspaceStyles } from "@/lib/workspace-styles";
@@ -2051,7 +2053,16 @@ function LineItemRow({
     const proposedRate = rateDraft ? parseAdvancedQuantityDraft(rateDraft.raw) : null;
     const rateValid = proposedRate !== null && Number.isFinite(line.quantity * proposedRate);
     const [showDropdown, setShowDropdown] = useState(false);
+    const [dropdownCoords, setDropdownCoords] = useState<{ top: number; left: number; width: number } | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const syncDropdownCoords = () => {
+        if (typeof window === "undefined") {
+            setDropdownCoords(null);
+            return;
+        }
+        const rect = dropdownRef.current?.getBoundingClientRect();
+        setDropdownCoords(rect ? { top: rect.bottom + 4, left: rect.left, width: rect.width } : null);
+    };
     const blurEpoch = useRef(0);
     const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const rowMounted = useRef(false);
@@ -2084,6 +2095,7 @@ function LineItemRow({
             })
             .slice(0, 15)
         : [];
+    const dropdownOpen = showDropdown && filtered.length > 0;
 
     return (
         <div className={`grid gap-2 px-5 py-2 border-b border-slate-700/30 items-center hover:bg-slate-700/20 transition-colors ${
@@ -2159,12 +2171,17 @@ function LineItemRow({
                         setSearchDraft({ source: line.description, value: e.target.value });
                         if (e.target.value.length > 0) {
                             setShowDropdown(true);
+                            syncDropdownCoords();
                         } else {
                             setShowDropdown(false);
+                            setDropdownCoords(null);
                         }
                     }}
                     onFocus={() => {
-                        if (search.length > 0) setShowDropdown(true);
+                        if (search.length > 0) {
+                            setShowDropdown(true);
+                            syncDropdownCoords();
+                        }
                     }}
                     onBlur={() => {
                         // Delay so click on dropdown registers
@@ -2198,12 +2215,17 @@ function LineItemRow({
                         setSearchDraft({ source: line.description, value: e.target.value });
                         if (e.target.value.length > 0) {
                             setShowDropdown(true);
+                            syncDropdownCoords();
                         } else {
                             setShowDropdown(false);
+                            setDropdownCoords(null);
                         }
                     }}
                     onFocus={() => {
-                        if (search.length > 0) setShowDropdown(true);
+                        if (search.length > 0) {
+                            setShowDropdown(true);
+                            syncDropdownCoords();
+                        }
                     }}
                     onBlur={() => {
                         // Delay so click on dropdown registers
@@ -2231,41 +2253,42 @@ function LineItemRow({
                         setShowDropdown(false);
                         return activity.onBegin();
                     }} />}
-                {showDropdown && filtered.length > 0 && (
-                    <div data-library-dropdown className="absolute z-50 w-full bg-slate-800 border border-slate-700 rounded-lg shadow-xl mt-1 max-h-48 overflow-y-auto">
-                        {filtered.map((item) => (
-                            <button
-                                type="button"
-                                disabled={saveBlocked || savePending || isClientBoQ || line.pricing_mode !== "simple" || section === "Preliminaries"}
-                                title="Review a catalogue rate for a simple non-BoQ line; quantities are not converted."
-                                key={item.id}
-                                onMouseDown={(e) => {
-                                    e.preventDefault();
-                                }}
-                                onFocus={() => {
-                                    blurEpoch.current++;
-                                    if (blurTimer.current) clearTimeout(blurTimer.current);
-                                }}
-                                onClick={() => {
-                                    blurEpoch.current++;
-                                    if (blurTimer.current) clearTimeout(blurTimer.current);
-                                    setSearchDraft(current => ({ ...current }));
-                                    setShowDropdown(false);
-                                    onLibrarySelect(line.id, item.id, section);
-                                }}
-                                className="w-full text-left px-3 py-1.5 hover:bg-slate-700/50 flex items-center justify-between text-sm transition-colors"
-                            >
-                                <span className="text-slate-200 truncate">
-                                    <span className="text-slate-500 text-xs mr-1.5">{item.code}</span>
-                                    {item.description}
-                                </span>
-                                <span className="text-slate-400 text-xs ml-2 whitespace-nowrap">
-                                    {formatGBP(item.base_rate)}/{item.unit}
-                                </span>
-                            </button>
-                        ))}
-                    </div>
-                )}
+                {dropdownOpen && (() => {
+                    const pick = (itemId: string) => {
+                        blurEpoch.current++;
+                        if (blurTimer.current) clearTimeout(blurTimer.current);
+                        setSearchDraft((current) => ({ ...current }));
+                        setShowDropdown(false);
+                        onLibrarySelect(line.id, itemId, section);
+                    };
+                    const disabled = saveBlocked || savePending || isClientBoQ || line.pricing_mode !== "simple" || section === "Preliminaries";
+                    const panelProps = {
+                        items: filtered,
+                        disabled,
+                        onPick: pick,
+                        onOptionFocus: () => {
+                            blurEpoch.current++;
+                            if (blurTimer.current) clearTimeout(blurTimer.current);
+                        },
+                    };
+                    if (dropdownCoords && typeof document !== "undefined") {
+                        const fixedPanel = catalogueDropdownPanel({
+                            ...panelProps,
+                            className: "fixed z-[60] max-h-48 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800 shadow-xl",
+                            style: {
+                                top: dropdownCoords.top,
+                                left: dropdownCoords.left,
+                                width: dropdownCoords.width,
+                                maxWidth: "min(100vw - 16px, 480px)",
+                            },
+                        });
+                        return createPortal(fixedPanel, document.body);
+                    }
+                    return catalogueDropdownPanel({
+                        ...panelProps,
+                        className: "absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800 shadow-xl",
+                    });
+                })()}
             </div>
 
             {/* Qty */}

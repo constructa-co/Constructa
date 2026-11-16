@@ -52,6 +52,8 @@
     min-width: 760px;
     overflow-x: auto;
     overflow-y: visible;
+    width: 100%;
+    max-width: 100%;
 }
 .advancedSectionCard {
     overflow: visible;
@@ -84,6 +86,8 @@
 @media (max-width: 540px) {
     .root { margin: 0; padding: 24px 12px; border-radius: 0; border: 0; }
     .root form [class~="grid-cols-3"] { grid-template-columns: minmax(0, 1fr); }
+    .advancedWorkspaceWide { min-width: 0; }
+    .advancedWorkspaceRoot { padding-bottom: 7.5rem; }
 }
 @media (prefers-reduced-motion: reduce) { .root :is(button, a) { transition: none; } }
 

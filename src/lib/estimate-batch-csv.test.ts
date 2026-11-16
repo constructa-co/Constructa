@@ -47,6 +47,14 @@ describe("CON-022 estimate batch CSV import", () => {
         expect(result.ok).toBe(true);
         if (!result.ok) return;
         expect(result.lines[0]).toMatchObject({ description: "Kitchen refurbishment", quantity: null, unit: "item" });
-        expect(result.lines[1]).toMatchObject({ quantity: null, parse_warnings: ["quantity"] });
+        expect(result.lines[1]).toMatchObject({ quantity: null, unit: "item", parse_warnings: ["quantity"] });
+    });
+
+    it("uses an explicit Total column without overwriting the unit", () => {
+        const csv = `Section,Description,Qty,Unit,Rate,Total\nRoofing,Slates,8,nr,4.5,40\n`;
+        const parsed = parseEstimateBatchCsv(csv);
+        expect(parsed.ok).toBe(true);
+        if (!parsed.ok) return;
+        expect(parsed.lines[0]).toMatchObject({ unit: "nr", line_total: 40 });
     });
 });

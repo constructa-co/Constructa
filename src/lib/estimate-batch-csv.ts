@@ -26,15 +26,21 @@ function parseFiniteNumber(raw: string | undefined): { value: number | null; mal
     return Number.isFinite(value) ? { value, malformed: false } : { value: null, malformed: true };
 }
 
-function isHeadingRow(description: string, quantity: number | null, unit: string, rate: number | null): boolean {
-    if (quantity !== null) return false;
-  if (rate !== null && rate !== 0) return false;
-    const normalizedUnit = unit.toLowerCase();
-    if (["heading", "section", "header"].includes(normalizedUnit)) return true;
-    if (!unit || normalizedUnit === "item" || normalizedUnit === "nr") {
-        return description.length > 0 && description.length <= 120;
-    }
-    return false;
+function isExplicitHeadingUnit(unit: string): boolean {
+    return ["heading", "section", "header"].includes(unit.toLowerCase());
+}
+
+function isDescriptionOnlyHeadingRow(
+    description: string,
+    unit: string,
+    qtyCell: string | undefined,
+    rateCell: string | undefined,
+    totalCell: string | undefined,
+): boolean {
+    if (qtyCell?.trim() || rateCell?.trim() || totalCell?.trim()) return false;
+    if (isExplicitHeadingUnit(unit)) return description.length > 0;
+    const words = description.trim().split(/\s+/).filter(Boolean);
+    return words.length === 1 && description.length > 0 && description.length <= 48;
 }
 
 /** Deterministic BoQ/estimate CSV (no AI). Preserves section headings and row order. */
@@ -62,20 +68,20 @@ export function parseEstimateBatchCsv(text: string):
         const unit = headerKey(row, ["unit", "uom"]) ?? "item";
         const qtyCell = headerKey(row, ["quantity", "qty", "q"]);
         const rateCell = headerKey(row, ["rate", "unit rate", "unit_rate", "price"]);
+        const totalCell = headerKey(row, ["total", "line total", "line_total", "amount"]);
         const quantityParsed = parseFiniteNumber(qtyCell);
         const rateParsed = parseFiniteNumber(rateCell);
+        const totalParsed = parseFiniteNumber(totalCell);
         const parse_warnings: string[] = [];
         if (quantityParsed.malformed) parse_warnings.push("quantity");
         if (rateParsed.malformed) parse_warnings.push("unit_rate");
+        if (totalParsed.malformed) parse_warnings.push("line_total");
         const quantity = quantityParsed.value;
         const unit_rate = rateParsed.malformed ? 0 : (rateParsed.value ?? 0);
 
-        const isDescriptionOnly =
-            !qtyCell?.trim() && !rateCell?.trim() && (quantity === null) && unit_rate === 0
-            && description.length > 0 && description.length <= 120;
-
-        if (isDescriptionOnly || isHeadingRow(description, quantity, unit, rateParsed.malformed ? null : (rateParsed.value ?? 0))) {
+        if (!parse_warnings.length && isDescriptionOnlyHeadingRow(description, unit, qtyCell, rateCell, totalCell)) {
             if (sectionCell) currentSection = sectionCell;
+            else if (description.split(/\s+/).filter(Boolean).length === 1) currentSection = description;
             lines.push({
                 client_ref: ref,
                 section: currentSection,
@@ -84,19 +90,24 @@ export function parseEstimateBatchCsv(text: string):
                 unit: "item",
                 unit_rate: 0,
                 line_total: 0,
-                ...(parse_warnings.length ? { parse_warnings } : {}),
             });
             continue;
         }
 
         const qty = quantityParsed.malformed ? null : quantity;
-        const line_total = qty !== null && !quantityParsed.malformed && !rateParsed.malformed ? qty * unit_rate : 0;
+        const explicitTotal = totalParsed.malformed ? null : totalParsed.value;
+        const line_total = explicitTotal !== null
+            ? explicitTotal
+            : qty !== null && !quantityParsed.malformed && !rateParsed.malformed
+                ? qty * unit_rate
+                : 0;
+        const pricedUnit = unit.trim() || "item";
         lines.push({
             client_ref: ref,
             section: currentSection,
             description,
             quantity: qty,
-            unit,
+            unit: pricedUnit,
             unit_rate,
             line_total,
             ...(parse_warnings.length ? { parse_warnings } : {}),

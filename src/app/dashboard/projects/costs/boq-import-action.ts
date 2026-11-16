@@ -161,6 +161,13 @@ export async function createBoQEstimateAction(
     boq: ParsedClientBoQ
 ): Promise<{ success: boolean; estimateId?: string; error?: string }> {
     requireLaunchCapability("client-boq-import");
+  const warned = boq.lines.filter((line) => line.parse_warnings?.length);
+    if (warned.length) {
+        return {
+            success: false,
+            error: `${warned.length} row(s) have unreadable quantities, rates or totals. Fix them in the file or remove those rows before importing.`,
+        };
+    }
     try {
         parseInput(CreateBoQEstimateSchema, { projectId, boq }, "client BoQ import");
     } catch (err) {
@@ -194,18 +201,25 @@ export async function createBoQEstimateAction(
     // Insert lines — skip blank description rows, keep section headers
     const linesToInsert = boq.lines
         .filter((l) => l.description?.trim())
-        .map((l) => ({
+        .map((l) => {
+            const unit = (l.unit || "item").trim() || "item";
+            const quantity = l.quantity ?? 1;
+            const line_total = Number.isFinite(l.line_total)
+                ? l.line_total
+                : quantity * (l.unit_rate || 0);
+            return {
             estimate_id: estimate.id,
             trade_section: l.section || "General",
             client_ref: l.client_ref || null,
             description: l.description,
-            quantity: l.quantity ?? 1,
-            unit: l.unit || "item",
+            quantity,
+            unit,
             unit_rate: l.unit_rate || 0,
-            line_total: l.quantity != null ? (l.quantity * (l.unit_rate || 0)) : 0,
+            line_total,
             pricing_mode: "simple",
             line_type: "general",
-        }));
+        };
+        });
 
     if (linesToInsert.length > 0) {
         const { error: linesErr } = await supabase

@@ -13,15 +13,24 @@ describe("client BoQ AI row normalisation", () => {
         expect(lines[2].section).toBe("Frame");
     });
 
-    it("flags malformed quantity and rate without inventing values", () => {
+    it("flags malformed quantity and rate without inventing values or turning into headings", () => {
         const lines = normalizeClientBoQLines([
-            { section: "Groundworks", description: "Clear site", quantity: "n/a", unit: "item", unit_rate: "TBC" },
+            { section: "Groundworks", description: "Clear site", quantity: "n/a", unit: "m2", unit_rate: "TBC" },
         ]);
         expect(lines[0]).toMatchObject({
             quantity: null,
+            unit: "m2",
             unit_rate: 0,
             line_total: 0,
             parse_warnings: ["quantity", "unit_rate"],
         });
+    });
+
+    it("keeps an explicit client line total when quantity and rate are present", () => {
+        const lines = normalizeClientBoQLines([
+            { section: "Groundworks", description: "Paving", quantity: 10, unit: "m2", unit_rate: 12, line_total: 130 },
+        ]);
+        expect(lines[0].line_total).toBe(130);
+        expect(lines[0].unit).toBe("m2");
     });
 });

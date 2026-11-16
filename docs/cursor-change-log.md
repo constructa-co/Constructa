@@ -1,5 +1,17 @@
 # Cursor change log
 
+## 2026-11-16 — D46 P1 estimate #181 follow-up (portal, warnings, MoM) (cursor/d46-p1-estimate-con-022-031-032-a05d)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `catalogue-library-dropdown.tsx` | `catalogueDropdownPanel` + optional portal helper | Body-portal dropdown; inline fallback for replay/tests |
+| `advanced-estimate.tsx` | `createPortal` + focus-synced coords | Non-clipping catalogue search at scroll edges |
+| `estimate-batch-csv.ts`, `client-boq-normalize.ts` | Stricter heading rules, explicit totals | Priced/malformed rows stay priced; `parse_warnings` |
+| `boq-import.tsx`, `boq-import-action.ts` | Warning banner + import block | Display and act on unreadable cells |
+| `simple-actions.ts` | Legacy error only when MoM empty | Valid MoM survives legacy query failure |
+| `con-181-integration.test.ts` | (new) | Real-path integration for portal, CSV, MoM, import guard |
+| `estimating.module.css` | Mobile `advancedWorkspaceWide` | Narrow viewport + dock padding |
+
 ## 2026-11-16 — D46 P1 estimate #181 CI fix (cursor/d46-p1-estimate-con-022-031-032-a05d)
 
 | File | Lines (approx.) | Change | Intent |

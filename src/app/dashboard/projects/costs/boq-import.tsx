@@ -171,7 +171,8 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
     }, {}) ?? {};
 
     const linesWithQty = boq?.lines.filter((l) => l.quantity != null && l.description?.trim()).length ?? 0;
-    const linesBlank = boq?.lines.filter((l) => l.quantity == null && l.description?.trim()).length ?? 0;
+    const warnedLines = boq?.lines.filter((l) => l.parse_warnings?.length) ?? [];
+    const linesBlank = boq?.lines.filter((l) => l.quantity == null && l.description?.trim() && !l.parse_warnings?.length).length ?? 0;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
@@ -293,9 +294,17 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
                                                     {line.client_ref && (
                                                         <span className="text-slate-600 text-xs font-mono w-10 flex-shrink-0 pt-0.5">{line.client_ref}</span>
                                                     )}
-                                                    <span className="text-slate-300 text-xs flex-1">{line.description}</span>
+                                                    <span className="text-slate-300 text-xs flex-1">
+                                                        {line.description}
+                                                        {line.parse_warnings?.length ? (
+                                                            <span className="ml-2 text-amber-400" data-boq-parse-warning={line.parse_warnings.join(",")}>
+                                                                Unreadable {line.parse_warnings.join(", ").replaceAll("_", " ")}
+                                                            </span>
+                                                        ) : null}
+                                                    </span>
                                                     <span className="text-slate-500 text-xs font-mono whitespace-nowrap">
                                                         {line.quantity != null ? `${line.quantity} ${line.unit}` : <span className="text-amber-500/70">qty TBC</span>}
+                                                        {line.unit_rate > 0 && line.quantity != null ? <span className="text-slate-600"> · £{line.line_total.toFixed(2)}</span> : null}
                                                     </span>
                                                 </div>
                                             ))}
@@ -304,10 +313,16 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
                                 </div>
                             </div>
 
+                            {warnedLines.length > 0 && (
+                                <p className="text-amber-300 text-xs flex items-center gap-1.5" data-boq-warning-banner>
+                                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                                    {warnedLines.length} row(s) have unreadable quantities, rates or totals. Import is blocked until you fix or remove them in the source file.
+                                </p>
+                            )}
                             {linesBlank > 0 && (
                                 <p className="text-amber-400/80 text-xs flex items-center gap-1.5">
                                     <AlertTriangle className="w-3.5 h-3.5" />
-                                    {linesBlank} items have no quantity — these will be imported with qty = 1 as a placeholder
+                                    {linesBlank} heading or blank-quantity items — section labels import with qty = 1 as a placeholder unless you add quantities first
                                 </p>
                             )}
                         </>
@@ -344,7 +359,9 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
                                 </button>
                                 <button
                                     onClick={handleImport}
-                                    className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors"
+                                    disabled={warnedLines.length > 0}
+                                    title={warnedLines.length > 0 ? "Fix unreadable rows before importing" : undefined}
+                                    className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
                                 >
                                     <ClipboardList className="w-4 h-4" />
                                     Import {boq?.lines.filter(l => l.description?.trim()).length} items

@@ -420,14 +420,19 @@ export async function loadAdvancedEstimatingDataAction(): Promise<
             labourRateQuery,
             supabase.from("profiles").select("preferred_trades").eq("id", user.id).single(),
         ]);
-        if (rateBuildups.error || categories.error || items.error || overrides.error || labourRates.error || legacyLibrary.error) {
+        if (rateBuildups.error || categories.error || items.error || overrides.error || labourRates.error) {
             return { ok: false, error: "The advanced tools couldn't be loaded. Check your connection and try again." };
         }
 
         const fromMom = mapMomRowsToCostLibrary(items.data || [], categories.data || [], overrides.data || []);
         /* eslint-disable @typescript-eslint/no-explicit-any */
-        const legacy = (legacyLibrary.data || []).map((row: any) => mapLegacyCostLibraryRow(row)).filter(Boolean) as CostLibraryItem[];
+        const legacy = legacyLibrary.error
+            ? []
+            : (legacyLibrary.data || []).map((row: any) => mapLegacyCostLibraryRow(row)).filter(Boolean) as CostLibraryItem[];
         const catalogueSource: "mom" | "legacy" = fromMom.length ? "mom" : "legacy";
+        if (!fromMom.length && legacyLibrary.error) {
+            return { ok: false, error: "The advanced tools couldn't be loaded. Check your connection and try again." };
+        }
         const costLibrary = catalogueSource === "mom" ? fromMom : legacy;
 
         return {

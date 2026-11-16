@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import DashboardClient from "./dashboard-client";
 import { isActiveProject } from "@/lib/project-helpers";
-import { computeContractSum } from "@/lib/financial";
+import { kanbanFinancialsFromEstimates, totalKanbanPipelineValue } from "@/lib/pipeline-value";
 
 export const dynamic = "force-dynamic";
 
@@ -35,14 +35,7 @@ export default async function Dashboard({
         .in("project_id", safeProjects.map(p => p.id))
         .eq("is_active", true);
 
-    const financialMap: Record<string, number> = {};
-    safeProjects.forEach(p => {
-        const est = activeEstimates?.find(e => e.project_id === p.id);
-        if (est) {
-            const { contractSum } = computeContractSum(est, (est as any).estimate_lines ?? []);
-            financialMap[p.id] = contractSum;
-        }
-    });
+    const financialMap = kanbanFinancialsFromEstimates(safeProjects, activeEstimates ?? []);
 
     // 3. Fetch company name from profile
     const { data: profile } = await supabase
@@ -61,12 +54,10 @@ export default async function Dashboard({
     // P1-4 — pipeline value uses canonical contract sum when an active
     // estimate exists, falls back to potential_value for Lead/Estimating
     // stages where only a gut-feel budget is available.
+    const totalPipelineValue = totalKanbanPipelineValue(safeProjects, financialMap);
+
     const projectValue = (p: { id: string; potential_value?: number | null }) =>
         financialMap[p.id] > 0 ? financialMap[p.id] : (p.potential_value ?? 0);
-
-    const totalPipelineValue = safeProjects
-        .filter(p => p.status !== "Lost" && p.status !== "Completed")
-        .reduce((sum, p) => sum + projectValue(p), 0);
 
     const proposalsSent = safeProjects.filter(p => p.proposal_sent_at !== null && p.proposal_sent_at !== undefined).length;
 

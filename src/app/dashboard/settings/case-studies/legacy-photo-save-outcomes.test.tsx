@@ -106,7 +106,7 @@ const study = (extra: Partial<Study> = {}): Study => ({
 const settle = () => new Promise<void>(resolve => setTimeout(resolve, 0));
 
 let initial: Study[];
-const render = () => expand(<CaseStudiesClient userId="synthetic" initialCaseStudies={initial} save={actions.save} />, "older");
+const render = () => expand(<CaseStudiesClient userId="synthetic" initialStoredFingerprint="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" initialCaseStudies={initial} save={actions.save} />, "older");
 
 beforeEach(() => {
     hook.instances.clear();

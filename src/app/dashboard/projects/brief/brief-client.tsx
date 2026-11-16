@@ -12,6 +12,7 @@ import { BEFORE_PROJECT_NAVIGATION } from "@/lib/project-navigation";
 import { useReducerStore } from "@/lib/use-reducer-store";
 import { workspaceStyles, type WorkspaceStyles } from "@/lib/workspace-styles";
 import SaveStatus from "@/components/save-status";
+import UkDateInput from "@/components/uk-date-input";
 import BriefSaveFocus from "@/components/brief-save-focus";
 import BriefActivityEntry from "./brief-activity-entry";
 import ui from "@/components/brief-chrome.module.css";
@@ -594,13 +595,13 @@ export default function BriefClient({ project, ask = suggestBriefAction, save = 
                             <summary className={`cursor-pointer min-h-11 flex items-center text-sm font-semibold ${s.body}`}>Change likely start date</summary>
                             <div>
                                 <label htmlFor="brief-start-date" className={s.label}>Likely start date</label>
-                                <input
+                                <UkDateInput
                                     id="brief-start-date"
                                     aria-describedby={locked ? "brief-start-date-help brief-lock-note" : "brief-start-date-help"}
-                                    type="date"
                                     readOnly={locked}
                                     value={draft.startDate}
                                     onChange={(e) => edit({ startDate: e.target.value })}
+                                    mutedClassName={s.muted}
                                     className={`${s.input} mt-2`}
                                 />
                                 <p id="brief-start-date-help" className={`mt-1 text-sm ${s.muted}`}>

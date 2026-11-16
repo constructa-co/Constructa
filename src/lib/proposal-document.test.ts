@@ -245,10 +245,10 @@ describe("price", () => {
         });
 
         it("stamps new snapshots with the current presentation", () => {
-            expect(snapshot.document_presentation_version).toBe(3);
+            expect(snapshot.document_presentation_version).toBe(5);
         });
 
-        it.each([2, undefined] as const)("re-exports a snapshot issued under presentation %s with the grouping and wording it was issued with", (version) => {
+        it.each([2, 3, 4, undefined] as const)("re-exports a snapshot issued under presentation %s with the grouping and wording it was issued with", (version) => {
             const issued = mixed();
             if (version) issued.document_presentation_version = version;
             else delete issued.document_presentation_version;
@@ -464,5 +464,89 @@ describe("truthful content", () => {
         expect(draft.reference).toBe("Draft");
         expect(htmlText(draft)).toContain("Draft preview. This has not been sent to the client.");
         expect(pdfStrings(draft)).toContain("DRAFT PREVIEW - NOT SENT TO THE CLIENT");
+    });
+});
+
+describe("D51 director's message is shown once", () => {
+    const MESSAGE = "I visit every job at the start and at the end.";
+    const usedAsClosing = (closing: string) => buildProposalPublicationSnapshot({
+        ...representativeInput(),
+        project: { ...representativeInput().project, closing_statement: closing },
+    });
+    const quoteOf = (doc: ProposalDocument) => blockOf(doc, "about", "quote");
+    const count = (text: string) => text.split(MESSAGE).length - 1;
+
+    it("leaves the message out of About when it is the closing wording, on the page and in the PDF", () => {
+        const doc = buildProposalDocument(usedAsClosing(MESSAGE));
+        expect(quoteOf(doc)).toBeUndefined();
+        expect(blocksOf(doc, "closing")[0]).toEqual({ type: "paragraphs", paragraphs: [MESSAGE] });
+        expect(count(htmlText(doc))).toBe(1);
+        expect(count(pdfStrings(doc).replace(/\n/g, " "))).toBe(1);
+        // The rest of About is untouched.
+        expect(blocksOf(doc, "about").map((block) => block.type)).toEqual(["facts", "paragraphs"]);
+    });
+
+    it("treats the copied message as the same words after edits around it or to its spacing", () => {
+        expect(quoteOf(buildProposalDocument(usedAsClosing(`Thank you for your time.\n  ${MESSAGE.replace("every job", "every  job")}\nRing me any time.`)))).toBeUndefined();
+    });
+
+    it("keeps the message in About when the closing says something else, or nothing", () => {
+        expect(quoteOf(document)).toEqual({ type: "quote", paragraphs: [MESSAGE], attribution: "Sam Builder" });
+        const noClosing = buildProposalDocument(usedAsClosing(""));
+        expect(quoteOf(noClosing)).toBeDefined();
+        expect(noClosing.sections.map((section) => section.id)).not.toContain("closing");
+    });
+
+    it.each([2, 3, undefined] as const)("draws a proposal issued at presentation %s as it was issued, with both", (version) => {
+        const issued = structuredClone(usedAsClosing(MESSAGE));
+        if (version) issued.document_presentation_version = version;
+        else delete issued.document_presentation_version;
+        const before = structuredClone(issued);
+        const doc = buildProposalDocument(issued, { snapshotHash: "cd".repeat(32) });
+        expect(quoteOf(doc)).toEqual({ type: "quote", paragraphs: [MESSAGE], attribution: "Sam Builder" });
+        expect(count(htmlText(doc))).toBe(2);
+        expect(count(pdfStrings(doc).replace(/\n/g, " "))).toBe(2);
+        expect(issued).toEqual(before);
+    });
+});
+
+describe("D51 programme stage names in the PDF", () => {
+    const LONG_NAME = "First fix plumbing and electrics to the kitchen, utility and downstairs cloakroom including boxing in, pressure testing and sign off ENDMARKER";
+    const input = representativeInput();
+    const longSnapshot = buildProposalPublicationSnapshot({
+        ...input,
+        project: {
+            ...input.project,
+            programme_phases: (input.project.programme_phases ?? []).map((phase, index) => (index === 1 ? { ...(phase as object), name: LONG_NAME } : phase)),
+        },
+    });
+    const programmeRows = (doc: ProposalDocument) => renderProposalBrochure(doc, stubImages(doc)).layout
+        .filter((entry) => entry.section === "programme" && entry.kind === "row").slice(1);
+
+    it("prints a long stage name in full and gives its row the room", () => {
+        expect(longSnapshot.programme_plan!.stages[1].name).toBe(LONG_NAME);
+        const doc = buildProposalDocument(longSnapshot);
+        expect(doc.presentationVersion).toBe(5);
+        expect(pdfStrings(doc).replace(/\n/g, " ")).toContain(LONG_NAME);
+        const rows = programmeRows(doc);
+        expect(rows).toHaveLength(4);
+        const heights = rows.map((row) => Math.round((row.bottom - row.top) * 100) / 100);
+        expect(heights[0]).toBe(13);
+        expect(heights[1]).toBeGreaterThan(13);
+        expect(heights.slice(2)).toEqual([13, 13]);
+        expect(rows.every((row) => row.bottom <= 274.01)).toBe(true);
+    });
+
+    it("says the same stage name on the page", () => {
+        expect(htmlText(buildProposalDocument(longSnapshot))).toContain(LONG_NAME);
+    });
+
+    it.each([2, 3] as const)("draws a proposal issued at presentation %s with the layout it was issued in", (version) => {
+        const issued = { ...longSnapshot, document_presentation_version: version };
+        const doc = buildProposalDocument(issued);
+        const pdf = pdfStrings(doc).replace(/\n/g, " ");
+        expect(pdf).toContain("First fix plumbing and electrics");
+        expect(pdf).not.toContain("ENDMARKER");
+        expect(programmeRows(doc).map((row) => Math.round((row.bottom - row.top) * 100) / 100)).toEqual([13, 13, 13, 13]);
     });
 });

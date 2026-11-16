@@ -111,7 +111,7 @@ beforeEach(() => {
 
 describe("case study text enhance stays optional and never overwrites by itself", () => {
     it("does not call the server while the application switch is off", () => {
-        const tree = expand(<CaseStudiesClient userId="synthetic" initialCaseStudies={[study()]} />, "root");
+        const tree = expand(<CaseStudiesClient userId="synthetic" initialStoredFingerprint="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" initialCaseStudies={[study()]} />, "root");
         (enhanceButton(tree).props.onClick as () => void)();
         expect(actions.enhance).not.toHaveBeenCalled();
         expect(editorState().draft[0].whatWeDelivered).toBe("Original delivered text.");
@@ -126,7 +126,7 @@ describe("case study text enhance stays optional and never overwrites by itself"
             suggested: false,
             message: "The assistant had nothing to change.",
         });
-        const tree = expand(<CaseStudiesClient userId="synthetic" initialCaseStudies={[study()]} />, "root");
+        const tree = expand(<CaseStudiesClient userId="synthetic" initialStoredFingerprint="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" initialCaseStudies={[study()]} />, "root");
         await (enhanceButton(tree).props.onClick as () => Promise<void>)();
         expect(actions.enhance).toHaveBeenCalledTimes(1);
         expect(editorState().draft[0].whatWeDelivered).toBe("Original delivered text.");
@@ -136,14 +136,14 @@ describe("case study text enhance stays optional and never overwrites by itself"
     it("leaves the contractor's text when enhance throws", async () => {
         enhanceEnabled.on = true;
         actions.enhance.mockRejectedValue(new Error("provider down"));
-        const tree = expand(<CaseStudiesClient userId="synthetic" initialCaseStudies={[study()]} />, "root");
+        const tree = expand(<CaseStudiesClient userId="synthetic" initialStoredFingerprint="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" initialCaseStudies={[study()]} />, "root");
         await (enhanceButton(tree).props.onClick as () => Promise<void>)();
         expect(editorState().draft[0].whatWeDelivered).toBe("Original delivered text.");
         expect(editorState().draft[0].valueAdded).toBe("Original value text.");
     });
 
     it("surfaces OFF copy without calling enhance when the switch is off", () => {
-        const render = () => expand(<CaseStudiesClient userId="synthetic" initialCaseStudies={[study()]} />, "root");
+        const render = () => expand(<CaseStudiesClient userId="synthetic" initialStoredFingerprint="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" initialCaseStudies={[study()]} />, "root");
         (enhanceButton(render()).props.onClick as () => void)();
         const notice = render().find(element => element.props["data-case-study-notice"] !== undefined);
         expect(notice?.props.children).toBe(COHORT_AI_OFF);

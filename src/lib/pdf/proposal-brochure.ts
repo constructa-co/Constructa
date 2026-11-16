@@ -572,7 +572,15 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
         const basisLines = wrap(`${programmeBasisNote(plan)} Coloured bars show duration. Vertical ticks mark starts, not extra days.`, PAGE.contentWidth, STYLES.small);
         const axisAndNoteHeight = Math.max(12, 6 + basisLines.length * STYLES.small.lineHeight);
         const headline: DocFact[] = programmeFacts(plan);
-        ensure(TIMELINE_FACTS + STAGE_ROW);
+        // A stage name too long for its column runs on to further lines, and
+        // its row grows to hold them. Proposals issued before presentation 4
+        // printed the first line only and are still drawn that way.
+        const stageNames = plan.stages.map((stage) => {
+            const nameLines = wrap(stage.name, PAGE.contentWidth - 78, STYLES.strong);
+            return document.presentationVersion >= 4 ? nameLines : nameLines.slice(0, 1);
+        });
+        const nameOverflow = (index: number) => Math.max(0, (stageNames[index]?.length ?? 0) - 1) * STYLES.strong.lineHeight;
+        ensure(TIMELINE_FACTS + STAGE_ROW + nameOverflow(0));
         const factsTop = y;
         const columnWidth = PAGE.contentWidth / 3;
         headline.forEach((fact, column) => {
@@ -588,13 +596,11 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
 
         plan.stages.forEach((stage, index) => {
             const isLast = index === plan.stages.length - 1;
-            // A long stage name runs onto further lines and its bar moves down with it.
-            const nameLines = wrap(stage.name, PAGE.contentWidth - 78, STYLES.strong);
-            const overflow = Math.max(0, nameLines.length - 1) * STYLES.strong.lineHeight;
             // The date axis and the basis note stay with the last stage.
+            const overflow = nameOverflow(index);
             ensure(STAGE_ROW + overflow + (isLast ? axisAndNoteHeight : 0));
             const top = y;
-            drawBlockLines(nameLines, PAGE.left, top, STYLES.strong);
+            drawBlockLines(stageNames[index], PAGE.left, top, STYLES.strong);
             drawBlockLines(
                 [pdfText(`${programmeStageRange(plan, index)} - ${formatWorkingDuration(stage.working_days, plan.working_pattern)}`)],
                 PAGE.right, top + 0.6, STYLES.small, "right",
@@ -602,7 +608,7 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
             const bar = programmeStageBar(plan, index, 0);
             const barX = PAGE.left + (PAGE.contentWidth * bar.leftPct) / 100;
             const barWidth = (PAGE.contentWidth * bar.widthPct) / 100;
-            const barTop = top + 6.5 + overflow;
+            const barTop = top + overflow + 6.5;
             pdf.setFillColor(231, 229, 228);
             pdf.roundedRect(PAGE.left, barTop, PAGE.contentWidth, 2.6, 1.3, 1.3, "F");
             pdf.setFillColor(...ACCENT);
@@ -932,10 +938,12 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
             `Reference ${document.reference}.${document.snapshotRef ? ` Snapshot ${document.snapshotRef}.` : ""}${document.draftCheckCode ? ` Check code ${document.draftCheckCode}.` : ""}`,
             PAGE.contentWidth - 16, STYLES.small,
         );
-        // A client name too long for the signature column is written out in
-        // full; the lines to sign move down to make room for it.
+        // From presentation 5 a client name too long for the signature column
+        // is written out in full and the lines to sign move down for it.
+        // Earlier versions kept the first line only and are still drawn that way.
         const columnWidth = (PAGE.contentWidth - 16 - 10) / 2;
-        const clientNameLines = document.clientName ? wrap(document.clientName, columnWidth, STYLES.strong) : [];
+        const wrappedClientName = document.clientName ? wrap(document.clientName, columnWidth, STYLES.strong) : [];
+        const clientNameLines = document.presentationVersion >= 5 ? wrappedClientName : wrappedClientName.slice(0, 1);
         const nameOverflow = Math.max(0, clientNameLines.length - 1) * STYLES.strong.lineHeight;
         const signatureHeight = 33 + nameOverflow;
         const height = 7 + headingLines.length * headingStyle.lineHeight + 2 + noticeLines.length * STYLES.body.lineHeight
@@ -977,10 +985,12 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
             drawBlockLines(nameLines, columnX, cursor + 5, STYLES.strong);
             ["Signature", "Name", "Date"].forEach((line, index) => {
                 const lineY = cursor + 16 + nameOverflow + index * 7;
+                const fieldTop = lineY - 3;
                 pdf.setDrawColor(...MUTED);
                 pdf.setLineWidth(0.2);
                 pdf.line(columnX + 18, lineY, columnX + columnWidth, lineY);
-                drawBlockLines([line], columnX, lineY - 3, STYLES.small);
+                drawBlockLines([line], columnX, fieldTop, STYLES.small);
+                log("signature-field", fieldTop, lineY + 0.5, `signature-${Math.round(columnX)}`);
             });
         };
         signature(x, `For ${document.company.name}`, []);

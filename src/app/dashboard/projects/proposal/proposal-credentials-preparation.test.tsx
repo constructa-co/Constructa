@@ -69,11 +69,15 @@ describe("proposal preparation credentials and work type (A073)", () => {
         expect(about).toContain('href="/dashboard/settings/profile"');
     });
 
-    it("shows exact project_type on the cover summary when present, including Other", () => {
-        const typed = preparationHtml(context({ project_type: "Other" }));
+    it("shows a chosen project_type on the cover once and omits the unspecified placeholder", () => {
+        const typed = preparationHtml(context({ project_type: "Bathroom refurbishment" }));
         const cover = slice(typed, 'id="review-cover"', 'id="review-about"');
-        expect(cover).toMatch(/<dt[^>]*>Type of work<\/dt>\s*<dd[^>]*>Other<\/dd>/);
+        expect(cover).toMatch(/<dt[^>]*>Type of work<\/dt>\s*<dd[^>]*>Bathroom refurbishment<\/dd>/);
         expect(cover.match(/Type of work/g)?.length).toBe(1);
+
+        const placeholder = preparationHtml(context({ project_type: "Other" }));
+        const coverPlaceholder = slice(placeholder, 'id="review-cover"', 'id="review-about"');
+        expect(coverPlaceholder).not.toContain("Type of work");
 
         const omitted = preparationHtml(context({ project_type: null }));
         const coverBare = slice(omitted, 'id="review-cover"', 'id="review-about"');

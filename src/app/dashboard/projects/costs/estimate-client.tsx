@@ -540,8 +540,9 @@ export default function EstimateClient({
                             </div>
                         )}
                         {advanced.status === "ready" && advanced.data && (
-                            <div data-wide-workspace className="rounded-xl bg-[#0d0d0d] p-3 sm:p-4 overflow-x-auto">
-                                <div className="min-w-[760px]">
+                            <div data-wide-workspace className={`${ui.advancedWorkspaceRoot} rounded-xl bg-[#0d0d0d] p-3 sm:p-4`}>
+                                <div className={`${ui.advancedWorkspaceScroller} min-w-0`}>
+                                <div className={ui.advancedWorkspaceWide}>
                                     <AdvancedEstimate
                                         estimates={state.estimates}
                                         setEstimates={(update) => store.dispatch({ type: "estimates/replace", update })}
@@ -558,6 +559,7 @@ export default function EstimateClient({
                                         onLineSaveStateChanged={(lineId, status) => resourceSaveStateChanged(`line:${lineId}`, status)}
                                         onRunningTotalDraftChange={setAdvancedRunningDraft}
                                     />
+                                </div>
                                 </div>
                             </div>
                         )}

@@ -8,6 +8,7 @@ import { sessionReader } from "@/lib/case-library/store";
 import CaseStudiesClient from "./case-studies-client";
 import type { ComponentProps } from "react";
 import LibraryPanel from "./library-panel";
+import { legacyCaseStudiesStoredFingerprint } from "@/lib/server/legacy-case-studies-fingerprint";
 import { readStoredExampleTags } from "@/lib/case-study-example-tags";
 
 export const dynamic = "force-dynamic";
@@ -79,6 +80,7 @@ export default async function CaseStudiesPage() {
                         </div>
                     )}
                     <CaseStudiesClient
+                        initialStoredFingerprint={legacyCaseStudiesStoredFingerprint(profile?.case_studies)}
                         initialCaseStudies={(Array.isArray(profile?.case_studies) ? profile.case_studies : []).map((entry) => {
                             const row = typeof entry === "object" && entry !== null ? (entry as Record<string, unknown>) : {};
                             const tags = readStoredExampleTags(row);

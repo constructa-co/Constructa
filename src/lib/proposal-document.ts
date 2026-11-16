@@ -11,6 +11,7 @@
  * out; no heading, statistic, caption or claim is supplied to fill a gap.
  */
 
+import { UNSPECIFIED_PROJECT_TYPE } from "@/lib/blank-project";
 import { roundMoney } from "@/lib/financial";
 import { formatGbp } from "@/lib/pdf/pdf-money";
 import { formatPlanDate } from "@/lib/programme-plan";
@@ -82,6 +83,8 @@ export function documentThemeName(value: string | null | undefined): DocumentThe
 export interface ProposalDocument {
     /** True for the contractor's preview of an unsent draft. */
     isDraft: boolean;
+    /** The layout the snapshot was sent with. An issued proposal is drawn as it was issued. */
+    presentationVersion: number;
     theme: DocumentThemeName;
     company: { name: string; logoUrl: string | null; phone: string | null; website: string | null };
     reference: string;
@@ -198,6 +201,56 @@ function hasSavedCredentialText(value: string | null | undefined): boolean {
     return Boolean(value?.trim());
 }
 
+/** The default type stored when the contractor did not choose one — not shown as a job category. */
+export function isUnspecifiedProjectType(type: string | null | undefined): boolean {
+    const trimmed = type?.trim();
+    return !trimmed || trimmed === UNSPECIFIED_PROJECT_TYPE;
+}
+
+/**
+ * Type of work shown on the cover and in About credentials.
+ * Omits the neutral placeholder and misleading "Other work" estimate section label.
+ */
+export function publicationProjectTypeDisplay(type: string | null | undefined): string | null {
+    const trimmed = type?.trim();
+    if (!trimmed || isUnspecifiedProjectType(trimmed)) return null;
+    if (trimmed.localeCompare("Other work", undefined, { sensitivity: "accent" }) === 0) return null;
+    return type!;
+}
+
+/** Heading for a price-table group. Hides generic buckets that would mislead the client. */
+export function feeSectionTitle(title: string): string | null {
+    const trimmed = title.trim();
+    if (!trimmed || trimmed === "General") return null;
+    if (isUnspecifiedProjectType(trimmed)) return null;
+    if (trimmed.localeCompare("Other work", undefined, { sensitivity: "accent" }) === 0) return null;
+    return title;
+}
+
+/**
+ * The first presentation version that leaves out placeholder job types and
+ * generic price headings. A snapshot issued before it keeps the type of work
+ * and the price heading it was issued with, whatever they say.
+ */
+export const LABEL_SUPPRESSION_PRESENTATION_VERSION = 3;
+
+function suppressesGenericLabels(snapshot: ProposalPublicationSnapshot): boolean {
+    return documentPresentationVersion(snapshot) >= LABEL_SUPPRESSION_PRESENTATION_VERSION;
+}
+
+/** Type of work for this snapshot: as saved on anything issued before label suppression. */
+function snapshotProjectTypeDisplay(snapshot: ProposalPublicationSnapshot): string | null {
+    const type = snapshot.project.project_type;
+    if (suppressesGenericLabels(snapshot)) return publicationProjectTypeDisplay(type);
+    return type?.trim() ? type : null;
+}
+
+/** Heading of a lone price group: before label suppression only the unnamed "General" group had none. */
+function snapshotFeeSectionTitle(snapshot: ProposalPublicationSnapshot, title: string): string | null {
+    if (suppressesGenericLabels(snapshot)) return feeSectionTitle(title);
+    return title === "General" ? null : title;
+}
+
 /** Saved contractor profile facts only (not the job work type). Literal strings. */
 function contractorProfileCredentialFacts(contractor: ProposalPublicationSnapshot["contractor"]): DocFact[] {
     const items: DocFact[] = [];
@@ -210,20 +263,33 @@ function contractorProfileCredentialFacts(contractor: ProposalPublicationSnapsho
     return items;
 }
 
+const sameWords = (text: string | null | undefined) => (text ?? "").replace(/\s+/g, " ").trim();
+
+/**
+ * True when the closing wording already carries the director's message, as
+ * it does after "Use saved company message". The client then reads it once,
+ * as the closing, and not a second time under About. Snapshots issued before
+ * presentation 4 showed both and still do.
+ */
+function messageIsTheClosing(snapshot: ProposalPublicationSnapshot): boolean {
+    if (documentPresentationVersion(snapshot) < 4) return false;
+    const message = sameWords(snapshot.contractor.md_message);
+    return message !== "" && sameWords(snapshot.content.closing_statement).includes(message);
+}
+
 function aboutSection(snapshot: ProposalPublicationSnapshot): DocSection | null {
     const c = snapshot.contractor;
     const profileCredentials = contractorProfileCredentialFacts(c);
     const capabilityBlocks = textBlocks(c.capability_statement);
-    const message = lines(c.md_message);
+    const message = messageIsTheClosing(snapshot) ? [] : lines(c.md_message);
     if (profileCredentials.length === 0 && capabilityBlocks.length === 0 && message.length === 0) {
         return null;
     }
 
     const blocks: DocBlock[] = [];
     const credentialFacts: DocFact[] = [];
-    if (hasSavedCredentialText(snapshot.project.project_type)) {
-        credentialFacts.push({ label: "Type of work", value: snapshot.project.project_type! });
-    }
+    const jobType = snapshotProjectTypeDisplay(snapshot);
+    if (jobType) credentialFacts.push({ label: "Type of work", value: jobType });
     credentialFacts.push(...profileCredentials);
     if (credentialFacts.length > 0) blocks.push({ type: "facts", items: credentialFacts });
     blocks.push(...capabilityBlocks);
@@ -273,14 +339,14 @@ function scopeSection(snapshot: ProposalPublicationSnapshot): DocSection | null 
     return { id: "scope", title: "Scope of works", blocks };
 }
 
-/** Units that are words, read with a count: "3 days", never "3 day". Symbols such as m2, nr and kg take no plural. */
+/** Units that are words, read with a count from presentation 5: "3 days", never "3 day". Symbols such as m2, nr and kg take no plural. */
 const COUNTED_UNITS: Record<string, string> = { item: "items", day: "days", week: "weeks", hour: "hours", tonne: "tonnes" };
 
 function quantityLabel(quantity: number, unit: string, presentation: number): string {
     const single = quantity === 1 && ["item", "sum", ""].includes(unit.trim().toLowerCase());
     if (single || !(quantity > 0)) return "";
     const count = Number(quantity.toFixed(3));
-    const plural = presentation >= 3 && count !== 1 ? COUNTED_UNITS[unit.trim().toLowerCase()] : undefined;
+    const plural = presentation >= 5 && count !== 1 ? COUNTED_UNITS[unit.trim().toLowerCase()] : undefined;
     return `${count} ${plural ?? unit}`.trim();
 }
 
@@ -372,15 +438,19 @@ const PRELIMINARIES_SECTION = "Preliminaries";
  * The price lines under their headings, each group in the order its first
  * line was priced.
  *
- * From presentation 3: sections that differ only in capitals are one group;
- * lines filed under "General" lead the list with no heading, whatever else
- * is priced; and preliminaries close it, whether they were priced as lines
- * or as a percentage. Earlier snapshots keep the grouping they were issued with.
+ * Before presentation 5 the grouping is the one the snapshot was issued
+ * with: exact title matches and, from 3, a lone generic heading left out.
+ * From 5: sections that differ only in capitals are one group; lines filed
+ * under "General" lead the list with no heading, whatever else is priced;
+ * and preliminaries close it, whether they were priced as lines or as a
+ * percentage.
  */
-function priceGroups(commercial: ProposalPublicationSnapshot["commercial"], presentation: number): DocPriceGroup[] {
-    const current = presentation >= 3;
+function priceGroups(snapshot: ProposalPublicationSnapshot): DocPriceGroup[] {
+    const commercial = snapshot.commercial;
+    const presentation = documentPresentationVersion(snapshot);
+    const regroup = presentation >= 5;
     const sameSection = (title: string | null, section: string) =>
-        current ? title?.trim().toLowerCase() === section.trim().toLowerCase() : title === section;
+        regroup ? title?.trim().toLowerCase() === section.trim().toLowerCase() : title === section;
 
     const groups: DocPriceGroup[] = [];
     for (const item of commercial.fee_items) {
@@ -395,10 +465,11 @@ function priceGroups(commercial: ProposalPublicationSnapshot["commercial"], pres
             amount: formatGbp(item.amount_ex_vat),
         });
     }
-    if (!current) {
-        if (groups.length === 1 && groups[0].title === GENERAL_SECTION) groups[0].title = null;
+    if (groups.length === 1 && groups[0].title) {
+        groups[0].title = snapshotFeeSectionTitle(snapshot, groups[0].title);
         return groups;
     }
+    if (!regroup) return groups;
 
     const general = groups.filter((group) => sameSection(group.title, GENERAL_SECTION));
     const preliminaries = groups.filter((group) => sameSection(group.title, PRELIMINARIES_SECTION));
@@ -412,7 +483,7 @@ function priceSection(snapshot: ProposalPublicationSnapshot): DocSection | null 
     if (!(commercial.contract_sum_ex_vat > 0)) return null;
 
     const presentation = documentPresentationVersion(snapshot);
-    const groups = priceGroups(commercial, presentation);
+    const groups = priceGroups(snapshot);
     const blocks: DocBlock[] = [{
         type: "price",
         groups,
@@ -535,6 +606,7 @@ export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, opt
 
     return {
         isDraft: draftDocument,
+        presentationVersion: presentation,
         theme: documentThemeName(snapshot.contractor.pdf_theme),
         company: {
             name: snapshot.contractor.company_name,
@@ -546,7 +618,7 @@ export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, opt
         title: snapshot.project.name,
         clientName: publicationClientDisplayName(snapshot.project),
         siteAddress: snapshot.project.site_address || null,
-        projectType: snapshot.project.project_type,
+        projectType: snapshotProjectTypeDisplay(snapshot),
         issued: formatLongDate(snapshot.publication.sent_at),
         validUntil: formatLongDate(snapshot.publication.expires_at),
         keyFacts,

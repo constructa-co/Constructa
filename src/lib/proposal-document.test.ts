@@ -57,16 +57,16 @@ const blockOf = <T extends DocBlock["type"]>(doc: ProposalDocument, id: string, 
 describe("publication client identity", () => {
     const base = representativeInput().project;
 
-    it("uses only the saved client name and drops job-title or site mistaken for the client", () => {
+    it("uses the saved client name and drops only the site when mistyped as client", () => {
         expect(publicationClientDisplayName({ ...base, client_name: "Alex Client" })).toBe("Alex Client");
-        expect(publicationClientDisplayName({ ...base, client_name: base.name })).toBeNull();
+        expect(publicationClientDisplayName({ ...base, client_name: base.name })).toBe(base.name);
         expect(publicationClientDisplayName({ ...base, client_name: base.site_address! })).toBeNull();
         const doc = buildProposalDocument(buildProposalPublicationSnapshot({
             ...representativeInput(),
             project: { ...base, client_name: base.name },
         }));
-        expect(doc.clientName).toBeNull();
-        expect(pdfStrings(doc)).not.toContain(`Prepared for ${base.name}`);
+        expect(doc.clientName).toBe(base.name);
+        expect(pdfStrings(doc)).toContain(`Prepared for ${base.name}`);
     });
 });
 
@@ -176,7 +176,19 @@ describe("price", () => {
         expect(vatNote(reverse.commercial)).toContain("domestic reverse charge");
         const historic = { ...reverse.commercial, vat_treatment: undefined };
         expect(vatNote(historic)).toBe("No VAT is charged on this proposal.");
-        expect(buildProposalDocument(reverse).keyFacts.map((fact) => fact.label)).not.toContain("Price");
+        const reverseDoc = buildProposalDocument(reverse);
+        expect(reverseDoc.keyFacts.map((fact) => fact.label)).toContain("Price");
+        const price = blockOf(reverseDoc, "price", "price")!;
+        expect(price.totals).toEqual([]);
+    });
+
+    it("re-exports a stored snapshot without presentation version using the legacy price layout", () => {
+        const legacy = buildProposalPublicationSnapshot(representativeInput());
+        delete legacy.document_presentation_version;
+        const doc = buildProposalDocument(legacy);
+        expect(doc.keyFacts.some((fact) => fact.label === "Price including VAT")).toBe(true);
+        const price = blockOf(doc, "price", "price")!;
+        expect(price.totals).toEqual(vatLines(legacy.commercial));
     });
 
     it("makes payment stages add up to the price exactly", () => {

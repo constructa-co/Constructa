@@ -130,8 +130,8 @@ function singleLineAddress(value: string | null | undefined): string | null {
 
 /**
  * The client name shown on the PDF and public proposal.
- * Uses only the saved client name, and drops values that are just the job
- * title or the site address mistyped into the client field.
+ * Uses only the saved client name, and drops the site address when it was
+ * mistyped into the client field.
  */
 export function publicationClientDisplayName(project: {
     name: string;
@@ -140,7 +140,6 @@ export function publicationClientDisplayName(project: {
 }): string | null {
     const client = project.client_name?.trim();
     if (!client) return null;
-    if (client === project.name.trim()) return null;
     const site = singleLineAddress(project.site_address);
     if (site && client === site) return null;
     return client;
@@ -280,6 +279,39 @@ function quantityLabel(quantity: number, unit: string): string {
 }
 
 /** How VAT is stated. Identical wherever the price appears. */
+export function documentPresentationVersion(snapshot: ProposalPublicationSnapshot): number {
+    return snapshot.document_presentation_version ?? 1;
+}
+
+function coverPriceFact(
+    commercial: ProposalPublicationSnapshot["commercial"],
+    presentation: number,
+): DocFact | null {
+    if (!(commercial.contract_sum_ex_vat > 0)) return null;
+    if (presentation >= 2) {
+        if (commercial.vat_rate > 0) {
+            return { label: "Price including VAT", value: formatGbp(commercial.contract_sum_inc_vat) };
+        }
+        return { label: "Price", value: formatGbp(commercial.contract_sum_ex_vat) };
+    }
+    if (commercial.vat_rate > 0) {
+        return { label: "Price including VAT", value: formatGbp(commercial.contract_sum_inc_vat) };
+    }
+    return { label: "Price", value: formatGbp(commercial.contract_sum_ex_vat) };
+}
+
+function priceBlockTotals(
+    commercial: ProposalPublicationSnapshot["commercial"],
+    presentation: number,
+): Array<DocFact & { strong: boolean }> {
+    const totals = vatLines(commercial);
+    if (presentation >= 2) {
+        if (commercial.vat_rate > 0 && totals.length === 3) return totals.slice(0, 2);
+        if (commercial.vat_rate === 0) return [];
+    }
+    return totals;
+}
+
 export function vatLines(commercial: ProposalPublicationSnapshot["commercial"]): Array<DocFact & { strong: boolean }> {
     const exVat = { label: "Total before VAT", value: formatGbp(commercial.contract_sum_ex_vat), strong: false };
     if (commercial.vat_rate > 0) {
@@ -345,12 +377,11 @@ function priceSection(snapshot: ProposalPublicationSnapshot): DocSection | null 
     }
     if (groups.length === 1 && groups[0].title === "General") groups[0].title = null;
 
-    const totals = vatLines(commercial);
+    const presentation = documentPresentationVersion(snapshot);
     const blocks: DocBlock[] = [{
         type: "price",
         groups,
-        // The cover headline already states the including-VAT total; the breakdown stops at the VAT line.
-        totals: commercial.vat_rate > 0 && totals.length === 3 ? totals.slice(0, 2) : totals,
+        totals: priceBlockTotals(commercial, presentation),
         note: vatNote(commercial),
     }];
 
@@ -433,10 +464,10 @@ export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, opt
     const kind = responseKindOfSnapshot(snapshot);
     const wording = responseWording(kind);
 
+    const presentation = documentPresentationVersion(snapshot);
     const keyFacts: DocFact[] = [];
-    if (commercial.contract_sum_ex_vat > 0 && commercial.vat_rate > 0) {
-        keyFacts.push({ label: "Price including VAT", value: formatGbp(commercial.contract_sum_inc_vat) });
-    }
+    const coverPrice = coverPriceFact(commercial, presentation);
+    if (coverPrice) keyFacts.push(coverPrice);
     if (plan) {
         keyFacts.push(...programmeFacts(plan, "short"));
     } else if (snapshot.programme_intent !== "omit" && snapshot.project.start_date && formatPlanDate(snapshot.project.start_date, "short")) {

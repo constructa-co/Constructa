@@ -4,10 +4,11 @@
 
 | File | Lines (approx.) | Change | Intent |
 |------|-----------------|--------|--------|
-| `src/lib/proposal-document.ts` | `publicationClientDisplayName`, `buildProposalDocument`, `priceSection` | Drop job title/site mistaken for client; headline inc-VAT on cover only; price block ends at VAT line | CON-005 wrong client; CON-014 duplicate inc-VAT in PDF |
-| `src/lib/pdf/proposal-pdf-data.test.ts` | (new) | PDF string counts for client, prices, draft vs clean | Generated PDF data regression |
-| `src/lib/proposal-document.test.ts` | identity + price totals | Client identity + shortened price totals | Document layer regression |
-| `src/components/proposal/proposal-metric-alignment.test.tsx` | reverse-charge key facts | No cover price when VAT is 0 | Align UI test with deduped cover |
+| `src/lib/proposal-document.ts` | presentation helpers, client name, price layout | Site-only client suppression; v2 cover authoritative price (incl. zero VAT); legacy layout when `document_presentation_version` absent | CON-005/014 + issued snapshot compat |
+| `src/lib/proposal-publication.ts` | snapshot + content hash | `document_presentation_version: 2` on new snapshots; excluded from content hash | Freeze layout without changing send fingerprint |
+| `src/lib/pdf/proposal-pdf-data.test.ts` | (new) | PDF counts, zero-VAT once, draft vs issued routes via `downloadProposalPdf` | Generated PDF data regression |
+| `src/lib/proposal-document.test.ts` | identity + legacy layout | Allow client same as job title; legacy totals when presentation version omitted | Document layer regression |
+| `src/components/proposal/proposal-metric-alignment.test.tsx` | reverse-charge key facts | Cover `Price` plus programme on zero VAT | Authoritative headline on cover |
 | `src/app/dashboard/projects/proposal/review-send-client.tsx` | presend PDF copy | Draft watermark before issue; clean PDF from issued snapshots only | CON-014 export posture |
 | `src/lib/pdf/proposal-brochure.ts` | `responseBlock` | Pack receipt block toward page foot when terms share the page | A075 compact pagination after shorter price block |
 

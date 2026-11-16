@@ -2,7 +2,7 @@
 
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
-Current count: 12 merged, 33 in progress, 3 in review, 8 Rob-gated, 29 not started.
+Current count: 12 merged, 28 in progress, 6 in review, 10 Rob-gated, 29 not started.
 
 | --- | --- | --- | --- | --- | --- |
 | CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
@@ -50,14 +50,14 @@ Current count: 12 merged, 33 in progress, 3 in review, 8 Rob-gated, 29 not start
 | CON-043 | P1 | Cursor | — | not started | D51 batch 05 — Phone layout and theme |
 | CON-044 | P1 | Cursor | — | not started | D51 batch 06 — Programme interactions |
 | CON-045 | P1 | Cursor | — | not started | D51 batch 06 — Programme interactions |
-| CON-046 | P1 | Kimi | — | in progress | D51 batch 09 — Marketing identity and contact |
+| CON-046 | P1 | Kimi | [#191](https://github.com/constructa-co/Constructa/pull/191) | in review | D51 batch 09 — Marketing identity and contact |
 | CON-047 | P1 | Kimi | [#187](https://github.com/constructa-co/Constructa/pull/187) | in progress | — |
 | CON-048 | P1 | Kimi | [#187](https://github.com/constructa-co/Constructa/pull/187) | in progress | — |
 | CON-049 | P1 | Kimi | [#187](https://github.com/constructa-co/Constructa/pull/187) | in progress | — |
-| CON-050 | P1 | Kimi | — | in progress | D51 batch 09 — Marketing identity and contact |
-| CON-051 | P1 | Kimi | — | in progress | D51 batch 09 — Marketing identity and contact |
-| CON-052 | P1 | Kimi | — | in progress | D51 batch 09 — Marketing identity and contact |
-| CON-053 | P1 | Kimi | — | in progress | D51 batch 09 — Marketing identity and contact |
+| CON-050 | P1 | Kimi | [#191](https://github.com/constructa-co/Constructa/pull/191) | in review | D51 batch 09 — Marketing identity and contact |
+| CON-051 | P1 | Kimi | [#191](https://github.com/constructa-co/Constructa/pull/191) | in review | D51 batch 09 — Marketing identity and contact |
+| CON-052 | P1 | Kimi | — | Rob-gated | Confirm legal entity details. |
+| CON-053 | P1 | Kimi | — | Rob-gated | Confirm contact form scope and destination. |
 | CON-054 | P1 | Claude | — | not started | D51 batch 08 — Case-study media and selection |
 | CON-055 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | in progress | — |
 | CON-056 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | in progress | — |

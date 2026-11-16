@@ -1,5 +1,19 @@
 # Cursor change log
 
+## 2026-11-16 — D49 P2 visual bundle CON-055–060 (cursor/d49-p2-document-polish-con-055-056-057-060-cecf)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/proposal-document.ts` | 197–225, 361–378, 499 | `publicationProjectTypeDisplay`, `feeSectionTitle`, About/cover/price use | CON-055: hide placeholder Other and misleading Other work labels |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | 659–663, 517–540 | Cover summary + signature preview columns with `break-inside-avoid` | CON-055 prep cover; CON-056 signature labels stay with lines |
+| `src/components/proposal/proposal-document-view.tsx` | 38–39, 110, 178 | `data-cover-logo`, `break-after-avoid` on section/subheadings | CON-057 headings with content; CON-060 logo hook |
+| `src/components/proposal/proposal-web-pages.module.css` | 51–72 | Paginated logo max size, column break rules, signature groups | CON-057/060 web paginated layout |
+| `src/lib/pdf/proposal-brochure.ts` | 970–976 | `signature-field` layout log entries | CON-056 PDF signature field grouping |
+| `src/lib/proposal-document-p2-visual.test.ts` | (new) | CON-055/057/060 unit regressions | Focused bundle tests |
+| `e2e/local-phase1/reader-styled.spec.ts` | 144–146, 205–207, 296 | Tab order/button count for layout toggles | Reader chrome parity with current UI |
+| `docs/temp-files/playwright-p2-visual-reader.config.ts` | (new) | Chromium config for offline reader fixture | Synthetic layout screenshots/CI |
+| Associated test updates | credential/metric/custom-job-type/preparation | Expectations for suppressed placeholder types | CON-055 regression |
+
 ## 2026-11-15 — D36 CON-005/014 PDF identity and price repair (cursor/d36-pdf-identity-and-price-repair-141e)
 
 | File | Lines (approx.) | Change | Intent |

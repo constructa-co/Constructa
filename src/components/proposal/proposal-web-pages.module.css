@@ -57,6 +57,24 @@
     object-fit: contain;
 }
 
+.flow :global([data-cover-logo]) {
+    max-height: min(3.5rem, calc(var(--web-page-height, 297px) * 0.08));
+    max-width: min(60%, calc(var(--web-page-width, 100%) * 0.55));
+    width: auto;
+    height: auto;
+    object-fit: contain;
+}
+
+.flow :global([data-doc-section] > h2),
+.flow :global([data-doc-section] h3.break-after-avoid) {
+    break-after: avoid-column;
+}
+
+.flow :global([data-signature-column]),
+.flow :global([data-signature-field]) {
+    break-inside: avoid-column;
+}
+
 .flow > .paperHost {
     min-height: 0;
     width: 100%;

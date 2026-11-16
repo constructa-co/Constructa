@@ -18,7 +18,7 @@ import { newClientId } from "@/lib/client-id";
 import { copyTextWithFallback } from "@/lib/clipboard-copy";
 import { programmePlanForProject } from "@/lib/programme-plan";
 import { proposalPaymentSave } from "@/lib/proposal-payment-save";
-import { buildProposalDocument, paymentRows, vatLines, vatNote } from "@/lib/proposal-document";
+import { buildProposalDocument, paymentRows, publicationProjectTypeDisplay, vatLines, vatNote } from "@/lib/proposal-document";
 import {
     COVER_PHOTO_CHOICE_LABELS,
     COVER_RENDER_CAPTION,
@@ -514,6 +514,18 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
 
     const preparing = proposalStage === "prepare";
     const showingDocument = !preparing && documentView.open && documentView.projectId === project.id && !locked && previewDocument !== null;
+    const signatureLine = (label: string, key: string) => (
+        <div key={key} className="break-inside-avoid space-y-1" data-signature-field>
+            <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">{label}</p>
+            <div className="mt-5 border-b border-stone-400" aria-hidden="true" />
+        </div>
+    );
+    const signatureColumn = (heading: string, prefix: string) => (
+        <div className="break-inside-avoid min-w-0 space-y-4" data-signature-column>
+            <p className="text-xs font-semibold uppercase tracking-wide text-stone-900">{heading}</p>
+            {["Signature", "Name", "Date"].map((line) => signatureLine(line, `${prefix}-${line}`))}
+        </div>
+    );
     const documentResponse = previewDocument ? (
         <>
             <h2 id="doc-response" className="font-serif text-3xl leading-tight text-stone-900">{previewDocument.response.heading}</h2>
@@ -524,6 +536,10 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                 {previewDocument.response.actionLabel}
             </p>
             <p className="mt-2 text-sm text-stone-600">Your client fills in their name and presses this button. It does nothing in the preview.</p>
+            <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2" data-doc-signature-preview>
+                {signatureColumn(`For ${previewDocument.company.name}`, "contractor")}
+                {signatureColumn(previewDocument.response.signatureLabel, "client")}
+            </div>
         </>
     ) : null;
     const documentContent = previewDocument ? (
@@ -655,9 +671,10 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                 ["Site", project.site_address || "Not set"],
                                 ["From", context.profile.company_name || "Not set"],
                             ] as Array<[string, string]>)
-                                .concat(project.project_type?.trim()
-                                    ? [["Type of work", project.project_type] as [string, string]]
-                                    : [])
+                                .concat((() => {
+                                    const jobType = publicationProjectTypeDisplay(project.project_type);
+                                    return jobType ? [["Type of work", jobType] as [string, string]] : [];
+                                })())
                             .map(([label, value]) => (
                                 <div key={label} className="min-w-0">
                                     <dt className={`font-semibold ${s.muted}`}>{label}</dt>

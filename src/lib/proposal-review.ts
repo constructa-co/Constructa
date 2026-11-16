@@ -38,6 +38,7 @@ import {
     type ProposalPublicationProjectInput,
     type ProposalPublicationSnapshot,
 } from "./proposal-publication";
+import { PREVIEW_PROPOSAL_PUBLICATION_ID } from "./proposal-document";
 import { evaluateProposalReadiness, type ProposalReadiness } from "./proposal-readiness";
 import { DEFAULT_RESPONSE_KIND, type ProposalResponseKind } from "./proposal-response";
 import {
@@ -472,6 +473,7 @@ export function reviewReadiness(context: ReviewContext, draft: ProposalDraft): P
     return evaluateProposalReadiness({
         projectName: project.name,
         clientName: project.client_name,
+        siteAddress: project.site_address,
         scope: draft.scope,
         contractSum: contractSumOf(context.estimate),
         programmePhases: resolveProgrammeSource(project).phases,
@@ -491,7 +493,7 @@ export function reviewReadiness(context: ReviewContext, draft: ProposalDraft): P
     });
 }
 
-export const PREVIEW_PUBLICATION_ID = "00000000-0000-4000-8000-000000000000";
+export const PREVIEW_PUBLICATION_ID = PREVIEW_PROPOSAL_PUBLICATION_ID;
 
 /**
  * The snapshot this draft would publish, for the preview. It is built by the

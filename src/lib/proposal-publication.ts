@@ -1,6 +1,7 @@
 import { computeContractSum, roundMoney, toNumber } from "@/lib/financial";
 import { planCoversEveryPhase, resolveProgrammeSource } from "@/lib/programme-plan";
 import { computeDisplayProgramme, hasRelativeProgramme, RELATIVE_PROGRAMME_BASIS, type DisplayProgrammePlan } from "@/lib/relative-programme";
+import { resolveUkBankHolidayDivision } from "@/lib/uk-bank-holidays";
 import { readProgrammeInclusion } from "@/lib/programme-inclusion";
 import { isProposalResponseKind, responseWording, type ProposalResponseKind } from "@/lib/proposal-response";
 import { resolveSelectedCaseStudies, type LibraryRow } from "@/lib/case-library/resolve";
@@ -29,6 +30,7 @@ export interface ProposalPublicationProjectInput {
     client_name?: string | null;
     client_address?: string | null;
     site_address?: string | null;
+    region?: string | null;
     start_date?: string | null;
     proposal_introduction?: string | null;
     scope_text?: string | null;
@@ -489,7 +491,12 @@ export function buildProposalPublicationSnapshot(
     const programmeSource = resolveProgrammeSource(input.project);
     const programmeDecision = readProgrammeInclusion(programmeSource.phases);
     const omitted = programmeDecision.intent === "omit";
-    const programmePlan = omitted ? null : computeDisplayProgramme(input.project.start_date, programmeSource.phases, input.project.programme_working_pattern);
+    const programmePlan = omitted ? null : computeDisplayProgramme(
+        input.project.start_date,
+        programmeSource.phases,
+        input.project.programme_working_pattern,
+        resolveUkBankHolidayDivision(input.project.region),
+    );
     if ((!programmePlan && !omitted || programmeDecision.intent === "invalid") && !options.allowIncomplete) throw new Error(PROGRAMME_REQUIRED_ERROR);
     // A stage the contractor saved is never left out of what is sent.
     if (programmePlan && !options.allowIncomplete && !planCoversEveryPhase(programmePlan, programmeSource.phases)) {

@@ -3,7 +3,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
 import ProposalDocumentView from "@/components/proposal/proposal-document-view";
 import { minimalInput, representativeInput, stressInput } from "./__fixtures__/proposal";
-import { PROGRAMME_BASIS_NOTE, formatPlanDate } from "./programme-plan";
+import { formatPlanDate } from "./programme-plan";
+import { programmeBasisNote } from "./relative-programme";
 import { renderProposalBrochure, type ImageMap } from "./pdf/proposal-brochure";
 import {
     buildProposalDocument,
@@ -304,7 +305,7 @@ describe("public page and PDF agree", () => {
 
     it("state the same programme dates, duration and basis", () => {
         const plan = snapshot.programme_plan!;
-        for (const text of [formatPlanDate(plan.start_date), formatPlanDate(plan.end_date), plan.duration_label, PROGRAMME_BASIS_NOTE]) {
+        for (const text of [formatPlanDate(plan.start_date), formatPlanDate(plan.end_date), plan.duration_label, programmeBasisNote(plan)]) {
             expect(html).toContain(text);
             expect(pdf).toContain(text);
         }
@@ -381,6 +382,13 @@ describe("truthful content", () => {
         const doc = buildProposalDocument({ ...snapshot, contractor: { ...snapshot.contractor, logo_url: "javascript:alert(1)" }, photos: [{ url: "data:text/html,x", caption: "x" }] });
         expect(doc.company.logoUrl).toBeNull();
         expect(blockOf(doc, "scope", "photos")).toBeUndefined();
+    });
+
+    it("CON-040 marks preview snapshots as Draft even without an explicit draft flag", () => {
+        const previewSnapshot = structuredClone(snapshot);
+        previewSnapshot.publication.id = "00000000-0000-4000-8000-000000000000";
+        expect(buildProposalDocument(previewSnapshot).reference).toBe("Draft");
+        expect(buildProposalDocument(previewSnapshot).isDraft).toBe(true);
     });
 
     it("marks a draft preview so it cannot be mistaken for a sent proposal", () => {

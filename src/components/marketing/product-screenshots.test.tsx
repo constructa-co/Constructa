@@ -101,7 +101,7 @@ describe('phase-one product screenshots', () => {
       'Live signup, email and production saving require separate verification.',
       'Controls may change before release.',
       'Example screens',
-      'From the product.',
+      'From the current review interface.',
     ]) expect(visible).toContain(fact);
   });
 

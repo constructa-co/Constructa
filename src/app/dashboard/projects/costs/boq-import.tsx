@@ -3,6 +3,7 @@
 import { useRef, useState, useCallback } from "react";
 import { Upload, FileSpreadsheet, FileText, Loader2, AlertTriangle, X, CheckCircle, ChevronDown, ChevronRight, ClipboardList } from "lucide-react";
 import { parseBoQFromPdfAction, parseBoQFromExcelDataAction, createBoQEstimateAction, type ParsedClientBoQ } from "./boq-import-action";
+import { parseEstimateBatchCsv } from "@/lib/estimate-batch-csv";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -91,8 +92,26 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
             let result: { success: boolean; boq?: ParsedClientBoQ; error?: string };
 
             if (isExcel) {
-                const rows = await parseExcelFile(file);
-                result = await parseBoQFromExcelDataAction(rows, file.name);
+                if (file.name.match(/\.csv$/i)) {
+                    const batch = parseEstimateBatchCsv(await file.text());
+                    if (batch.ok) {
+                        result = {
+                            success: true,
+                            boq: {
+                                filename: file.name,
+                                sections: batch.sections,
+                                lines: batch.lines,
+                                totalLines: batch.lines.length,
+                            },
+                        };
+                    } else {
+                        const rows = await parseExcelFile(file);
+                        result = await parseBoQFromExcelDataAction(rows, file.name);
+                    }
+                } else {
+                    const rows = await parseExcelFile(file);
+                    result = await parseBoQFromExcelDataAction(rows, file.name);
+                }
             } else {
                 const pages = await renderPdfToBase64Pages(file);
                 result = await parseBoQFromPdfAction(pages, file.name);

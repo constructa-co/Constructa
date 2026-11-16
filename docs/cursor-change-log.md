@@ -1,5 +1,21 @@
 # Cursor change log
 
+## 2026-11-16 — D46 P1 estimate CON-022 / CON-031 / CON-032 (cursor/d46-p1-estimate-con-022-031-032-a05d)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/estimate-batch-sections.ts` | (new) | `orderedEstimateSections`, `groupLinesBySection`, `batchSectionHeadings` | CON-022: section order follows batch/line sequence, not trade template |
+| `src/lib/estimate-batch-csv.ts` | (new) | Deterministic BoQ CSV parser (`Section`, `Description`, `Qty`, `Rate`, …) | CON-022: structured CSV import without inventing prices |
+| `src/lib/cost-library-catalog.ts` | (new) | MoM + override mapping; `parseStoredCatalogueRate` | CON-031: advanced catalogue uses same stored rates as library; skip missing rates |
+| `src/app/dashboard/projects/costs/simple-actions.ts` | `loadAdvancedEstimatingDataAction` | Load `mom_items` + `mom_item_overrides`; legacy `cost_library_items` fallback only | CON-031 real source/display |
+| `src/app/dashboard/projects/costs/advanced-estimate.tsx` | section grouping | Shared batch section helpers; `advancedSectionCard` | CON-022 coherent headings in advanced workspace |
+| `src/app/dashboard/projects/costs/boq-import.tsx` | `processFile` | CSV fast path via `parseEstimateBatchCsv` before AI Excel parse | CON-022 CSV import |
+| `src/app/dashboard/projects/costs/boq-import-action.ts` | sections | `batchSectionHeadings` for parsed BoQ | CON-022 heading order |
+| `src/app/dashboard/projects/costs/boq-excel-export.ts` | section order | Shared `orderedEstimateSections` | CON-022 export matches display order |
+| `src/components/estimating.module.css` | `advancedWorkspaceRoot`, `totalDock` z-index | Isolation + bottom padding; dock below workspace overlays | CON-032 panel overlap |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | advanced wrapper classes | Apply workspace layout classes | CON-032 |
+| `src/lib/*.test.ts`, `con-032-advanced-panel-layout.test.ts` | (new) | Focused CON-022/031/032 tests | No live data |
+
 ## 2026-11-15 — D38 CON-007 recipient email confirmation (cursor/d38-con-007-proposal-email-default-off-20261115)
 
 | File | Lines (approx.) | Change | Intent |

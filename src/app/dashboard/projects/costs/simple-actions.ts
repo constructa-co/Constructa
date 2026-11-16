@@ -28,6 +28,7 @@ import {
 } from "@/lib/simple-estimate";
 import { recalcEstimateTotal } from "./estimate-total";
 import { toEstimate, toEstimateLine } from "./estimate-mapping";
+import { mapLegacyCostLibraryRow, mapMomRowsToCostLibrary } from "@/lib/cost-library-catalog";
 import type { CostLibraryItem, LabourRate, RateBuildup } from "./types";
 
 // Simple estimating actions. Like the other estimating actions these never
@@ -402,29 +403,35 @@ export async function loadAdvancedEstimatingDataAction(): Promise<
         if (orgId) labourRateQuery.or(`is_system_default.eq.true,organization_id.eq.${orgId}`);
         else labourRateQuery.eq("is_system_default", true);
 
-        const [rateBuildups, costLibrary, labourRates, profile] = await Promise.all([
+        const momCategories = supabase.from("mom_categories").select("id,name").is("organization_id", null);
+        const momItems = supabase.from("mom_items").select("id,code,description,unit,base_rate,category_id").is("organization_id", null).order("code");
+        const momOverrides = orgId
+            ? supabase.from("mom_item_overrides").select("mom_item_id,custom_rate").eq("organization_id", orgId)
+            : null;
+
+        const [rateBuildups, categories, items, overrides, legacyLibrary, labourRates, profile] = await Promise.all([
             rateBuildupQuery,
+            momCategories,
+            momItems,
+            momOverrides ?? Promise.resolve({ data: [], error: null }),
             supabase.from("cost_library_items").select("*").or("is_system_default.eq.true").order("category,description"),
             labourRateQuery,
             supabase.from("profiles").select("preferred_trades").eq("id", user.id).single(),
         ]);
-        if (rateBuildups.error || costLibrary.error || labourRates.error) {
+        if (rateBuildups.error || categories.error || items.error || overrides.error || labourRates.error) {
             return { ok: false, error: "The advanced tools couldn't be loaded. Check your connection and try again." };
         }
 
+        const fromMom = mapMomRowsToCostLibrary(items.data || [], categories.data || [], overrides.data || []);
         /* eslint-disable @typescript-eslint/no-explicit-any */
+        const legacy = (legacyLibrary.data || []).map((row: any) => mapLegacyCostLibraryRow(row)).filter(Boolean) as CostLibraryItem[];
+        const costLibrary = fromMom.length ? fromMom : legacy;
+
         return {
             ok: true,
             data: {
                 orgId: orgId || "",
-                costLibrary: (costLibrary.data || []).map((c: any) => ({
-                    id: c.id,
-                    code: c.code || "",
-                    description: c.description || "",
-                    unit: c.unit || "nr",
-                    base_rate: c.base_rate || 0,
-                    category: c.category || "General",
-                })),
+                costLibrary,
                 rateBuildups: (rateBuildups.data || []).map((rb: any) => ({
                     id: rb.id,
                     name: rb.name || "",

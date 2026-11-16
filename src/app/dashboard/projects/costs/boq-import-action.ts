@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import OpenAI from "openai";
 import { CreateBoQEstimateSchema, parseInput } from "@/lib/validation/schemas";
 import { requireLaunchCapability } from "@/lib/launch-profile";
+import { batchSectionHeadings } from "@/lib/estimate-batch-sections";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -97,7 +98,7 @@ Rules:
             lines = [];
         }
 
-        const sections = [...new Set(lines.map((l) => l.section).filter(Boolean))];
+        const sections = batchSectionHeadings(lines);
 
         return {
             success: true,
@@ -138,7 +139,7 @@ Return JSON: { "lines": [{ "client_ref": "", "section": "", "description": "", "
         );
 
         const lines = result.lines || [];
-        const sections = [...new Set(lines.map((l) => l.section).filter(Boolean))];
+        const sections = batchSectionHeadings(lines);
 
         return {
             success: true,

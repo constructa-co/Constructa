@@ -31,6 +31,7 @@ import ui from "@/components/estimating.module.css";
 import type { EstimateLineComponent, EstimateLine, Estimate, CostLibraryItem, LabourRate, RateBuildup } from "./types";
 import { savePriceLineActivityAction } from "./activity-actions";
 import { workspaceStyles } from "@/lib/workspace-styles";
+import { groupLinesBySection, orderedEstimateSections } from "@/lib/estimate-batch-sections";
 import type { ComponentProps } from "react";
 
 interface Props {
@@ -1328,22 +1329,12 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     // Filter out blank lines for display
     const displayLines = lines.filter(l => l.description && l.description !== "" && l.description !== "\u2014");
 
-    // Group lines by trade section (only display lines with descriptions)
-    // Contractor names must not collide with inherited object keys.
-    const sectionGroups: Record<string, EstimateLine[]> = Object.create(null);
-    lines.forEach((l) => {
-        // Keep the open editor mounted if an external activity change moves its row.
-        const sec = (activityReview?.line.id === l.id ? activityReview.line.trade_section : l.trade_section) || "General";
-        if (!sectionGroups[sec]) sectionGroups[sec] = [];
-        sectionGroups[sec].push(l);
-    });
-
-    // All sections that have lines, plus keep order from TRADE_SECTIONS
-    const activeSections = TRADE_SECTIONS.filter((s) => sectionGroups[s]?.length);
-    // Add any custom sections not in the predefined list
-    Object.keys(sectionGroups).forEach((s) => {
-        if (!activeSections.includes(s)) activeSections.push(s);
-    });
+    const sectionSource = lines.map((l) => ({
+        ...l,
+        trade_section: activityReview?.line.id === l.id ? activityReview.line.trade_section : l.trade_section,
+    }));
+    const sectionGroups = groupLinesBySection(sectionSource);
+    const activeSections = orderedEstimateSections(sectionSource);
 
     return (
         <>
@@ -1712,7 +1703,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                         );
 
                         return (
-                            <div key={section} role="group" aria-label={section} className="bg-slate-800/50 border border-slate-700/50 rounded-xl" style={{ overflow: "visible" }}>
+                            <div key={section} role="group" aria-label={section} className={`${ui.advancedSectionCard} bg-slate-800/50 border border-slate-700/50 rounded-xl`}>
                                 {/* Section header */}
                                 <div className="flex items-center justify-between px-5 py-3 bg-slate-900/50 border-b border-slate-700/50 rounded-t-xl">
                                     <h3 className="font-bold text-sm uppercase tracking-wide text-slate-200">{section}</h3>
@@ -2240,7 +2231,7 @@ function LineItemRow({
                         return activity.onBegin();
                     }} />}
                 {showDropdown && filtered.length > 0 && (
-                    <div className="absolute z-50 w-full bg-slate-800 border border-slate-700 rounded-lg shadow-xl mt-1 max-h-48 overflow-y-auto">
+                    <div data-library-dropdown className="absolute z-50 w-full bg-slate-800 border border-slate-700 rounded-lg shadow-xl mt-1 max-h-48 overflow-y-auto">
                         {filtered.map((item) => (
                             <button
                                 type="button"

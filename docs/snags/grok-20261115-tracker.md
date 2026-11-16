@@ -2,7 +2,7 @@
 
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
-Current count: 3 merged, 9 in progress, 5 in review, 6 Rob-gated, 62 not started.
+Current count: 3 merged, 3 in progress, 11 in review, 6 Rob-gated, 62 not started.
 
 | --- | --- | --- | --- | --- | --- |
 | CON-001 | P0 | Codex / Cursor | [#175](https://github.com/constructa-co/Constructa/pull/175) | in progress | — |
@@ -26,7 +26,7 @@ Current count: 3 merged, 9 in progress, 5 in review, 6 Rob-gated, 62 not started
 | CON-019 | P1 | Unassigned | — | not started | — |
 | CON-020 | P1 | Unassigned | — | not started | — |
 | CON-021 | P1 | Unassigned | — | not started | — |
-| CON-022 | P1 | Cursor / Claude | [#181](https://github.com/constructa-co/Constructa/pull/181) | in progress | — |
+| CON-022 | P1 | Cursor / Claude | [#181](https://github.com/constructa-co/Constructa/pull/181) | in review | — |
 | CON-023 | P1 | Unassigned | — | not started | — |
 | CON-024 | P1 | Unassigned | — | not started | — |
 | CON-025 | P1 | Unassigned | — | not started | — |
@@ -35,16 +35,16 @@ Current count: 3 merged, 9 in progress, 5 in review, 6 Rob-gated, 62 not started
 | CON-028 | P1 | Cursor / Grok | [#180](https://github.com/constructa-co/Constructa/pull/180) | in review | — |
 | CON-029 | P1 | Cursor / Grok | [#180](https://github.com/constructa-co/Constructa/pull/180) | in review | — |
 | CON-030 | P1 | Cursor / Grok | [#180](https://github.com/constructa-co/Constructa/pull/180) | in review | — |
-| CON-031 | P1 | Cursor / Claude | [#181](https://github.com/constructa-co/Constructa/pull/181) | in progress | — |
-| CON-032 | P1 | Cursor / Claude | [#181](https://github.com/constructa-co/Constructa/pull/181) | in progress | — |
+| CON-031 | P1 | Cursor / Claude | [#181](https://github.com/constructa-co/Constructa/pull/181) | in review | — |
+| CON-032 | P1 | Cursor / Claude | [#181](https://github.com/constructa-co/Constructa/pull/181) | in review | — |
 | CON-033 | P1 | Unassigned | — | not started | — |
 | CON-034 | P1 | Unassigned | — | not started | — |
 | CON-035 | P1 | Unassigned | — | not started | — |
-| CON-036 | P1 | Cursor | — | in progress | — |
-| CON-037 | P1 | Cursor | — | in progress | — |
+| CON-036 | P1 | Cursor / Grok | [#182](https://github.com/constructa-co/Constructa/pull/182) | in review | — |
+| CON-037 | P1 | Cursor / Grok | [#182](https://github.com/constructa-co/Constructa/pull/182) | in review | — |
 | CON-038 | P1 | Unassigned | — | not started | — |
 | CON-039 | P1 | Unassigned | — | not started | — |
-| CON-040 | P1 | Cursor | — | in progress | — |
+| CON-040 | P1 | Cursor / Grok | [#182](https://github.com/constructa-co/Constructa/pull/182) | in review | — |
 | CON-041 | P1 | Unassigned | — | not started | — |
 | CON-042 | P1 | Unassigned | — | not started | — |
 | CON-043 | P1 | Unassigned | — | not started | — |

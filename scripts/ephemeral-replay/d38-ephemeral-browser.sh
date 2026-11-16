@@ -52,8 +52,8 @@ echo "Applying migrations — local database reset only (loopback DB_URL verifie
 export NEXT_PUBLIC_SUPABASE_URL="$API_URL"
 export NEXT_PUBLIC_SUPABASE_ANON_KEY="$ANON_KEY"
 export SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
-export E2E_SUPABASE_PROJECT_REF="$PROJECT_ID"
-export CONSTRUCTA_NONPROD_SUPABASE_PROJECT_REF="$PROJECT_ID"
+export E2E_SUPABASE_PROJECT_REF="$project_id"
+export CONSTRUCTA_NONPROD_SUPABASE_PROJECT_REF="$project_id"
 
 guard_loopback_supabase_url "$NEXT_PUBLIC_SUPABASE_URL" || exit 1
 guard_ephemeral_project_ref "$E2E_SUPABASE_PROJECT_REF" || exit 1

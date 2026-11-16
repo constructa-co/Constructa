@@ -39,6 +39,29 @@
 }
 .root :is(button, a, input, textarea, select, [tabindex="-1"]):focus-visible { outline: 3px solid var(--price-accent); outline-offset: 4px; }
 .root :is(button, a, input, textarea, select) { scroll-margin-top: 5rem; scroll-margin-bottom: 10rem; }
+.advancedWorkspaceRoot {
+    position: relative;
+    z-index: 15;
+    isolation: isolate;
+    padding-bottom: 6rem;
+}
+.advancedWorkspaceScroller {
+    overflow: visible;
+}
+.advancedWorkspaceWide {
+    min-width: 760px;
+    overflow-x: auto;
+    overflow-y: visible;
+    width: 100%;
+    max-width: 100%;
+}
+.advancedSectionCard {
+    overflow: visible;
+    position: relative;
+}
+.advancedSectionCard [data-library-dropdown] {
+    z-index: 40;
+}
 .totalDock {
     position: sticky;
     bottom: max(3.5rem, env(safe-area-inset-bottom));
@@ -63,6 +86,8 @@
 @media (max-width: 540px) {
     .root { margin: 0; padding: 24px 12px; border-radius: 0; border: 0; }
     .root form [class~="grid-cols-3"] { grid-template-columns: minmax(0, 1fr); }
+    .advancedWorkspaceWide { min-width: 0; }
+    .advancedWorkspaceRoot { padding-bottom: 7.5rem; }
 }
 @media (prefers-reduced-motion: reduce) { .root :is(button, a) { transition: none; } }
 

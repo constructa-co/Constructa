@@ -2,6 +2,7 @@ import { NewsletterSignup } from './newsletter-signup';
 import Link from 'next/link';
 import { ArrowDown, ArrowRight, Check, Plus } from 'lucide-react';
 import { HomeBusinessVisual } from './home-business-visual';
+import { MarketingMobileMenu } from './marketing-mobile-menu';
 import { ProductReviewGuide } from './product-review-guide';
 import { ProductScreenshots } from './product-screenshots';
 import ui from './phase-one.module.css';
@@ -19,14 +20,15 @@ export function MarketingHeader() {
       <div className={ui.headerInner}>
         <Link className={ui.brand} href="/" aria-label="Constructa home"><span aria-hidden="true">C</span>constructa</Link>
         <nav aria-label="Main navigation" className={ui.nav}>
-          <Link href="/#how-it-works">How it works</Link>
-          <Link href="/features">The product</Link>
-          <Link href="/about">About</Link>
+          <Link href="/features">Product</Link>
           <Link href="/pricing">Preview access</Link>
+          <Link href="/about">About</Link>
+          <Link href="/guides">Guides</Link>
         </nav>
         <div className={ui.headerActions}>
-          <Link className={ui.applyCta} href="/apply">Apply to the founding cohort <ArrowRight size={16} aria-hidden="true" /></Link>
+          <Link className={ui.applyCta} href="/apply" aria-label="Apply to the founding cohort">Apply <ArrowRight size={16} aria-hidden="true" /></Link>
           <Link className={ui.signIn} href="/login">Sign in <ArrowRight size={16} aria-hidden="true" /></Link>
+          <MarketingMobileMenu />
         </div>
       </div>
     </header>
@@ -118,7 +120,7 @@ function Questions() {
     ['Can I buy the later-phase tools here?', 'No. This preview focuses on the work-winning journey. Later-phase workflows and commercial plans are not being offered for purchase here.'],
     ['Is this ready for live customer work?', 'This is a pre-release review. Authentication, data handling, commercial terms and the complete proposal journey are being verified before live customer use.'],
   ];
-  return <section className={`${ui.section} ${ui.questions}`}><div><p className={ui.eyebrow}>A few useful answers</p><h2>Before you<br />get started.</h2></div><div>{questions.map(([question, answer]) => <details key={question}><summary>{question}<Plus size={18} aria-hidden="true" /></summary><p>{answer}</p></details>)}</div></section>;
+  return <section id="questions" className={`${ui.section} ${ui.questions}`}><div><p className={ui.eyebrow}>A few useful answers</p><h2>Before you<br />get started.</h2></div><div>{questions.map(([question, answer]) => <details key={question}><summary>{question}<Plus size={18} aria-hidden="true" /></summary><p>{answer}</p></details>)}</div></section>;
 }
 
 function Invitation() {
@@ -171,12 +173,14 @@ export function PhaseOneFeatures() {
         <p className={ui.eyebrow}>The phase-one product</p>
         <h1>From first hello.<br /><em>To a considered proposal.</em></h1>
         <p>One connected work-winning journey. Company profile, brief, price, programme and proposal, with room for your own experience and judgement.</p>
+        <p>The contextual assistant is not available as a live chatbot in this preview.</p>
         <div className={ui.actions}>
           <FoundingCohortApplyLink />
           <SignInLink />
+          <Link className={ui.textLink} href="/#how-it-works">See how the journey connects <ArrowDown size={17} aria-hidden="true" /></Link>
         </div>
       </section>
-      <Journey /><ProductReviewGuide /><ProductScreenshots /><Scope /><Questions /><Invitation />
+      <ProductReviewGuide /><ProductScreenshots /><Invitation />
     </div>
   );
 }
@@ -188,6 +192,7 @@ export function PhaseOnePricing() {
         <p className={ui.eyebrow}>Preview access</p>
         <h1>A focused first phase.<br /><em>No add-on checkout.</em></h1>
         <p>We are reviewing the complete work-winning journey before release. Preview access is part of the founding-cohort review — no subscription, free trial or payment is offered here.</p>
+        <p>Preview access remains on hold for new accounts. This review is not ready for live customer work.</p>
         <p>This preview is for people using an existing review account. Sign in with the details you were given, then start with your company profile.</p>
         <div className={ui.actions}>
           <FoundingCohortApplyLink />
@@ -199,9 +204,13 @@ export function PhaseOnePricing() {
           {' · '}
           <Link href="/contact" className={ui.textLink}>Questions about preview access <ArrowRight size={16} aria-hidden="true" /></Link>
         </p>
+        <p>
+          The full picture lives on the home page:{' '}
+          <Link href="/#phase-one" className={ui.textLink}>the work-winning essentials <ArrowRight size={16} aria-hidden="true" /></Link>
+          {' · '}
+          <Link href="/#questions" className={ui.textLink}>preview questions <ArrowRight size={16} aria-hidden="true" /></Link>
+        </p>
       </section>
-      <Scope showAccessLink={false} />
-      <Questions />
     </div>
   );
 }

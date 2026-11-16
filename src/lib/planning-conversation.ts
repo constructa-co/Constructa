@@ -24,6 +24,7 @@ import { describeJobWorkingPattern, resolveJobWorkingPattern } from "./job-worki
 import { formatPlanDate, formatWorkingDuration } from "./programme-plan";
 import { readProgrammeInclusion } from "./programme-inclusion";
 import { computeDisplayProgramme } from "./relative-programme";
+import { resolveUkBankHolidayDivision } from "./uk-bank-holidays";
 
 export const PLANNING_MESSAGE_LIMIT = 2000;
 export const PLANNING_TURN_LIMIT = 10;
@@ -48,6 +49,7 @@ export interface PlanningProjectFields {
     start_date?: string | null;
     programme_phases?: unknown[] | null;
     programme_working_pattern?: unknown;
+    region?: string | null;
 }
 
 export interface PlanningContext {
@@ -69,12 +71,18 @@ export function buildPlanningContext(project: PlanningProjectFields): PlanningCo
     const inclusion = readProgrammeInclusion(project.programme_phases);
     if (!pattern || inclusion.intent === "invalid") return null;
     const job = { id: project.id, name: String(project.name ?? "").trim(), client: project.client_name?.trim() || null };
-    const working_week = describeJobWorkingPattern(pattern);
+    const division = resolveUkBankHolidayDivision(project.region);
+    const working_week = describeJobWorkingPattern(pattern, division);
     if (inclusion.phases.length === 0) {
         const start = /^\d{4}-\d{2}-\d{2}$/.test(project.start_date?.slice(0, 10) ?? "") ? formatPlanDate(project.start_date) : null;
         return { job, basis: "none", working_week, start: start || null, finish: null, duration: null, stages: [] };
     }
-    const plan = computeDisplayProgramme(project.start_date, inclusion.phases, project.programme_working_pattern);
+    const plan = computeDisplayProgramme(
+        project.start_date,
+        inclusion.phases,
+        project.programme_working_pattern,
+        resolveUkBankHolidayDivision(project.region),
+    );
     if (!plan) return null;
     if (plan.basis === "relative_working_days") {
         return {

@@ -24,6 +24,7 @@ import {
     type ProposalPublicationSnapshot,
 } from "@/lib/proposal-publication";
 import { evaluateProposalReadiness } from "@/lib/proposal-readiness";
+import { validatePercentagePaymentStagesForPersist } from "@/lib/proposal-payment-percentages";
 import { isProposalResponseKind, responseKindOfSnapshot, type ProposalResponseKind } from "@/lib/proposal-response";
 import { isProposalCoverPhotoEnabled, parseProposalCoverPhotoChoice } from "@/lib/proposal-cover-photo";
 import {
@@ -117,8 +118,10 @@ export async function saveProposalDraftAction(projectId: string, payload: Propos
     if (photos.some((photo) => photo.url === null)) {
         return { success: false, error: "One of the photos can't be used. Remove it and add it again." };
     }
-    const paymentTotal = (input.paymentSchedule ?? []).reduce((sum, row) => sum + row.percentage, 0);
-    if (paymentTotal > 100.001) return { success: false, error: "The payment stages add up to more than 100%." };
+    if (input.paymentSchedule !== null) {
+        const paymentCheck = validatePercentagePaymentStagesForPersist(input.paymentSchedule);
+        if (!paymentCheck.ok) return { success: false, error: paymentCheck.error };
+    }
     const coverPhotoEnabled = isProposalCoverPhotoEnabled();
     if (coverPhotoEnabled && input.coverPhoto === "site" && photos.length === 0) {
         return { success: false, error: "Add a site photo before using it on the cover, or choose a different cover image." };
@@ -186,9 +189,8 @@ export async function savePricingPaymentStagesAction(
     }).strict().safeParse({ projectId, expectedSchedule, paymentSchedule });
     if (!parsed.success) return { success: false, error: "Check the payment stage names and percentages before saving." };
     const input = parsed.data;
-    if (input.paymentSchedule.reduce((total, row) => total + row.percentage, 0) > 100.001) {
-        return { success: false, error: "The payment stages add up to more than 100%." };
-    }
+    const paymentCheck = validatePercentagePaymentStagesForPersist(input.paymentSchedule);
+    if (!paymentCheck.ok) return { success: false, error: paymentCheck.error };
     const { access, error: accessError } = await editableAccess(input.projectId, "You can't change these payment stages.");
     if (!access) return { success: false, error: accessError };
     const { user, supabase } = access;

@@ -2,7 +2,7 @@
 
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
-Current count: 18 merged, 48 in progress, 9 in review, 10 Rob-gated, 0 not started.
+Current count: 21 merged, 45 in progress, 9 in review, 10 Rob-gated, 0 not started.
 
 | --- | --- | --- | --- | --- | --- |
 | CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
@@ -28,7 +28,7 @@ Current count: 18 merged, 48 in progress, 9 in review, 10 Rob-gated, 0 not start
 | CON-021 | P1 | Claude | — | in progress | D51 batch 03 — Proposal PDF pricing |
 | CON-022 | P1 | Cursor / Claude | [#181](https://github.com/constructa-co/Constructa/pull/181) | merged | Kimi PASS and GitHub CI green. |
 | CON-023 | P1 | Claude | — | in progress | D51 batch 01 — Profile, save and sign-in |
-| CON-024 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | in progress | — |
+| CON-024 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | merged | Independent PASS and GitHub browser green. |
 | CON-025 | P1 | Cursor | [#185](https://github.com/constructa-co/Constructa/pull/185) | in progress | — |
 | CON-026 | P1 | Cursor | [#185](https://github.com/constructa-co/Constructa/pull/185) | in progress | — |
 | CON-027 | P1 | Claude | — | in progress | D51 batch 04 — Proposal evidence and terms |
@@ -45,8 +45,8 @@ Current count: 18 merged, 48 in progress, 9 in review, 10 Rob-gated, 0 not start
 | CON-038 | P1 | Claude | — | in progress | D51 batch 04 — Proposal evidence and terms |
 | CON-039 | P1 | Claude | — | in progress | D51 batch 04 — Proposal evidence and terms |
 | CON-040 | P1 | Cursor / Grok | [#182](https://github.com/constructa-co/Constructa/pull/182) | merged | — |
-| CON-041 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | in progress | — |
-| CON-042 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | in progress | — |
+| CON-041 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | merged | Independent PASS and GitHub browser green. |
+| CON-042 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | merged | Independent PASS and GitHub browser green. |
 | CON-043 | P1 | Claude | — | in progress | D51 batch 05 — Phone layout and theme |
 | CON-044 | P1 | Claude | — | in progress | D51 batch 06 — Programme interactions |
 | CON-045 | P1 | Claude | — | in progress | D51 batch 06 — Programme interactions |

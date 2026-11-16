@@ -1,5 +1,86 @@
 # Cursor change log
 
+## 2026-11-16 — D54 document repair of #186 at 69d10b6 (CON-055 suppression gated by presentation version)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/proposal-document.ts` | after `feeSectionTitle`; About, price, cover use | `LABEL_SUPPRESSION_PRESENTATION_VERSION = 3`; `snapshotProjectTypeDisplay`, `snapshotFeeSectionTitle` | Snapshots issued without a version or at version 2 keep the type of work and lone price heading they were issued with; CON-055 suppression applies from version 3 |
+| `src/lib/proposal-publication.ts` | presentation version type, snapshot build | New snapshots (draft preview and sent) carry `document_presentation_version: 3`; still outside both hashes | Explicitly versioned new snapshot; send fingerprint unchanged |
+| `src/lib/proposal-document-p2-visual.test.ts` | new describe | Issued no-version and v2 wording kept (also when drawn as a draft); v3 suppressed in preview and sent alike; entered values stay in the snapshot; multi-group headings kept; hashes equal across versions | Regression cover. Written without a shell: Vitest, `tsc` and build NOT RUN in this session |
+
+## 2026-11-16 — D57 PR #184 repair (cursor/d49-brief-con-017-034-035-483d)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/postcode-address-provider.ts` | 21–34 | Literal `process.env.NEXT_PUBLIC_*` gate reads | Gates were undefined in client bundles (Claude blocker) |
+| `src/components/postcode-address-picker.tsx` | search row + hint | Search controls disabled and gap copy shown once when no lookup | Remove duplicate fallback copy and dead-end Find |
+| `src/components/uk-date-input.tsx` | preview + help | Full-month preview; help copy makes no browser-order or PDF-format claim | CON-035 copy accuracy |
+| `src/lib/postcode-address-provider.test.ts`, `src/components/postcode-address-picker.test.tsx`, `src/components/uk-date-input.test.tsx`, `src/app/dashboard/projects/brief/brief-edit-lock.test.tsx` | (updated) | Source-form gate guard, unconfigured picker, date change events, restored input count | Regression |
+
+## 2026-11-16 — D49 PR #184 follow-up (cursor/d49-brief-con-017-034-035-483d)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/components/uk-date-input.tsx` | state + `value` | Uncontrolled preview tracks `onChange`; controlled follows `value` | Fix stale UK preview (Claude block) |
+| `src/lib/postcode-address-provider.ts` | gates + copy | User-facing gap message; lookup requires data-transfer approval env | CON-034 no third-party transfer without approval |
+| `src/lib/postcode-address-provider.test.ts` | gates | Enabled-without-approval stays off | Regression |
+| `src/components/uk-date-input.test.tsx` | uncontrolled SSR | `defaultValue` preview | CON-035 |
+
+## 2026-11-16 — D49 CON-017 / CON-034 / CON-035 (cursor/d49-brief-con-017-034-035-483d)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/proposal-figure-consistency.ts` | 1–82 | `evaluateProposalFigureConsistency` compares £ in text to canonical totals | CON-017 snag |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | readiness block | Alert list with `data-figure-consistency-warning` | Surface mismatches before send |
+| `src/lib/postcode-address-provider.ts` | 1–81 | postcodes.io lookup gated by env flag; gap message | CON-034 integration + fallback |
+| `src/components/postcode-address-picker.tsx` | Find/hint | Configuration gap copy when lookup off | CON-034 |
+| `src/components/uk-date-input.tsx` | (new) | UK `lang`, `formatPlanDate` preview, controlled/uncontrolled | CON-035 |
+| `src/app/dashboard/projects/new/new-project-form.tsx` | address + date | `clientPostcodeLookup()`; UK start date | Wire CON-034/035 on create job |
+| `src/app/dashboard/projects/brief/brief-client.tsx` | start date | `UkDateInput` | CON-035 on brief |
+| `src/app/dashboard/projects/settings/client-page.tsx` | pickers + date | Lookup provider + UK start date | CON-034/035 on settings |
+| `src/lib/*.test.ts`, `src/components/*.test.tsx`, `review-send-client.test.ts` | (new/updated) | Focused regressions | Lock CON-017/034/035 behaviour |
+| `src/app/dashboard/projects/brief/brief-edit-lock.test.tsx` | ~337 | Assert `UkDateInput` wrapper, not raw `input` count | SSR harness does not expand client components |
+## 2026-11-16 — D46 P1 estimate #181 follow-up (portal, warnings, MoM) (cursor/d46-p1-estimate-con-022-031-032-a05d)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `catalogue-library-dropdown.tsx` | `catalogueDropdownPanel` + optional portal helper | Body-portal dropdown; inline fallback for replay/tests |
+| `advanced-estimate.tsx` | `createPortal` + focus-synced coords | Non-clipping catalogue search at scroll edges |
+| `estimate-batch-csv.ts`, `client-boq-normalize.ts` | Stricter heading rules, explicit totals | Priced/malformed rows stay priced; `parse_warnings` |
+| `boq-import.tsx`, `boq-import-action.ts` | Warning banner + import block | Display and act on unreadable cells |
+| `simple-actions.ts` | Legacy error only when MoM empty | Valid MoM survives legacy query failure |
+| `con-181-integration.test.ts` | (new) | Real-path integration for portal, CSV, MoM, import guard |
+| `estimating.module.css` | Mobile `advancedWorkspaceWide` | Narrow viewport + dock padding |
+
+## 2026-11-16 — D46 P1 estimate #181 CI fix (cursor/d46-p1-estimate-con-022-031-032-a05d)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/client-boq-normalize.ts` | (new) | `normalizeClientBoQLines` — non-string sections, heading heuristics, `parse_warnings` | #181: guard AI JSON; no invented qty/rate |
+| `src/app/dashboard/projects/costs/boq-import-action.ts` | PDF/Excel parse | Normalise AI lines before `batchSectionHeadings` | Same |
+| `src/lib/estimate-batch-csv.ts` | parse loop | Description-only headings; malformed qty/rate flags; no default qty | CON-022 CSV hardening |
+| `src/app/dashboard/projects/costs/simple-actions.ts` | `loadAdvancedEstimatingDataAction` | Fail on `legacyLibrary.error`; explicit `catalogueSource` | CON-031 error handling + source |
+| `src/app/dashboard/projects/costs/advanced-estimate.tsx` | activity | Match lines by `id` (sectionSource copies); live-section drift banner | Fix `catalogue-line-review` activity regression |
+| `src/components/estimating.module.css` | workspace | `totalDock` z-index 20; scroller `overflow: visible`; wide inner scroll | CON-032 dropdown without lowering dock |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | wrapper | `advancedWorkspaceWide` class on wide column | CON-032 |
+| `src/lib/client-boq-normalize.test.ts`, `estimate-batch-csv.test.ts`, `con-032-advanced-panel-layout.test.ts` | tests | Expanded guards | Meaningful regressions |
+
+## 2026-11-16 — D46 P1 estimate CON-022 / CON-031 / CON-032 (cursor/d46-p1-estimate-con-022-031-032-a05d)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/estimate-batch-sections.ts` | (new) | `orderedEstimateSections`, `groupLinesBySection`, `batchSectionHeadings` | CON-022: section order follows batch/line sequence, not trade template |
+| `src/lib/estimate-batch-csv.ts` | (new) | Deterministic BoQ CSV parser (`Section`, `Description`, `Qty`, `Rate`, …) | CON-022: structured CSV import without inventing prices |
+| `src/lib/cost-library-catalog.ts` | (new) | MoM + override mapping; `parseStoredCatalogueRate` | CON-031: advanced catalogue uses same stored rates as library; skip missing rates |
+| `src/app/dashboard/projects/costs/simple-actions.ts` | `loadAdvancedEstimatingDataAction` | Load `mom_items` + `mom_item_overrides`; legacy `cost_library_items` fallback only | CON-031 real source/display |
+| `src/app/dashboard/projects/costs/advanced-estimate.tsx` | section grouping | Shared batch section helpers; `advancedSectionCard` | CON-022 coherent headings in advanced workspace |
+| `src/app/dashboard/projects/costs/boq-import.tsx` | `processFile` | CSV fast path via `parseEstimateBatchCsv` before AI Excel parse | CON-022 CSV import |
+| `src/app/dashboard/projects/costs/boq-import-action.ts` | sections | `batchSectionHeadings` for parsed BoQ | CON-022 heading order |
+| `src/app/dashboard/projects/costs/boq-excel-export.ts` | section order | Shared `orderedEstimateSections` | CON-022 export matches display order |
+| `src/components/estimating.module.css` | `advancedWorkspaceRoot`, `totalDock` z-index | Isolation + bottom padding; dock below workspace overlays | CON-032 panel overlap |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | advanced wrapper classes | Apply workspace layout classes | CON-032 |
+| `src/lib/*.test.ts`, `con-032-advanced-panel-layout.test.ts` | (new) | Focused CON-022/031/032 tests | No live data |
+| `package-lock.json` | revert | Restored to `868df15` main; drop accidental npm-install churn from first push | Keep P1 diff scoped to estimate work |
 ## 2026-11-16 — D46 P1 proposal CON-036/037/040 (cursor/d46-p1-proposal-con-036-037-040-445c)
 
 | File | Lines (approx.) | Change | Intent |
@@ -11,6 +92,35 @@
 | `src/app/dashboard/projects/proposal/publication-history-panel.tsx` | `projectId`, row labels | `data-issued-reference` per sent version | CON-040 correct issued reference display in history |
 | `src/lib/case-library/proposal-wiring.test.ts` | readiness baseline | Mandatory checklist includes `siteAddress`; case-study guards unchanged | CON-036 wiring regression with library hashes |
 | `src/lib/proposal-readiness.test.ts`, `proposal-document.test.ts`, `company-closing-entry.test.tsx`, `review-send-client.test.ts` | CON-036/037/040 cases | Focused Vitest (122 tests in 4 files) | Regression coverage per ID |
+## 2026-11-16 — D49 P2 visual bundle CON-055–060 (cursor/d49-p2-document-polish-con-055-056-057-060-cecf)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/proposal-document.ts` | 197–225, 361–378, 499 | `publicationProjectTypeDisplay`, `feeSectionTitle`, About/cover/price use | CON-055: hide placeholder Other and misleading Other work labels |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | 659–663, 517–540 | Cover summary + signature preview columns with `break-inside-avoid` | CON-055 prep cover; CON-056 signature labels stay with lines |
+| `src/components/proposal/proposal-document-view.tsx` | 38–39, 110, 178 | `data-cover-logo`, `break-after-avoid` on section/subheadings | CON-057 headings with content; CON-060 logo hook |
+| `src/components/proposal/proposal-web-pages.module.css` | 51–72 | Paginated logo max size, column break rules, signature groups | CON-057/060 web paginated layout |
+| `src/lib/pdf/proposal-brochure.ts` | 970–976 | `signature-field` layout log entries | CON-056 PDF signature field grouping |
+| `src/lib/proposal-document-p2-visual.test.ts` | (new) | CON-055/057/060 unit regressions | Focused bundle tests |
+| `e2e/local-phase1/reader-styled.spec.ts` | 144–146, 205–207, 296 | Tab order/button count for layout toggles | Reader chrome parity with current UI |
+| `docs/temp-files/playwright-p2-visual-reader.config.ts` | (new) | Chromium config for offline reader fixture | Synthetic layout screenshots/CI |
+| Associated test updates | credential/metric/custom-job-type/preparation | Expectations for suppressed placeholder types | CON-055 regression |
+
+## 2026-11-16 — D49 CON-024/041/042 concurrent saves, admin conversion, pipeline totals (cursor/d49-admin-con-024-041-042-5fd6)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/server/legacy-case-studies-fingerprint.ts` | (new) | MD5 fingerprint of stored legacy `case_studies` (server-only) | CON-024 compare-and-set; fingerprint supplied on render, not computed in the browser |
+| `src/app/dashboard/settings/case-studies/actions.ts` | `saveCaseStudiesAction` | Read profile, refuse stale `expectedFingerprint`, update with `case_studies` guard | CON-024 prevent blind whole-list overwrite across tabs |
+| `src/app/dashboard/settings/case-studies/save-state.ts` | reducer + types | `storedFingerprint`, `conflict` result, save sends fingerprint | Client reflects CAS outcomes |
+| `src/app/dashboard/settings/case-studies/case-studies-client.tsx` | save effect | Pass `expectedFingerprint`; optional `initialStoredFingerprint` | Wire CON-024 through UI |
+| `src/app/dashboard/projects/costs/simple-actions.ts` | update + adjustments | Column guards on read-then-update for simple estimate paths | CON-024 estimate concurrent edits |
+| `src/lib/pipeline-value.ts` | (new) | Shared home/kanban pipeline valuation using contract sum | CON-042 align Home KPI with CRM kanban |
+| `src/app/dashboard/home/home-client.tsx` | pipeline KPI | `totalHomePipelineValue` | CON-042 |
+| `src/app/dashboard/page.tsx` | kanban total | `kanbanFinancialsFromEstimates` + `totalKanbanPipelineValue` | CON-042 |
+| `src/lib/admin-dashboard-metrics.ts` | (new) | `sumSignupPoints`, `signupConversionRatePct` | CON-041 same 30d window as Plausible visitors |
+| `src/app/admin/page.tsx` | website metrics | Conversion from last-30d signups | CON-041 |
+| `*.test.ts` / `save-state.test.ts` | synthetic | CAS and metric regressions; stale-tab tests now expect refusal | Same auth boundaries as production actions |
 
 ## 2026-11-15 — D36 CON-005/014 PDF identity and price repair (cursor/d36-pdf-identity-and-price-repair-141e)
 

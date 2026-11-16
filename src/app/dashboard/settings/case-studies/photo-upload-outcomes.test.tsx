@@ -48,6 +48,7 @@ vi.mock("@/app/storage/actions", () => ({ uploadProfileImageAction: actions.uplo
 
 import { CASE_LIBRARY_DRAFT_PHOTOS_ON_WIRE } from "@/lib/case-library/content";
 import { caseStudyTextEnhanceEnabled } from "@/lib/cohort-ai/case-study-enhance-enabled";
+import { MAX_PUBLIC_IMAGE_BYTES } from "@/lib/storage/public-image";
 import CaseStudiesClient from "./case-studies-client";
 import { statusLine, SAVE_MESSAGES, type SaveState } from "./save-state";
 
@@ -81,7 +82,7 @@ function expand(value: unknown, path: string): Host[] {
 }
 
 let initial: Study[];
-const render = () => expand(<CaseStudiesClient userId="synthetic" initialCaseStudies={initial} />, "root");
+const render = () => expand(<CaseStudiesClient userId="synthetic" initialStoredFingerprint="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" initialCaseStudies={initial} />, "root");
 
 function editorState() {
     const held = [...hook.state.instances.values()].flatMap(instance => instance.slots);
@@ -305,6 +306,166 @@ describe("taking a photo off an older example", () => {
         held[0].resolve({ url: "/two.png" });
         await upload;
         expect(photosOf()[0]).toEqual(["", "/two.png", ""]);
+    });
+});
+
+// D51: what the editor says about a picture's limits, a picture on its way, and the same file chosen twice.
+function pickFile(label: string, file: File) {
+    const target = { files: [file], value: "C:\\fakepath\\photo.png" };
+    const change = labelled(render(), label).props.onChange as (event: unknown) => unknown;
+    return { target, done: Promise.resolve(change({ target })) };
+}
+const uploadingSlots = () => render().filter(element => element.props["data-photo-uploading"] !== undefined).map(element => element.props["data-photo-uploading"]);
+const photoStatus = () => render().find(element => element.props["data-photo-status"] !== undefined)!.props.children;
+const takeOffPhoto = (label: string) => (labelled(render(), label).props.onClick as () => void)();
+
+describe("a picture's limits, said before anything is sent", () => {
+    it("states the limits the upload enforces beside the slots", () => {
+        const label = render().find(element => element.type === "label" && typeof element.props.children === "string" && element.props.children.startsWith("Photos"))!;
+        expect(label.props.children).toBe("Photos (up to 3. JPEG, PNG or WebP, up to 10 MB each)");
+    });
+
+    it.each([
+        [{ size: MAX_PUBLIC_IMAGE_BYTES + 1, type: "image/png" }, "Images must be 10 MB or smaller."],
+        [{ size: 9, type: "image/gif" }, "Only JPEG, PNG and WebP images are supported."],
+        [{ size: 0, type: "image/png" }, "Choose a non-empty image file."],
+    ])("refuses %j in the upload's own words and sends nothing", async (shape, message) => {
+        const picked = pickFile("Upload photo 1 for past work 1", { name: "photo", lastModified: 1, ...shape } as File);
+        await picked.done;
+        expect(actions.upload).not.toHaveBeenCalled();
+        expect(toasts.error.mock.calls).toEqual([[message]]);
+        expect(toasts.success).not.toHaveBeenCalled();
+        expect(photosOf()[0]).toEqual(["", "", ""]);
+        expect(uploadingSlots()).toEqual([]);
+    });
+
+    it("leaves a pick already on its way alone when a later file for that slot is refused", async () => {
+        const held = heldUploads();
+        const first = pick("Upload photo 1 for past work 1");
+        await pickFile("Upload photo 1 for past work 1", { name: "big.png", lastModified: 1, size: MAX_PUBLIC_IMAGE_BYTES + 1, type: "image/png" } as File).done;
+        expect(actions.upload).toHaveBeenCalledTimes(1);
+        expect(uploadingSlots()).toEqual([1]);
+        held[0].resolve({ url: "/first.png" });
+        await first;
+        expect(photosOf()[0]).toEqual(["/first.png", "", ""]);
+        expect(uploadingSlots()).toEqual([]);
+    });
+});
+
+describe("what a slot says while its picture is on its way", () => {
+    it("says it is uploading until the reply is in", async () => {
+        const held = heldUploads();
+        const upload = pick("Upload photo 2 for past work 1");
+        expect(uploadingSlots()).toEqual([2]);
+        expect(photoStatus()).toBe("Uploading photo 2…");
+        held[0].resolve({ url: "/two.png" });
+        await upload;
+        expect(uploadingSlots()).toEqual([]);
+        expect(photoStatus()).toBe("");
+    });
+
+    it("says so for each of two slots, and stops for each when its own reply is in, failed or thrown", async () => {
+        const held = heldUploads();
+        const one = pick("Upload photo 1 for past work 1");
+        const three = pick("Upload photo 3 for past work 1");
+        expect(photoStatus()).toBe("Uploading photos 1 and 3…");
+        held[0].resolve({ error: "The image could not be uploaded." });
+        await one;
+        expect(uploadingSlots()).toEqual([3]);
+        held[1].reject(new Error("transport lost"));
+        await three;
+        expect(uploadingSlots()).toEqual([]);
+        expect(photosOf()[0]).toEqual(["", "", ""]);
+    });
+
+    it("stays on while the latest pick for a slot is on its way, though an older reply is in", async () => {
+        const held = heldUploads();
+        const older = pick("Upload photo 1 for past work 1");
+        const newer = pick("Upload photo 1 for past work 1");
+        held[0].resolve({ url: "/older.png" });
+        await older;
+        expect(uploadingSlots()).toEqual([1]);
+        expect(photosOf()[0]).toEqual(["", "", ""]);
+        held[1].resolve({ url: "/newer.png" });
+        await newer;
+        expect(uploadingSlots()).toEqual([]);
+        expect(photosOf()[0]).toEqual(["/newer.png", "", ""]);
+    });
+
+    it("stops when the picture is taken off while its replacement uploads", async () => {
+        initial = [study("a", "Alpha", { photos: ["/one.png", "", ""] })];
+        const held = heldUploads();
+        const upload = pick("Replace photo 1 for past work 1");
+        expect(uploadingSlots()).toEqual([1]);
+        takeOffPhoto("Remove photo 1 for past work 1");
+        expect(uploadingSlots()).toEqual([]);
+        held[0].resolve({ url: "/late.png" });
+        await upload;
+        expect(uploadingSlots()).toEqual([]);
+        expect(photosOf()[0]).toEqual(["", "", ""]);
+    });
+});
+
+describe("the same file chosen again", () => {
+    const sameFile = () => new File(["synthetic"], "photo.png", { type: "image/png", lastModified: 1 });
+
+    it("clears the input after a pick, so the same file can be chosen again after a failure", async () => {
+        const held = heldUploads();
+        const file = sameFile();
+        const first = pickFile("Upload photo 1 for past work 1", file);
+        expect(first.target.value).toBe("");
+        held[0].resolve({ error: "The image could not be uploaded." });
+        await first.done;
+        const again = pickFile("Upload photo 1 for past work 1", file);
+        held[1].resolve({ url: "/second-try.png" });
+        await again.done;
+        expect(actions.upload).toHaveBeenCalledTimes(2);
+        expect(photosOf()[0]).toEqual(["/second-try.png", "", ""]);
+        expect(photoStatus()).toBe("");
+    });
+
+    it("says so when it is added to a second slot, and keeps both", async () => {
+        const held = heldUploads();
+        const one = pickFile("Upload photo 1 for past work 1", sameFile());
+        held[0].resolve({ url: "/one.png" });
+        await one.done;
+        expect(photoStatus()).toBe("");
+        const two = pickFile("Upload photo 2 for past work 1", sameFile());
+        held[1].resolve({ url: "/two.png" });
+        await two.done;
+        expect(photosOf()[0]).toEqual(["/one.png", "/two.png", ""]);
+        expect(photoStatus()).toBe("Photo 2 looks like the same picture as photo 1. Both are kept. Remove one if you didn't mean to add it twice.");
+        expect(toasts.success).toHaveBeenCalledTimes(2);
+        expect(toasts.error).not.toHaveBeenCalled();
+    });
+
+    it("stops saying so once one of the two is removed, and says nothing for a different file", async () => {
+        const held = heldUploads();
+        const one = pickFile("Upload photo 1 for past work 1", sameFile());
+        held[0].resolve({ url: "/one.png" });
+        await one.done;
+        const two = pickFile("Upload photo 2 for past work 1", sameFile());
+        held[1].resolve({ url: "/two.png" });
+        await two.done;
+        takeOffPhoto("Remove photo 1 for past work 1");
+        expect(photoStatus()).toBe("");
+        const three = pickFile("Upload photo 3 for past work 1", new File(["a different picture"], "other.png", { type: "image/png", lastModified: 2 }));
+        held[2].resolve({ url: "/three.png" });
+        await three.done;
+        expect(photosOf()[0]).toEqual(["", "/two.png", "/three.png"]);
+        expect(photoStatus()).toBe("");
+    });
+
+    it("says nothing when a failed upload of the same file never put a picture on the example", async () => {
+        const held = heldUploads();
+        const one = pickFile("Upload photo 1 for past work 1", sameFile());
+        held[0].resolve({ error: "The image could not be uploaded." });
+        await one.done;
+        const two = pickFile("Upload photo 2 for past work 1", sameFile());
+        held[1].resolve({ url: "/two.png" });
+        await two.done;
+        expect(photosOf()[0]).toEqual(["", "/two.png", ""]);
+        expect(photoStatus()).toBe("");
     });
 });
 

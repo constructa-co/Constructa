@@ -51,6 +51,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: current.createClient }))
 vi.mock("@/components/project-navbar", () => ({ default: () => null }));
 vi.mock("./actions", () => ({ saveBriefAction: vi.fn(), suggestBriefAction: vi.fn() }));
 import { dashboardRouteShellBody } from "@/lib/__fixtures__/dashboard-route-shell-page";
+import UkDateInput from "@/components/uk-date-input";
 import BriefClient from "./brief-client";
 import BriefPage from "./page";
 
@@ -334,7 +335,14 @@ describe("Brief reuses site context instead of asking for it again", () => {
         expect(text(tree)).toContain("6 November 2026");
         expect(text(tree)).toContain(fields.region);
         expect(byId(tree, "brief-postcode")).toBeUndefined();
-        expect(tree.filter(e => e.type === "input")).toHaveLength(1);
+        // The start date is the only input on this stage. It renders through UkDateInput,
+        // which this walker does not descend into, so count it alongside native inputs.
+        const inputs = tree.filter(e => e.type === "input" || e.type === UkDateInput);
+        expect(inputs).toHaveLength(1);
+        expect(inputs[0]).toBe(byId(tree, "brief-start-date"));
+        expect(inputs[0].type).toBe(UkDateInput);
+        expect(inputs[0].props).toMatchObject({ value: fields.start_date, readOnly: false });
+        expect(inputs[0].props.disabled).not.toBe(true);
         expect(current.fetch).not.toHaveBeenCalled(); expect(current.save).not.toHaveBeenCalled();
         expect(current.store.getState().draft).toEqual(current.store.getState().saved);
     });
@@ -402,6 +410,7 @@ describe("Brief reuses site context instead of asking for it again", () => {
         const tree = render("Locked job", fields);
         expect(text(tree)).toContain(fields.postcode); expect(text(tree)).toContain("6 November 2026");
         expect(byId(tree, "brief-start-date")).toBeUndefined();
+        expect(tree.filter(e => e.type === UkDateInput || e.props.type === "date")).toHaveLength(0);
         expect(tree.find(e => text(e.props.children) === "Edit job details")).toBeUndefined();
         expect(byId(tree, "brief-site-notes")!.props.readOnly).toBe(true);
         expect(current.save).not.toHaveBeenCalled(); expect(current.fetch).not.toHaveBeenCalled();

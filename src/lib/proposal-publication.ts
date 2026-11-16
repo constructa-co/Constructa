@@ -11,6 +11,8 @@ import {
     resolveProposalCoverPhoto,
     type ProposalCoverPhoto,
 } from "@/lib/proposal-cover-photo";
+import { sitePhotosForJob } from "@/lib/proposal-site-photos";
+import { contractValueVatBasis, type ContractValueVatBasis } from "@/lib/case-study-value";
 
 /** Said when a chosen past job cannot be sent. The proposal is not published short of it. */
 export const CASE_STUDY_UNSENDABLE_ERROR = "One of the past jobs you chose can't be sent. Untick it under Relevant experience, or fix it in Case Studies, then check the proposal again.";
@@ -123,6 +125,17 @@ export interface ProposalCaseStudy {
     delivered: string | null;
     value_added: string | null;
     photos: string[];
+    /**
+     * CON-062/063/064 fields. Absent on snapshots issued before they existed,
+     * so an issued proposal keeps reading exactly as it was sent. Each is only
+     * present on a new snapshot when the stored case study holds a value.
+     */
+    client_quote?: string | null;
+    client_quote_attribution?: string | null;
+    challenge?: string | null;
+    solution?: string | null;
+    contract_value_amount?: number | null;
+    contract_value_vat_basis?: ContractValueVatBasis | null;
 }
 
 export interface ProposalPhoto {
@@ -131,11 +144,23 @@ export interface ProposalPhoto {
 }
 
 /** PDF layout generation. Omitted on snapshots issued before headline price deduplication. */
-export type ProposalDocumentPresentationVersion = 1 | 2;
+export type ProposalDocumentPresentationVersion = 1 | 2 | 3 | 4 | 5;
+
+/** Written on every new snapshot. Issued snapshots keep the version they were sent with. */
+export const CURRENT_DOCUMENT_PRESENTATION_VERSION: ProposalDocumentPresentationVersion = 5;
 
 export interface ProposalPublicationSnapshot {
     schema_version: 1;
-    /** When 2, cover states the authoritative price and the price section avoids repeating it. */
+    /**
+     * From 2, cover states the authoritative price and the price section avoids repeating it.
+     * From 2, cover states the authoritative price and the price section avoids repeating it.
+     * From 3, a placeholder job type and a generic lone price heading are left out.
+     * From 4, a director's message used as the closing wording is shown once, and the PDF
+     * prints a long programme stage name in full.
+     * From 5, the price lines drop the "General" filing heading, keep preliminaries last,
+     * word counted units in the plural, and the PDF writes a long client name in full by
+     * the signature. A snapshot issued under an earlier version keeps its layout.
+     */
     document_presentation_version?: ProposalDocumentPresentationVersion;
     publication: {
         id: string;
@@ -385,6 +410,13 @@ function textField(row: Record<string, unknown>, key: string, maxLength: number)
     return trimmed ? trimmed.slice(0, maxLength) : null;
 }
 
+/** A stored numeric contract value: a finite, non-negative number or nothing. */
+function amountField(row: Record<string, unknown>, key: string): number | null {
+    const value = row[key];
+    if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 1e12) return null;
+    return value;
+}
+
 /**
  * The past jobs the contractor chose for this proposal, as they wrote them.
  * A case study is included only when it is ticked; nothing is added or
@@ -396,20 +428,34 @@ export function selectCaseStudies(all: unknown[] | null | undefined, selected: u
     return all
         .map((entry, index) => ({ row: asRecord(entry), index }))
         .filter(({ row, index }) => chosen.has(String(index)) || (typeof row.id === "string" && chosen.has(row.id)))
-        .map(({ row }) => ({
-            title: textField(row, "projectName", 200) ?? "",
-            project_type: textField(row, "projectType", 200),
-            location: textField(row, "location", 200),
-            client: textField(row, "client", 200),
-            contract_value: textField(row, "contractValue", 50),
-            duration: textField(row, "programmeDuration", 100),
-            delivered: textField(row, "whatWeDelivered", 5000),
-            value_added: textField(row, "valueAdded", 5000),
-            photos: (Array.isArray(row.photos) ? row.photos : [])
-                .map(safeImageUrl)
-                .filter((url): url is string => url !== null)
-                .slice(0, 3),
-        }))
+        .map(({ row }) => {
+            const amount = amountField(row, "contractValueAmount");
+            const vatBasis = contractValueVatBasis(row.contractValueVatBasis);
+            const clientQuote = textField(row, "clientQuote", 1000);
+            const challenge = textField(row, "challenge", 5000);
+            const solution = textField(row, "solution", 5000);
+            return {
+                title: textField(row, "projectName", 200) ?? "",
+                project_type: textField(row, "projectType", 200),
+                location: textField(row, "location", 200),
+                client: textField(row, "client", 200),
+                contract_value: textField(row, "contractValue", 50),
+                duration: textField(row, "programmeDuration", 100),
+                delivered: textField(row, "whatWeDelivered", 5000),
+                value_added: textField(row, "valueAdded", 5000),
+                photos: (Array.isArray(row.photos) ? row.photos : [])
+                    .map(safeImageUrl)
+                    .filter((url): url is string => url !== null)
+                    .slice(0, 3),
+                // Only when both parts are usable: a figure without a known VAT
+                // basis never prints, so a stored "gross" or a missing basis
+                // cannot put an invented "ex VAT" on a client proposal.
+                ...(amount !== null && vatBasis !== null ? { contract_value_amount: amount, contract_value_vat_basis: vatBasis } : {}),
+                ...(clientQuote ? { client_quote: clientQuote, client_quote_attribution: textField(row, "clientQuoteAttribution", 200) } : {}),
+                ...(challenge ? { challenge } : {}),
+                ...(solution ? { solution } : {}),
+            };
+        })
         .filter((study) => study.title !== "")
         .slice(0, 6);
 }
@@ -509,9 +555,14 @@ export function buildProposalPublicationSnapshot(
         Object.freeze(programmePlan);
     }
 
+    // A photo uploaded for another job, or as branding or a case study, is
+    // never sent as a photograph of this site. The preview is built here too,
+    // so it shows exactly the photographs that would be sent.
+    const sitePhotos = sitePhotosForJob(sanitisePhotos(input.project.site_photos), { projectId: input.project.id });
+
     const snapshot: ProposalPublicationSnapshot = {
         schema_version: 1,
-        document_presentation_version: 2,
+        document_presentation_version: CURRENT_DOCUMENT_PRESENTATION_VERSION,
         publication: {
             id: requiredText(input.publicationId, "Publication id", 100),
             version_number: input.versionNumber,
@@ -579,13 +630,12 @@ export function buildProposalPublicationSnapshot(
             notice: responseWording(input.responseKind).notice,
         },
         case_studies: chosenCaseStudies.studies,
-        photos: sanitisePhotos(input.project.site_photos),
+        photos: sitePhotos,
         ...(isProposalCoverPhotoEnabled()
             ? ((): { cover_photo?: ProposalCoverPhoto } => {
-                const photos = sanitisePhotos(input.project.site_photos);
                 const cover = resolveProposalCoverPhoto(
                     parseProposalCoverPhotoChoice(input.project.proposal_cover_photo),
-                    photos,
+                    sitePhotos,
                 );
                 if (!cover) return {};
                 if (cover.kind === "site") {

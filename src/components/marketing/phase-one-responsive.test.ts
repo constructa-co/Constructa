@@ -49,10 +49,10 @@ function reducedMotionAnimation(selectorPart: string) {
 describe("declared phase-one responsive rules, not computed layout or browser proof", () => {
   it("keeps four real main-nav destinations in source without hiding or removing links", () => {
     const navBlock = headerSource.match(/aria-label="Main navigation"[\s\S]*?<\/nav>/)?.[0] ?? "";
-    expect(navBlock).toContain('href="/#how-it-works"');
     expect(navBlock).toContain('href="/features"');
     expect(navBlock).toContain('href="/pricing"');
     expect(navBlock).toContain('href="/about"');
+    expect(navBlock).toContain('href="/guides"');
     expect((navBlock.match(/<Link\b/g) ?? []).length).toBe(4);
     expect(navBlock).not.toMatch(/display:\s*none|visibility:\s*hidden|aria-hidden="true"/i);
   });
@@ -65,19 +65,29 @@ describe("declared phase-one responsive rules, not computed layout or browser pr
     expect(mediaDeclarations(".nav", "(min-width: 801px)")["flex-wrap"]).toBeUndefined();
   });
 
-  it("allows narrow header nav to wrap with min-content link protection at 800px and tighter gaps at 320px-class widths", () => {
-    const narrowNav = mediaDeclarations(".nav", "(max-width: 800px)");
-    const phoneNav = mediaDeclarations(".nav", "(max-width: 450px)");
-    const narrowLink = mediaDeclarations(".nav a", "(max-width: 800px)");
+  it("swaps the row nav for a real mobile menu at 800px instead of wrapping it", () => {
+    expect(baseDeclarations(".mobileMenu").display).toBe("none");
+    const menuSummary = baseDeclarations(".mobileMenu summary");
+    expect(menuSummary["min-height"]).toBe("46px");
+    expect(menuSummary["cursor"]).toBe("pointer");
+    const menuLink = baseDeclarations(".mobileMenu nav a");
+    expect(menuLink["min-height"]).toBe("44px");
 
-    expect(mediaDeclarations(".headerInner", "(max-width: 800px)")["flex-wrap"]).toBe("wrap");
-    expect(narrowNav["flex-wrap"]).toBe("wrap");
-    expect(narrowNav["flex-basis"]).toBe("100%");
-    expect(narrowNav["min-width"]).toBe("0");
-    expect(narrowLink["min-width"]).toBe("min-content");
-    expect(narrowLink["min-height"]).toBe("44px");
-    expect(phoneNav["column-gap"]).toBe("12px");
-    expect(phoneNav["row-gap"]).toBe("8px");
+    const narrowNav = mediaDeclarations(".nav", "(max-width: 800px)");
+    const narrowMenu = mediaDeclarations(".mobileMenu", "(max-width: 800px)");
+    const narrowHeader = mediaDeclarations(".headerInner", "(max-width: 800px)");
+
+    expect(narrowNav.display).toBe("none");
+    expect(narrowMenu.display).toBe("block");
+    expect(narrowHeader["flex-wrap"]).toBe("nowrap");
+  });
+
+  it("keeps the two-word Preview access label on one line and tightens the row before the menu swap", () => {
+    expect(headerSource).toContain('<Link href="/pricing">Preview access</Link>');
+    expect(baseDeclarations(".nav a")["white-space"]).toBe("nowrap");
+    expect(mediaDeclarations(".nav", "(max-width: 1000px)").gap).toBe("20px");
+    expect(mediaDeclarations(".headerInner", "(max-width: 1000px)").gap).toBe("20px");
+    expect(mediaDeclarations(".headerInner", "(max-width: 800px)").gap).toBe("12px");
   });
 
   it("keeps hero actions and footer stacks wrapping on narrow layouts without changing the sage focus palette", () => {

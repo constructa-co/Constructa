@@ -1,5 +1,18 @@
 # Cursor change log
 
+## 2026-11-16 — D46 P1 estimate #181 CI fix (cursor/d46-p1-estimate-con-022-031-032-a05d)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/client-boq-normalize.ts` | (new) | `normalizeClientBoQLines` — non-string sections, heading heuristics, `parse_warnings` | #181: guard AI JSON; no invented qty/rate |
+| `src/app/dashboard/projects/costs/boq-import-action.ts` | PDF/Excel parse | Normalise AI lines before `batchSectionHeadings` | Same |
+| `src/lib/estimate-batch-csv.ts` | parse loop | Description-only headings; malformed qty/rate flags; no default qty | CON-022 CSV hardening |
+| `src/app/dashboard/projects/costs/simple-actions.ts` | `loadAdvancedEstimatingDataAction` | Fail on `legacyLibrary.error`; explicit `catalogueSource` | CON-031 error handling + source |
+| `src/app/dashboard/projects/costs/advanced-estimate.tsx` | activity | Match lines by `id` (sectionSource copies); live-section drift banner | Fix `catalogue-line-review` activity regression |
+| `src/components/estimating.module.css` | workspace | `totalDock` z-index 20; scroller `overflow: visible`; wide inner scroll | CON-032 dropdown without lowering dock |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | wrapper | `advancedWorkspaceWide` class on wide column | CON-032 |
+| `src/lib/client-boq-normalize.test.ts`, `estimate-batch-csv.test.ts`, `con-032-advanced-panel-layout.test.ts` | tests | Expanded guards | Meaningful regressions |
+
 ## 2026-11-16 — D46 P1 estimate CON-022 / CON-031 / CON-032 (cursor/d46-p1-estimate-con-022-031-032-a05d)
 
 | File | Lines (approx.) | Change | Intent |

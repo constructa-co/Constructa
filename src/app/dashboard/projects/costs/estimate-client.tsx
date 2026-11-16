@@ -542,7 +542,7 @@ export default function EstimateClient({
                         {advanced.status === "ready" && advanced.data && (
                             <div data-wide-workspace className={`${ui.advancedWorkspaceRoot} rounded-xl bg-[#0d0d0d] p-3 sm:p-4`}>
                                 <div className={`${ui.advancedWorkspaceScroller} min-w-0`}>
-                                <div className="min-w-[760px]">
+                                <div className={ui.advancedWorkspaceWide}>
                                     <AdvancedEstimate
                                         estimates={state.estimates}
                                         setEstimates={(update) => store.dispatch({ type: "estimates/replace", update })}

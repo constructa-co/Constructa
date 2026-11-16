@@ -372,6 +372,8 @@ export async function savePriceAdjustmentsAction(estimateId: string, input: Adju
 export interface AdvancedEstimatingData {
     orgId: string;
     costLibrary: CostLibraryItem[];
+    /** Present when loaded from the server; MoM preferred over legacy rows. */
+    catalogueSource?: "mom" | "legacy";
     rateBuildups: RateBuildup[];
     labourRates: LabourRate[];
     preferredTrades: string[];
@@ -418,20 +420,22 @@ export async function loadAdvancedEstimatingDataAction(): Promise<
             labourRateQuery,
             supabase.from("profiles").select("preferred_trades").eq("id", user.id).single(),
         ]);
-        if (rateBuildups.error || categories.error || items.error || overrides.error || labourRates.error) {
+        if (rateBuildups.error || categories.error || items.error || overrides.error || labourRates.error || legacyLibrary.error) {
             return { ok: false, error: "The advanced tools couldn't be loaded. Check your connection and try again." };
         }
 
         const fromMom = mapMomRowsToCostLibrary(items.data || [], categories.data || [], overrides.data || []);
         /* eslint-disable @typescript-eslint/no-explicit-any */
         const legacy = (legacyLibrary.data || []).map((row: any) => mapLegacyCostLibraryRow(row)).filter(Boolean) as CostLibraryItem[];
-        const costLibrary = fromMom.length ? fromMom : legacy;
+        const catalogueSource: "mom" | "legacy" = fromMom.length ? "mom" : "legacy";
+        const costLibrary = catalogueSource === "mom" ? fromMom : legacy;
 
         return {
             ok: true,
             data: {
                 orgId: orgId || "",
                 costLibrary,
+                catalogueSource,
                 rateBuildups: (rateBuildups.data || []).map((rb: any) => ({
                     id: rb.id,
                     name: rb.name || "",

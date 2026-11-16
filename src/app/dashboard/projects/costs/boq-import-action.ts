@@ -7,6 +7,7 @@ import OpenAI from "openai";
 import { CreateBoQEstimateSchema, parseInput } from "@/lib/validation/schemas";
 import { requireLaunchCapability } from "@/lib/launch-profile";
 import { batchSectionHeadings } from "@/lib/estimate-batch-sections";
+import { normalizeClientBoQLines } from "@/lib/client-boq-normalize";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -18,6 +19,8 @@ export interface ClientBoQLine {
     unit: string;
     unit_rate: number;        // 0 = unpriced
     line_total: number;
+    /** Set when qty/rate cells were present but not readable — no invented numbers. */
+    parse_warnings?: string[];
 }
 
 export interface ParsedClientBoQ {
@@ -93,7 +96,8 @@ Rules:
         try {
             const jsonMatch = rawText.match(/\{[\s\S]*\}/);
             const parsed = JSON.parse(jsonMatch?.[0] || rawText);
-            lines = Array.isArray(parsed.lines) ? parsed.lines : [];
+            const raw = Array.isArray(parsed.lines) ? parsed.lines : [];
+            lines = normalizeClientBoQLines(raw);
         } catch {
             lines = [];
         }
@@ -138,7 +142,7 @@ If a cell is blank or "-", use null for quantities and 0 for rates.
 Return JSON: { "lines": [{ "client_ref": "", "section": "", "description": "", "quantity": null, "unit": "item", "unit_rate": 0, "line_total": 0 }] }`
         );
 
-        const lines = result.lines || [];
+        const lines = normalizeClientBoQLines(result.lines || []);
         const sections = batchSectionHeadings(lines);
 
         return {

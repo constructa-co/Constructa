@@ -9,7 +9,9 @@ describe("CON-032 advanced estimating panel layout", () => {
     it("lifts the advanced workspace above the sticky total dock and reserves bottom space", () => {
         expect(css).toMatch(/\.advancedWorkspaceRoot[\s\S]*z-index:\s*15/);
         expect(css).toMatch(/\.advancedWorkspaceRoot[\s\S]*padding-bottom:\s*6rem/);
-        expect(css).toMatch(/\.totalDock[\s\S]*z-index:\s*10/);
+        expect(css).toMatch(/\.totalDock[\s\S]*z-index:\s*20/);
+        expect(css).toMatch(/\.advancedWorkspaceScroller[\s\S]*overflow:\s*visible/);
+        expect(css).toMatch(/\.advancedWorkspaceWide[\s\S]*overflow-y:\s*visible/);
         expect(client).toContain("ui.advancedWorkspaceRoot");
         expect(client).toContain("ui.advancedWorkspaceScroller");
     });

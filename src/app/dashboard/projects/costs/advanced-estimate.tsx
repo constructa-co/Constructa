@@ -1198,8 +1198,9 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
             lineUncertainRef.current.size || pendingResourceLinesRef.current.size || applyingResourceLinesRef.current.size ||
             !currentEstimate || currentEstimate.project_id !== projectId || currentEstimate.is_client_boq ||
             line.estimate_id !== currentEstimate.id || line.pricing_mode !== "simple" || line.trade_section === "Preliminaries" ||
-            !currentEstimate.estimate_lines.includes(line)) return false;
-        const review: ActivityReview = { line, context: catalogueContext, projectId, orgId, raw: line.trade_section ?? "", phase: "editing", message: "" };
+            !currentEstimate.estimate_lines.some((row) => row.id === line.id)) return false;
+        const owned = currentEstimate.estimate_lines.find((row) => row.id === line.id)!;
+        const review: ActivityReview = { line: owned, context: catalogueContext, projectId, orgId, raw: owned.trade_section ?? "", phase: "editing", message: "" };
         activityReviewRef.current = review; setActivityReview(review);
         draftResourceLinesRef.current.add(line.id); setDraftResourceLines(new Set(draftResourceLinesRef.current));
         onResourceSaveStateChanged?.(`activity:${line.id}`, "draft");
@@ -1825,7 +1826,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                                         helpText: "Use your own activity name or a current estimate activity, up to 100 characters. Only this line's activity changes; its price and resources stay unchanged. Client BoQ, built-up and Preliminaries lines are not assigned by this control.",
                                                     } : undefined}
                                                 />
-                                                {activityReview?.line.id === line.id && line.trade_section !== activityReview.line.trade_section && <p role="status" className="px-5 py-2 text-sm text-amber-200">The saved activity changed. This review stays in its original group to retain your text; Cancel and review the current activity before saving.</p>}
+                                                {activityReview?.line.id === line.id && (lines.find((l) => l.id === line.id)?.trade_section ?? line.trade_section) !== activityReview.line.trade_section && <p role="status" className="px-5 py-2 text-sm text-amber-200">The saved activity changed. This review stays in its original group to retain your text; Cancel and review the current activity before saving.</p>}
                                                 {catalogueReview?.line.id === line.id && <section data-catalogue-review={line.id} aria-label="Review catalogue rate" className="m-3 rounded-lg border border-emerald-700 p-4 space-y-2 text-sm text-slate-200">
                                                     <h4 className="font-semibold">Review catalogue rate before saving</h4>
                                                     <p>{catalogueReview.item.code}: {catalogueReview.item.description}</p>

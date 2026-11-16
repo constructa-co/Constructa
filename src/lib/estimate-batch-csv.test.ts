@@ -40,4 +40,13 @@ describe("CON-022 estimate batch CSV import", () => {
         expect(result.lines[0].unit_rate).toBe(0);
         expect(result.lines[0].line_total).toBe(0);
     });
+
+    it("treats description-only rows as headings and flags malformed qty cells", () => {
+        const csv = `Section,Description,Qty,Unit,Rate\nFit out,Kitchen refurbishment,,,\nWorks,Dig out,abc,item,10\n`;
+        const result = parseEstimateBatchCsv(csv);
+        expect(result.ok).toBe(true);
+        if (!result.ok) return;
+        expect(result.lines[0]).toMatchObject({ description: "Kitchen refurbishment", quantity: null, unit: "item" });
+        expect(result.lines[1]).toMatchObject({ quantity: null, parse_warnings: ["quantity"] });
+    });
 });

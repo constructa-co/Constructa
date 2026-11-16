@@ -46,6 +46,10 @@
     padding-bottom: 6rem;
 }
 .advancedWorkspaceScroller {
+    overflow: visible;
+}
+.advancedWorkspaceWide {
+    min-width: 760px;
     overflow-x: auto;
     overflow-y: visible;
 }
@@ -59,7 +63,7 @@
 .totalDock {
     position: sticky;
     bottom: max(3.5rem, env(safe-area-inset-bottom));
-    z-index: 10;
+    z-index: 20;
     display: block;
     padding: 12px 16px;
     border: 1px solid var(--price-line);

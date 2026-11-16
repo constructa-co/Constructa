@@ -29,7 +29,6 @@
 .metrics { max-width: 1600px; margin: auto; padding: 40px 4.5% 70px; border-top: 1px solid var(--line); }
 .metrics h2 { font-size: clamp(32px, 3.5vw, 44px); margin: 0 0 36px; font-weight: 500; }
 .metricGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; }
-.metricCard img { width: 160px; height: 160px; object-fit: contain; margin: 0 auto 16px; display: block; }
 .metricCard h3 { font-size: 20px; margin: 0 0 10px; font-weight: 550; }
 .metricCard p { color: var(--muted); font-size: 15px; line-height: 1.65; margin: 0; }
 .actions { display: flex; flex-wrap: wrap; gap: 16px 22px; margin-top: 24px; align-items: center; }

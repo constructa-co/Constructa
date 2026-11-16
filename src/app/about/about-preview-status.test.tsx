@@ -62,11 +62,13 @@ describe("about preview status in What's next", () => {
 
   it("uses next/image for illustrations without AI-people disclosures", () => {
     expect(html).not.toContain("AI-generated illustration");
-    expect(html).toContain("/images/minimalist infographic cluster of small construction buildings.png");
+    expect(html).not.toContain("/images/minimalist infographic cluster of small construction buildings.png");
+    expect(html).not.toContain("/images/spreadsheet grid and warning & error symbols.png");
     expect(html).toContain("/docs/evidence/marketing-product-screenshots-2026-11-15/01-estimate-price-adjustments-1440x900.jpg");
+    expect(html).toContain("/docs/evidence/marketing-product-screenshots-2026-11-15/02-programme-saved-stages-1440x900.jpg");
     expect(html).toContain("synthetic journey fixture capture from 15 November 2026");
     expect(html).toMatch(/data-next-image="true"/);
-    expect((html.match(/data-next-image="true"/g) ?? []).length).toBeGreaterThanOrEqual(6);
+    expect((html.match(/data-next-image="true"/g) ?? []).length).toBe(2);
   });
 
   it("makes only supported claims in the stats and pointers sections", () => {

@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import type { StaticImageData } from 'next/image';
-import estimateCapture from '../../../docs/evidence/marketing-product-screenshots-2026-11-15/01-estimate-price-adjustments-1440x900.jpg';
+import { aboutCaptures } from './about-image-provenance';
 
 function AboutImage({
   src,
@@ -28,7 +28,13 @@ export function FullAboutPage() {
 
       <section className="max-w-6xl mx-auto px-4 pt-32 pb-24 grid md:grid-cols-2 gap-12 items-center">
         <figure>
-          <AboutImage src="/images/minimalist infographic cluster of small construction buildings.png" alt="Illustration of a cluster of small construction buildings drawn in copper line art" width={2240} height={2240} />
+          <AboutImage
+            src={aboutCaptures.programmeSavedStages.src}
+            alt={aboutCaptures.programmeSavedStages.alt}
+            width={aboutCaptures.programmeSavedStages.width}
+            height={aboutCaptures.programmeSavedStages.height}
+          />
+          <figcaption className="mt-2 text-sm">{aboutCaptures.programmeSavedStages.caption}</figcaption>
         </figure>
         <div className="text-left">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">Built by people who know the job</h2>
@@ -44,8 +50,8 @@ export function FullAboutPage() {
         </div>
       </section>
 
-      <section className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
-        <div className="text-right">
+      <section className="max-w-3xl mx-auto px-4 py-24">
+        <div className="text-left">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">The problem we saw</h2>
           <p className="text-gray-300 text-lg mb-4">
             Running a small construction company means juggling everything—quoting fast, planning tight, and keeping things moving on site.
@@ -60,24 +66,18 @@ export function FullAboutPage() {
             Big software platforms are overkill. Manual systems are high risk. And most tools weren&apos;t built for builders.
           </p>
         </div>
-        <div>
-          <AboutImage src="/images/spreadsheet grid and warning & error symbols.png" alt="Illustration of a spreadsheet grid with warning and error symbols" width={2240} height={2240} />
-        </div>
       </section>
 
       <section className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
         <div>
           <figure>
             <AboutImage
-              src={estimateCapture}
-              alt="Constructa estimating screen from a synthetic phase-one journey. It shows the Price adjustments panel with percentage fields for overhead, risk and profit, an optional discount reason, and a grey control reading No changes to save when nothing has changed."
-              width={1440}
-              height={900}
+              src={aboutCaptures.estimatePriceAdjustments.src}
+              alt={aboutCaptures.estimatePriceAdjustments.alt}
+              width={aboutCaptures.estimatePriceAdjustments.width}
+              height={aboutCaptures.estimatePriceAdjustments.height}
             />
-            <figcaption className="mt-2 text-sm">
-              The current review interface · synthetic journey fixture capture from 15 November 2026 · made-up job data ·
-              simulated saves.
-            </figcaption>
+            <figcaption className="mt-2 text-sm">{aboutCaptures.estimatePriceAdjustments.caption}</figcaption>
           </figure>
         </div>
         <div className="text-left">
@@ -112,17 +112,14 @@ export function FullAboutPage() {
         <h2 className="text-3xl font-semibold mb-10">Why now?</h2>
         <div className="grid md:grid-cols-3 gap-12 text-gray-300">
           <div className="text-left">
-            <AboutImage src="/images/about-1m-construction-firms.png" alt="Illustration of tower cranes and city buildings linked by a glowing network" width={160} height={160} className="w-40 h-40 mx-auto mb-4" />
             <h3 className="text-2xl font-semibold mb-2">Small firms are the backbone of the sector</h3>
             <p>Micro businesses dominate construction—but have few tools built for the way they actually work.</p>
           </div>
           <div className="text-left">
-            <AboutImage src="/images/about-weekly-admin.png" alt="Illustration of a stopwatch with paperwork streaming past" width={160} height={160} className="w-40 h-40 mx-auto mb-4" />
             <h3 className="text-2xl font-semibold mb-2">Admin eats into every working week</h3>
             <p>Time spent chasing info and retyping quotes is time away from the job.</p>
           </div>
           <div className="text-left">
-            <AboutImage src="/images/about-spreadsheets.png" alt="Illustration of a spreadsheet marked with errors beside a hard hat and level" width={160} height={160} className="w-40 h-40 mx-auto mb-4" />
             <h3 className="text-2xl font-semibold mb-2">Spreadsheets are still the default</h3>
             <p>Most general platforms are too complex, and manual systems are high risk.</p>
           </div>

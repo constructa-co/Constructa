@@ -771,12 +771,13 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
             });
             y += height + 4;
         }
-        const narrative: Array<[string, string[]]> = [["What we delivered", block.delivered], ["Value added", block.valueAdded]];
+        const narrative: Array<[string, string[]]> = [["What we delivered", block.delivered], ["Value added", block.valueAdded], ["The challenge", block.challenge ?? []], ["How we resolved it", block.solution ?? []]];
         narrative.forEach(([heading, text]) => {
             if (text.length === 0) return;
             subheading(heading, { type: "paragraphs", paragraphs: text });
             paragraphs(text);
         });
+        if (block.quote) quote(block.quote.paragraphs, block.quote.attribution);
         y += 6;
     };
 

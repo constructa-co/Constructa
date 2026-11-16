@@ -97,3 +97,31 @@ describe("older case-study story boxes", () => {
         for (const action of Object.values(actions)) expect(action).not.toHaveBeenCalled();
     });
 });
+
+describe("older case-study quote and contract value fields", () => {
+    const renderOne = (entry: Record<string, unknown>) => renderToStaticMarkup(createElement(CaseStudiesClient, {
+        userId: "synthetic", initialStoredFingerprint: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", initialCaseStudies: [entry],
+    } as never));
+    const base = {
+        id: "example", projectName: "Example renovation", projectType: "Renovation", contractValue: "£85,000",
+        programmeDuration: "12 weeks", client: "Example client", location: "Surrey",
+        whatWeDelivered: "Example work", valueAdded: "", photos: ["", "", ""],
+    };
+
+    it("shows a saved client quote and attribution back unchanged", () => {
+        const html = renderOne({ ...base, clientQuote: "Tidy every day.", clientQuoteAttribution: "Mrs Smith" });
+        expect(textarea(html, /[^"]*-quote/)[1]).toBe("Tidy every day.");
+        expect(html).toContain('value="Mrs Smith"');
+    });
+
+    it("shows a numeric contract value with its VAT basis, and keeps old free text as the typed box", () => {
+        const numeric = renderOne({ ...base, contractValueAmount: 85000, contractValueVatBasis: "inc_vat" });
+        expect(numeric).toContain('type="number"');
+        expect(numeric).toContain('value="85000"');
+        expect(numeric).toContain('value="inc_vat"');
+        expect(numeric).toContain("selected");
+        const legacy = renderOne(base);
+        expect(legacy).toContain('value="£85,000"');
+        expect(legacy).not.toContain('type="number"');
+    });
+});

@@ -8,6 +8,7 @@ vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
 import { legacyCaseStudiesStoredFingerprint } from "@/lib/server/legacy-case-studies-fingerprint";
 import { LEGACY_CASE_STUDY_PHOTOS_MESSAGE } from "@/lib/case-library/legacy-photos";
+import { selectCaseStudies } from "@/lib/proposal-publication";
 import { saveCaseStudiesAction } from "./actions";
 import { SAVE_MESSAGES } from "./save-state";
 
@@ -192,6 +193,50 @@ describe("a confirmed save", () => {
     it("an empty list is a deliberate clear, and is saved", async () => {
         expect((await saveCaseStudiesAction([], fp())).status).toBe("saved");
         expect(stored()).toEqual([]);
+    });
+
+    it("stores the CON-062/063/064 fields exactly as given, and a proposal reads them back bounded", async () => {
+        // The real action writes the whole list verbatim — no key allow-list —
+        // so the new fields are stored and reloaded exactly as the editor sent them.
+        const list = [study("s1", "Kitchen refit", {
+            clientQuote: "They kept the site tidy every single day.",
+            clientQuoteAttribution: "Mrs Smith",
+            challenge: "Asbestos behind the old units.",
+            solution: "Licensed removal, then on as planned.",
+            contractValue: "£85,000",
+            contractValueAmount: 85000,
+            contractValueVatBasis: "inc_vat",
+        })];
+        expect((await saveCaseStudiesAction(list, fp())).status).toBe("saved");
+        expect(stored()).toEqual(list);
+
+        // What storage holds is what the proposal selection (the snapshot reader's
+        // only door for older entries) carries through.
+        const [shown] = selectCaseStudies(stored() as unknown[], ["s1"]);
+        expect(shown).toMatchObject({
+            client_quote: "They kept the site tidy every single day.",
+            client_quote_attribution: "Mrs Smith",
+            challenge: "Asbestos behind the old units.",
+            solution: "Licensed removal, then on as planned.",
+            contract_value: "£85,000",
+            contract_value_amount: 85000,
+            contract_value_vat_basis: "inc_vat",
+        });
+
+        // Over-long text is stored as typed and bounded only at the snapshot.
+        const long = [study("s1", "Kitchen refit", {
+            clientQuote: "q".repeat(1500),
+            clientQuoteAttribution: "a".repeat(300),
+            challenge: "c".repeat(6000),
+            solution: "s".repeat(6000),
+        })];
+        expect((await saveCaseStudiesAction(long, fp())).status).toBe("saved");
+        expect((stored() as Record<string, unknown>[])[0].clientQuote).toHaveLength(1500);
+        const [bounded] = selectCaseStudies(stored() as unknown[], ["s1"]);
+        expect(bounded.client_quote).toHaveLength(1000);
+        expect(bounded.client_quote_attribution).toHaveLength(200);
+        expect(bounded.challenge).toHaveLength(5000);
+        expect(bounded.solution).toHaveLength(5000);
     });
 
     it("stays 'saved' when telling other pages to reload fails afterwards: the write was confirmed", async () => {

@@ -102,7 +102,7 @@ function Journey() {
 function Scope({ showAccessLink = true }: { showAccessLink?: boolean }) {
   return (
     <section id="phase-one" className={`${ui.section} ${ui.scope}`}>
-      <div><p className={ui.eyebrow}>A focused first release</p><h2>The work-winning essentials.<br />Not a catalogue of add-ons.</h2><p>This phase-one preview brings together company profiles, estimating, programmes and proposals. It is a working review, not a claim that every part is ready for release.</p></div>
+      <div><p className={ui.eyebrow}>A focused first release</p><h2>The work-winning essentials.<br />Not a catalogue of add-ons.</h2><p>This phase-one preview brings together company profiles, estimating, programmes and proposals — the essentials for winning work, in one connected flow. It is a working review, not a claim that every part is ready for release.</p></div>
       <div className={ui.scopeList}>
         {['Company profile and past work', 'Job brief and estimating', 'Programme and proposal preparation'].map(item => <p key={item}><Check size={18} aria-hidden="true" />{item}</p>)}
         <p className={ui.scopeNote}>Later-phase delivery, finance and resource tools are outside this preview. No add-on checkout is offered here.</p>
@@ -118,7 +118,7 @@ function Questions() {
     ['Can I use my own prices and company details?', 'Yes. Add your business details and past work, describe the job and enter your price lines. Check the scope, programme and terms for each proposal before sharing it.'],
     ['Is the AI chat assistant available?', 'A contextual assistant for estimating and planning is part of the development work. It is not available as a live chatbot in this preview. Existing assisted-writing controls are separate and depend on their own availability.'],
     ['Can I buy the later-phase tools here?', 'No. This preview focuses on the work-winning journey. Later-phase workflows and commercial plans are not being offered for purchase here.'],
-    ['Is this ready for live customer work?', 'This is a phase-one review. Authentication, data handling, commercial terms and the complete proposal journey need release verification before live customer use.'],
+    ['Is this ready for live customer work?', 'This is a pre-release review. Authentication, data handling, commercial terms and the complete proposal journey are being verified before live customer use.'],
   ];
   return <section id="questions" className={`${ui.section} ${ui.questions}`}><div><p className={ui.eyebrow}>A few useful answers</p><h2>Before you<br />get started.</h2></div><div>{questions.map(([question, answer]) => <details key={question}><summary>{question}<Plus size={18} aria-hidden="true" /></summary><p>{answer}</p></details>)}</div></section>;
 }
@@ -191,7 +191,7 @@ export function PhaseOnePricing() {
       <section className={ui.pageIntro}>
         <p className={ui.eyebrow}>Preview access</p>
         <h1>A focused first phase.<br /><em>No add-on checkout.</em></h1>
-        <p>We are reviewing the complete work-winning journey before release. This page does not sell a subscription, promise a free trial or take payment for later-phase features.</p>
+        <p>We are reviewing the complete work-winning journey before release. Preview access is part of the founding-cohort review — no subscription, free trial or payment is offered here.</p>
         <p>Preview access remains on hold for new accounts. This review is not ready for live customer work.</p>
         <p>This preview is for people using an existing review account. Sign in with the details you were given, then start with your company profile.</p>
         <div className={ui.actions}>
@@ -202,7 +202,7 @@ export function PhaseOnePricing() {
         <p>
           Want access but not signed in yet? <Link href="/apply" className={ui.textLink}>Apply to the founding cohort <ArrowRight size={16} aria-hidden="true" /></Link>
           {' · '}
-          <Link href="/contact" className={ui.textLink}>Neutral preview-access questions <ArrowRight size={16} aria-hidden="true" /></Link>
+          <Link href="/contact" className={ui.textLink}>Questions about preview access <ArrowRight size={16} aria-hidden="true" /></Link>
         </p>
         <p>
           The full picture lives on the home page:{' '}

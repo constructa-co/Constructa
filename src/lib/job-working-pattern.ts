@@ -408,9 +408,12 @@ function worksUtc(ms: number, pattern: JobWorkingPatternV1, calendar: ProgrammeC
     return iso !== null && !isUkBankHoliday(iso, calendar.bankHolidayDivision);
 }
 
-function rollForwardUtc(ms: number, pattern: JobWorkingPatternV1, calendar: ProgrammeCalendar): number {
-    while (!worksUtc(ms, pattern, calendar)) ms += DAY_MS;
-    return ms;
+function rollForwardUtc(ms: number, pattern: JobWorkingPatternV1, calendar: ProgrammeCalendar): number | null {
+    while (isoDateUtc(ms) !== null) {
+        if (worksUtc(ms, pattern, calendar)) return ms;
+        ms += DAY_MS;
+    }
+    return null;
 }
 
 function isoDateUtc(ms: number): string | null {
@@ -485,10 +488,11 @@ function walkAddV1(startIso: string, workingDays: number, calendar: ProgrammeCal
     const start = parseIsoDate(startIso);
     if (start === null) return null;
     let cursor = rollForwardUtc(start, pattern, calendar);
+    if (cursor === null) return null;
     let remaining = Math.round(workingDays) - 1;
     for (let guard = 0; guard < maxLocalWalkDays(workingDays) && remaining > 0; guard += 1) {
         cursor += DAY_MS;
-        if (!Number.isFinite(new Date(cursor).getTime())) return null;
+        if (isoDateUtc(cursor) === null) return null;
         if (worksUtc(cursor, pattern, calendar)) remaining -= 1;
     }
     return remaining === 0 ? isoDateUtc(cursor) : null;
@@ -525,7 +529,9 @@ export function nextJobWorkingDayAfter(iso: string, value?: unknown): string | n
         return next ? rollForwardLocal(next, pattern, calendar) : null;
     }
     const ms = parseIsoDate(iso);
-    return ms !== null ? isoDateUtc(rollForwardUtc(ms + DAY_MS, pattern, calendar)) : null;
+    if (ms === null) return null;
+    const next = rollForwardUtc(ms + DAY_MS, pattern, calendar);
+    return next === null ? null : isoDateUtc(next);
 }
 
 /** Working dates in an inclusive range. Version 2 counts capacity-sized days from explicit intervals. */

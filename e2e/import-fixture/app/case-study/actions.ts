@@ -20,6 +20,7 @@
 import { notFound } from "next/navigation";
 import { cohortRig, type Canned } from "@/lib/cohort-ai/__fixtures__/rig";
 import { enhanceCaseStudy } from "@/lib/cohort-ai/case-study-enhance";
+import { legacyCaseStudiesStoredFingerprint, legacyCaseStudiesStoredIsKnown } from "@/lib/server/legacy-case-studies-fingerprint";
 import { SAVE_MESSAGES, type SaveCaseStudiesResult } from "@/app/dashboard/settings/case-studies/save-state";
 
 /**
@@ -72,7 +73,12 @@ export async function fixtureCaseStudies(run: string): Promise<unknown[]> {
     return structuredClone(rigFor(run).saves.stored);
 }
 
-export async function fixtureSaveCaseStudies(run: string, caseStudies: unknown): Promise<SaveCaseStudiesResult> {
+export async function fixtureSaveCaseStudies(
+    run: string,
+    caseStudies: unknown,
+    expectedFingerprint: unknown,
+    unconfirmed?: unknown,
+): Promise<SaveCaseStudiesResult> {
     guard();
     const { saves } = rigFor(run);
     // The mode is read when the request arrives; the delay lets the spec type while it is on its way.
@@ -81,12 +87,17 @@ export async function fixtureSaveCaseStudies(run: string, caseStudies: unknown):
     if (saves.delayMs > 0) await new Promise((resolve) => setTimeout(resolve, saves.delayMs));
     if (mode === "signed-out") return { status: "signed-out", message: SAVE_MESSAGES.signedOut };
     if (!Array.isArray(caseStudies)) return { status: "refused", message: SAVE_MESSAGES.refused };
+    const fingerprint = typeof expectedFingerprint === "string" ? expectedFingerprint : "";
+    // The real action's own rule: the list the tab last knew, or one it sent itself and never heard back about.
+    if (!legacyCaseStudiesStoredIsKnown(saves.stored, fingerprint, unconfirmed)) {
+        return { status: "conflict", message: SAVE_MESSAGES.conflict };
+    }
     saves.calls.push(structuredClone(caseStudies));
     if (mode === "no-row") return { status: "no-row", message: SAVE_MESSAGES.noRow };
     if (mode === "unknown") return { status: "unknown", message: SAVE_MESSAGES.unknown };
     saves.stored = structuredClone(caseStudies);
     if (mode === "written-unknown") return { status: "unknown", message: SAVE_MESSAGES.unknown };
-    return { status: "saved", refreshed: true };
+    return { status: "saved", refreshed: true, fingerprint: legacyCaseStudiesStoredFingerprint(saves.stored) };
 }
 
 /** What the spec reads back, and how it sets the next canned reply, a delay or a used-up allowance. */

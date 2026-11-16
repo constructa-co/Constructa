@@ -34,6 +34,7 @@ import {
     type ReviewContext,
 } from "@/lib/proposal-review";
 import { responseWording, type ProposalResponseKind } from "@/lib/proposal-response";
+import { SITE_PHOTO_ELSEWHERE_ERROR } from "@/lib/proposal-site-photos";
 import {
     getProposalPublicationAction,
     publishProposalAction,
@@ -52,6 +53,8 @@ const ESTIMATE_ID = "33333333-3333-4333-8333-333333333333";
 const DELIVERY_ID = "55555555-5555-4555-8555-555555555555";
 
 const input = representativeInput();
+/** A link shaped like an upload to the photo bucket, on a synthetic host. */
+const storedPhoto = (path: string) => `https://storage.example.test/storage/v1/object/public/proposal-photos/${path}`;
 
 let world: ReturnType<typeof fakeSupabase>;
 
@@ -250,6 +253,48 @@ describe("saveProposalDraftAction", () => {
         const { db } = setup();
         await saveProposalDraftAction(PROJECT_ID, payload);
         expect(db.log.some((entry) => entry.includes("proposal_publications") || entry.startsWith("rpc:"))).toBe(false);
+    });
+
+    it.each([
+        ["another job's photo", `${USER_ID}/proposal/99999999-9999-4999-8999-999999999999/a.jpg`],
+        ["another contractor's folder", `bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/proposal/${PROJECT_ID}/a.jpg`],
+        ["a case-study image", `${USER_ID}/case-study/a.jpg`],
+        ["a branding image", `${USER_ID}/branding/a.png`],
+    ])("D51 refuses %s as a site photo without writing", async (_label, path) => {
+        const { db } = setup();
+        const before = structuredClone(db.tables.projects[0]);
+        await expect(saveProposalDraftAction(PROJECT_ID, { ...payload, photos: [...payload.photos, { url: storedPhoto(path), caption: "" }] }))
+            .resolves.toEqual({ success: false, error: SITE_PHOTO_ELSEWHERE_ERROR });
+        expect(db.updates).toEqual([]);
+        expect(db.tables.projects[0]).toEqual(before);
+    });
+
+    it("D51 saves a photo uploaded for this job, beside one that does not follow the upload layout", async () => {
+        const { db } = setup();
+        const mine = storedPhoto(`${USER_ID}/proposal/${PROJECT_ID}/a.jpg`);
+        await expect(saveProposalDraftAction(PROJECT_ID, { ...payload, photos: [...payload.photos, { url: mine, caption: "After strip out" }] }))
+            .resolves.toEqual({ success: true });
+        expect(db.updates[0].values.site_photos).toEqual([
+            { url: "https://images.example.test/a.jpg", caption: "Before" },
+            { url: mine, caption: "After strip out" },
+        ]);
+    });
+});
+
+describe("D51 publishing a job that already holds another job's photo", () => {
+    it("sends the proposal without it, and what is sent is what was previewed", async () => {
+        const mine = storedPhoto(`${USER_ID}/proposal/${PROJECT_ID}/a.jpg`);
+        const { db } = setup({
+            site_photos: [
+                { url: storedPhoto(`${USER_ID}/proposal/99999999-9999-4999-8999-999999999999/a.jpg`), caption: "Another job" },
+                { url: mine, caption: "This job" },
+            ],
+        });
+        const result = await publishAsReviewed("acknowledgement", false);
+        expect(result).toMatchObject({ success: true, versionNumber: 1 });
+        expect(publishedSnapshot(db).photos).toEqual([{ url: mine, caption: "This job" }]);
+        // Publishing never rewrites the saved draft.
+        expect(db.updates.some((update) => "site_photos" in update.values)).toBe(false);
     });
 });
 

@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ requireAuth: vi.fn(), createAdminClient: vi.fn(), revalidatePath: vi.fn() }));
+vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/auth-utils", () => ({ requireAuth: mocks.requireAuth }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: mocks.createAdminClient }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
+import { legacyCaseStudiesStoredFingerprint } from "@/lib/server/legacy-case-studies-fingerprint";
 import { saveCaseStudiesAction } from "./actions";
 import { SAVE_MESSAGES, initialSaveState, isDirty, needsLeaveWarning, nothingToSave, requestOf, sameData, saveReducer, statusLine, type SaveAction, type SaveCaseStudiesResult, type SaveState } from "./save-state";
 
@@ -21,25 +23,68 @@ let writes: unknown[];
 let mode: "ok" | "no-row" | "write-then-error" | "error-no-write" | "throw";
 let signedIn: boolean;
 
+type TableFilter = [string, unknown, "eq" | "is" | undefined];
+const rowMatches = (id: string, row: { case_studies: unknown }, filters: TableFilter[]) =>
+    filters.every(([column, value, kind]) => {
+        if (column === "id") return id === value;
+        if (column === "case_studies") {
+            if (kind === "is") return (row.case_studies === null || row.case_studies === undefined) && value === null;
+            return typeof value === "string"
+                && legacyCaseStudiesStoredFingerprint(row.case_studies) === legacyCaseStudiesStoredFingerprint(JSON.parse(value));
+        }
+        return false;
+    });
+
 const client = {
     from() {
+        const filters: TableFilter[] = [];
+        let selected: string | null = null;
+        let payload: { case_studies: unknown } | null = null;
+        let op: "select" | "update" = "select";
+        let id: string | null = null;
+
+        const run = async () => {
+            const now = op === "update" ? mode : "ok";
+            if (op === "update") mode = "ok";
+            if (op === "select") {
+                if (now === "throw") throw new Error("raw transport text");
+                const row = table.get(ME);
+                return { data: row ? { case_studies: structuredClone(row.case_studies) } : null, error: null };
+            }
+            if (now === "throw") throw new Error("raw transport text");
+            const row = now === "no-row" ? undefined : table.get(String(id));
+            if (!row || !rowMatches(String(id), row, filters)) return { data: [], error: null };
+            if (now === "error-no-write") return { data: null, error: { code: "08006", message: "raw" } };
+            writes.push(structuredClone(payload!.case_studies));
+            row.case_studies = structuredClone(payload!.case_studies);
+            if (now === "write-then-error") return { data: null, error: { code: "57014", message: "raw" } };
+            return { data: [{ id, case_studies: structuredClone(row.case_studies) }], error: null };
+        };
+
         return {
-            update(payload: { case_studies: unknown }) {
-                let id: unknown = null;
-                const run = async () => {
-                    writes.push(structuredClone(payload.case_studies));
-                    const now = mode;
-                    mode = "ok";
-                    if (now === "throw") throw new Error("raw transport text");
-                    if (now === "error-no-write") return { data: null, error: { code: "08006", message: "raw" } };
-                    const row = now === "no-row" ? undefined : table.get(String(id));
-                    if (row) row.case_studies = structuredClone(payload.case_studies);
-                    if (now === "write-then-error") return { data: null, error: { code: "57014", message: "raw" } };
-                    return { data: row ? [{ id }] : [], error: null };
-                };
+            select(_columns: string) {
+                op = "select";
                 const query = {
-                    eq(_column: string, value: unknown) { id = value; return query; },
-                    select() { return query; },
+                    eq(column: string, value: unknown) {
+                        if (column === "id") id = String(value);
+                        filters.push([column, value, "eq"]);
+                        return query;
+                    },
+                    maybeSingle() { return run(); },
+                };
+                return query;
+            },
+            update(nextPayload: { case_studies: unknown }) {
+                op = "update";
+                payload = nextPayload;
+                const query = {
+                    eq(column: string, value: unknown) {
+                        if (column === "id") id = String(value);
+                        filters.push([column, value, "eq"]);
+                        return query;
+                    },
+                    is(column: string, value: unknown) { filters.push([column, value, "is"]); return query; },
+                    select(columns: string) { selected = columns; return query; },
                     then(resolve: (value: unknown) => unknown, reject: (reason: unknown) => unknown) { return run().then(resolve, reject); },
                 };
                 return query;
@@ -54,8 +99,10 @@ const names = (list: Entry[] | null | undefined) => (list ?? []).map((entry) => 
 /** What the page hands the editor: the stored list, or an empty one when there is none (page.tsx). */
 const loaded = () => structuredClone((table.get(ME)?.case_studies as Entry[] | null | undefined) || []);
 
+const storedFingerprint = () => legacyCaseStudiesStoredFingerprint(table.get(ME)?.case_studies);
+
 function editor(initial: Entry[] = loaded()) {
-    let state: SaveState<Entry> = initialSaveState(initial);
+    let state: SaveState<Entry> = initialSaveState(initial, storedFingerprint());
     const requests: Entry[][] = [];
     let sentToken = 0;
     const d = (action: SaveAction<Entry>) => { state = saveReducer(state, action); };
@@ -65,7 +112,7 @@ function editor(initial: Entry[] = loaded()) {
         if (!request || sentToken === request.token) return null;
         sentToken = request.token;
         requests.push(structuredClone(request.sent));
-        const reply: Promise<SaveCaseStudiesResult> = saveCaseStudiesAction(request.sent).catch(() => ({ status: "unknown" as const, message: SAVE_MESSAGES.unknown }));
+        const reply: Promise<SaveCaseStudiesResult> = saveCaseStudiesAction(request.sent, request.expectedFingerprint, request.unconfirmed).catch(() => ({ status: "unknown" as const, message: SAVE_MESSAGES.unknown }));
         return async () => { const result = await reply; d({ type: "save/reply", token: request.token, result }); return result; };
     };
     return {
@@ -207,11 +254,11 @@ describe("one save at a time, sent once", () => {
         const tab = editor();
         tab.set(0, { location: "Leeds" });
         const before = tab.state;
-        tab.d({ type: "save/reply", token: 7, result: { status: "saved", refreshed: true } });
+        tab.d({ type: "save/reply", token: 7, result: { status: "saved", refreshed: true, fingerprint: storedFingerprint() } });
         expect(tab.state).toBe(before);
         const finish = tab.begin()!;
         const during = tab.state;
-        tab.d({ type: "save/reply", token: 99, result: { status: "saved", refreshed: true } });
+        tab.d({ type: "save/reply", token: 99, result: { status: "saved", refreshed: true, fingerprint: storedFingerprint() } });
         tab.d({ type: "save/reply", token: 0, result: { status: "unknown", message: "x" } });
         expect(tab.state).toBe(during);
         await finish();
@@ -226,7 +273,7 @@ describe("one save at a time, sent once", () => {
 describe("a save that is not confirmed keeps everything", () => {
     it.each([
         ["signed out", () => { signedIn = false; }, "signed-out", SAVE_MESSAGES.signedOut, 0],
-        ["no row came back", () => { mode = "no-row"; }, "no-row", SAVE_MESSAGES.noRow, 1],
+        ["no row came back", () => { mode = "no-row"; }, "no-row", SAVE_MESSAGES.noRow, 0],
     ] as Array<[string, () => void, string, string, number]>)("%s: the typed list and the saved baseline are both as they were, and nothing is called saved", async (_name, arrange, status, message, sent) => {
         const tab = editor();
         tab.set(0, { location: "Leeds" });
@@ -300,21 +347,51 @@ describe("not known whether it was saved", () => {
         // What is actually stored may be the list that was sent, which is not what is on the screen.
         expect(((stored() as Entry[])[0]).location).toBe(landed ? "Leeds" : "");
 
-        // An explicit save is sent, although nothing differs from the old baseline, and its acknowledgement ends the uncertainty.
+        // Whichever of the two is stored, it is this tab's own: the list it loaded, or the list it sent. Neither is a conflict.
+        expect(tab.state.unconfirmed).toEqual([[study("s1", "Kitchen refit", { location: "Leeds" })]]);
         const result = await tab.save();
-        expect(result).toEqual({ status: "saved", refreshed: true });
-        expect(tab.requests).toHaveLength(2);
+        expect(result).toMatchObject({ status: "saved", refreshed: true });
         expect(tab.state.uncertain).toBe(false);
+        expect(tab.state.unconfirmed).toEqual([]);
         expect(((stored() as Entry[])[0]).location).toBe("");
         expect(tab.state.saved).toEqual(tab.state.draft);
         expect(needsLeaveWarning(tab.state)).toBe(false);
         expect(statusLine(tab.state)).toBe(SAVE_MESSAGES.saved);
+        expect(tab.requests).toHaveLength(2);
+    });
+
+    it("the lists sent without an answer are each kept once, through saves that write nothing, until a save is acknowledged", async () => {
+        const tab = editor();
+        const leeds = [study("s1", "Kitchen refit", { location: "Leeds" })];
+        const york = [study("s1", "Kitchen refit", { location: "York" })];
+        tab.set(0, { location: "Leeds" });
+        mode = "error-no-write";
+        await tab.save();
+        mode = "throw";
+        await tab.save();
+        expect(tab.state.unconfirmed, "the same list sent twice is named once").toEqual([leeds]);
+        tab.set(0, { location: "York" });
+        mode = "write-then-error";
+        await tab.save();
+        expect(tab.state.unconfirmed).toEqual([leeds, york]);
+        mode = "no-row";
+        await tab.save();
+        signedIn = false;
+        await tab.save();
+        expect(tab.state.unconfirmed).toEqual([leeds, york]);
+        // Typing afterwards cannot alter what was sent.
+        tab.set(0, { location: "Hull" });
+        expect(tab.state.unconfirmed).toEqual([leeds, york]);
+        signedIn = true;
+        expect((await tab.save())!.status, "York was stored, by this tab").toBe("saved");
+        expect(tab.state.unconfirmed).toEqual([]);
+        expect(((stored() as Entry[])[0]).location).toBe("Hull");
     });
 
     it("uncertainty outlasts typing, a failed save and a signed-out save; only an acknowledged save ends it", async () => {
         const tab = editor();
         tab.set(0, { location: "Leeds" });
-        mode = "write-then-error";
+        mode = "error-no-write";
         await tab.save();
         tab.set(0, { valueAdded: "more typing" });
         tab.set(0, { valueAdded: "" });
@@ -337,7 +414,7 @@ describe("not known whether it was saved", () => {
     });
 
     it("the standing line names the uncertainty once the failure message has been replaced", () => {
-        let state: SaveState<Entry> = { ...initialSaveState([study("s1", "Kitchen refit")]), uncertain: true };
+        let state: SaveState<Entry> = { ...initialSaveState([study("s1", "Kitchen refit")], storedFingerprint()), uncertain: true };
         expect(statusLine(state)).toBe(SAVE_MESSAGES.uncertain);
         state = saveReducer(state, { type: "edit", change: (draft) => draft.map((entry) => ({ ...entry, location: "Leeds" })) });
         expect(statusLine(state)).toBe(SAVE_MESSAGES.uncertain);
@@ -361,7 +438,7 @@ describe("saved, but other pages could not be told to reload", () => {
         mocks.revalidatePath.mockImplementation(() => { throw new Error("raw framework text"); });
         const tab = editor();
         tab.set(0, { location: "Leeds" });
-        expect(await tab.save()).toEqual({ status: "saved", refreshed: false });
+        expect(await tab.save()).toMatchObject({ status: "saved", refreshed: false });
         expect(tab.state.saved[0].location).toBe("Leeds");
         expect(tab.state.uncertain).toBe(false);
         expect(isDirty(tab.state)).toBe(false);
@@ -400,19 +477,8 @@ describe("comparing two lists", () => {
     });
 });
 
-/**
- * STILL OPEN. These tests record a fault that this change does NOT fix.
- *
- * Saving replaces the whole stored list with no condition on what it was. Two
- * tabs that loaded the same list overwrite each other, and the second save is
- * a genuine write that is genuinely acknowledged. Nothing detects, refuses,
- * merges or warns. Closing this needs a condition inside the write itself.
- *
- * If one of these ever fails, the residual has changed and the test must be
- * rewritten on purpose. They are not protection and must not be read as it.
- */
-describe("STILL OPEN: two tabs overwrite each other, and the overwrite is acknowledged as saved", () => {
-    it("STILL OPEN: tab A adds and saves; stale tab B saves; A's addition is gone and B is told 'saved'", async () => {
+describe("concurrent tabs: stale saves are refused", () => {
+    it("tab A adds and saves; stale tab B is refused and storage keeps A's list", async () => {
         const a = editor();
         const b = editor();
         a.add(study("s2", "Loft, added in tab A"));
@@ -421,62 +487,47 @@ describe("STILL OPEN: two tabs overwrite each other, and the overwrite is acknow
 
         b.set(0, { location: "typed in stale tab B" });
         const result = await b.save();
-        expect(result, "a real write, really acknowledged").toEqual({ status: "saved", refreshed: true });
-        expect(names(stored()), "tab A's addition has been overwritten").toEqual(["Kitchen refit"]);
-        expect(b.state.uncertain).toBe(false);
-        expect(statusLine(b.state)).toBe(SAVE_MESSAGES.saved);
-        // Tab A is not told. It still believes its own list is the saved one.
-        expect(isDirty(a.state)).toBe(false);
-        expect(names(a.state.saved)).toEqual(["Kitchen refit", "Loft, added in tab A"]);
+        expect(result!.status).toBe("conflict");
+        expect(names(stored())).toEqual(["Kitchen refit", "Loft, added in tab A"]);
+        expect(statusLine(b.state)).toBe(SAVE_MESSAGES.conflict);
     });
 
-    it("STILL OPEN: both edit the same entry; the first tab's field is lost", async () => {
-        const a = editor();
-        const b = editor();
-        a.set(0, { whatWeDelivered: "Tab A wrote this." });
-        await a.save();
-        b.set(0, { valueAdded: "Tab B wrote this." });
-        expect((await b.save())!.status).toBe("saved");
-        expect((stored() as Entry[])[0]).toMatchObject({ whatWeDelivered: "", valueAdded: "Tab B wrote this." });
-    });
-
-    it("STILL OPEN: an entry removed in one tab comes back when a stale tab saves", async () => {
-        table.set(ME, { case_studies: [study("s1", "Kitchen refit"), study("s2", "Loft"), study("s3", "Shop")] });
-        const a = editor();
-        const b = editor();
-        a.remove(0);
-        await a.save();
-        expect(names(stored())).toEqual(["Loft", "Shop"]);
-        b.set(2, { location: "typed in stale tab B" });
-        expect((await b.save())!.status).toBe("saved");
-        expect(names(stored())).toEqual(["Kitchen refit", "Loft", "Shop"]);
-    });
-
-    it("STILL OPEN: a tab opened on an empty list erases what another tab saved since, once it adds anything", async () => {
+    it("a tab that loaded an empty list cannot erase a list saved elsewhere", async () => {
         table.set(ME, { case_studies: [] });
         const stale = editor();
         const other = editor();
         other.add(study("s1", "Saved by the other tab"));
         await other.save();
         stale.add(study("s9", "Added in the stale tab"));
-        expect((await stale.save())!.status).toBe("saved");
-        expect(names(stored())).toEqual(["Added in the stale tab"]);
+        expect((await stale.save())!.status).toBe("conflict");
+        expect(names(stored())).toEqual(["Saved by the other tab"]);
     });
 
-    it("STILL OPEN: trying again after an unconfirmed save replaces whatever another tab stored meanwhile", async () => {
-        const a = editor();
-        const b = editor();
-        a.set(0, { location: "Leeds" });
-        mode = "throw";
-        expect((await a.save())!.status).toBe("unknown");
-        b.add(study("s2", "Saved by tab B meanwhile"));
-        await b.save();
-        expect((await a.save())!.status).toBe("saved");
-        expect(names(stored()), "tab B's entry is gone").toEqual(["Kitchen refit"]);
-        expect(SAVE_MESSAGES.unknown).toContain("replaces whatever is stored");
+    it.each([
+        ["the write landed and an error came back", "write-then-error"],
+        ["an error came back and nothing was written", "error-no-write"],
+    ] as const)("a save that was never answered (%s) does not excuse a stale tab: another tab's later save is still a conflict", async (_name, failure) => {
+        const stale = editor();
+        stale.set(0, { location: "Leeds" });
+        mode = failure;
+        expect((await stale.save())!.status).toBe("unknown");
+
+        const other = editor();
+        other.add(study("s2", "Loft, added in the other tab"));
+        expect((await other.save())!.status).toBe("saved");
+        const kept = structuredClone(stored());
+
+        expect((await stale.save())!.status).toBe("conflict");
+        expect(stored()).toEqual(kept);
+        expect(stale.state.uncertain, "and its own last save is still not known").toBe(true);
+        expect(statusLine(stale.state)).toBe(SAVE_MESSAGES.conflict);
+        // After that conflict, a fresh tab saves as usual.
+        const fresh = editor();
+        fresh.set(0, { location: "York" });
+        expect((await fresh.save())!.status).toBe("saved");
     });
 
-    it("no message this editor shows claims otherwise", () => {
-        for (const message of Object.values(SAVE_MESSAGES)) expect(message).not.toMatch(/conflict|another (tab|window) (changed|saved)|merged|up to date|latest version|protected/i);
+    it("the conflict message tells the contractor to reload", () => {
+        expect(SAVE_MESSAGES.conflict).toMatch(/Another tab or window/i);
     });
 });

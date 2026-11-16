@@ -20,6 +20,9 @@ describe('marketing section-entry reveal motion', () => {
     const home = renderToStaticMarkup(<PhaseOneHome />);
     expect((home.match(/data-reveal="true"/g) ?? []).length).toBeGreaterThanOrEqual(5);
     expect(home).toMatch(/<section id="how-it-works"[^>]*data-reveal="true"/);
+    // Shipped preview-access pages anchor to #questions; the section keeps that
+    // anchor while also opting into the reveal presentation.
+    expect(home).toMatch(/<section id="questions"[^>]*data-reveal="true"/);
     const hero = home.match(/<section id="marketing-content"[\s\S]*?<\/section>/)?.[0] ?? '';
     expect(hero).not.toContain('data-reveal');
 
@@ -28,7 +31,10 @@ describe('marketing section-entry reveal motion', () => {
     expect(features).toContain('data-reveal="true"');
 
     const pricing = renderToStaticMarkup(<PhaseOnePricing />);
-    expect((pricing.match(/data-reveal="true"/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    // Shipped pricing links back to the home anchors instead of repeating the
+    // journey, scope and questions sections, so only its intro reveals.
+    expect(pricing).toMatch(/<section[^>]*data-reveal="true"/);
+    expect(pricing).not.toContain('id="questions"');
 
     for (const markup of [renderToStaticMarkup(<GuidesHub />), renderToStaticMarkup(
       <GuideArticleView article={getGuideArticle('review-brief-and-price')!} />,

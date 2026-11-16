@@ -246,6 +246,15 @@ describe("detailed programme calendar storage", () => {
         expect(mocks.revalidatePath).not.toHaveBeenCalled();
     });
 
+    it("CON-029 refuses circular dependencies before programme storage", async () => {
+        const cycle = [
+            { name: "A", calculatedDays: 2, manualDays: null, manhours: 16, startOffset: 0, dependsOn: [1] },
+            { name: "B", calculatedDays: 2, manualDays: null, manhours: 16, startOffset: 7, dependsOn: [0] },
+        ];
+        expect((await updatePhasesAction(PROJECT_ID, cycle)).success).toBe(false);
+        await expect(saveProgrammePhasesAction(PROJECT_ID, cycle)).rejects.toThrow(/depend/);
+    });
+
     it("keeps old action request shapes and legacy saves when the calendar column is absent", async () => {
         const db = arrangeProgramme({ start_date: null });
         const write = vi.spyOn(programmeStorage, "writeProgrammeStorage");

@@ -1,5 +1,16 @@
 # Cursor change log
 
+## 2026-11-16 — D46 P1 proposal CON-036/037/040 (cursor/d46-p1-proposal-con-036-037-040-445c)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/proposal-readiness.ts` | `ReadinessKey`, input, mandatory[] | `siteAddress` seventh mandatory gate | CON-036: cannot mark proposal ready without site address |
+| `src/lib/proposal-review.ts`, `src/app/dashboard/projects/proposal/actions.ts` | readiness wiring | Pass `project.site_address` into readiness | Publish path matches review checklist |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | fixes, closing, draft ref UI | `siteAddress` fix link; MD message empty state + saved button; draft vs next issued reference | CON-036 UI; CON-037 explicit empty/saved MD message; CON-040 reference labelling |
+| `src/lib/proposal-document.ts` | preview id, `isDraftProposalDocument`, reference | Preview publication → reference `Draft`; issued uses `proposalReference` | CON-040 draft immutable distinction (no issued PDF / #178 changes) |
+| `src/app/dashboard/projects/proposal/publication-history-panel.tsx` | `projectId`, row labels | `data-issued-reference` per sent version | CON-040 correct issued reference display in history |
+| `src/lib/proposal-readiness.test.ts`, `proposal-document.test.ts`, `company-closing-entry.test.tsx`, `review-send-client.test.ts` | CON-036/037/040 cases | Focused Vitest (122 tests in 4 files) | Regression coverage per ID |
+
 ## 2026-11-15 — D38 CON-007 recipient email confirmation (cursor/d38-con-007-proposal-email-default-off-20261115)
 
 | File | Lines (approx.) | Change | Intent |

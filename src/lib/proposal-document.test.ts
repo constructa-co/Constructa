@@ -352,6 +352,13 @@ describe("truthful content", () => {
         expect(blockOf(doc, "scope", "photos")).toBeUndefined();
     });
 
+    it("CON-040 marks preview snapshots as Draft even without an explicit draft flag", () => {
+        const previewSnapshot = structuredClone(snapshot);
+        previewSnapshot.publication.id = "00000000-0000-4000-8000-000000000000";
+        expect(buildProposalDocument(previewSnapshot).reference).toBe("Draft");
+        expect(buildProposalDocument(previewSnapshot).isDraft).toBe(true);
+    });
+
     it("marks a draft preview so it cannot be mistaken for a sent proposal", () => {
         const draft = buildProposalDocument(snapshot, { isDraft: true });
         expect(draft.reference).toBe("Draft");

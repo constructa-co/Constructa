@@ -15,6 +15,7 @@ import {
 const complete: ProposalReadinessInput = {
     projectName: "Example Extension",
     clientName: "Alex Client",
+    siteAddress: "14 Example Road, Exampleton",
     scope: "Dig footings and build a single-storey rear extension.",
     contractSum: 12000,
     programmePhases: [{ name: "Groundworks", calculatedDays: 5, startOffset: 0 }],
@@ -32,7 +33,7 @@ describe("evaluateProposalReadiness", () => {
         const result = evaluateProposalReadiness(complete);
         expect(result.ready).toBe(true);
         expect(result.missing).toEqual([]);
-        expect(result.mandatory).toHaveLength(6);
+        expect(result.mandatory).toHaveLength(7);
     });
 
     it("does not let recommended items block readiness", () => {
@@ -82,6 +83,13 @@ describe("evaluateProposalReadiness", () => {
             expect(result.missing[0].key).toBe("identity");
             expect(result.missing[0].fix).toBe(fix);
         });
+    });
+
+    it("CON-036 fails without a site address", () => {
+        expect(missingKeys({ ...complete, siteAddress: "" })).toEqual(["siteAddress"]);
+        expect(missingKeys({ ...complete, siteAddress: "   " })).toEqual(["siteAddress"]);
+        const result = evaluateProposalReadiness({ ...complete, siteAddress: null });
+        expect(result.missing.find((item) => item.key === "siteAddress")?.fix).toBe("Add the site address in project details.");
     });
 
     it("fails on empty or whitespace scope", () => {
@@ -207,7 +215,7 @@ describe("evaluateProposalReadiness", () => {
         const result = evaluateProposalReadiness({});
         expect(result.ready).toBe(false);
         expect(result.missing.map((item) => item.key)).toEqual([
-            "identity", "scope", "contractValue", "programme", "payment", "terms",
+            "identity", "siteAddress", "scope", "contractValue", "programme", "payment", "terms",
         ]);
         expect(result.missing.every((item) => item.fix.length > 0)).toBe(true);
     });

@@ -1,5 +1,14 @@
 # Cursor change log
 
+## 2026-11-16 — D57 PR #184 repair (cursor/d49-brief-con-017-034-035-483d)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/postcode-address-provider.ts` | 21–34 | Literal `process.env.NEXT_PUBLIC_*` gate reads | Gates were undefined in client bundles (Claude blocker) |
+| `src/components/postcode-address-picker.tsx` | search row + hint | Search controls disabled and gap copy shown once when no lookup | Remove duplicate fallback copy and dead-end Find |
+| `src/components/uk-date-input.tsx` | preview + help | Full-month preview; help copy makes no browser-order or PDF-format claim | CON-035 copy accuracy |
+| `src/lib/postcode-address-provider.test.ts`, `src/components/postcode-address-picker.test.tsx`, `src/components/uk-date-input.test.tsx`, `src/app/dashboard/projects/brief/brief-edit-lock.test.tsx` | (updated) | Source-form gate guard, unconfigured picker, date change events, restored input count | Regression |
+
 ## 2026-11-16 — D49 PR #184 follow-up (cursor/d49-brief-con-017-034-035-483d)
 
 | File | Lines (approx.) | Change | Intent |

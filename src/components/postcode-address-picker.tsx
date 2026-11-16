@@ -17,7 +17,7 @@ import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-pale
 type Props = {
     idPrefix: string;
     disabled?: boolean;
-    /** When omitted, Find explains that search is not connected — no network calls. */
+    /** When omitted, search is switched off: the hint says so once and nothing is looked up. */
     lookup?: PostcodeLookupFn;
     onSelect: (address: string) => void;
     isDark: boolean;
@@ -59,22 +59,16 @@ export default function PostcodeAddressPicker({
         lookupGenerationRef.current += 1;
     };
 
+    const searchOff = disabled || !lookup;
+    const hintId = `${idPrefix}-lookup-hint`;
+
     const runLookup = async () => {
-        if (disabled || !isPostcodeLookupInputPresent(postcode)) return;
+        if (disabled || !lookup || !isPostcodeLookupInputPresent(postcode)) return;
         const generation = ++lookupGenerationRef.current;
         setLoading(true);
         setCandidates([]);
         setStatus("idle");
         setMessage("");
-
-        if (!lookup) {
-            applyIfCurrentGeneration(generation, () => {
-                setStatus("info");
-                setMessage(postcodeLookupConfigurationGap() ?? POSTCODE_LOOKUP_NOT_AVAILABLE_MESSAGE);
-                setLoading(false);
-            });
-            return;
-        }
 
         const requestedPostcode = normalizePostcodeForLookup(postcode);
 
@@ -132,7 +126,8 @@ export default function PostcodeAddressPicker({
                         id={`${idPrefix}-postcode`}
                         type="text"
                         autoComplete="off"
-                        disabled={disabled}
+                        disabled={searchOff}
+                        aria-describedby={hintId}
                         value={postcode}
                         onChange={(e) => {
                             setPostcode(e.target.value);
@@ -152,7 +147,8 @@ export default function PostcodeAddressPicker({
                 <button
                     type="button"
                     id={`${idPrefix}-find`}
-                    disabled={disabled || loading || !isPostcodeLookupInputPresent(postcode)}
+                    disabled={searchOff || loading || !isPostcodeLookupInputPresent(postcode)}
+                    aria-describedby={hintId}
                     onClick={() => void runLookup()}
                     className={`h-12 px-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                 >
@@ -190,10 +186,10 @@ export default function PostcodeAddressPicker({
                     ))}
                 </ul>
             )}
-            <p className={`text-sm ${muted}`} data-postcode-lookup-hint>
+            <p id={hintId} className={`text-sm ${muted}`} data-postcode-lookup-hint>
                 {lookup
                     ? "Choose a matching address or edit the text below. Street-level search depends on the connected provider."
-                    : (postcodeLookupConfigurationGap() ?? "You can always type below or use structured parts.")}
+                    : (postcodeLookupConfigurationGap() ?? POSTCODE_LOOKUP_NOT_AVAILABLE_MESSAGE)}
             </p>
         </div>
     );

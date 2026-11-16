@@ -9,8 +9,9 @@ type Props = Omit<React.ComponentProps<"input">, "type"> & {
 };
 
 /**
- * CON-035 — native date input with UK locale hint and a written-out preview so
- * contractors see the same words proposals and PDFs use.
+ * CON-035 — native date input with a written-out preview ("6 November 2026").
+ * The browser and device decide the order of the native day/month boxes; `lang`
+ * is only a hint and does not change it. The preview is what removes the doubt.
  */
 export default function UkDateInput({
     className,
@@ -31,7 +32,7 @@ export default function UkDateInput({
             ? value
             : ""
         : uncontrolledIso).slice(0, 10);
-    const preview = iso && /^\d{4}-\d{2}-\d{2}$/.test(iso) ? formatPlanDate(iso, "short") : "";
+    const preview = iso && /^\d{4}-\d{2}-\d{2}$/.test(iso) ? formatPlanDate(iso, "short-month-long") : "";
     const helpId = id ? `${id}-uk-date-help` : undefined;
     const described = [describedBy, helpId].filter(Boolean).join(" ") || undefined;
 
@@ -58,8 +59,8 @@ export default function UkDateInput({
             ) : null}
             <p id={helpId} className={cn("text-sm", mutedClassName)}>
                 {preview
-                    ? "Shown on proposals and PDFs in this UK format."
-                    : "Pick a date. When your browser shows a calendar, day comes before month (UK order)."}
+                    ? "This is the date you picked, written out with the day first. Check it is the one you meant."
+                    : "Pick a date. It will be written out here so you can check the day and month."}
             </p>
         </div>
     );

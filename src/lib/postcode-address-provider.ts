@@ -11,10 +11,6 @@ import {
     type PostcodeLookupResult,
 } from "@/lib/postcode-address";
 
-/** Internal gate names only — never shown to contractors. */
-const POSTCODE_LOOKUP_ENABLED_ENV = "NEXT_PUBLIC_POSTCODE_LOOKUP_ENABLED";
-const POSTCODE_DATA_TRANSFER_APPROVED_ENV = "NEXT_PUBLIC_POSTCODE_DATA_TRANSFER_APPROVED";
-
 export const POSTCODE_LOOKUP_CONFIGURATION_GAP =
     "Address search isn't available here yet. Type the address below or use the structured parts helper.";
 
@@ -24,13 +20,16 @@ function titleCase(str: string): string {
     return str.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+// Both gates are read as literal `process.env.NEXT_PUBLIC_*` member access. Next.js
+// only inlines that exact form into client bundles; a computed or destructured
+// lookup is undefined in the browser. Gate names are internal — never shown to contractors.
 export function isPostcodeDataTransferApproved(): boolean {
-    return process.env[POSTCODE_DATA_TRANSFER_APPROVED_ENV] === "1";
+    return process.env.NEXT_PUBLIC_POSTCODE_DATA_TRANSFER_APPROVED === "1";
 }
 
 export function isPostcodeLookupEnabled(): boolean {
     return (
-        process.env[POSTCODE_LOOKUP_ENABLED_ENV] === "1" &&
+        process.env.NEXT_PUBLIC_POSTCODE_LOOKUP_ENABLED === "1" &&
         isPostcodeDataTransferApproved()
     );
 }

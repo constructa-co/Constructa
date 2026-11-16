@@ -2,10 +2,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
     POSTCODE_LOOKUP_CONFIGURATION_GAP,
     clientPostcodeLookup,
+    isPostcodeDataTransferApproved,
     isPostcodeLookupEnabled,
     postcodesIoLookup,
     postcodeLookupConfigurationGap,
 } from "./postcode-address-provider";
+
+function stubLookupGates(enabled: string, approved: string) {
+    vi.stubEnv("NEXT_PUBLIC_POSTCODE_LOOKUP_ENABLED", enabled);
+    vi.stubEnv("NEXT_PUBLIC_POSTCODE_DATA_TRANSFER_APPROVED", approved);
+}
 
 describe("CON-034 postcode lookup provider", () => {
     afterEach(() => {
@@ -13,15 +19,24 @@ describe("CON-034 postcode lookup provider", () => {
         vi.unstubAllGlobals();
     });
 
-    it("reports a configuration gap when the deployment flag is off", () => {
-        vi.stubEnv("NEXT_PUBLIC_POSTCODE_LOOKUP_ENABLED", "");
+    it("reports a configuration gap when lookup is not fully enabled", () => {
+        stubLookupGates("", "");
+        expect(isPostcodeDataTransferApproved()).toBe(false);
         expect(isPostcodeLookupEnabled()).toBe(false);
         expect(postcodeLookupConfigurationGap()).toBe(POSTCODE_LOOKUP_CONFIGURATION_GAP);
         expect(clientPostcodeLookup()).toBeUndefined();
+        expect(POSTCODE_LOOKUP_CONFIGURATION_GAP).not.toMatch(/NEXT_PUBLIC/i);
     });
 
-    it("exposes postcodes.io lookup when the flag is on", () => {
-        vi.stubEnv("NEXT_PUBLIC_POSTCODE_LOOKUP_ENABLED", "1");
+    it("does not transfer postcodes to a third party until data transfer is approved", () => {
+        stubLookupGates("1", "");
+        expect(isPostcodeLookupEnabled()).toBe(false);
+        expect(clientPostcodeLookup()).toBeUndefined();
+        expect(postcodeLookupConfigurationGap()).toBe(POSTCODE_LOOKUP_CONFIGURATION_GAP);
+    });
+
+    it("exposes postcodes.io lookup only when feature and data-transfer gates are on", () => {
+        stubLookupGates("1", "1");
         expect(clientPostcodeLookup()).toBe(postcodesIoLookup);
         expect(postcodeLookupConfigurationGap()).toBeNull();
     });

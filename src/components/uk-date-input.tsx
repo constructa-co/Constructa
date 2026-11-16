@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { formatPlanDate } from "@/lib/programme-plan";
 import { cn } from "@/lib/utils";
 
@@ -11,9 +12,25 @@ type Props = Omit<React.ComponentProps<"input">, "type"> & {
  * CON-035 — native date input with UK locale hint and a written-out preview so
  * contractors see the same words proposals and PDFs use.
  */
-export default function UkDateInput({ className, value, defaultValue, id, mutedClassName, "aria-describedby": describedBy, ...props }: Props) {
+export default function UkDateInput({
+    className,
+    value,
+    defaultValue,
+    id,
+    mutedClassName,
+    onChange,
+    "aria-describedby": describedBy,
+    ...props
+}: Props) {
     const controlled = value !== undefined;
-    const iso = (typeof value === "string" ? value : typeof defaultValue === "string" ? defaultValue : "").slice(0, 10);
+    const [uncontrolledIso, setUncontrolledIso] = useState(() =>
+        (typeof defaultValue === "string" ? defaultValue : "").slice(0, 10),
+    );
+    const iso = (controlled
+        ? typeof value === "string"
+            ? value
+            : ""
+        : uncontrolledIso).slice(0, 10);
     const preview = iso && /^\d{4}-\d{2}-\d{2}$/.test(iso) ? formatPlanDate(iso, "short") : "";
     const helpId = id ? `${id}-uk-date-help` : undefined;
     const described = [describedBy, helpId].filter(Boolean).join(" ") || undefined;
@@ -25,7 +42,12 @@ export default function UkDateInput({ className, value, defaultValue, id, mutedC
                 id={id}
                 type="date"
                 lang="en-GB"
-                {...(controlled ? { value: iso } : { defaultValue: iso || undefined })}
+                value={iso}
+                onChange={(event) => {
+                    const next = event.target.value.slice(0, 10);
+                    if (!controlled) setUncontrolledIso(next);
+                    onChange?.(event);
+                }}
                 className={cn(className)}
                 aria-describedby={described}
             />

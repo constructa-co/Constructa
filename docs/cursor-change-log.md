@@ -1,5 +1,14 @@
 # Cursor change log
 
+## 2026-11-16 — D49 PR #184 follow-up (cursor/d49-brief-con-017-034-035-483d)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/components/uk-date-input.tsx` | state + `value` | Uncontrolled preview tracks `onChange`; controlled follows `value` | Fix stale UK preview (Claude block) |
+| `src/lib/postcode-address-provider.ts` | gates + copy | User-facing gap message; lookup requires data-transfer approval env | CON-034 no third-party transfer without approval |
+| `src/lib/postcode-address-provider.test.ts` | gates | Enabled-without-approval stays off | Regression |
+| `src/components/uk-date-input.test.tsx` | uncontrolled SSR | `defaultValue` preview | CON-035 |
+
 ## 2026-11-16 — D49 CON-017 / CON-034 / CON-035 (cursor/d49-brief-con-017-034-035-483d)
 
 | File | Lines (approx.) | Change | Intent |

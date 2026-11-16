@@ -15,6 +15,20 @@ describe("CON-035 UK date presentation", () => {
         );
         expect(markup).toContain('lang="en-GB"');
         expect(markup).toContain("6 Nov 2026");
+        expect(markup).toContain('value="2026-11-06"');
         expect(markup).toContain("brief-start-date-uk-date-help");
+    });
+
+    it("shows the written preview for an uncontrolled field from defaultValue", () => {
+        const markup = renderToStaticMarkup(
+            createElement(UkDateInput, {
+                id: "settings-start-date",
+                name: "start_date",
+                defaultValue: "2026-12-01",
+            }),
+        );
+        expect(markup).toContain('value="2026-12-01"');
+        expect(markup).toContain("1 Dec 2026");
+        expect(markup).toContain("data-uk-date-preview");
     });
 });

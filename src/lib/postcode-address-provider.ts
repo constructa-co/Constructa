@@ -1,6 +1,6 @@
 /**
- * CON-034 — postcodes.io lookup behind an explicit deployment flag, with a clear
- * manual fallback when address search is not enabled.
+ * CON-034 — postcodes.io lookup behind explicit deployment + data-transfer gates,
+ * with a clear manual fallback when address search is not available.
  */
 
 import {
@@ -11,10 +11,12 @@ import {
     type PostcodeLookupResult,
 } from "@/lib/postcode-address";
 
-export const POSTCODE_LOOKUP_ENV = "NEXT_PUBLIC_POSTCODE_LOOKUP_ENABLED";
+/** Internal gate names only — never shown to contractors. */
+const POSTCODE_LOOKUP_ENABLED_ENV = "NEXT_PUBLIC_POSTCODE_LOOKUP_ENABLED";
+const POSTCODE_DATA_TRANSFER_APPROVED_ENV = "NEXT_PUBLIC_POSTCODE_DATA_TRANSFER_APPROVED";
 
 export const POSTCODE_LOOKUP_CONFIGURATION_GAP =
-    "Address search is not enabled on this deployment (set NEXT_PUBLIC_POSTCODE_LOOKUP_ENABLED=1 to use postcodes.io). Until then, type the address below or use the structured parts helper.";
+    "Address search isn't available here yet. Type the address below or use the structured parts helper.";
 
 export const POSTCODE_LOOKUP_PROVIDER = "postcodes.io";
 
@@ -22,8 +24,15 @@ function titleCase(str: string): string {
     return str.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+export function isPostcodeDataTransferApproved(): boolean {
+    return process.env[POSTCODE_DATA_TRANSFER_APPROVED_ENV] === "1";
+}
+
 export function isPostcodeLookupEnabled(): boolean {
-    return process.env.NEXT_PUBLIC_POSTCODE_LOOKUP_ENABLED === "1";
+    return (
+        process.env[POSTCODE_LOOKUP_ENABLED_ENV] === "1" &&
+        isPostcodeDataTransferApproved()
+    );
 }
 
 export function postcodeLookupConfigurationGap(): string | null {
@@ -75,7 +84,7 @@ export const postcodesIoLookup: PostcodeLookupFn = async (normalizedPostcode) =>
     return { kind: "error" };
 };
 
-/** Lookup passed into client address pickers when the deployment flag is on. */
+/** Lookup passed into client address pickers only when both gates are on. */
 export function clientPostcodeLookup(): PostcodeLookupFn | undefined {
     return isPostcodeLookupEnabled() ? postcodesIoLookup : undefined;
 }

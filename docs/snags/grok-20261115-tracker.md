@@ -2,7 +2,7 @@
 
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
-Current count: 12 merged, 36 in progress, 0 in review, 8 Rob-gated, 29 not started.
+Current count: 12 merged, 33 in progress, 3 in review, 8 Rob-gated, 29 not started.
 
 | --- | --- | --- | --- | --- | --- |
 | CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
@@ -83,9 +83,9 @@ Current count: 12 merged, 36 in progress, 0 in review, 8 Rob-gated, 29 not start
 | CON-076 | P2 | Claude | — | in progress | D51 batch 01 — Profile, save and sign-in |
 | CON-077 | P2 | Claude | — | not started | D51 batch 03 — Proposal PDF pricing |
 | CON-078 | P2 | Cursor | — | not started | D51 batch 12 — Dashboard and demo state |
-| CON-079 | P2 | Kimi | — | in progress | D51 batch 10 — Marketing navigation and copy |
-| CON-080 | P2 | Kimi | — | in progress | D51 batch 10 — Marketing navigation and copy |
-| CON-081 | P2 | Kimi | — | in progress | D51 batch 10 — Marketing navigation and copy |
+| CON-079 | P2 | Kimi | [#190](https://github.com/constructa-co/Constructa/pull/190) | in review | D51 batch 10 — Marketing navigation and copy |
+| CON-080 | P2 | Kimi | [#190](https://github.com/constructa-co/Constructa/pull/190) | in review | D51 batch 10 — Marketing navigation and copy |
+| CON-081 | P2 | Kimi | [#190](https://github.com/constructa-co/Constructa/pull/190) | in review | D51 batch 10 — Marketing navigation and copy |
 | CON-082 | P2 | Cursor | — | not started | D51 batch 11 — Product presentation |
 | CON-083 | P2 | Claude | — | in progress | D51 batch 01 — Profile, save and sign-in |
 | CON-084 | P2 | Cursor | — | not started | D51 batch 11 — Product presentation |

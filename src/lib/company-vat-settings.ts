@@ -1,11 +1,42 @@
 /**
  * CON-018 — company-level VAT registration, default rate and reverse-charge default.
  *
- * Deploy safety: new profile columns stay off until migration is applied and
- * CONSTRUCTA_PROFILE_VAT_SETTINGS=1 is set at deploy time.
+ * Rollout order (both required):
+ * 1. Operator applies migration `20261116103000_con018_profile_vat_settings.sql`
+ * 2. Set `CONSTRUCTA_PROFILE_VAT_SETTINGS=1` at deploy time
+ *
+ * Until both are true, behaviour matches legacy contractors (20% standard on
+ * proposals unless a job uses domestic reverse charge).
  */
 
 export const PROFILE_VAT_SETTINGS_ENV = "CONSTRUCTA_PROFILE_VAT_SETTINGS";
+
+/** Columns always safe to read on profiles for proposal publication. */
+export const PROFILE_PUBLICATION_COLUMN_LIST = [
+    "company_name",
+    "logo_url",
+    "phone",
+    "website",
+    "accreditations",
+    "capability_statement",
+    "years_trading",
+    "specialisms",
+    "insurance_details",
+    "pdf_theme",
+    "md_name",
+    "md_message",
+    "case_studies",
+] as const;
+
+const PROFILE_VAT_COLUMN_LIST = ["vat_registered", "default_vat_rate", "default_vat_reverse_charge"] as const;
+
+/** PostgREST select list: VAT columns only when the deploy gate is on (after migration). */
+export function profilePublicationSelectColumns(env: NodeJS.ProcessEnv = process.env): string {
+    return [
+        ...PROFILE_PUBLICATION_COLUMN_LIST,
+        ...(isProfileVatSettingsEnabled(env) ? PROFILE_VAT_COLUMN_LIST : []),
+    ].join(", ");
+}
 
 export const UK_VAT_RATE_OPTIONS = [0, 5, 20] as const;
 export type UkVatRateOption = (typeof UK_VAT_RATE_OPTIONS)[number];
@@ -43,6 +74,12 @@ export interface ProfileVatFields {
     default_vat_reverse_charge?: boolean | null;
 }
 
+const legacyStandardVat = () => ({ vatRate: 20, vatTreatment: "standard" as const });
+
+function clampVatRate(rate: number): number {
+    return Number.isFinite(rate) ? Math.max(0, Math.min(100, rate)) : 20;
+}
+
 /** Proposal VAT from project override and optional company defaults. */
 export function vatFromCompanyAndProject(
     project: { is_vat_reverse_charge?: boolean | null },
@@ -52,11 +89,16 @@ export function vatFromCompanyAndProject(
     if (project.is_vat_reverse_charge === true) {
         return { vatRate: 0, vatTreatment: "domestic_reverse_charge" };
     }
-    if (isProfileVatSettingsEnabled(env) && profile?.vat_registered === false) {
+    if (!isProfileVatSettingsEnabled(env)) {
+        return legacyStandardVat();
+    }
+    // Gate on but column absent / unread (pre-migration): preserve legacy 20%.
+    if (profile?.vat_registered == null) {
+        return legacyStandardVat();
+    }
+    if (profile.vat_registered === false) {
         return { vatRate: 0, vatTreatment: "standard" };
     }
-    const rate = isProfileVatSettingsEnabled(env) && profile?.default_vat_rate != null
-        ? Number(profile.default_vat_rate)
-        : 20;
-    return { vatRate: Number.isFinite(rate) ? Math.max(0, Math.min(100, rate)) : 20, vatTreatment: "standard" };
+    const rate = profile.default_vat_rate != null ? clampVatRate(Number(profile.default_vat_rate)) : 20;
+    return { vatRate: rate, vatTreatment: "standard" };
 }

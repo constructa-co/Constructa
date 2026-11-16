@@ -25,6 +25,7 @@ import {
     coverForIllustrativeRender,
     type ProposalCoverPhotoChoice,
 } from "@/lib/proposal-cover-photo";
+import { sitePhotosAfterUpload } from "@/lib/proposal-site-photos";
 import { contentCheckCode, hashProposalContent, type ProposalPublicationSnapshot } from "@/lib/proposal-publication";
 import type { ReadinessKey, RecommendedKey } from "@/lib/proposal-readiness";
 import { RESPONSE_KINDS, responseWording } from "@/lib/proposal-response";
@@ -414,8 +415,13 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
         try {
             const result = await api.upload(file);
             if (result.url) {
+                const photos = sitePhotosAfterUpload(
+                    store.getState().draft.photos,
+                    result.url,
+                    opts?.selectSiteCover ? "cover" : "scope",
+                );
                 edit({
-                    photos: [...store.getState().draft.photos, { url: result.url, caption: "" }],
+                    photos,
                     ...(opts?.selectSiteCover && coverPhotoEnabled ? { coverPhoto: "site" as const } : {}),
                 });
                 setUpload({ busy: false, error: "" });

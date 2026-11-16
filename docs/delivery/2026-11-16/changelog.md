@@ -1,3 +1,13 @@
+## D49 PR #185 blockers — VAT legacy, gate order, preview parity, cover prepend — 16 November 2026
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `src/lib/company-vat-settings.ts` | vatFrom + select | Legacy 20% when gate off or `vat_registered` null; VAT columns only when gate on | Migration before env `=1` |
+| `supabase/migrations/20261116103000_con018_profile_vat_settings.sql` | vat_registered | `DEFAULT NULL` | No false “not registered” for existing rows |
+| `src/app/dashboard/projects/proposal/page.tsx` | profile select | `profilePublicationSelectColumns()` | Match publish path |
+| `src/lib/proposal-site-photos.ts` | (new) | Prepend on cover upload | First site photo = cover target |
+| `src/lib/proposal-site-photos.test.ts` | (new) | cover vs scope ordering | CON-026 regression |
+
 ## D49 CON-018 / CON-025 / CON-026 — Company VAT, interview load, cover upload — 16 November 2026
 
 | File | Lines (approx.) | Change | Intent |

@@ -169,7 +169,7 @@ export default function ProfileForm({ profile, userEmail, vatSettingsEnabled = f
     const [ownLabels] = useState<string[]>(() => [...new Set((profile?.preferred_trades || []).filter(trade => !ALL_TRADES.includes(trade)))]);
     const [mdMessage, setMdMessage] = useState(profile?.md_message || '');
     const [rewritingMdMessage, setRewritingMdMessage] = useState(false);
-    const [vatRegistered, setVatRegistered] = useState(profile?.vat_registered === true);
+    const [vatRegistered, setVatRegistered] = useState(profile?.vat_registered !== false);
 
     // A reply is held here as a suggestion. It replaces nothing until the contractor chooses it.
     const [capabilitySuggestion, setCapabilitySuggestion] = useState<string | null>(null);

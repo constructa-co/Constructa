@@ -1,5 +1,18 @@
 # Cursor change log
 
+## 2026-11-16 — D49 PR #185 blocker fixes (cursor/d49-settings-con-018-025-026-ade5)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/company-vat-settings.ts` | vat + select | Gate off → legacy 20%; gate on + `vat_registered` null → legacy; `profilePublicationSelectColumns` omits VAT cols until gate on | Safe pre-migration; preserve existing contractors |
+| `supabase/migrations/20261116103000_con018_profile_vat_settings.sql` | defaults | `vat_registered` nullable default NULL | No implied unregistered until user sets |
+| `src/app/dashboard/projects/proposal/page.tsx` | profile fetch | Shared `profilePublicationSelectColumns()` + typed cast | Preview/publish parity with `actions.ts` |
+| `src/app/dashboard/projects/proposal/actions.ts` | publish | Import shared column list | Same profile shape as proposal page |
+| `src/lib/proposal-site-photos.ts` | (new) | Prepend cover upload, append scope upload | CON-026 cover targets first site photo |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | upload | `sitePhotosAfterUpload(..., "cover" \| "scope")` | Cover slot = index 0 |
+| `src/app/dashboard/settings/profile/profile-form.tsx` | VAT toggle | `null` treated as registered in UI only | Matches legacy 20% until explicit opt-out |
+| `src/lib/company-vat-settings.test.ts`, `proposal-review.test.ts`, `proposal-site-photos.test.ts` | tests | VAT legacy/null/gate; preview/publish 5%; prepend cover | Claude block regressions |
+
 ## 2026-11-16 — D49 CON-018 / CON-025 / CON-026 settings (cursor/d49-settings-con-018-025-026-ade5)
 
 | File | Lines (approx.) | Change | Intent |

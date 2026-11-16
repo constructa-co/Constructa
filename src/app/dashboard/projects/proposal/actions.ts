@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { isDeepStrictEqual } from "node:util";
-import { isProfileVatSettingsEnabled } from "@/lib/company-vat-settings";
+import { profilePublicationSelectColumns } from "@/lib/company-vat-settings";
 import { pricingFullScopeError, type PricingFullScopeSource } from "@/lib/pricing-full-scope";
 import { z } from "zod";
 import { caseLibraryEnabled } from "@/lib/case-library/gate";
@@ -57,23 +57,6 @@ import {
 type Failure = { success: false; error: string };
 /** Refused because what would be published is not what the contractor reviewed. */
 type ChangedFailure = Failure & { changed: true };
-
-const PROFILE_PUBLICATION_COLUMNS = [
-    "company_name",
-    "logo_url",
-    "phone",
-    "website",
-    "accreditations",
-    "capability_statement",
-    "years_trading",
-    "specialisms",
-    "insurance_details",
-    "pdf_theme",
-    "md_name",
-    "md_message",
-    "case_studies",
-    ...(isProfileVatSettingsEnabled() ? ["vat_registered", "default_vat_rate", "default_vat_reverse_charge"] as const : []),
-].join(", ");
 
 function siteBaseUrl(): string {
     return process.env.NEXT_PUBLIC_SITE_URL || "https://constructa-nu.vercel.app";
@@ -497,7 +480,7 @@ export async function publishProposalAction(
 
     const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select(PROFILE_PUBLICATION_COLUMNS)
+        .select(profilePublicationSelectColumns())
         .eq("id", user.id)
         .single();
     if (profileError || !profile) {

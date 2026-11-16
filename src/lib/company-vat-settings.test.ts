@@ -20,15 +20,29 @@ describe("CON-018 company VAT settings", () => {
         });
     });
 
-    it("uses 0% when not VAT registered once the rollout gate is on", () => {
-        const prev = process.env[PROFILE_VAT_SETTINGS_ENV];
-        process.env[PROFILE_VAT_SETTINGS_ENV] = "1";
+    it("uses 0% only when VAT registered is explicitly false and the gate is on", () => {
+        vi.stubEnv(PROFILE_VAT_SETTINGS_ENV, "1");
         expect(vatFromCompanyAndProject({}, { vat_registered: false, default_vat_rate: 20 })).toEqual({
             vatRate: 0,
             vatTreatment: "standard",
         });
-        if (prev === undefined) delete process.env[PROFILE_VAT_SETTINGS_ENV];
-        else process.env[PROFILE_VAT_SETTINGS_ENV] = prev;
+    });
+
+    it("keeps legacy 20% when the gate is on but vat_registered is still null", () => {
+        vi.stubEnv(PROFILE_VAT_SETTINGS_ENV, "1");
+        expect(vatFromCompanyAndProject({}, { vat_registered: null, default_vat_rate: 5 })).toEqual({
+            vatRate: 20,
+            vatTreatment: "standard",
+        });
+        expect(vatFromCompanyAndProject({}, {})).toEqual({ vatRate: 20, vatTreatment: "standard" });
+    });
+
+    it("uses the saved rate only when vat_registered is true", () => {
+        vi.stubEnv(PROFILE_VAT_SETTINGS_ENV, "1");
+        expect(vatFromCompanyAndProject({}, { vat_registered: true, default_vat_rate: 5 })).toEqual({
+            vatRate: 5,
+            vatTreatment: "standard",
+        });
     });
 
     it("keeps legacy 20% when the profile VAT gate is off", () => {

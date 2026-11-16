@@ -82,6 +82,8 @@ export function documentThemeName(value: string | null | undefined): DocumentThe
 export interface ProposalDocument {
     /** True for the contractor's preview of an unsent draft. */
     isDraft: boolean;
+    /** The layout the snapshot was sent with. An issued proposal is drawn as it was issued. */
+    presentationVersion: number;
     theme: DocumentThemeName;
     company: { name: string; logoUrl: string | null; phone: string | null; website: string | null };
     reference: string;
@@ -210,11 +212,25 @@ function contractorProfileCredentialFacts(contractor: ProposalPublicationSnapsho
     return items;
 }
 
+const sameWords = (text: string | null | undefined) => (text ?? "").replace(/\s+/g, " ").trim();
+
+/**
+ * True when the closing wording already carries the director's message, as
+ * it does after "Use saved company message". The client then reads it once,
+ * as the closing, and not a second time under About. Snapshots issued before
+ * presentation 3 showed both and still do.
+ */
+function messageIsTheClosing(snapshot: ProposalPublicationSnapshot): boolean {
+    if (documentPresentationVersion(snapshot) < 3) return false;
+    const message = sameWords(snapshot.contractor.md_message);
+    return message !== "" && sameWords(snapshot.content.closing_statement).includes(message);
+}
+
 function aboutSection(snapshot: ProposalPublicationSnapshot): DocSection | null {
     const c = snapshot.contractor;
     const profileCredentials = contractorProfileCredentialFacts(c);
     const capabilityBlocks = textBlocks(c.capability_statement);
-    const message = lines(c.md_message);
+    const message = messageIsTheClosing(snapshot) ? [] : lines(c.md_message);
     if (profileCredentials.length === 0 && capabilityBlocks.length === 0 && message.length === 0) {
         return null;
     }
@@ -500,6 +516,7 @@ export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, opt
 
     return {
         isDraft: draftDocument,
+        presentationVersion: presentation,
         theme: documentThemeName(snapshot.contractor.pdf_theme),
         company: {
             name: snapshot.contractor.company_name,

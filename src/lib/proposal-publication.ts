@@ -11,6 +11,7 @@ import {
     resolveProposalCoverPhoto,
     type ProposalCoverPhoto,
 } from "@/lib/proposal-cover-photo";
+import { sitePhotosForJob } from "@/lib/proposal-site-photos";
 
 /** Said when a chosen past job cannot be sent. The proposal is not published short of it. */
 export const CASE_STUDY_UNSENDABLE_ERROR = "One of the past jobs you chose can't be sent. Untick it under Relevant experience, or fix it in Case Studies, then check the proposal again.";
@@ -131,11 +132,18 @@ export interface ProposalPhoto {
 }
 
 /** PDF layout generation. Omitted on snapshots issued before headline price deduplication. */
-export type ProposalDocumentPresentationVersion = 1 | 2;
+export type ProposalDocumentPresentationVersion = 1 | 2 | 3;
+
+/** Written on every new snapshot. Issued snapshots keep the version they were sent with. */
+export const CURRENT_DOCUMENT_PRESENTATION_VERSION: ProposalDocumentPresentationVersion = 3;
 
 export interface ProposalPublicationSnapshot {
     schema_version: 1;
-    /** When 2, cover states the authoritative price and the price section avoids repeating it. */
+    /**
+     * From 2, cover states the authoritative price and the price section avoids repeating it.
+     * From 3, a director's message used as the closing wording is shown once, and the PDF
+     * prints a long programme stage name in full.
+     */
     document_presentation_version?: ProposalDocumentPresentationVersion;
     publication: {
         id: string;
@@ -509,9 +517,14 @@ export function buildProposalPublicationSnapshot(
         Object.freeze(programmePlan);
     }
 
+    // A photo uploaded for another job, or as branding or a case study, is
+    // never sent as a photograph of this site. The preview is built here too,
+    // so it shows exactly the photographs that would be sent.
+    const sitePhotos = sitePhotosForJob(sanitisePhotos(input.project.site_photos), { projectId: input.project.id });
+
     const snapshot: ProposalPublicationSnapshot = {
         schema_version: 1,
-        document_presentation_version: 2,
+        document_presentation_version: CURRENT_DOCUMENT_PRESENTATION_VERSION,
         publication: {
             id: requiredText(input.publicationId, "Publication id", 100),
             version_number: input.versionNumber,
@@ -579,13 +592,12 @@ export function buildProposalPublicationSnapshot(
             notice: responseWording(input.responseKind).notice,
         },
         case_studies: chosenCaseStudies.studies,
-        photos: sanitisePhotos(input.project.site_photos),
+        photos: sitePhotos,
         ...(isProposalCoverPhotoEnabled()
             ? ((): { cover_photo?: ProposalCoverPhoto } => {
-                const photos = sanitisePhotos(input.project.site_photos);
                 const cover = resolveProposalCoverPhoto(
                     parseProposalCoverPhotoChoice(input.project.proposal_cover_photo),
-                    photos,
+                    sitePhotos,
                 );
                 if (!cover) return {};
                 if (cover.kind === "site") {

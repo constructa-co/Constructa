@@ -33,6 +33,7 @@ import {
     type ProposalCoverPhotoChoice,
 } from "@/lib/proposal-cover-photo";
 import { contentCheckCode, hashProposalContent, type ProposalPublicationSnapshot } from "@/lib/proposal-publication";
+import { sitePhotoOrigin } from "@/lib/proposal-site-photos";
 import type { ReadinessKey, RecommendedKey } from "@/lib/proposal-readiness";
 import { RESPONSE_KINDS, responseWording } from "@/lib/proposal-response";
 import {
@@ -806,6 +807,11 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                         <li key={photo.url} className={`${s.inset} p-3 space-y-2`} data-review-photo>
                                             {/* eslint-disable-next-line @next/next/no-img-element */}
                                             <img src={photo.url} alt={photo.caption || `Site photo ${index + 1}`} className="w-full aspect-[4/3] object-cover rounded-lg" />
+                                            {sitePhotoOrigin(photo.url, { projectId: project.id }) === "elsewhere" && (
+                                                <p role="alert" className={`text-sm ${s.errorText}`} data-review-photo-elsewhere>
+                                                    Photo {index + 1} was not uploaded for this job, so it is left out of the proposal. Remove it and add the photo again.
+                                                </p>
+                                            )}
                                             <label htmlFor={`photo-caption-${index}`} className="sr-only">Caption for photo {index + 1}</label>
                                             <input
                                                 id={`photo-caption-${index}`}
@@ -1142,7 +1148,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                             <summary className={`cursor-pointer text-sm font-semibold ${s.heading}`}>Use your managing director&apos;s message</summary>
                             {companyMessage.trim() ? (
                                 <>
-                                    <p className={`mt-3 text-sm ${s.muted}`}>From your saved company profile. No new text is generated here. It can also appear under About your business. Review it for this proposal before saving.</p>
+                                    <p className={`mt-3 text-sm ${s.muted}`}>From your saved company profile. No new text is generated here. Used here, it is shown once, as your closing message, and is left out of About your business. Review it for this proposal before saving.</p>
                                     <blockquote className={`mt-3 max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-sm ${s.body}`} data-company-closing-saved>{companyMessage}</blockquote>
                                     <button type="button" data-use-company-closing disabled={companyClosingBlocked} className={`${s.secondaryButton} mt-3`}
                                         onClick={() => {

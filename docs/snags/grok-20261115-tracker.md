@@ -2,7 +2,7 @@
 
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
-Current count: 12 merged, 19 in progress, 0 in review, 8 Rob-gated, 46 not started.
+Current count: 12 merged, 36 in progress, 0 in review, 8 Rob-gated, 29 not started.
 
 | --- | --- | --- | --- | --- | --- |
 | CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
@@ -16,18 +16,18 @@ Current count: 12 merged, 19 in progress, 0 in review, 8 Rob-gated, 46 not start
 | CON-009 | P0 | Rob / Kimi | [#174](https://github.com/constructa-co/Constructa/pull/174) | Rob-gated | Approve privacy text. |
 | CON-010 | P0 | Rob / Kimi | [#174](https://github.com/constructa-co/Constructa/pull/174) | Rob-gated | Approve terms text. |
 | CON-011 | P0 | Codex / Claude | [#169](https://github.com/constructa-co/Constructa/pull/169) | merged | — |
-| CON-012 | P0 | Claude | — | not started | D51 batch 01 — Profile, save and sign-in |
+| CON-012 | P0 | Claude | — | in progress | D51 batch 01 — Profile, save and sign-in |
 | CON-013 | P0 | Rob / Kimi | — | Rob-gated | Choose the application destination and data handling. |
 | CON-014 | P0 | Cursor / Claude | [#178](https://github.com/constructa-co/Constructa/pull/178) | merged | — |
 | CON-015 | P1 | Rob / Cursor | [#176](https://github.com/constructa-co/Constructa/pull/176) | Rob-gated | Confirm additive production migration and schema readback. |
-| CON-016 | P1 | Claude | — | not started | D51 batch 02 — Estimate pricing |
+| CON-016 | P1 | Claude | — | in progress | D51 batch 02 — Estimate pricing |
 | CON-017 | P1 | Cursor | [#184](https://github.com/constructa-co/Constructa/pull/184) | in progress | — |
 | CON-018 | P1 | Cursor | [#185](https://github.com/constructa-co/Constructa/pull/185) | in progress | — |
 | CON-019 | P1 | Claude | — | not started | D51 batch 03 — Proposal PDF pricing |
 | CON-020 | P1 | Claude | — | not started | D51 batch 03 — Proposal PDF pricing |
 | CON-021 | P1 | Claude | — | not started | D51 batch 03 — Proposal PDF pricing |
 | CON-022 | P1 | Cursor / Claude | [#181](https://github.com/constructa-co/Constructa/pull/181) | in progress | — |
-| CON-023 | P1 | Claude | — | not started | D51 batch 01 — Profile, save and sign-in |
+| CON-023 | P1 | Claude | — | in progress | D51 batch 01 — Profile, save and sign-in |
 | CON-024 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | in progress | — |
 | CON-025 | P1 | Cursor | [#185](https://github.com/constructa-co/Constructa/pull/185) | in progress | — |
 | CON-026 | P1 | Cursor | [#185](https://github.com/constructa-co/Constructa/pull/185) | in progress | — |
@@ -37,7 +37,7 @@ Current count: 12 merged, 19 in progress, 0 in review, 8 Rob-gated, 46 not start
 | CON-030 | P1 | Cursor / Grok | [#180](https://github.com/constructa-co/Constructa/pull/180) | merged | — |
 | CON-031 | P1 | Cursor / Claude | [#181](https://github.com/constructa-co/Constructa/pull/181) | in progress | — |
 | CON-032 | P1 | Cursor / Claude | [#181](https://github.com/constructa-co/Constructa/pull/181) | in progress | — |
-| CON-033 | P1 | Claude | — | not started | D51 batch 02 — Estimate pricing |
+| CON-033 | P1 | Claude | — | in progress | D51 batch 02 — Estimate pricing |
 | CON-034 | P1 | Cursor | [#184](https://github.com/constructa-co/Constructa/pull/184) | in progress | — |
 | CON-035 | P1 | Cursor | [#184](https://github.com/constructa-co/Constructa/pull/184) | in progress | — |
 | CON-036 | P1 | Cursor / Grok | [#182](https://github.com/constructa-co/Constructa/pull/182) | merged | — |
@@ -50,14 +50,14 @@ Current count: 12 merged, 19 in progress, 0 in review, 8 Rob-gated, 46 not start
 | CON-043 | P1 | Cursor | — | not started | D51 batch 05 — Phone layout and theme |
 | CON-044 | P1 | Cursor | — | not started | D51 batch 06 — Programme interactions |
 | CON-045 | P1 | Cursor | — | not started | D51 batch 06 — Programme interactions |
-| CON-046 | P1 | Kimi | — | not started | D51 batch 09 — Marketing identity and contact |
+| CON-046 | P1 | Kimi | — | in progress | D51 batch 09 — Marketing identity and contact |
 | CON-047 | P1 | Kimi | [#187](https://github.com/constructa-co/Constructa/pull/187) | in progress | — |
 | CON-048 | P1 | Kimi | [#187](https://github.com/constructa-co/Constructa/pull/187) | in progress | — |
 | CON-049 | P1 | Kimi | [#187](https://github.com/constructa-co/Constructa/pull/187) | in progress | — |
-| CON-050 | P1 | Kimi | — | not started | D51 batch 09 — Marketing identity and contact |
-| CON-051 | P1 | Kimi | — | not started | D51 batch 09 — Marketing identity and contact |
-| CON-052 | P1 | Kimi | — | not started | D51 batch 09 — Marketing identity and contact |
-| CON-053 | P1 | Kimi | — | not started | D51 batch 09 — Marketing identity and contact |
+| CON-050 | P1 | Kimi | — | in progress | D51 batch 09 — Marketing identity and contact |
+| CON-051 | P1 | Kimi | — | in progress | D51 batch 09 — Marketing identity and contact |
+| CON-052 | P1 | Kimi | — | in progress | D51 batch 09 — Marketing identity and contact |
+| CON-053 | P1 | Kimi | — | in progress | D51 batch 09 — Marketing identity and contact |
 | CON-054 | P1 | Claude | — | not started | D51 batch 08 — Case-study media and selection |
 | CON-055 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | in progress | — |
 | CON-056 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | in progress | — |
@@ -72,21 +72,21 @@ Current count: 12 merged, 19 in progress, 0 in review, 8 Rob-gated, 46 not start
 | CON-065 | P2 | Claude | — | not started | D51 batch 08 — Case-study media and selection |
 | CON-066 | P2 | Cursor | — | not started | D51 batch 05 — Phone layout and theme |
 | CON-067 | P2 | Cursor | — | not started | D51 batch 05 — Phone layout and theme |
-| CON-068 | P2 | Claude | — | not started | D51 batch 02 — Estimate pricing |
-| CON-069 | P2 | Claude | — | not started | D51 batch 02 — Estimate pricing |
-| CON-070 | P2 | Claude | — | not started | D51 batch 02 — Estimate pricing |
+| CON-068 | P2 | Claude | — | in progress | D51 batch 02 — Estimate pricing |
+| CON-069 | P2 | Claude | — | in progress | D51 batch 02 — Estimate pricing |
+| CON-070 | P2 | Claude | — | in progress | D51 batch 02 — Estimate pricing |
 | CON-071 | P2 | Cursor | — | not started | D51 batch 06 — Programme interactions |
 | CON-072 | P2 | Cursor | — | not started | D51 batch 06 — Programme interactions |
 | CON-073 | P2 | Cursor | — | not started | D51 batch 12 — Dashboard and demo state |
 | CON-074 | P2 | Cursor | — | not started | D51 batch 05 — Phone layout and theme |
 | CON-075 | P2 | Cursor | — | not started | D51 batch 12 — Dashboard and demo state |
-| CON-076 | P2 | Claude | — | not started | D51 batch 01 — Profile, save and sign-in |
+| CON-076 | P2 | Claude | — | in progress | D51 batch 01 — Profile, save and sign-in |
 | CON-077 | P2 | Claude | — | not started | D51 batch 03 — Proposal PDF pricing |
 | CON-078 | P2 | Cursor | — | not started | D51 batch 12 — Dashboard and demo state |
-| CON-079 | P2 | Kimi | — | not started | D51 batch 10 — Marketing navigation and copy |
-| CON-080 | P2 | Kimi | — | not started | D51 batch 10 — Marketing navigation and copy |
-| CON-081 | P2 | Kimi | — | not started | D51 batch 10 — Marketing navigation and copy |
+| CON-079 | P2 | Kimi | — | in progress | D51 batch 10 — Marketing navigation and copy |
+| CON-080 | P2 | Kimi | — | in progress | D51 batch 10 — Marketing navigation and copy |
+| CON-081 | P2 | Kimi | — | in progress | D51 batch 10 — Marketing navigation and copy |
 | CON-082 | P2 | Cursor | — | not started | D51 batch 11 — Product presentation |
-| CON-083 | P2 | Claude | — | not started | D51 batch 01 — Profile, save and sign-in |
+| CON-083 | P2 | Claude | — | in progress | D51 batch 01 — Profile, save and sign-in |
 | CON-084 | P2 | Cursor | — | not started | D51 batch 11 — Product presentation |
 | CON-085 | P2 | Cursor | — | not started | D51 batch 11 — Product presentation |

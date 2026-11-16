@@ -588,10 +588,13 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
 
         plan.stages.forEach((stage, index) => {
             const isLast = index === plan.stages.length - 1;
+            // A long stage name runs onto further lines and its bar moves down with it.
+            const nameLines = wrap(stage.name, PAGE.contentWidth - 78, STYLES.strong);
+            const overflow = Math.max(0, nameLines.length - 1) * STYLES.strong.lineHeight;
             // The date axis and the basis note stay with the last stage.
-            ensure(STAGE_ROW + (isLast ? axisAndNoteHeight : 0));
+            ensure(STAGE_ROW + overflow + (isLast ? axisAndNoteHeight : 0));
             const top = y;
-            drawBlockLines(wrap(stage.name, PAGE.contentWidth - 78, STYLES.strong).slice(0, 1), PAGE.left, top, STYLES.strong);
+            drawBlockLines(nameLines, PAGE.left, top, STYLES.strong);
             drawBlockLines(
                 [pdfText(`${programmeStageRange(plan, index)} - ${formatWorkingDuration(stage.working_days, plan.working_pattern)}`)],
                 PAGE.right, top + 0.6, STYLES.small, "right",
@@ -599,19 +602,20 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
             const bar = programmeStageBar(plan, index, 0);
             const barX = PAGE.left + (PAGE.contentWidth * bar.leftPct) / 100;
             const barWidth = (PAGE.contentWidth * bar.widthPct) / 100;
+            const barTop = top + 6.5 + overflow;
             pdf.setFillColor(231, 229, 228);
-            pdf.roundedRect(PAGE.left, top + 6.5, PAGE.contentWidth, 2.6, 1.3, 1.3, "F");
+            pdf.roundedRect(PAGE.left, barTop, PAGE.contentWidth, 2.6, 1.3, 1.3, "F");
             pdf.setFillColor(...ACCENT);
             if (barWidth > 0) pdf.roundedRect(
                 barX,
-                top + 6.5,
+                barTop,
                 barWidth,
                 2.6, Math.min(1.3, barWidth / 2), 1.3, "F",
             );
             pdf.setDrawColor(...ACCENT);
             pdf.setLineWidth(0.25);
-            pdf.line(barX, top + 6, barX, top + 9.6);
-            y += STAGE_ROW;
+            pdf.line(barX, barTop - 0.5, barX, barTop + 3.1);
+            y += STAGE_ROW + overflow;
             log("row", top, y);
         });
 
@@ -928,7 +932,12 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
             `Reference ${document.reference}.${document.snapshotRef ? ` Snapshot ${document.snapshotRef}.` : ""}${document.draftCheckCode ? ` Check code ${document.draftCheckCode}.` : ""}`,
             PAGE.contentWidth - 16, STYLES.small,
         );
-        const signatureHeight = 33;
+        // A client name too long for the signature column is written out in
+        // full; the lines to sign move down to make room for it.
+        const columnWidth = (PAGE.contentWidth - 16 - 10) / 2;
+        const clientNameLines = document.clientName ? wrap(document.clientName, columnWidth, STYLES.strong) : [];
+        const nameOverflow = Math.max(0, clientNameLines.length - 1) * STYLES.strong.lineHeight;
+        const signatureHeight = 33 + nameOverflow;
         const height = 7 + headingLines.length * headingStyle.lineHeight + 2 + noticeLines.length * STYLES.body.lineHeight
             + 6 + signatureHeight + footnote.length * STYLES.small.lineHeight + 6;
 
@@ -963,20 +972,19 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
         cursor += drawBlockLines(headingLines, x, cursor, headingStyle) + 2;
         cursor += drawBlockLines(noticeLines, x, cursor, STYLES.body) + 6;
 
-        const columnWidth = (PAGE.contentWidth - 16 - 10) / 2;
-        const signature = (columnX: number, label: string, name: string | null) => {
+        const signature = (columnX: number, label: string, nameLines: string[]) => {
             drawBlockLines(wrap(label, columnWidth, STYLES.label), columnX, cursor, STYLES.label);
-            if (name) drawBlockLines(wrap(name, columnWidth, STYLES.strong).slice(0, 1), columnX, cursor + 5, STYLES.strong);
+            drawBlockLines(nameLines, columnX, cursor + 5, STYLES.strong);
             ["Signature", "Name", "Date"].forEach((line, index) => {
-                const lineY = cursor + 16 + index * 7;
+                const lineY = cursor + 16 + nameOverflow + index * 7;
                 pdf.setDrawColor(...MUTED);
                 pdf.setLineWidth(0.2);
                 pdf.line(columnX + 18, lineY, columnX + columnWidth, lineY);
                 drawBlockLines([line], columnX, lineY - 3, STYLES.small);
             });
         };
-        signature(x, `For ${document.company.name}`, null);
-        signature(x + columnWidth + 10, response.signatureLabel, document.clientName);
+        signature(x, `For ${document.company.name}`, []);
+        signature(x + columnWidth + 10, response.signatureLabel, clientNameLines);
         cursor += signatureHeight;
         drawBlockLines(footnote, x, cursor, STYLES.small);
 
@@ -1044,9 +1052,20 @@ function round(value: number): number {
     return Math.round(value * 100) / 100;
 }
 
+/** The most of a job name a file name carries, so it saves on any system whatever alphabet it is in. */
+const FILENAME_TITLE_LENGTH = 60;
+
 export function brochureFilename(document: ProposalDocument): string {
-    const name = document.title.replace(/[^a-z0-9]+/gi, "_").replace(/^_+|_+$/g, "") || "Proposal";
-    return `${name}_Proposal_${document.reference}.pdf`;
+    // Letters and digits of any alphabet are kept: "Café" is not cut to "Caf".
+    const words = Array.from(document.title.normalize("NFC").replace(/[^\p{L}\p{N}]+/gu, "_").replace(/^_+|_+$/g, ""));
+    let name = words.join("");
+    if (words.length > FILENAME_TITLE_LENGTH) {
+        // A long name ends at a whole word where there is one.
+        const cut = words.slice(0, FILENAME_TITLE_LENGTH + 1).join("");
+        const lastBreak = cut.lastIndexOf("_");
+        name = lastBreak > 0 ? cut.slice(0, lastBreak) : words.slice(0, FILENAME_TITLE_LENGTH).join("");
+    }
+    return `${name || "Proposal"}_Proposal_${document.reference}.pdf`;
 }
 
 /**

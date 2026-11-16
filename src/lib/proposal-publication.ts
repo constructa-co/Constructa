@@ -131,11 +131,15 @@ export interface ProposalPhoto {
 }
 
 /** PDF layout generation. Omitted on snapshots issued before headline price deduplication. */
-export type ProposalDocumentPresentationVersion = 1 | 2;
+export type ProposalDocumentPresentationVersion = 1 | 2 | 3;
 
 export interface ProposalPublicationSnapshot {
     schema_version: 1;
-    /** When 2, cover states the authoritative price and the price section avoids repeating it. */
+    /**
+     * From 2, cover states the authoritative price and the price section avoids repeating it.
+     * From 3, the price lines drop the "General" filing heading, keep preliminaries last and
+     * word counted units in the plural. A snapshot issued under an earlier version keeps its layout.
+     */
     document_presentation_version?: ProposalDocumentPresentationVersion;
     publication: {
         id: string;
@@ -511,7 +515,7 @@ export function buildProposalPublicationSnapshot(
 
     const snapshot: ProposalPublicationSnapshot = {
         schema_version: 1,
-        document_presentation_version: 2,
+        document_presentation_version: 3,
         publication: {
             id: requiredText(input.publicationId, "Publication id", 100),
             version_number: input.versionNumber,

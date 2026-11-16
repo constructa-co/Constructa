@@ -6,19 +6,22 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { enhanceCaseStudy, type CaseStudyResult } from "@/lib/cohort-ai/case-study-enhance";
 import { caseStudyTextEnhanceEnabled } from "@/lib/cohort-ai/case-study-enhance-enabled";
 import { COHORT_AI_OFF, COHORT_AI_UNAVAILABLE } from "@/lib/cohort-ai/shared";
-import { legacyCaseStudiesStoredFingerprint } from "@/lib/server/legacy-case-studies-fingerprint";
+import { legacyCaseStudiesStoredFingerprint, legacyCaseStudiesStoredIsKnown } from "@/lib/server/legacy-case-studies-fingerprint";
 import { legacyCaseStudiesPhotosProblem, LEGACY_CASE_STUDY_PHOTOS_MESSAGE } from "./legacy-save-photos";
 import { SAVE_MESSAGES, type SaveCaseStudiesResult } from "./save-state";
 
 const FINGERPRINT = /^[0-9a-f]{32}$/;
 
 /**
- * Saves the whole list of older case studies when the stored list has not
- * changed since the tab loaded.
+ * Saves the whole list of older case studies when the stored list is one the
+ * tab knows about: the list it last knew to be stored, or one of `unconfirmed`,
+ * the lists it sent itself in saves whose answer never came back. A list put
+ * there from anywhere else is a conflict.
  */
 export async function saveCaseStudiesAction(
     caseStudies: unknown,
     expectedFingerprint: unknown,
+    unconfirmed?: unknown,
 ): Promise<SaveCaseStudiesResult> {
     let auth: Awaited<ReturnType<typeof requireAuth>>;
     try {
@@ -53,7 +56,7 @@ export async function saveCaseStudiesAction(
         return unknown("threw");
     }
 
-    if (legacyCaseStudiesStoredFingerprint(stored) !== expectedFingerprint) {
+    if (!legacyCaseStudiesStoredIsKnown(stored, expectedFingerprint, unconfirmed)) {
         return { status: "conflict", message: SAVE_MESSAGES.conflict };
     }
 
@@ -75,7 +78,7 @@ export async function saveCaseStudiesAction(
     if (reply.data.length === 0) {
         const stillThere = await supabase.from("profiles").select("case_studies").eq("id", user.id).maybeSingle();
         if (!stillThere.error && stillThere.data
-            && legacyCaseStudiesStoredFingerprint(stillThere.data.case_studies) !== expectedFingerprint) {
+            && !legacyCaseStudiesStoredIsKnown(stillThere.data.case_studies, expectedFingerprint, unconfirmed)) {
             return { status: "conflict", message: SAVE_MESSAGES.conflict };
         }
         return { status: "no-row", message: SAVE_MESSAGES.noRow };

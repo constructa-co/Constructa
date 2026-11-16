@@ -111,7 +111,7 @@ function editor(initial: Entry[] = loaded()) {
         if (!request || sentToken === request.token) return null;
         sentToken = request.token;
         requests.push(structuredClone(request.sent));
-        const reply: Promise<SaveCaseStudiesResult> = saveCaseStudiesAction(request.sent, request.expectedFingerprint).catch(() => ({ status: "unknown" as const, message: SAVE_MESSAGES.unknown }));
+        const reply: Promise<SaveCaseStudiesResult> = saveCaseStudiesAction(request.sent, request.expectedFingerprint, request.unconfirmed).catch(() => ({ status: "unknown" as const, message: SAVE_MESSAGES.unknown }));
         return async () => { const result = await reply; d({ type: "save/reply", token: request.token, result }); return result; };
     };
     return {
@@ -346,19 +346,45 @@ describe("not known whether it was saved", () => {
         // What is actually stored may be the list that was sent, which is not what is on the screen.
         expect(((stored() as Entry[])[0]).location).toBe(landed ? "Leeds" : "");
 
+        // Whichever of the two is stored, it is this tab's own: the list it loaded, or the list it sent. Neither is a conflict.
+        expect(tab.state.unconfirmed).toEqual([[study("s1", "Kitchen refit", { location: "Leeds" })]]);
         const result = await tab.save();
-        if (landed) {
-            expect(result!.status).toBe("conflict");
-            expect(tab.state.uncertain).toBe(true);
-        } else {
-            expect(result).toMatchObject({ status: "saved", refreshed: true });
-            expect(tab.state.uncertain).toBe(false);
-            expect(((stored() as Entry[])[0]).location).toBe("");
-            expect(tab.state.saved).toEqual(tab.state.draft);
-            expect(needsLeaveWarning(tab.state)).toBe(false);
-            expect(statusLine(tab.state)).toBe(SAVE_MESSAGES.saved);
-        }
+        expect(result).toMatchObject({ status: "saved", refreshed: true });
+        expect(tab.state.uncertain).toBe(false);
+        expect(tab.state.unconfirmed).toEqual([]);
+        expect(((stored() as Entry[])[0]).location).toBe("");
+        expect(tab.state.saved).toEqual(tab.state.draft);
+        expect(needsLeaveWarning(tab.state)).toBe(false);
+        expect(statusLine(tab.state)).toBe(SAVE_MESSAGES.saved);
         expect(tab.requests).toHaveLength(2);
+    });
+
+    it("the lists sent without an answer are each kept once, through saves that write nothing, until a save is acknowledged", async () => {
+        const tab = editor();
+        const leeds = [study("s1", "Kitchen refit", { location: "Leeds" })];
+        const york = [study("s1", "Kitchen refit", { location: "York" })];
+        tab.set(0, { location: "Leeds" });
+        mode = "error-no-write";
+        await tab.save();
+        mode = "throw";
+        await tab.save();
+        expect(tab.state.unconfirmed, "the same list sent twice is named once").toEqual([leeds]);
+        tab.set(0, { location: "York" });
+        mode = "write-then-error";
+        await tab.save();
+        expect(tab.state.unconfirmed).toEqual([leeds, york]);
+        mode = "no-row";
+        await tab.save();
+        signedIn = false;
+        await tab.save();
+        expect(tab.state.unconfirmed).toEqual([leeds, york]);
+        // Typing afterwards cannot alter what was sent.
+        tab.set(0, { location: "Hull" });
+        expect(tab.state.unconfirmed).toEqual([leeds, york]);
+        signedIn = true;
+        expect((await tab.save())!.status, "York was stored, by this tab").toBe("saved");
+        expect(tab.state.unconfirmed).toEqual([]);
+        expect(((stored() as Entry[])[0]).location).toBe("Hull");
     });
 
     it("uncertainty outlasts typing, a failed save and a signed-out save; only an acknowledged save ends it", async () => {
@@ -474,6 +500,30 @@ describe("concurrent tabs: stale saves are refused", () => {
         stale.add(study("s9", "Added in the stale tab"));
         expect((await stale.save())!.status).toBe("conflict");
         expect(names(stored())).toEqual(["Saved by the other tab"]);
+    });
+
+    it.each([
+        ["the write landed and an error came back", "write-then-error"],
+        ["an error came back and nothing was written", "error-no-write"],
+    ] as const)("a save that was never answered (%s) does not excuse a stale tab: another tab's later save is still a conflict", async (_name, failure) => {
+        const stale = editor();
+        stale.set(0, { location: "Leeds" });
+        mode = failure;
+        expect((await stale.save())!.status).toBe("unknown");
+
+        const other = editor();
+        other.add(study("s2", "Loft, added in the other tab"));
+        expect((await other.save())!.status).toBe("saved");
+        const kept = structuredClone(stored());
+
+        expect((await stale.save())!.status).toBe("conflict");
+        expect(stored()).toEqual(kept);
+        expect(stale.state.uncertain, "and its own last save is still not known").toBe(true);
+        expect(statusLine(stale.state)).toBe(SAVE_MESSAGES.conflict);
+        // After that conflict, a fresh tab saves as usual.
+        const fresh = editor();
+        fresh.set(0, { location: "York" });
+        expect((await fresh.save())!.status).toBe("saved");
     });
 
     it("the conflict message tells the contractor to reload", () => {

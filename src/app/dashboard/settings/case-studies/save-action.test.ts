@@ -311,6 +311,35 @@ describe("anything else at the write is NOT KNOWN: no error is taken as proof th
         expect(calls.filter((call) => call.op === "update")).toHaveLength(0);
     });
 
+    it("a list this tab sent itself, with the answer lost, is not another tab's: saving again over it is saved", async () => {
+        const loadedWith = fp();
+        const sentBefore = [study("s1", "Written, then the call threw")];
+        next = { kind: "write-then-throw" };
+        expect(await saveCaseStudiesAction(sentBefore, loadedWith)).toEqual(unknown);
+        expect(stored()).toEqual(sentBefore);
+
+        const again = [study("s1", "Typed after the lost answer")];
+        // Without naming what it sent, the tab cannot be told from a stale one.
+        expect((await saveCaseStudiesAction(again, loadedWith)).status).toBe("conflict");
+        // Named, and read back in whatever key order storage keeps.
+        const asSent = [Object.fromEntries(Object.entries(sentBefore[0]).reverse())];
+        expect(await saveCaseStudiesAction(again, loadedWith, [asSent])).toMatchObject({ status: "saved", refreshed: true });
+        expect(stored()).toEqual(again);
+    });
+
+    it.each([
+        ["lists that are not what is stored", [[study("s1", "Something this tab sent once")], []]],
+        ["no lists", []],
+        ["something that is not a list of lists", "not lists"],
+        ["entries that are not lists", [null, 3, { 0: "x" }]],
+    ])("naming %s does not get a stale tab past another tab's save", async (_name, unconfirmed) => {
+        const loadedWith = fp();
+        rows.get(ME)!.case_studies = [study("s1", "Saved in another tab")];
+        expect(await saveCaseStudiesAction([study("s1", "Edited")], loadedWith, unconfirmed)).toEqual({ status: "conflict", message: SAVE_MESSAGES.conflict });
+        expect(calls.filter((call) => call.op === "update")).toHaveLength(0);
+        expect(stored()).toEqual([study("s1", "Saved in another tab")]);
+    });
+
     it("nothing is retried by itself: one request per call, whatever the outcome", async () => {
         for (const mode of [{ kind: "throw" }, { kind: "answer", reply: { data: null, error: { code: "08006" } } }, { kind: "answer", reply: { data: [], error: null } }] as const) {
             calls.length = 0;

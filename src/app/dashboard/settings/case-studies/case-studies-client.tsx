@@ -27,7 +27,7 @@ import {
 import ChallengeResolution, { NO_STORY, storyTyped, type StoryNotes } from "./challenge-resolution";
 
 type Enhance = (whatWeDelivered: string, valueAdded: string, projectName: string, projectType: string) => Promise<CaseStudyResult>;
-type Save = (caseStudies: unknown, expectedFingerprint: string) => Promise<SaveCaseStudiesResult>;
+type Save = (caseStudies: unknown, expectedFingerprint: string, unconfirmed: unknown[][]) => Promise<SaveCaseStudiesResult>;
 
 interface CaseStudy {
     id: string;
@@ -48,8 +48,8 @@ interface CaseStudy {
 
 /**
  * The older case-study editor. A save is confirmed only when storage still
- * matches the fingerprint from load; stale tabs are refused rather than
- * overwriting a newer list.
+ * holds what this tab last knew, or a list this tab sent itself; stale tabs
+ * are refused rather than overwriting a newer list.
  */
 export default function CaseStudiesClient({ initialCaseStudies, initialStoredFingerprint, userId, enhance = enhanceCaseStudyAction, save = saveCaseStudiesAction }: {
     initialCaseStudies: CaseStudy[];
@@ -93,6 +93,8 @@ export default function CaseStudiesClient({ initialCaseStudies, initialStoredFin
                 result = await save(
                     request.sent.map((entry) => legacyCaseStudyForSave(entry)),
                     request.expectedFingerprint,
+                    // Earlier saves that were never answered, as they were sent: one of them may be what is stored now.
+                    request.unconfirmed.map((sent) => sent.map((entry) => legacyCaseStudyForSave(entry))),
                 );
             } catch {
                 // The request itself failed. Whether it reached the server is not known.

@@ -20,7 +20,7 @@
 import { notFound } from "next/navigation";
 import { cohortRig, type Canned } from "@/lib/cohort-ai/__fixtures__/rig";
 import { enhanceCaseStudy } from "@/lib/cohort-ai/case-study-enhance";
-import { legacyCaseStudiesStoredFingerprint } from "@/lib/server/legacy-case-studies-fingerprint";
+import { legacyCaseStudiesStoredFingerprint, legacyCaseStudiesStoredIsKnown } from "@/lib/server/legacy-case-studies-fingerprint";
 import { SAVE_MESSAGES, type SaveCaseStudiesResult } from "@/app/dashboard/settings/case-studies/save-state";
 
 /**
@@ -77,6 +77,7 @@ export async function fixtureSaveCaseStudies(
     run: string,
     caseStudies: unknown,
     expectedFingerprint: unknown,
+    unconfirmed?: unknown,
 ): Promise<SaveCaseStudiesResult> {
     guard();
     const { saves } = rigFor(run);
@@ -87,7 +88,8 @@ export async function fixtureSaveCaseStudies(
     if (mode === "signed-out") return { status: "signed-out", message: SAVE_MESSAGES.signedOut };
     if (!Array.isArray(caseStudies)) return { status: "refused", message: SAVE_MESSAGES.refused };
     const fingerprint = typeof expectedFingerprint === "string" ? expectedFingerprint : "";
-    if (legacyCaseStudiesStoredFingerprint(saves.stored) !== fingerprint) {
+    // The real action's own rule: the list the tab last knew, or one it sent itself and never heard back about.
+    if (!legacyCaseStudiesStoredIsKnown(saves.stored, fingerprint, unconfirmed)) {
         return { status: "conflict", message: SAVE_MESSAGES.conflict };
     }
     saves.calls.push(structuredClone(caseStudies));

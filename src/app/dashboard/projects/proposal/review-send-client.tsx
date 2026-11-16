@@ -194,7 +194,6 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
         || !!draft.closing.trim() || !!state.saved.closing.trim() || companyMessage.length > TEXT_LIMITS.closing;
     const [pdfNote, setPdfNote] = useState<{ busy: boolean; text: string; failed: boolean }>({ busy: false, text: "", failed: false });
     const [draftPdf, setDraftPdf] = useState<{ busy: boolean; text: string; failed: boolean }>({ busy: false, text: "", failed: false });
-    const [clientPdf, setClientPdf] = useState<{ busy: boolean; text: string; failed: boolean }>({ busy: false, text: "", failed: false });
     // How the contractor chose to be paid. It opens on what is saved.
     const [paymentMode, setPaymentMode] = useState<PaymentPreset | null>(() => paymentPresetOf(draft));
     const [contentCheck, setContentCheck] = useState<{ of: ProposalPublicationSnapshot; code: string } | null>(null);
@@ -489,28 +488,6 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
         }
     };
 
-    /** Same content as the draft, without draft markings on every page (CON-014). */
-    const downloadClientReadyPdf = async () => {
-        const { draft: shownDraft, responseKind } = store.getState();
-        const snapshot = buildPreviewSnapshot(context, shownDraft, responseKind, now ?? new Date().toISOString());
-        if (!snapshot) return;
-        setClientPdf({ busy: true, text: "", failed: false });
-        try {
-            const { downloadProposalPdf } = await import("@/lib/pdf/proposal-brochure");
-            const result = await downloadProposalPdf(snapshot, null);
-            setClientPdf({
-                busy: false,
-                failed: false,
-                text: `Client-ready PDF downloaded. It has no draft watermark. Nothing has been sent.${
-                    result.skippedImages > 0
-                        ? ` It was made without ${result.skippedImages} ${result.skippedImages === 1 ? "image" : "images"} that could not be loaded.`
-                        : ""
-                }`,
-            });
-        } catch {
-            setClientPdf({ busy: false, text: "The client-ready PDF could not be made. Try again.", failed: true });
-        }
-    };
 
     const estimateTotals = preview && preview.commercial.contract_sum_ex_vat > 0 ? vatLines(preview.commercial) : null;
     // The stages as the client will read them, with what each comes to.
@@ -1247,38 +1224,24 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                         >
                             Open document view
                         </button>
-                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                            <button
-                                type="button"
-                                onClick={() => void downloadClientReadyPdf()}
-                                disabled={!preview || clientPdf.busy || draftPdf.busy}
-                                aria-describedby="presend-pdf-note"
-                                className={`${s.secondaryButton} min-h-11 text-sm w-full sm:w-auto`}
-                            >
-                                {clientPdf.busy
-                                    ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Making the PDF…</>
-                                    : <><FileDown className="w-4 h-4" aria-hidden="true" /> Download client-ready PDF</>}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => void downloadDraftPdf()}
-                                disabled={!preview || draftPdf.busy || clientPdf.busy}
-                                aria-describedby="presend-pdf-note"
-                                className={`${s.secondaryButton} min-h-11 text-sm w-full sm:w-auto`}
-                            >
-                                {draftPdf.busy
-                                    ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Making the PDF…</>
-                                    : <><FileDown className="w-4 h-4" aria-hidden="true" /> Download marked draft PDF</>}
-                            </button>
-                        </div>
+                        <button
+                            type="button"
+                            onClick={() => void downloadDraftPdf()}
+                            disabled={!preview || draftPdf.busy}
+                            aria-describedby="presend-pdf-note"
+                            className={`${s.secondaryButton} min-h-11 text-sm w-full sm:w-auto`}
+                        >
+                            {draftPdf.busy
+                                ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Making the PDF…</>
+                                : <><FileDown className="w-4 h-4" aria-hidden="true" /> Download this draft as a PDF</>}
+                        </button>
                         <p id="presend-pdf-note" role={previewProblem ? "alert" : undefined} className={`text-sm ${s.muted}`}>
                             {preview
-                                ? "Download the exact PDF for your client (no draft watermark), or a marked draft with a check code. Neither sends the proposal."
+                                ? "The PDF your client will get, marked as a draft. Downloading it sends nothing. A clean copy without markings is available from sent versions after issue."
                                 : previewProblem ?? "The PDF is available once the job has a name and an estimate."}
                             {previewProblem && previewTermIssues.length > 0 && <> <a href="#review-terms" className={s.quietButton}>Review the current terms</a>.</>}
-                            {checkCode && <> Draft check code <span className="font-mono font-semibold" data-check-code>{checkCode}</span>.</>}
+                            {checkCode && <> Check code <span className="font-mono font-semibold" data-check-code>{checkCode}</span>.</>}
                         </p>
-                        {clientPdf.text && <p role={clientPdf.failed ? "alert" : "status"} className={`text-sm ${clientPdf.failed ? s.errorText : s.body}`} data-presend-client-pdf-result>{clientPdf.text}</p>}
                         {draftPdf.text && <p role={draftPdf.failed ? "alert" : "status"} className={`text-sm ${draftPdf.failed ? s.errorText : s.body}`} data-presend-pdf-result>{draftPdf.text}</p>}
                     </div>
 

@@ -8,7 +8,8 @@
 | `src/lib/pdf/proposal-pdf-data.test.ts` | (new) | PDF string counts for client, prices, draft vs clean | Generated PDF data regression |
 | `src/lib/proposal-document.test.ts` | identity + price totals | Client identity + shortened price totals | Document layer regression |
 | `src/components/proposal/proposal-metric-alignment.test.tsx` | reverse-charge key facts | No cover price when VAT is 0 | Align UI test with deduped cover |
-| `src/app/dashboard/projects/proposal/review-send-client.tsx` | presend PDF actions | Client-ready download without draft watermark + marked draft | CON-014 clean pre-send PDF |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | presend PDF copy | Draft watermark before issue; clean PDF from issued snapshots only | CON-014 export posture |
+| `src/lib/pdf/proposal-brochure.ts` | `responseBlock` | Pack receipt block toward page foot when terms share the page | A075 compact pagination after shorter price block |
 
 ## 2026-11-15 — D38 CON-007 recipient email confirmation (cursor/d38-con-007-proposal-email-default-off-20261115)
 

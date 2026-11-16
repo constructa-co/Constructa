@@ -54,13 +54,14 @@ describe("generated proposal PDF data", () => {
         expect(countSubstring(pdf, "£1,510.41")).toBe(1);
     });
 
-    it("marks a draft preview and leaves the client-ready export clean", () => {
+    it("marks a pre-issue preview as draft and an issued snapshot export without the watermark", () => {
         const draft = buildProposalDocument(snapshot, { isDraft: true, draftCheckCode: "ABCD-1234" });
-        const clean = buildProposalDocument(snapshot);
+        const issued = buildProposalDocument(snapshot, { snapshotHash: "cd".repeat(32) });
         const draftText = pdfStrings(draft);
-        const cleanText = pdfStrings(clean);
+        const issuedText = pdfStrings(issued);
         expect(draftText).toContain("DRAFT PREVIEW - NOT SENT TO THE CLIENT");
-        expect(cleanText).not.toContain("DRAFT PREVIEW");
-        expect(countSubstring(cleanText, "£9,062.46")).toBe(1);
+        expect(issuedText).not.toContain("DRAFT PREVIEW");
+        expect(issued.reference).not.toBe("Draft");
+        expect(countSubstring(issuedText, "£9,062.46")).toBe(1);
     });
 });

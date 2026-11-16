@@ -15,7 +15,6 @@ import { keepFirstThreePhotos, legacyExtraPhotoCount } from "./legacy-save-photo
 import { SAVE_MESSAGES, initialSaveState, needsLeaveWarning, requestOf, saveReducer, statusLine, type SaveAction, type SaveCaseStudiesResult, type SaveState } from "./save-state";
 import { JOB_TYPE_EXAMPLES } from "@/lib/job-type-options";
 import type { CaseStudySectorId } from "@/lib/case-study-example-tags";
-import { legacyCaseStudiesStoredFingerprint } from "@/lib/case-library/legacy-case-studies-cas";
 import { exampleTagSuggestions, legacyCaseStudyForSave } from "@/lib/case-study-example-tags";
 import ExampleTagsSection from "./example-tags-section";
 import {
@@ -54,7 +53,7 @@ interface CaseStudy {
  */
 export default function CaseStudiesClient({ initialCaseStudies, initialStoredFingerprint, userId, enhance = enhanceCaseStudyAction, save = saveCaseStudiesAction }: {
     initialCaseStudies: CaseStudy[];
-    initialStoredFingerprint?: string;
+    initialStoredFingerprint: string;
     userId: string;
     /** Defaults to the real server action; replaced only by tests and the fixture harness. */
     enhance?: Enhance;
@@ -64,10 +63,7 @@ export default function CaseStudiesClient({ initialCaseStudies, initialStoredFin
     const [state, dispatch] = useReducer(
         saveReducer as Reducer<SaveState<CaseStudy>, SaveAction<CaseStudy>>,
         initialCaseStudies,
-        (loaded) => initialSaveState(
-            loaded,
-            initialStoredFingerprint ?? legacyCaseStudiesStoredFingerprint(loaded.map((entry) => legacyCaseStudyForSave(entry))),
-        ),
+        (loaded) => initialSaveState(loaded, initialStoredFingerprint),
     );
     const caseStudies = state.draft;
     const isPending = state.saving !== null;

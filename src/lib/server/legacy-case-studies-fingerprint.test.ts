@@ -1,5 +1,8 @@
-import { describe, expect, it } from "vitest";
-import { legacyCaseStudiesStoredFingerprint } from "./legacy-case-studies-cas";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("server-only", () => ({}));
+
+import { legacyCaseStudiesStoredFingerprint } from "./legacy-case-studies-fingerprint";
 
 describe("legacyCaseStudiesStoredFingerprint", () => {
     it("is stable for the same stored list", () => {

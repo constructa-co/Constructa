@@ -15,6 +15,7 @@ const hook = vi.hoisted(() => ({
 }));
 const mocks = vi.hoisted(() => ({ requireAuth: vi.fn(), guard: vi.fn(), upload: vi.fn() }));
 
+vi.mock("server-only", () => ({}));
 vi.mock("react", async original => {
     const slot = (initial: () => unknown) => {
         const instance = hook.current!;
@@ -58,6 +59,7 @@ vi.mock("./library-actions", () => ({
     createCaseStudyAction: vi.fn(), saveCaseStudyAction: vi.fn(), saveDisciplineAction: vi.fn(), startFromOlderCaseStudyAction: vi.fn(),
 }));
 
+import { legacyCaseStudiesStoredFingerprint } from "@/lib/server/legacy-case-studies-fingerprint";
 import { fakeLibrary } from "@/lib/case-library/__fixtures__/fake-library";
 import { newDraft, type CaseStudyContent } from "@/lib/case-library/content";
 import { libraryTick, resolveSelectedCaseStudies } from "@/lib/case-library/resolve";
@@ -111,29 +113,76 @@ const RESOLVED = "Stopped work, had a licensed firm remove it, then carried on."
 const story = (before: string) => `${before}\n\nThe tricky part: ${CHALLENGE}\n\nWhat we did about it: ${RESOLVED}`;
 const ME = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 
-// The older list: a stand-in for the contractor's own session writing `profiles.case_studies`.
+// The older list: a stand-in for the signed-in session writing `profiles.case_studies` (read + CAS update).
+type Row = Record<string, unknown>;
+type TableFilter = [string, unknown, "eq" | "is" | undefined];
 let profile: { case_studies: unknown };
+let rows: Map<string, Row>;
+const rowMatches = (id: string, row: Row, filters: TableFilter[]) =>
+    filters.every(([column, value, kind]) => {
+        if (column === "id") return id === value;
+        const current = row[column];
+        if (column === "case_studies") {
+            if (kind === "is") return (current === null || current === undefined) && value === null;
+            return legacyCaseStudiesStoredFingerprint(current) === legacyCaseStudiesStoredFingerprint(value);
+        }
+        if (kind === "is") return (current === null || current === undefined) && value === null;
+        return current === value;
+    });
 const session = {
-    from: (table: string) => ({
-        update: (payload: Record<string, unknown>) => {
-            const query = {
-                eq: () => query,
-                select: () => query,
-                then: (resolve: (value: unknown) => unknown) => {
-                    if (table === "profiles") Object.assign(profile, structuredClone(payload));
-                    return Promise.resolve({ data: [{ id: ME }], error: null }).then(resolve);
-                },
-            };
-            return query;
-        },
-    }),
+    from(table: string) {
+        const filters: TableFilter[] = [];
+        let selected: string | null = null;
+        let payload: Row | null = null;
+        let op: "select" | "update" = "select";
+        const run = async () => {
+            if (op === "select") {
+                for (const [id, row] of rows) {
+                    if (rowMatches(id, row, filters)) {
+                        return { data: { case_studies: structuredClone(row.case_studies) }, error: null };
+                    }
+                }
+                return { data: null, error: null };
+            }
+            const matched: Row[] = [];
+            for (const [id, row] of rows) {
+                if (rowMatches(id, row, filters)) matched.push(row);
+            }
+            if (matched.length === 0) return { data: [], error: null };
+            matched.forEach((row) => Object.assign(row, structuredClone(payload!)));
+            const changed = matched.map((row) => ({ id: ME, case_studies: structuredClone(row.case_studies) }));
+            return { data: selected === null ? null : changed, error: null };
+        };
+        return {
+            select(columns: string) {
+                op = "select";
+                selected = columns;
+                const query = {
+                    eq(column: string, value: unknown) { filters.push([column, value, "eq"]); return query; },
+                    maybeSingle() { return run(); },
+                };
+                return query;
+            },
+            update(nextPayload: Row) {
+                op = "update";
+                payload = nextPayload;
+                const query = {
+                    eq(column: string, value: unknown) { filters.push([column, value, "eq"]); return query; },
+                    is(column: string, value: unknown) { filters.push([column, value, "is"]); return query; },
+                    select(columns: string) { selected = columns; return query; },
+                    then(resolve: (value: unknown) => unknown, reject: (reason: unknown) => unknown) { return run().then(resolve, reject); },
+                };
+                return query;
+            },
+        };
+    },
 };
 const older = (id: string, projectName: string, extra: Partial<Study> = {}): Study => ({
     id, projectName, projectType: "", contractValue: "", programmeDuration: "", client: "", location: "",
     whatWeDelivered: "", valueAdded: "", photos: ["", "", ""], ...extra,
 });
 let initial: Study[];
-const renderOlder = () => expand(<CaseStudiesClient userId="synthetic" initialCaseStudies={initial} />, "older");
+const renderOlder = () => expand(<CaseStudiesClient userId="synthetic" initialStoredFingerprint={legacyCaseStudiesStoredFingerprint(profile.case_studies)} initialCaseStudies={initial} />, "older");
 const olderDraft = () => held<{ draft: Study[] }>((slot) => Array.isArray(slot.draft)).draft;
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 async function saveOlder() {
@@ -183,6 +232,7 @@ describe("older case studies: a challenge and how it was resolved", () => {
         const before = "Stripped out; refitted — as agreed (phase 1).";
         initial = [older("a", "Alpha", { whatWeDelivered: before, valueAdded: "Own value, kept." })];
         profile = { case_studies: structuredClone(initial) };
+        rows = new Map([[ME, profile]]);
         typeInto(labelled(renderOlder(), "What was the challenge or problem?")[0], CHALLENGE);
         typeInto(labelled(renderOlder(), "How did you resolve it?")[0], RESOLVED);
         let tree = renderOlder();
@@ -220,6 +270,7 @@ describe("older case studies: a challenge and how it was resolved", () => {
         const legacyEntry = { ...older("b", "Bravo"), legacyExtra: "kept" } as Study;
         initial = [older("a", "Alpha", { whatWeDelivered: odd }), legacyEntry];
         profile = { case_studies: structuredClone(initial) };
+        rows = new Map([[ME, profile]]);
         let tree = renderOlder();
         expect(labelled(tree, "What We Delivered").map((element) => element.props.value)).toEqual([odd, ""]);
 

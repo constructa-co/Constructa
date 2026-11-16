@@ -374,8 +374,11 @@ export async function savePriceAdjustmentsAction(estimateId: string, input: Adju
         }
 
         const { data, error } = await update.select("id").maybeSingle();
-        if (error || !data) {
-            if (error) console.error("[savePriceAdjustmentsAction] failed", { estimateId, code: error.code });
+        if (error) {
+            console.error("[savePriceAdjustmentsAction] failed", { estimateId, code: error.code });
+            return { ok: false, error: ADJUSTMENTS_SAVE_ERROR };
+        }
+        if (!data) {
             return { ok: false, error: "These percentages were changed elsewhere. Reload the page before saving again." };
         }
         return { ok: true };

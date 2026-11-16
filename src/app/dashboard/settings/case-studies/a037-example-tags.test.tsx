@@ -5,11 +5,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import ExampleTagsSection from "./example-tags-section";
 
 const mocks = vi.hoisted(() => ({ requireAuth: vi.fn(), createAdminClient: vi.fn(), revalidatePath: vi.fn() }));
+vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/auth-utils", () => ({ requireAuth: mocks.requireAuth }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: mocks.createAdminClient }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
-import { legacyCaseStudiesStoredFingerprint } from "@/lib/case-library/legacy-case-studies-cas";
+import { legacyCaseStudiesStoredFingerprint } from "@/lib/server/legacy-case-studies-fingerprint";
 import { saveCaseStudiesAction } from "./actions";
 import { legacyCaseStudyForSave } from "@/lib/case-study-example-tags";
 

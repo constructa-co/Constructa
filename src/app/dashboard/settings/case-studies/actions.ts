@@ -6,7 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { enhanceCaseStudy, type CaseStudyResult } from "@/lib/cohort-ai/case-study-enhance";
 import { caseStudyTextEnhanceEnabled } from "@/lib/cohort-ai/case-study-enhance-enabled";
 import { COHORT_AI_OFF, COHORT_AI_UNAVAILABLE } from "@/lib/cohort-ai/shared";
-import { legacyCaseStudiesStoredFingerprint } from "@/lib/case-library/legacy-case-studies-cas";
+import { legacyCaseStudiesStoredFingerprint } from "@/lib/server/legacy-case-studies-fingerprint";
 import { legacyCaseStudiesPhotosProblem, LEGACY_CASE_STUDY_PHOTOS_MESSAGE } from "./legacy-save-photos";
 import { SAVE_MESSAGES, type SaveCaseStudiesResult } from "./save-state";
 

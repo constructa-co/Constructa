@@ -8,7 +8,7 @@ import { sessionReader } from "@/lib/case-library/store";
 import CaseStudiesClient from "./case-studies-client";
 import type { ComponentProps } from "react";
 import LibraryPanel from "./library-panel";
-import { legacyCaseStudiesStoredFingerprint } from "@/lib/case-library/legacy-case-studies-cas";
+import { legacyCaseStudiesStoredFingerprint } from "@/lib/server/legacy-case-studies-fingerprint";
 import { readStoredExampleTags } from "@/lib/case-study-example-tags";
 
 export const dynamic = "force-dynamic";

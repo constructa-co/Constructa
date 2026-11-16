@@ -4,7 +4,7 @@
 
 | File | Lines (approx.) | Change | Intent |
 |------|-----------------|--------|--------|
-| `src/lib/case-library/legacy-case-studies-cas.ts` | (new) | MD5 fingerprint of stored legacy `case_studies` | CON-024 compare-and-set for older case-study list saves |
+| `src/lib/server/legacy-case-studies-fingerprint.ts` | (new) | MD5 fingerprint of stored legacy `case_studies` (server-only) | CON-024 compare-and-set; fingerprint supplied on render, not computed in the browser |
 | `src/app/dashboard/settings/case-studies/actions.ts` | `saveCaseStudiesAction` | Read profile, refuse stale `expectedFingerprint`, update with `case_studies` guard | CON-024 prevent blind whole-list overwrite across tabs |
 | `src/app/dashboard/settings/case-studies/save-state.ts` | reducer + types | `storedFingerprint`, `conflict` result, save sends fingerprint | Client reflects CAS outcomes |
 | `src/app/dashboard/settings/case-studies/case-studies-client.tsx` | save effect | Pass `expectedFingerprint`; optional `initialStoredFingerprint` | Wire CON-024 through UI |

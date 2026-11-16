@@ -1,3 +1,5 @@
+import "server-only";
+
 import { createHash } from "node:crypto";
 
 /** Stable fingerprint of the stored legacy `profiles.case_studies` list. */

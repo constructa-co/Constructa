@@ -160,20 +160,21 @@ describe("writes", () => {
         const actions = readFileSync(path.join(SRC, folder, "actions.ts"), "utf8");
         const rules = readFileSync(path.join(SRC, folder, "save-state.ts"), "utf8");
         // Separation, as before: nothing of the older editor reaches the library, in either direction of this folder.
-        for (const text of [client, actions, rules]) expect(text).not.toMatch(/case-library|library-actions/);
-        // The save is still the same single write, with the contractor's own session: the whole list, one column, their own row.
-        // It now also asks for the changed row's id back. It has gained no condition on what it replaces.
+        for (const text of [actions, rules]) expect(text).not.toMatch(/case-library\/|library-actions/);
+        expect(client).not.toMatch(/node:crypto|legacy-case-studies-fingerprint|legacyCaseStudiesStoredFingerprint/);
+        // Still one profile write on the contractor's own session, but only when the stored fingerprint still matches.
         const save = code(path.join(SRC, folder, "actions.ts"));
         const body = save.slice(save.indexOf("export async function saveCaseStudiesAction"), save.indexOf("export async function enhanceCaseStudyAction"));
         expect(body).toContain(".update({ case_studies: caseStudies })");
         expect(body).toContain('.eq("id", user.id)');
-        expect(body).toContain('.select("id")');
-        expect(body.match(/\.from\(/g)).toHaveLength(1);
-        expect(body.match(/\.eq\(/g)).toHaveLength(1);
-        expect(body).not.toMatch(/createAdminClient|\.rpc\(|\.insert\(|\.upsert\(|\.delete\(|\.single\(|\.maybeSingle\(/);
-        // The editor sends only the copy its rules recorded, through the injected save (the real action by default).
+        expect(body).toContain('status: "conflict"');
+        expect(body).toContain("legacyCaseStudiesStoredFingerprint");
+        expect(body).not.toMatch(/createAdminClient|\.rpc\(|\.insert\(|\.upsert\(|\.delete\(/);
+        // The editor sends only the copy its rules recorded, with the fingerprint supplied from the server render.
+        expect(client).toContain("initialStoredFingerprint");
         expect(client).toContain("save = saveCaseStudiesAction");
-        expect(client.match(/await save\(request\.sent\.map\(/g)).toHaveLength(1);
+        expect(client).toMatch(/await save\(\s*request\.sent\.map/);
+        expect(client).toContain("request.expectedFingerprint");
         expect(client.match(/saveCaseStudiesAction/g)).toHaveLength(2);
         // Its rules are pure: no database, network, storage or framework.
         expect(code(path.join(SRC, folder, "save-state.ts"))).not.toMatch(/supabase|fetch\(|process\.env|"use server"|"use client"|localStorage|sessionStorage|from "react"|from "next/);

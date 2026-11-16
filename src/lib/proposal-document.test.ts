@@ -3,7 +3,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
 import ProposalDocumentView from "@/components/proposal/proposal-document-view";
 import { minimalInput, representativeInput, stressInput } from "./__fixtures__/proposal";
-import { PROGRAMME_BASIS_NOTE, formatPlanDate } from "./programme-plan";
+import { formatPlanDate } from "./programme-plan";
+import { programmeBasisNote } from "./relative-programme";
 import { renderProposalBrochure, type ImageMap } from "./pdf/proposal-brochure";
 import {
     buildProposalDocument,
@@ -304,7 +305,7 @@ describe("public page and PDF agree", () => {
 
     it("state the same programme dates, duration and basis", () => {
         const plan = snapshot.programme_plan!;
-        for (const text of [formatPlanDate(plan.start_date), formatPlanDate(plan.end_date), plan.duration_label, PROGRAMME_BASIS_NOTE]) {
+        for (const text of [formatPlanDate(plan.start_date), formatPlanDate(plan.end_date), plan.duration_label, programmeBasisNote(plan)]) {
             expect(html).toContain(text);
             expect(pdf).toContain(text);
         }

@@ -68,7 +68,7 @@ describe.each(["dated", "relative"] as const)("local %s PDF duration geometry", 
         const raw = result.doc.output();
         const text = [...raw.matchAll(/\(((?:\\.|[^\\)])*)\) Tj/g)].map(match => match[1]).join(" ").replace(/\s+/g, " ");
         expect(text).toContain("Vertical ticks mark starts, not extra days.");
-        expect(text).toContain(basis === "relative" ? "Start date not agreed" : "Bank holidays are not allowed for");
+        expect(text).toContain(basis === "relative" ? "Start date not agreed" : "UK bank holidays for England and Wales are not working days");
         expect(programmeStageBar(plan, 0).widthPct).toBe(1);
         if (process.env.CONSTRUCTA_CAPTURE_PDF_PROGRAMME_BARS === "1") {
             writeFileSync(`../verification/pdf-programme-bars-${basis}-20261022.pdf`, new Uint8Array(result.doc.output("arraybuffer")), { flag: "wx" });

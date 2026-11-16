@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import estimateCapture from '../../../docs/evidence/marketing-product-screenshots-2026-11-15/01-estimate-price-adjustments-1440x900.jpg';
 import ui from './phase-one.module.css';
 import styles from './cohort-about.module.css';
 
@@ -45,11 +46,10 @@ export function PhaseOneAbout() {
 
       <section className={styles.split}>
         <AboutFigure
-          src="/images/about-hero.png"
-          alt="Three people in hard hats gathered around a laptop"
-          width={2048}
-          height={2048}
-          caption="AI-generated illustration. The people shown are not Constructa staff or clients."
+          src="/images/minimalist infographic cluster of small construction buildings.png"
+          alt="Illustration of a cluster of small construction buildings drawn in copper line art"
+          width={2240}
+          height={2240}
         />
         <div className={styles.copy}>
           <h2>Built by people who know the job</h2>
@@ -81,20 +81,28 @@ export function PhaseOneAbout() {
           <p>Big software platforms are overkill. Manual systems are high risk. And most tools weren&apos;t built for builders.</p>
         </div>
         <AboutFigure
-          src="/images/about-problem1.png"
-          alt="Illustration of three colleagues discussing drawings on a building site"
-          width={1024}
-          height={1024}
+          src="/images/spreadsheet grid and warning & error symbols.png"
+          alt="Illustration of a spreadsheet grid with warning and error symbols"
+          width={2240}
+          height={2240}
         />
       </section>
 
       <section className={styles.split}>
-        <AboutFigure
-          src="/images/about-solution.png"
-          alt="Illustration of a project team around a table with a glowing programme timeline overlaid"
-          width={1024}
-          height={1024}
-        />
+        <figure className={styles.figure}>
+          <Image
+            src={estimateCapture}
+            alt="Constructa estimating screen from a synthetic phase-one journey. It shows the Price adjustments panel with percentage fields for overhead, risk and profit, an optional discount reason, and a grey control reading No changes to save when nothing has changed."
+            width={1440}
+            height={900}
+            sizes="(max-width: 900px) 100vw, 42vw"
+            className={styles.figureImage}
+          />
+          <figcaption>
+            The current review interface · synthetic journey fixture capture from 15 November 2026 · made-up job
+            data · simulated saves.
+          </figcaption>
+        </figure>
         <div className={styles.copy}>
           <h2>The solution we&apos;re building</h2>
           <p>Constructa brings quoting, planning, and delivery into one clean, easy-to-use platform.</p>
@@ -108,7 +116,7 @@ export function PhaseOneAbout() {
         </div>
       </section>
 
-      <section className={`${styles.split} ${styles.splitReverse}`}>
+      <section className={styles.statement}>
         <div className={styles.copy}>
           <h2>A message from the founder</h2>
           <p>
@@ -125,16 +133,6 @@ export function PhaseOneAbout() {
           </p>
           <div className={styles.founder}>— Robert Smith</div>
         </div>
-        <figure className={styles.figure}>
-          <Image
-            src="/images/founder-message.png"
-            alt="AI-generated illustration of a man standing behind a desk at sunset"
-            width={1024}
-            height={1024}
-            className={styles.figureImage}
-          />
-          <figcaption>AI-generated illustration. The person shown is not Robert Smith.</figcaption>
-        </figure>
       </section>
 
       <section className={styles.metrics}>
@@ -169,7 +167,7 @@ export function PhaseOneAbout() {
         </div>
       </section>
 
-      <section className={`${styles.split} ${styles.splitReverse} ${styles.nextRow}`}>
+      <section className={`${styles.statement} ${styles.nextRow}`}>
         <div className={styles.copy}>
           <h2>What&apos;s next</h2>
           <p>
@@ -198,12 +196,6 @@ export function PhaseOneAbout() {
             </a>
           </div>
         </div>
-        <AboutFigure
-          src="/images/about-whats-next.png"
-          alt="Illustration of colleagues reviewing drawings around a studio table"
-          width={1024}
-          height={1024}
-        />
       </section>
 
       <section className={styles.pointers}>

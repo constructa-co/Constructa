@@ -1,5 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import type { StaticImageData } from 'next/image';
+import estimateCapture from '../../../docs/evidence/marketing-product-screenshots-2026-11-15/01-estimate-price-adjustments-1440x900.jpg';
 
 function AboutImage({
   src,
@@ -8,7 +10,7 @@ function AboutImage({
   height,
   className = 'w-full h-auto rounded-xl shadow-md',
 }: {
-  src: string;
+  src: string | StaticImageData;
   alt: string;
   width: number;
   height: number;
@@ -26,8 +28,7 @@ export function FullAboutPage() {
 
       <section className="max-w-6xl mx-auto px-4 pt-32 pb-24 grid md:grid-cols-2 gap-12 items-center">
         <figure>
-          <AboutImage src="/images/about-hero.png" alt="Three people in hard hats gathered around a laptop" width={2048} height={2048} />
-          <figcaption className="mt-2 text-sm">AI-generated illustration. The people shown are not Constructa staff or clients.</figcaption>
+          <AboutImage src="/images/minimalist infographic cluster of small construction buildings.png" alt="Illustration of a cluster of small construction buildings drawn in copper line art" width={2240} height={2240} />
         </figure>
         <div className="text-left">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">Built by people who know the job</h2>
@@ -60,13 +61,24 @@ export function FullAboutPage() {
           </p>
         </div>
         <div>
-          <AboutImage src="/images/about-problem1.png" alt="Illustration of three colleagues discussing drawings on a building site" width={1024} height={1024} />
+          <AboutImage src="/images/spreadsheet grid and warning & error symbols.png" alt="Illustration of a spreadsheet grid with warning and error symbols" width={2240} height={2240} />
         </div>
       </section>
 
       <section className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
         <div>
-          <AboutImage src="/images/about-solution.png" alt="Illustration of a project team around a table with a glowing programme timeline overlaid" width={1024} height={1024} />
+          <figure>
+            <AboutImage
+              src={estimateCapture}
+              alt="Constructa estimating screen from a synthetic phase-one journey. It shows the Price adjustments panel with percentage fields for overhead, risk and profit, an optional discount reason, and a grey control reading No changes to save when nothing has changed."
+              width={1440}
+              height={900}
+            />
+            <figcaption className="mt-2 text-sm">
+              The current review interface · synthetic journey fixture capture from 15 November 2026 · made-up job data ·
+              simulated saves.
+            </figcaption>
+          </figure>
         </div>
         <div className="text-left">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">The solution we&apos;re building</h2>
@@ -83,8 +95,8 @@ export function FullAboutPage() {
         </div>
       </section>
 
-      <section className="max-w-6xl mx-auto px-4 py-24 grid md:grid-cols-2 gap-12 items-center">
-        <div className="text-right">
+      <section className="max-w-3xl mx-auto px-4 py-24">
+        <div className="text-left">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">A message from the founder</h2>
           <p className="text-gray-300 text-lg italic mb-4">
             &quot;After 25 years in construction, I knew there had to be a better way. I&apos;ve seen first-hand how hard it is to manage projects and people while keeping proposals sharp, programmes aligned, and clients happy.
@@ -94,10 +106,6 @@ export function FullAboutPage() {
           </p>
           <div className="not-italic font-semibold">— Robert Smith</div>
         </div>
-        <figure>
-          <AboutImage src="/images/founder-message.png" alt="AI-generated illustration of a man standing behind a desk at sunset" width={1024} height={1024} />
-          <figcaption className="mt-2 text-sm">AI-generated illustration. The person shown is not Robert Smith.</figcaption>
-        </figure>
       </section>
 
       <section className="max-w-6xl mx-auto px-4 py-24">
@@ -121,8 +129,8 @@ export function FullAboutPage() {
         </div>
       </section>
 
-      <section className="max-w-6xl mx-auto px-4 pt-24 py-24 grid md:grid-cols-2 gap-12 items-center">
-        <div className="text-right">
+      <section className="max-w-3xl mx-auto px-4 pt-24 py-24">
+        <div className="text-left">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">What&apos;s next</h2>
           <p className="text-gray-300 text-lg mb-4">
             Constructa is in a phase-one review. We are checking the complete work-winning journey before release—it is not currently offered for live customer work.
@@ -139,9 +147,6 @@ export function FullAboutPage() {
             <Link href="/guides" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Read the guides →</Link>
             <a href="https://www.linkedin.com/company/constructa-co" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Follow us on LinkedIn →</a>
           </div>
-        </div>
-        <div>
-          <AboutImage src="/images/about-whats-next.png" alt="Illustration of colleagues reviewing drawings around a studio table" width={720} height={480} />
         </div>
       </section>
 

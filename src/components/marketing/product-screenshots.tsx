@@ -7,7 +7,7 @@ import programmePhoneCapture from '../../../docs/evidence/marketing-product-scre
 import ui from './phase-one.module.css';
 import shots from './product-screenshots.module.css';
 
-const captures = [
+export const captures = [
   {
     src: estimateCapture,
     phoneSrc: estimatePhoneCapture,
@@ -30,7 +30,7 @@ const captures = [
   },
 ] as const;
 
-function CapturePicture({ capture }: { capture: (typeof captures)[number] }) {
+export function CapturePicture({ capture }: { capture: (typeof captures)[number] }) {
   const { alt, src, phoneSrc } = capture;
   const { props: { srcSet: phoneSrcSet } } = getImageProps({ src: phoneSrc, alt, width: 390, height: 844, sizes: '88vw' });
   const { props: desktop } = getImageProps({ src, alt, width: 1440, height: 900, sizes: '(max-width: 1422px) 100vw, 1440px' });

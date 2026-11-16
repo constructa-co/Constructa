@@ -14,7 +14,8 @@
 .root { min-height: 100dvh; background: var(--session-base); color-scheme: dark; }
 .header { max-width: 1440px; margin: auto; padding: 28px 5%; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-size: 25px; font-weight: 650; letter-spacing: -1.2px; text-decoration: none; }
-.brandMark { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--session-accent); border-radius: 6px; color: var(--session-accent); font-size: 20px; }
+.brandMark { display: inline-flex; align-items: center; color: var(--session-accent); }
+.brandMark svg { width: 22px; height: 22px; display: block; }
 .brandDot { color: var(--session-accent); margin-left: -9px; }
 .headerNote { font-size: 12px; color: var(--session-muted); }
 .content { padding: 26px 5% 60px; }

@@ -1,4 +1,5 @@
 import type { Ref } from "react";
+import { BrandMark } from "./brand-mark";
 import ui from "./sidebar-brand.module.css";
 
 type SidebarBrandProps = {
@@ -11,7 +12,7 @@ type SidebarBrandProps = {
 export function SidebarBrand({ markOnly = false, className, wordmarkRef }: SidebarBrandProps) {
     return (
         <span className={[ui.brand, className].filter(Boolean).join(" ")}>
-            <span className={ui.brandMark} aria-hidden="true">C</span>
+            <span className={ui.brandMark} aria-hidden="true"><BrandMark /></span>
             {!markOnly && <span ref={wordmarkRef} className={ui.wordmark}>constructa</span>}
         </span>
     );

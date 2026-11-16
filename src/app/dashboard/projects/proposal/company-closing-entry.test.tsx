@@ -97,8 +97,11 @@ describe("company closing source on the real proposal parent", () => {
         expect(button(context(), true).disabled).toBe(true); (button(context(), true).onClick as () => void)();
         expect(replay.state!.draft.closing).toBe(""); expect(replay.save).not.toHaveBeenCalled();
     });
-    it("omits the source control when no message exists and refuses an overlong source without shortening it", () => {
-        expect(nodes(view(context(null, null))).some(node => node.props["data-company-closing-source"])).toBe(false);
+    it("CON-037 shows an explicit empty state when no saved message exists and refuses an overlong source without shortening it", () => {
+        const html = renderToStaticMarkup(nodes(view(context(null, null))).find(node => node.props["data-company-closing-source"])!);
+        expect(html).toContain("No managing director");
+        expect(html).toContain("company profile");
+        expect(html).not.toContain("data-use-company-closing");
         const long = context(null, "x".repeat(20001)); expect(button(long).disabled).toBe(true); copy(long);
         expect(closing(long).value).toBe(""); expect(replay.save).not.toHaveBeenCalled();
     });

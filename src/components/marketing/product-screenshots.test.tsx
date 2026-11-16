@@ -27,12 +27,12 @@ const pictures = () => html().match(/<picture>[\s\S]*?<\/picture>/g) ?? [];
 const srcset = (tag: string) => decodeURIComponent(tag.match(/srcset="([^"]+)"/i)?.[1] ?? '');
 
 describe('phase-one product screenshots', () => {
-  it('sits on the features view after the review guide and before the scope, exactly once', () => {
+  it('sits on the features view after the review guide, exactly once, with no repeated scope block', () => {
     const page = renderToStaticMarkup(<PhaseOneFeatures />);
     const [guide, shots, scope] = ['id="product-review-guide"', MARKER, 'id="phase-one"'].map(marker => page.indexOf(marker));
     expect(guide).toBeGreaterThan(-1);
     expect(shots).toBeGreaterThan(guide);
-    expect(scope).toBeGreaterThan(shots);
+    expect(scope).toBe(-1);
     expect(page.match(new RegExp(MARKER, 'g'))).toHaveLength(1);
   });
 

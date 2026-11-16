@@ -19,14 +19,24 @@ export function MarketingHeader() {
       <div className={ui.headerInner}>
         <Link className={ui.brand} href="/" aria-label="Constructa home"><span aria-hidden="true">C</span>constructa</Link>
         <nav aria-label="Main navigation" className={ui.nav}>
-          <Link href="/#how-it-works">How it works</Link>
-          <Link href="/features">The product</Link>
+          <Link href="/features">Product</Link>
+          <Link href="/pricing">Pricing</Link>
           <Link href="/about">About</Link>
-          <Link href="/pricing">Preview access</Link>
+          <Link href="/guides">Guides</Link>
         </nav>
         <div className={ui.headerActions}>
-          <Link className={ui.applyCta} href="/apply">Apply to the founding cohort <ArrowRight size={16} aria-hidden="true" /></Link>
+          <Link className={ui.applyCta} href="/apply">Apply <ArrowRight size={16} aria-hidden="true" /></Link>
           <Link className={ui.signIn} href="/login">Sign in <ArrowRight size={16} aria-hidden="true" /></Link>
+          <details className={ui.mobileMenu}>
+            <summary>Menu</summary>
+            <nav aria-label="Mobile navigation">
+              <Link href="/features">Product</Link>
+              <Link href="/pricing">Pricing</Link>
+              <Link href="/about">About</Link>
+              <Link href="/guides">Guides</Link>
+              <Link href="/login">Sign in</Link>
+            </nav>
+          </details>
         </div>
       </div>
     </header>
@@ -118,7 +128,7 @@ function Questions() {
     ['Can I buy the later-phase tools here?', 'No. This preview focuses on the work-winning journey. Later-phase workflows and commercial plans are not being offered for purchase here.'],
     ['Is this ready for live customer work?', 'This is a phase-one review. Authentication, data handling, commercial terms and the complete proposal journey need release verification before live customer use.'],
   ];
-  return <section className={`${ui.section} ${ui.questions}`}><div><p className={ui.eyebrow}>A few useful answers</p><h2>Before you<br />get started.</h2></div><div>{questions.map(([question, answer]) => <details key={question}><summary>{question}<Plus size={18} aria-hidden="true" /></summary><p>{answer}</p></details>)}</div></section>;
+  return <section id="questions" className={`${ui.section} ${ui.questions}`}><div><p className={ui.eyebrow}>A few useful answers</p><h2>Before you<br />get started.</h2></div><div>{questions.map(([question, answer]) => <details key={question}><summary>{question}<Plus size={18} aria-hidden="true" /></summary><p>{answer}</p></details>)}</div></section>;
 }
 
 function Invitation() {
@@ -174,9 +184,10 @@ export function PhaseOneFeatures() {
         <div className={ui.actions}>
           <FoundingCohortApplyLink />
           <SignInLink />
+          <Link className={ui.textLink} href="/#how-it-works">See how the journey connects <ArrowDown size={17} aria-hidden="true" /></Link>
         </div>
       </section>
-      <Journey /><ProductReviewGuide /><ProductScreenshots /><Scope /><Questions /><Invitation />
+      <ProductReviewGuide /><ProductScreenshots /><Invitation />
     </div>
   );
 }
@@ -199,9 +210,13 @@ export function PhaseOnePricing() {
           {' · '}
           <Link href="/contact" className={ui.textLink}>Neutral preview-access questions <ArrowRight size={16} aria-hidden="true" /></Link>
         </p>
+        <p>
+          The full picture lives on the home page:{' '}
+          <Link href="/#phase-one" className={ui.textLink}>the work-winning essentials <ArrowRight size={16} aria-hidden="true" /></Link>
+          {' · '}
+          <Link href="/#questions" className={ui.textLink}>preview questions <ArrowRight size={16} aria-hidden="true" /></Link>
+        </p>
       </section>
-      <Scope showAccessLink={false} />
-      <Questions />
     </div>
   );
 }

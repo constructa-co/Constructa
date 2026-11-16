@@ -30,6 +30,13 @@ const nextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      // The review calls the pricing route "preview access"; the bare
+      // /preview-access address was never a route and returned a 404.
+      { source: '/preview-access', destination: '/pricing', permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

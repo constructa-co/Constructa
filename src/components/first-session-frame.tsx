@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { LogOut } from "lucide-react";
+import { BrandMark } from "./brand-mark";
 import ui from "./first-session.module.css";
 
 const overview = [
@@ -27,7 +28,7 @@ const companySetupOverview = [
 export type SetupStage = "trade" | "company";
 
 export function FirstSessionFrame({ children, signOut = false }: { children: ReactNode; signOut?: boolean }) {
-    const brand = <><span className={ui.brandMark} aria-hidden="true">C</span>constructa</>;
+    const brand = <><span className={ui.brandMark} aria-hidden="true"><BrandMark /></span>constructa</>;
     return (
         <div className={ui.root}>
             <header className={ui.header}>

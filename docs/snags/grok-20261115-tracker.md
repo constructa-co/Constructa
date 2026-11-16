@@ -2,7 +2,7 @@
 
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
-Current count: 8 merged, 7 in progress, 16 in review, 8 Rob-gated, 46 not started.
+Current count: 11 merged, 8 in progress, 12 in review, 8 Rob-gated, 46 not started.
 
 | --- | --- | --- | --- | --- | --- |
 | CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
@@ -28,7 +28,7 @@ Current count: 8 merged, 7 in progress, 16 in review, 8 Rob-gated, 46 not starte
 | CON-021 | P1 | Unassigned | — | not started | — |
 | CON-022 | P1 | Cursor / Claude | [#181](https://github.com/constructa-co/Constructa/pull/181) | in progress | — |
 | CON-023 | P1 | Unassigned | — | not started | — |
-| CON-024 | P1 | Cursor | — | in progress | — |
+| CON-024 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | in review | — |
 | CON-025 | P1 | Cursor | [#185](https://github.com/constructa-co/Constructa/pull/185) | in review | — |
 | CON-026 | P1 | Cursor | [#185](https://github.com/constructa-co/Constructa/pull/185) | in review | — |
 | CON-027 | P1 | Unassigned | — | not started | — |
@@ -40,13 +40,13 @@ Current count: 8 merged, 7 in progress, 16 in review, 8 Rob-gated, 46 not starte
 | CON-033 | P1 | Unassigned | — | not started | — |
 | CON-034 | P1 | Cursor | [#184](https://github.com/constructa-co/Constructa/pull/184) | in review | — |
 | CON-035 | P1 | Cursor | [#184](https://github.com/constructa-co/Constructa/pull/184) | in review | — |
-| CON-036 | P1 | Cursor / Grok | [#182](https://github.com/constructa-co/Constructa/pull/182) | in review | — |
-| CON-037 | P1 | Cursor / Grok | [#182](https://github.com/constructa-co/Constructa/pull/182) | in review | — |
+| CON-036 | P1 | Cursor / Grok | [#182](https://github.com/constructa-co/Constructa/pull/182) | merged | — |
+| CON-037 | P1 | Cursor / Grok | [#182](https://github.com/constructa-co/Constructa/pull/182) | merged | — |
 | CON-038 | P1 | Unassigned | — | not started | — |
 | CON-039 | P1 | Unassigned | — | not started | — |
-| CON-040 | P1 | Cursor / Grok | [#182](https://github.com/constructa-co/Constructa/pull/182) | in review | — |
-| CON-041 | P1 | Cursor | — | in progress | — |
-| CON-042 | P1 | Cursor | — | in progress | — |
+| CON-040 | P1 | Cursor / Grok | [#182](https://github.com/constructa-co/Constructa/pull/182) | merged | — |
+| CON-041 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | in review | — |
+| CON-042 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | in review | — |
 | CON-043 | P1 | Unassigned | — | not started | — |
 | CON-044 | P1 | Unassigned | — | not started | — |
 | CON-045 | P1 | Unassigned | — | not started | — |
@@ -59,12 +59,12 @@ Current count: 8 merged, 7 in progress, 16 in review, 8 Rob-gated, 46 not starte
 | CON-052 | P1 | Unassigned | — | not started | — |
 | CON-053 | P1 | Unassigned | — | not started | — |
 | CON-054 | P1 | Unassigned | — | not started | — |
-| CON-055 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | in review | — |
-| CON-056 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | in review | — |
-| CON-057 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | in review | — |
+| CON-055 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | in progress | — |
+| CON-056 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | in progress | — |
+| CON-057 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | in progress | — |
 | CON-058 | P2 | Unassigned | — | not started | — |
 | CON-059 | P2 | Unassigned | — | not started | — |
-| CON-060 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | in review | — |
+| CON-060 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | in progress | — |
 | CON-061 | P2 | Unassigned | — | not started | — |
 | CON-062 | P2 | Unassigned | — | not started | — |
 | CON-063 | P2 | Unassigned | — | not started | — |

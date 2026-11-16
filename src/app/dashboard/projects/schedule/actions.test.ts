@@ -23,6 +23,7 @@ import * as programmeStorage from "@/lib/server/programme-storage";
 import { PROGRAMME_ADDED, PROGRAMME_NO_PHASES, PROGRAMME_NOT_SAVED, PROGRAMME_TOO_MANY } from "@/lib/cohort-ai/programme-update";
 import { COHORT_AI_NOT_USABLE, COHORT_AI_OFF, COHORT_AI_UNAVAILABLE } from "@/lib/cohort-ai/shared";
 import { AiResponseError } from "@/lib/ai";
+import { PROGRAMME_CIRCULAR_DEPENDENCY_ERROR } from "@/lib/programme-phase-dependencies";
 import { generateWeeklyUpdateAction, saveProgrammePhasesAction, updatePhasesAction } from "./actions";
 
 const PROJECT_ID = "11111111-1111-4111-8111-111111111111";
@@ -244,6 +245,29 @@ describe("detailed programme calendar storage", () => {
         expect(db.updates).toEqual([]);
         expect(db.tables.projects[0].programme_phases).toEqual(DETAILED_PHASES);
         expect(mocks.revalidatePath).not.toHaveBeenCalled();
+    });
+
+    it("CON-029 refuses a self-loop with the cycle error and no writes", async () => {
+        const db = arrangeProgramme();
+        const selfLoop = [{
+            name: "A", calculatedDays: 2, manualDays: null, manhours: 16, startOffset: 0, dependsOn: [0],
+        }];
+        const result = await updatePhasesAction(PROJECT_ID, selfLoop);
+        expect(result).toEqual({ success: false, error: PROGRAMME_CIRCULAR_DEPENDENCY_ERROR });
+        await expect(saveProgrammePhasesAction(PROJECT_ID, selfLoop)).rejects.toThrow(PROGRAMME_CIRCULAR_DEPENDENCY_ERROR);
+        expect(db.updates).toEqual([]);
+        expect(mocks.revalidatePath).not.toHaveBeenCalled();
+    });
+
+    it("CON-029 refuses circular dependencies before programme storage", async () => {
+        const db = arrangeProgramme();
+        const cycle = [
+            { name: "A", calculatedDays: 2, manualDays: null, manhours: 16, startOffset: 0, dependsOn: [1] },
+            { name: "B", calculatedDays: 2, manualDays: null, manhours: 16, startOffset: 7, dependsOn: [0] },
+        ];
+        expect((await updatePhasesAction(PROJECT_ID, cycle)).success).toBe(false);
+        await expect(saveProgrammePhasesAction(PROJECT_ID, cycle)).rejects.toThrow(PROGRAMME_CIRCULAR_DEPENDENCY_ERROR);
+        expect(db.updates).toEqual([]);
     });
 
     it("keeps old action request shapes and legacy saves when the calendar column is absent", async () => {

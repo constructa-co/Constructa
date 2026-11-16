@@ -128,6 +128,7 @@ describe("saved per-job working patterns in programme and proposals", () => {
 
     it("rejects unsafe dates and duration overflow without throwing or inventing dates", () => {
         expect(addWorkingDays("9999-12-31", 2)).toBeNull();
+        expect(addWorkingDays("9999-12-31", 1, { version: 1, weekdays: [6] })).toBeNull();
         expect(nextWorkingDayAfter("9999-12-31")).toBeNull();
         expect(addWorkingDays(FRIDAY, Number.MAX_VALUE)).toBeNull();
         expect(formatWorkingDuration(Number.POSITIVE_INFINITY, sixDays())).toBe("");

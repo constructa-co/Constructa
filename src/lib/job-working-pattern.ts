@@ -409,9 +409,8 @@ function worksUtc(ms: number, pattern: JobWorkingPatternV1, calendar: ProgrammeC
 }
 
 function rollForwardUtc(ms: number, pattern: JobWorkingPatternV1, calendar: ProgrammeCalendar): number | null {
-    while (isoDateUtc(ms) !== null) {
+    for (let days = 0; days < 400 && isoDateUtc(ms) !== null; days += 1, ms += DAY_MS) {
         if (worksUtc(ms, pattern, calendar)) return ms;
-        ms += DAY_MS;
     }
     return null;
 }

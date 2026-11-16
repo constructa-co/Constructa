@@ -26,8 +26,8 @@ function context(stored: unknown, selected: unknown, lib?: ProposalLibrary): Rev
 const draftOf = (ctx: ReviewContext) => draftFromProject(ctx.project, () => "key");
 
 describe("older-only proposals are exactly as they were", () => {
-    // Pin the representative fixture with the current calendar and proposal snapshot fields.
-    it("the representative proposal's content and snapshot hashes are unchanged", async () => {
+    // The a93712a baseline includes the regional bank-holiday division in the programme plan.
+    it("pins the representative legacy selection with the regional calendar fields", async () => {
         const snapshot = buildProposalPublicationSnapshot(representativeInput());
         expect(await hashProposalContent(snapshot)).toBe("2b0185bf6355f113239781dd87aaf9025648babacb72257a567a76c68161f8e4");
         expect(await hashProposalPublication(snapshot)).toBe("87b47a6df37223f114ac39b0c0aec56718554ebfe260f67aac11ab9a2895b314");

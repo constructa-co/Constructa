@@ -30,7 +30,6 @@ jobs:
         run: npm audit --audit-level=critical
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm test
       - name: Verify cost library SQL security boundary
         run: npm run test:cost-library-sql
       - name: Verify legacy definer SQL security boundary
@@ -60,6 +59,25 @@ jobs:
       - name: Verify the inactive case-study library foundation
         run: npm run test:case-library-sql
       - run: npm run build
+
+  unit-tests:
+    name: Unit tests (shard ${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm test -- --shard=${{ matrix.shard }}/4
 
   # The company-website import, in a real browser, with no database: the real
   # screen and server code over an in-memory database and a made-up website.

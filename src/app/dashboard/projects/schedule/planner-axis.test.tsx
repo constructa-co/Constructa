@@ -6,7 +6,7 @@ import type { PlannerPhase } from "@/lib/planner-phases";
 const hooks = vi.hoisted(() => ({
     refs: [] as Array<{ current: unknown }>,
     effects: [] as Array<() => void | (() => void)>,
-    callbacks: [] as Array<(event: MouseEvent, index: number, type: "move" | "resize") => void>,
+    mouseDown: new Map<string, (event: MouseEvent) => void>(),
     updates: [] as unknown[],
     write: vi.fn(),
     read: vi.fn(),
@@ -21,16 +21,42 @@ vi.mock("react", async importOriginal => {
             return ref;
         },
         useEffect: (effect: () => void | (() => void)) => { hooks.effects.push(effect); },
-        useCallback: (callback: typeof hooks.callbacks[number]) => {
-            hooks.callbacks.push(callback);
-            return callback;
-        },
         useState: (initial: unknown) => {
             const [value] = original.useState(initial);
             return [value, (next: unknown) => hooks.updates.push(typeof next === "function" ? next(value) : next)];
         },
     };
 });
+function captureMouseDown(props: unknown, key: unknown) {
+    const { className, onMouseDown, "data-planner-resize-target": resizeIndex } = props as {
+        className?: string;
+        onMouseDown?: (event: MouseEvent) => void;
+        "data-planner-resize-target"?: number;
+    };
+    if (onMouseDown && resizeIndex !== undefined) {
+        hooks.mouseDown.set(`resize:${resizeIndex}`, onMouseDown);
+    } else if (onMouseDown && className?.startsWith("absolute flex items-center")) {
+        hooks.mouseDown.set(`move:${key}`, onMouseDown);
+    }
+}
+
+vi.mock("react/jsx-dev-runtime", async importOriginal => {
+    const original = await importOriginal<typeof import("react/jsx-dev-runtime")>();
+    return {
+        ...original,
+        jsxDEV: (...args: Parameters<typeof original.jsxDEV>) => {
+            captureMouseDown(args[1], args[2]);
+            return original.jsxDEV(...args);
+        },
+    };
+});
+
+function mouseDown(event: MouseEvent, index: number, type: "move" | "resize") {
+    const handler = hooks.mouseDown.get(`${type}:${index}`);
+    expect(handler).toBeTypeOf("function");
+    handler!(event);
+}
+
 vi.mock("./actions", () => ({
     updatePhasesAction: hooks.write,
     saveProgrammePhasesAction: hooks.write,
@@ -60,7 +86,7 @@ function barStyles(html: string) {
 }
 const cleanups: Array<() => void> = [];
 beforeEach(() => {
-    hooks.refs = []; hooks.effects = []; hooks.callbacks = []; hooks.updates = [];
+    hooks.refs = []; hooks.effects = []; hooks.mouseDown.clear(); hooks.updates = [];
     hooks.write.mockClear(); hooks.read.mockClear();
     vi.useFakeTimers();
 });
@@ -86,7 +112,7 @@ describe("detailed planner calendar-axis geometry", () => {
             });
             for (const effect of hooks.effects) { const cleanup = effect(); if (cleanup) cleanups.push(cleanup); }
             hooks.refs[0].current = { getBoundingClientRect: () => ({ width: 371 }) };
-            hooks.callbacks[0]({ preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: 100 } as unknown as MouseEvent, 0, "move");
+            mouseDown({ preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: 100 } as unknown as MouseEvent, 0, "move");
             listeners.get("mousemove")!({ clientX: 100 + delta });
             listeners.get("mouseup")!({ clientX: 100 + delta });
             const updated = hooks.updates.filter((value): value is PlannerPhase[] => Array.isArray(value)).at(-1);
@@ -111,7 +137,7 @@ describe("detailed planner calendar-axis geometry", () => {
             }
             hooks.refs[0].current = { getBoundingClientRect: () => ({ width: 280 }) };
             const originX = 100;
-            hooks.callbacks[0]({ preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: originX } as unknown as MouseEvent, 0, type);
+            mouseDown({ preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: originX } as unknown as MouseEvent, 0, type);
             listeners.get("mousemove")!({ clientX: 140 });
             const phaseUpdates = hooks.updates.filter((value): value is PlannerPhase[] => Array.isArray(value));
             const midway = phaseUpdates.at(-1)!;
@@ -148,7 +174,7 @@ describe("detailed planner calendar-axis geometry", () => {
             }
             hooks.refs[0].current = { getBoundingClientRect: () => ({ width: 280 }) };
             const originX = 100;
-            hooks.callbacks[0]({ preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: originX } as unknown as MouseEvent, 0, type);
+            mouseDown({ preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: originX } as unknown as MouseEvent, 0, type);
             listeners.get("mousemove")!({ clientX: 140 });
             const phaseUpdates = hooks.updates.filter((value): value is PlannerPhase[] => Array.isArray(value));
             const midway = phaseUpdates.at(-1)!;
@@ -177,7 +203,7 @@ describe("detailed planner calendar-axis geometry", () => {
         });
         for (const effect of hooks.effects) { const cleanup = effect(); if (cleanup) cleanups.push(cleanup); }
         hooks.refs[0].current = { getBoundingClientRect: () => ({ width: 280 }) };
-        hooks.callbacks[0]({ preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: 100 } as unknown as MouseEvent, 0, type);
+        mouseDown({ preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: 100 } as unknown as MouseEvent, 0, type);
         listeners.get("mousemove")!({ clientX: 100 });
         listeners.get("mouseup")!({ clientX: 100 });
         const phaseUpdates = hooks.updates.filter((value): value is PlannerPhase[] => Array.isArray(value));
@@ -230,7 +256,7 @@ describe("detailed planner calendar-axis geometry", () => {
             if (cleanup) cleanups.push(cleanup);
         }
         hooks.refs[0].current = { getBoundingClientRect: () => ({ width: 280 }) };
-        hooks.callbacks[0]({ preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: 0 } as unknown as MouseEvent, 1, type);
+        mouseDown({ preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: 0 } as unknown as MouseEvent, 1, type);
         listeners.get("mousemove")!({ clientX: 40 });
         const updated = hooks.updates.findLast((value): value is PlannerPhase[] => Array.isArray(value));
         expect(updated?.[1]).toMatchObject(type === "move" ? { startOffset: 14 } : { manualDays: 10 });
@@ -343,7 +369,7 @@ describe("detailed planner short-span visibility without false duration", () => 
         });
         for (const effect of hooks.effects) { const cleanup = effect(); if (cleanup) cleanups.push(cleanup); }
         hooks.refs[0].current = { getBoundingClientRect: () => ({ width: 1400 }) };
-        hooks.callbacks[0]({ preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: 0 } as unknown as MouseEvent, 0, type);
+        mouseDown({ preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: 0 } as unknown as MouseEvent, 0, type);
         listeners.get("mousemove")!({ clientX: 7 });
         const updated = hooks.updates.findLast((value): value is PlannerPhase[] => Array.isArray(value));
         expect(updated?.[0]).toMatchObject(type === "move" ? { startOffset: 7 } : { manualDays: 10 });
@@ -379,9 +405,9 @@ describe("five-day duration geometry follows the complete displayed date plan", 
     });
     it("spans a year boundary using the existing working-day dates", () => {
         const html = render([phase(73, 3)]);
-        // Thursday 31 Dec through Monday 4 Jan, including the intervening weekend.
-        expect(barStyles(html)[0]).toEqual({ left: 73 / 84 * 100, width: 5 / 84 * 100 });
-        expect(html).toContain("4 Jan 27");
+        // Thursday 31 Dec through Tuesday 5 Jan, excluding New Year’s Day and the weekend.
+        expect(barStyles(html)[0]).toEqual({ left: 73 / 84 * 100, width: 6 / 84 * 100 });
+        expect(html).toContain("5 Jan 27");
     });
     it("uses rolled-forward dated starts and inclusive finishes for the same connector as the bars", () => {
         const html = render([phase(4, 2), { ...phase(5, 1), dependsOn: [0] }]);
@@ -470,7 +496,7 @@ describe("dependency connectors use actual displayed bar endpoints", () => {
         }
         const phasesRef = hooks.refs[6] as { current: PlannerPhase[] };
         hooks.refs[0].current = { getBoundingClientRect: () => ({ width: 280 }) };
-        hooks.callbacks[0]({ preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: 100 } as unknown as MouseEvent, 0, "move");
+        mouseDown({ preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: 100 } as unknown as MouseEvent, 0, "move");
         listeners.get("mousemove")!({ clientX: 180 });
         const mid = hooks.updates.filter((value): value is PlannerPhase[] => Array.isArray(value)).at(-1);
         if (mid) phasesRef.current = mid;

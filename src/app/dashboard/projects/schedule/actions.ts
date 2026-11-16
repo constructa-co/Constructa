@@ -15,8 +15,8 @@ import { COHORT_AI_UNAVAILABLE } from "@/lib/cohort-ai/shared";
 import { IsoDate, UpdatePhasesSchema, parseInput } from "@/lib/validation/schemas";
 import { writeProgrammeStorage } from "@/lib/server/programme-storage";
 import { resolveJobWorkingPattern } from "@/lib/job-working-pattern";
-import { estimateSuggestedPhases, type PlannerPhase } from "@/lib/planner-phases";
-import { programmeHasCircularDependencies, PROGRAMME_CIRCULAR_DEPENDENCY_ERROR } from "@/lib/programme-phase-dependencies";
+import { estimateSectionsFromWork, estimateSuggestedPhases, sequenceSuggestedPhases, type PlannerPhase } from "@/lib/planner-phases";
+import { validateProgrammeDependencies } from "@/lib/programme-phase-dependencies";
 import { WORKING_DAYS_PER_WEEK } from "@/lib/programme-plan";
 
 // This separate argument is deliberately not parsed by UpdatePhasesSchema, which strips unknown keys.
@@ -104,9 +104,8 @@ export async function updatePhasesAction(
     expectedWorkingPattern?: unknown,
 ): Promise<{ success: true } | { success: false; error: string }> {
     const input = parseInput(UpdatePhasesSchema, { projectId, phases, startDate }, "programme phases");
-    if (programmeHasCircularDependencies(input.phases)) {
-        return { success: false, error: PROGRAMME_CIRCULAR_DEPENDENCY_ERROR };
-    }
+    const dependencyCheck = validateProgrammeDependencies(input.phases);
+    if (!dependencyCheck.ok) return { success: false, error: dependencyCheck.error };
     // This shared autosave also carries post-award live tracking fields
     // (`pct_complete` and actual dates). Keep ownership enforcement here, but
     // do not apply the pre-contract lock to the whole payload or accepted jobs
@@ -168,7 +167,11 @@ export async function getEstimatePhasesAction(
     if (hasLabourHours) throw new Error("Could not place the estimate stages. Check the programme start date and working days.");
 
     const estimateLines = estimate.estimate_lines || [];
-    if (estimateLines.length > 0) return [];
+    if (estimateLines.length > 0) {
+        const sections = estimateSectionsFromWork(estimate, pattern);
+        if (sections.length === 0) return [];
+        return sequenceSuggestedPhases(sections, WORKING_DAYS_PER_WEEK, undefined, pattern);
+    }
 
     const { data: proj } = await supabase
         .from("projects")
@@ -193,7 +196,8 @@ export async function saveProgrammePhasesAction(
     expectedWorkingPattern?: unknown,
     startDate?: string,
 ): Promise<void> {
-    if (programmeHasCircularDependencies(phases)) throw new Error(PROGRAMME_CIRCULAR_DEPENDENCY_ERROR);
+    const dependencyCheck = validateProgrammeDependencies(phases);
+    if (!dependencyCheck.ok) throw new Error(dependencyCheck.error);
     const { user, supabase } = await requireEditableProjectAccess(projectId);
     await writeProgrammeStorage(supabase, user.id, projectId, {
         phases,

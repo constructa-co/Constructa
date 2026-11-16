@@ -451,4 +451,36 @@ describe("dependency connectors use actual displayed bar endpoints", () => {
         expect(connectors(html)).toEqual([]);
         expect(barStyles(html)).toEqual([{ left: 0, width: 5 / 28 * 100 }, { left: 75, width: 5 / 28 * 100 }]);
     });
+
+    it("CON-030: client mouseup handler cascades A → B → C and refreshes start_date fields", () => {
+        const saved = [
+            phase(0, 5),
+            { ...phase(7, 5), dependsOn: [0], start_date: "2026-10-26" },
+            { ...phase(14, 5), dependsOn: [1], start_date: "2026-11-02" },
+        ];
+        render(saved);
+        const listeners = new Map<string, (event: { clientX: number }) => void>();
+        vi.stubGlobal("document", {
+            addEventListener: (name: string, callback: (event: { clientX: number }) => void) => listeners.set(name, callback),
+            removeEventListener: (name: string) => listeners.delete(name),
+        });
+        for (const effect of hooks.effects) {
+            const cleanup = effect();
+            if (cleanup) cleanups.push(cleanup);
+        }
+        const phasesRef = hooks.refs[6] as { current: PlannerPhase[] };
+        hooks.refs[0].current = { getBoundingClientRect: () => ({ width: 280 }) };
+        hooks.callbacks[0]({ preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: 100 } as unknown as MouseEvent, 0, "move");
+        listeners.get("mousemove")!({ clientX: 180 });
+        const mid = hooks.updates.filter((value): value is PlannerPhase[] => Array.isArray(value)).at(-1);
+        if (mid) phasesRef.current = mid;
+        listeners.get("mouseup")!({ clientX: 180 });
+        const finalUpdate = hooks.updates.filter((value): value is PlannerPhase[] => Array.isArray(value)).at(-1);
+        expect(finalUpdate?.map(p => p.startOffset)).toEqual([7, 14, 21]);
+        expect(finalUpdate?.every(p => p.calculatedDays === 5 && p.manualDays === 5)).toBe(true);
+        const second = finalUpdate?.[1] as PlannerPhase & { start_date?: string };
+        const third = finalUpdate?.[2] as PlannerPhase & { start_date?: string };
+        expect(second.start_date).toBe("2026-11-02");
+        expect(third.start_date).toBe("2026-11-09");
+    });
 });

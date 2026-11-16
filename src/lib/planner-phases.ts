@@ -115,12 +115,14 @@ export function sequenceSuggestedPhases<T extends Pick<PlannerPhase, "name" | "c
     startDate?: string,
     workingPattern?: unknown,
 ): Array<T & { startOffset: number }> {
-    if (startDate && workingPattern !== undefined) return sequencePlannerPhases(
-        phases.map(phase => ({ ...phase, name: suggestedStageName(phase.name) })), startDate, workingPattern,
-    ) ?? [];
+    const named = phases.map(phase => ({ ...phase, name: suggestedStageName(phase.name) }));
+    if (startDate && workingPattern !== undefined) {
+        const placed = sequencePlannerPhases(named, startDate, workingPattern);
+        if (placed && placed.length === phases.length) return placed;
+    }
     let offset = 0;
-    return phases.map((phase) => {
-        const placed = { ...phase, name: suggestedStageName(phase.name), startOffset: offset };
+    return named.map((phase) => {
+        const placed = { ...phase, startOffset: offset };
         offset += plannerCalendarDays(phase.manualDays ?? phase.calculatedDays, daysPerWeek);
         return placed;
     });
@@ -132,15 +134,20 @@ type EstimateSectionRollup = {
     zeroQuantityLines: number;
 };
 
-/** Stages worked out from estimate work: labour hours per section, or named placeholders when hours are missing. */
-export function estimateSuggestedPhases(estimate: PlannerEstimate | null | undefined, daysPerWeek: number, startDate?: string, workingPattern?: unknown): PlannerPhase[] {
+/**
+ * Unsequenced stages from estimate lines: labour durations, named placeholders
+ * when lines have no hours, and review flags for explicit zero-quantity work.
+ */
+export function estimateSectionsFromWork(
+    estimate: PlannerEstimate | null | undefined,
+    workingPattern?: unknown,
+): Omit<PlannerPhase, "startOffset">[] {
     const hoursPerDay = jobProductiveMinutesPerDay(workingPattern) / 60;
     const sections = new Map<string, EstimateSectionRollup>();
     for (const line of estimate?.estimate_lines ?? []) {
         const hours = (line.estimate_line_components ?? []).reduce((sum, component) => sum + (component.total_manhours || 0), 0);
         const section = line.trade_section || SIMPLE_LINE_SECTION;
         const entry = sections.get(section) ?? { totalManhours: 0, linesWithWork: 0, zeroQuantityLines: 0 };
-        // A missing quantity counts as one; an explicit quantity of 0 is no work.
         const quantity = line.quantity ?? 1;
         if (quantity === 0) {
             entry.zeroQuantityLines += 1;
@@ -150,7 +157,7 @@ export function estimateSuggestedPhases(estimate: PlannerEstimate | null | undef
         }
         sections.set(section, entry);
     }
-    const phases: Omit<PlannerPhase, "startOffset">[] = [...sections.entries()]
+    return [...sections.entries()]
         .filter(([, rollup]) => rollup.totalManhours > 0 || rollup.linesWithWork > 0 || rollup.zeroQuantityLines > 0)
         .map(([name, rollup]) => {
             const stageName = suggestedStageName(name);
@@ -178,7 +185,13 @@ export function estimateSuggestedPhases(estimate: PlannerEstimate | null | undef
                 needsReview: true,
             };
         });
-    return sequenceSuggestedPhases(phases, daysPerWeek, startDate, workingPattern);
+}
+
+/** Stages worked out from estimate work: labour hours per section, or named placeholders when hours are missing. */
+export function estimateSuggestedPhases(estimate: PlannerEstimate | null | undefined, daysPerWeek: number, startDate?: string, workingPattern?: unknown): PlannerPhase[] {
+    return sequenceSuggestedPhases(
+        estimateSectionsFromWork(estimate, workingPattern), daysPerWeek, startDate, workingPattern,
+    );
 }
 
 export interface PlannerOpening {

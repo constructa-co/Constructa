@@ -339,9 +339,15 @@ function scopeSection(snapshot: ProposalPublicationSnapshot): DocSection | null 
     return { id: "scope", title: "Scope of works", blocks };
 }
 
-function quantityLabel(quantity: number, unit: string): string {
+/** Units that are words, read with a count from presentation 5: "3 days", never "3 day". Symbols such as m2, nr and kg take no plural. */
+const COUNTED_UNITS: Record<string, string> = { item: "items", day: "days", week: "weeks", hour: "hours", tonne: "tonnes" };
+
+function quantityLabel(quantity: number, unit: string, presentation: number): string {
     const single = quantity === 1 && ["item", "sum", ""].includes(unit.trim().toLowerCase());
-    return single || !(quantity > 0) ? "" : `${Number(quantity.toFixed(3))} ${unit}`.trim();
+    if (single || !(quantity > 0)) return "";
+    const count = Number(quantity.toFixed(3));
+    const plural = presentation >= 5 && count !== 1 ? COUNTED_UNITS[unit.trim().toLowerCase()] : undefined;
+    return `${count} ${plural ?? unit}`.trim();
 }
 
 /** How VAT is stated. Identical wherever the price appears. */
@@ -424,28 +430,60 @@ export function paymentRows(commercial: ProposalPublicationSnapshot["commercial"
     });
 }
 
-function priceSection(snapshot: ProposalPublicationSnapshot): DocSection | null {
+/** The estimate's filing label for a line given no activity. It is not a heading the client needs. */
+const GENERAL_SECTION = "General";
+const PRELIMINARIES_SECTION = "Preliminaries";
+
+/**
+ * The price lines under their headings, each group in the order its first
+ * line was priced.
+ *
+ * Before presentation 5 the grouping is the one the snapshot was issued
+ * with: exact title matches and, from 3, a lone generic heading left out.
+ * From 5: sections that differ only in capitals are one group; lines filed
+ * under "General" lead the list with no heading, whatever else is priced;
+ * and preliminaries close it, whether they were priced as lines or as a
+ * percentage.
+ */
+function priceGroups(snapshot: ProposalPublicationSnapshot): DocPriceGroup[] {
     const commercial = snapshot.commercial;
-    if (!(commercial.contract_sum_ex_vat > 0)) return null;
+    const presentation = documentPresentationVersion(snapshot);
+    const regroup = presentation >= 5;
+    const sameSection = (title: string | null, section: string) =>
+        regroup ? title?.trim().toLowerCase() === section.trim().toLowerCase() : title === section;
 
     const groups: DocPriceGroup[] = [];
     for (const item of commercial.fee_items) {
-        let group = groups.find((candidate) => candidate.title === item.trade_section);
+        let group = groups.find((candidate) => sameSection(candidate.title, item.trade_section));
         if (!group) {
             group = { title: item.trade_section, items: [] };
             groups.push(group);
         }
         group.items.push({
             description: item.description,
-            quantity: quantityLabel(item.quantity, item.unit),
+            quantity: quantityLabel(item.quantity, item.unit, presentation),
             amount: formatGbp(item.amount_ex_vat),
         });
     }
     if (groups.length === 1 && groups[0].title) {
         groups[0].title = snapshotFeeSectionTitle(snapshot, groups[0].title);
+        return groups;
     }
+    if (!regroup) return groups;
+
+    const general = groups.filter((group) => sameSection(group.title, GENERAL_SECTION));
+    const preliminaries = groups.filter((group) => sameSection(group.title, PRELIMINARIES_SECTION));
+    const named = groups.filter((group) => !general.includes(group) && !preliminaries.includes(group));
+    general.forEach((group) => { group.title = null; });
+    return [...general, ...named, ...preliminaries];
+}
+
+function priceSection(snapshot: ProposalPublicationSnapshot): DocSection | null {
+    const commercial = snapshot.commercial;
+    if (!(commercial.contract_sum_ex_vat > 0)) return null;
 
     const presentation = documentPresentationVersion(snapshot);
+    const groups = priceGroups(snapshot);
     const blocks: DocBlock[] = [{
         type: "price",
         groups,

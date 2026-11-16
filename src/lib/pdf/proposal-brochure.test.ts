@@ -235,6 +235,55 @@ describe("text and file name", () => {
         const doc = buildProposalDocument(buildProposalPublicationSnapshot(representativeInput()));
         expect(brochureFilename(doc)).toBe("14_Example_Road_bathroom_refit_Proposal_22222222-V1.pdf");
     });
+
+    it("D51 keeps accented letters in the file name and never leaves it empty", () => {
+        const doc = buildProposalDocument(buildProposalPublicationSnapshot(representativeInput()));
+        expect(brochureFilename({ ...doc, title: "Café Müller – loft (rear)" })).toBe("Café_Müller_loft_rear_Proposal_22222222-V1.pdf");
+        expect(brochureFilename({ ...doc, title: " – / – " })).toBe("Proposal_Proposal_22222222-V1.pdf");
+    });
+
+    it("D51 ends a long job name at a whole word so the file can be saved", () => {
+        const doc = buildProposalDocument(buildProposalPublicationSnapshot(representativeInput()));
+        const twelveWords = Array.from({ length: 12 }, () => "Word").join("_");
+        expect(brochureFilename({ ...doc, title: Array.from({ length: 40 }, () => "Word").join(" ") })).toBe(`${twelveWords}_Proposal_22222222-V1.pdf`);
+        expect(brochureFilename({ ...doc, title: "x".repeat(200) })).toBe(`${"x".repeat(60)}_Proposal_22222222-V1.pdf`);
+    });
+});
+
+describe("D51 nothing is cut to one line", () => {
+    /** Every string drawn, page by page, in order. */
+    function drawn(result: BrochureResult): string[] {
+        const internal = result.doc.internal as unknown as { pages: Array<string[] | undefined> };
+        return internal.pages.flatMap((page) => (page ?? []).flatMap((operation) =>
+            [...String(operation).matchAll(/\(((?:\\.|[^\\)])*)\)\s*Tj/g)].map((match) => match[1].replace(/\\([()\\])/g, "$1"))));
+    }
+
+    it("draws a long programme stage name in full and moves its bar down", () => {
+        const input = representativeInput();
+        (input.project.programme_phases as Array<{ name: string }>)[0].name = "Strip out the bathroom, cap the services and protect the hallway parquet";
+        const { result } = render(input);
+        expectSoundLayout(result);
+        expect(drawn(result).join(" ")).toContain("parquet");
+        const stages = result.layout.filter((entry) => entry.section === "programme" && entry.kind === "row").slice(1);
+        expect(stages).toHaveLength(4);
+        expect(stages[0].bottom - stages[0].top).toBeGreaterThan(13);
+        stages.slice(1).forEach((stage) => expect(stage.bottom - stage.top).toBeCloseTo(13, 2));
+    });
+
+    it("writes a long client name in full beside the signature lines", () => {
+        const input = representativeInput();
+        input.project.client_name = "Mr Alexander Featherstonehaugh and Mrs Josephine Featherstonehaugh-Quartermaine";
+        const { result } = render(input);
+        expectSoundLayout(result);
+        // Once on the cover and once more by the client's signature.
+        expect(drawn(result).filter((text) => text.includes("Quartermaine")).length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("leaves a short stage name and client name laid out as before", () => {
+        const { result } = render(representativeInput());
+        const stages = result.layout.filter((entry) => entry.section === "programme" && entry.kind === "row").slice(1);
+        stages.forEach((stage) => expect(stage.bottom - stage.top).toBeCloseTo(13, 2));
+    });
 });
 
 describe("compact page composition (A075)", () => {

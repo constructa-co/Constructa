@@ -132,18 +132,22 @@ export interface ProposalPhoto {
 }
 
 /** PDF layout generation. Omitted on snapshots issued before headline price deduplication. */
-export type ProposalDocumentPresentationVersion = 1 | 2 | 3 | 4;
+export type ProposalDocumentPresentationVersion = 1 | 2 | 3 | 4 | 5;
 
 /** Written on every new snapshot. Issued snapshots keep the version they were sent with. */
-export const CURRENT_DOCUMENT_PRESENTATION_VERSION: ProposalDocumentPresentationVersion = 4;
+export const CURRENT_DOCUMENT_PRESENTATION_VERSION: ProposalDocumentPresentationVersion = 5;
 
 export interface ProposalPublicationSnapshot {
     schema_version: 1;
     /**
      * From 2, cover states the authoritative price and the price section avoids repeating it.
+     * From 2, cover states the authoritative price and the price section avoids repeating it.
      * From 3, a placeholder job type and a generic lone price heading are left out.
      * From 4, a director's message used as the closing wording is shown once, and the PDF
      * prints a long programme stage name in full.
+     * From 5, the price lines drop the "General" filing heading, keep preliminaries last,
+     * word counted units in the plural, and the PDF writes a long client name in full by
+     * the signature. A snapshot issued under an earlier version keeps its layout.
      */
     document_presentation_version?: ProposalDocumentPresentationVersion;
     publication: {

@@ -3,9 +3,9 @@ import { E2EConfigurationError } from "./env";
 import { EPHEMERAL_REPLAY_PROJECT_REF, readEphemeralReplayEnv } from "./ephemeral-replay-env";
 
 const SIGNATURE = "not-a-real-signature";
-function key(ref: string, role: string): string {
+function key(ref: string | undefined, role: string, iss = "supabase"): string {
     const part = (value: object) => Buffer.from(JSON.stringify(value)).toString("base64url");
-    return `${part({ alg: "HS256", typ: "JWT" })}.${part({ iss: "supabase", ref, role })}.${SIGNATURE}`;
+    return `${part({ alg: "HS256", typ: "JWT" })}.${part({ iss, ref, role })}.${SIGNATURE}`;
 }
 
 function baseEnv(overrides: Record<string, string | undefined> = {}): Record<string, string> {
@@ -26,6 +26,18 @@ describe("readEphemeralReplayEnv", () => {
         const env = readEphemeralReplayEnv(baseEnv() as NodeJS.ProcessEnv);
         expect(env.projectRef).toBe(EPHEMERAL_REPLAY_PROJECT_REF);
         expect(env.supabaseUrl).toBe("http://127.0.0.1:54321");
+    });
+
+    it("accepts role-matched CLI JWTs without a hosted project reference", () => {
+        const env = baseEnv({
+            NEXT_PUBLIC_SUPABASE_ANON_KEY: key(undefined, "anon", "supabase-demo"),
+            SUPABASE_SERVICE_ROLE_KEY: key(undefined, "service_role", "supabase-demo"),
+        });
+        expect(readEphemeralReplayEnv(env).projectRef).toBe(EPHEMERAL_REPLAY_PROJECT_REF);
+        expect(() => readEphemeralReplayEnv({
+            ...env,
+            SUPABASE_SERVICE_ROLE_KEY: key("another-hosted-project", "service_role", "supabase-demo"),
+        })).toThrow(E2EConfigurationError);
     });
 
     it("fails closed on hosted Supabase URLs", () => {

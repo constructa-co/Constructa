@@ -25,7 +25,7 @@ export interface EphemeralReplayEnv extends E2EEnv {
     signupPassword: string;
 }
 
-function jwtClaims(token: string): { ref?: unknown; role?: unknown } | null {
+function jwtClaims(token: string): { ref?: unknown; role?: unknown; iss?: unknown } | null {
     const payload = token.split(".")[1];
     if (!payload) return null;
     try {
@@ -101,7 +101,8 @@ export function readEphemeralReplayEnv(source: NodeJS.ProcessEnv = process.env):
     ] as const) {
         if (!key) continue;
         const claims = jwtClaims(key);
-        if (!claims || claims.ref !== approved || claims.role !== role) {
+        const isLocalCliKey = claims?.iss === "supabase-demo" && claims.ref === undefined;
+        if (!claims || claims.role !== role || (claims.ref !== approved && !isLocalCliKey)) {
             problems.push(`${name} is not the ${role} key of the ephemeral replay project (${approved}).`);
         }
     }

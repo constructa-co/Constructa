@@ -9,7 +9,20 @@
 | `src/app/dashboard/projects/proposal/review-send-client.tsx` | fixes, closing, draft ref UI | `siteAddress` fix link; MD message empty state + saved button; draft vs next issued reference | CON-036 UI; CON-037 explicit empty/saved MD message; CON-040 reference labelling |
 | `src/lib/proposal-document.ts` | preview id, `isDraftProposalDocument`, reference | Preview publication → reference `Draft`; issued uses `proposalReference` | CON-040 draft immutable distinction (no issued PDF / #178 changes) |
 | `src/app/dashboard/projects/proposal/publication-history-panel.tsx` | `projectId`, row labels | `data-issued-reference` per sent version | CON-040 correct issued reference display in history |
+| `src/lib/case-library/proposal-wiring.test.ts` | readiness baseline | Mandatory checklist includes `siteAddress`; case-study guards unchanged | CON-036 wiring regression with library hashes |
 | `src/lib/proposal-readiness.test.ts`, `proposal-document.test.ts`, `company-closing-entry.test.tsx`, `review-send-client.test.ts` | CON-036/037/040 cases | Focused Vitest (122 tests in 4 files) | Regression coverage per ID |
+
+## 2026-11-15 — D36 CON-005/014 PDF identity and price repair (cursor/d36-pdf-identity-and-price-repair-141e)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/proposal-document.ts` | presentation helpers, client name, price layout | Site-only client suppression; v2 cover authoritative price (incl. zero VAT); legacy layout when `document_presentation_version` absent | CON-005/014 + issued snapshot compat |
+| `src/lib/proposal-publication.ts` | snapshot + content hash | `document_presentation_version: 2` on new snapshots; excluded from content hash | Freeze layout without changing send fingerprint |
+| `src/lib/pdf/proposal-pdf-data.test.ts` | (new) | PDF counts, zero-VAT once, draft vs issued routes via `downloadProposalPdf` | Generated PDF data regression |
+| `src/lib/proposal-document.test.ts` | identity + legacy layout | Allow client same as job title; legacy totals when presentation version omitted | Document layer regression |
+| `src/components/proposal/proposal-metric-alignment.test.tsx` | reverse-charge key facts | Cover `Price` plus programme on zero VAT | Authoritative headline on cover |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | presend PDF copy | Draft watermark before issue; clean PDF from issued snapshots only | CON-014 export posture |
+| `src/lib/pdf/proposal-brochure.ts` | `responseBlock` | Pack receipt block toward page foot when terms share the page | A075 compact pagination after shorter price block |
 
 ## 2026-11-15 — D38 CON-007 recipient email confirmation (cursor/d38-con-007-proposal-email-default-off-20261115)
 

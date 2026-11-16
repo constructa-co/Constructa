@@ -942,8 +942,15 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
             if (room > 30) y = PAGE.contentTop + room / 2;
         } else {
             const slack = remaining() - need;
-            if (slack > 40) y += pad + Math.min(slack * 0.35, 28);
-            else y += pad;
+            if (slack > 60) {
+                // Terms and the receipt share a page: keep the receipt near the foot
+                // instead of floating high with a mostly blank lower third (A075).
+                y = PAGE.contentBottom - height - 12;
+            } else if (slack > 40) {
+                y += pad + Math.min(slack * 0.35, 28);
+            } else {
+                y += pad;
+            }
         }
         const top = y;
         pdf.setFillColor(...SOFT);

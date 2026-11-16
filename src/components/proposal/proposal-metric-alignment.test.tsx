@@ -74,7 +74,7 @@ describe("web proposal key facts share label and value rows", () => {
     });
 
     it.each([
-        ["no VAT: one Price fact plus the programme", () => buildProposalPublicationSnapshot({ ...representativeInput(), vatRate: 0, vatTreatment: "domestic_reverse_charge" }), ["Price", "Start on site", "Finish", "Duration"]],
+        ["no VAT: authoritative price and programme on the cover", () => buildProposalPublicationSnapshot({ ...representativeInput(), vatRate: 0, vatTreatment: "domestic_reverse_charge" }), ["Price", "Start on site", "Finish", "Duration"]],
         ["a start date with no plan: two facts", (s: ProposalPublicationSnapshot) => ({ ...s, programme_plan: undefined }), ["Price including VAT", "Start on site"]],
         ["programme deliberately omitted: price only", (s: ProposalPublicationSnapshot) => ({ ...s, programme_plan: undefined, programme_intent: "omit" as const }), ["Price including VAT"]],
     ])("%s", (_label, vary, labels) => {

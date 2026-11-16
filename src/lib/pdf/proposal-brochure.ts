@@ -572,7 +572,15 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
         const basisLines = wrap(`${programmeBasisNote(plan)} Coloured bars show duration. Vertical ticks mark starts, not extra days.`, PAGE.contentWidth, STYLES.small);
         const axisAndNoteHeight = Math.max(12, 6 + basisLines.length * STYLES.small.lineHeight);
         const headline: DocFact[] = programmeFacts(plan);
-        ensure(TIMELINE_FACTS + STAGE_ROW);
+        // A stage name too long for its column runs on to further lines, and
+        // its row grows to hold them. Proposals issued before presentation 4
+        // printed the first line only and are still drawn that way.
+        const stageNames = plan.stages.map((stage) => {
+            const nameLines = wrap(stage.name, PAGE.contentWidth - 78, STYLES.strong);
+            return document.presentationVersion >= 4 ? nameLines : nameLines.slice(0, 1);
+        });
+        const nameOverflow = (index: number) => Math.max(0, (stageNames[index]?.length ?? 0) - 1) * STYLES.strong.lineHeight;
+        ensure(TIMELINE_FACTS + STAGE_ROW + nameOverflow(0));
         const factsTop = y;
         const columnWidth = PAGE.contentWidth / 3;
         headline.forEach((fact, column) => {
@@ -589,9 +597,10 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
         plan.stages.forEach((stage, index) => {
             const isLast = index === plan.stages.length - 1;
             // The date axis and the basis note stay with the last stage.
-            ensure(STAGE_ROW + (isLast ? axisAndNoteHeight : 0));
+            const overflow = nameOverflow(index);
+            ensure(STAGE_ROW + overflow + (isLast ? axisAndNoteHeight : 0));
             const top = y;
-            drawBlockLines(wrap(stage.name, PAGE.contentWidth - 78, STYLES.strong).slice(0, 1), PAGE.left, top, STYLES.strong);
+            drawBlockLines(stageNames[index], PAGE.left, top, STYLES.strong);
             drawBlockLines(
                 [pdfText(`${programmeStageRange(plan, index)} - ${formatWorkingDuration(stage.working_days, plan.working_pattern)}`)],
                 PAGE.right, top + 0.6, STYLES.small, "right",
@@ -599,19 +608,20 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
             const bar = programmeStageBar(plan, index, 0);
             const barX = PAGE.left + (PAGE.contentWidth * bar.leftPct) / 100;
             const barWidth = (PAGE.contentWidth * bar.widthPct) / 100;
+            const barTop = top + overflow + 6.5;
             pdf.setFillColor(231, 229, 228);
-            pdf.roundedRect(PAGE.left, top + 6.5, PAGE.contentWidth, 2.6, 1.3, 1.3, "F");
+            pdf.roundedRect(PAGE.left, barTop, PAGE.contentWidth, 2.6, 1.3, 1.3, "F");
             pdf.setFillColor(...ACCENT);
             if (barWidth > 0) pdf.roundedRect(
                 barX,
-                top + 6.5,
+                barTop,
                 barWidth,
                 2.6, Math.min(1.3, barWidth / 2), 1.3, "F",
             );
             pdf.setDrawColor(...ACCENT);
             pdf.setLineWidth(0.25);
-            pdf.line(barX, top + 6, barX, top + 9.6);
-            y += STAGE_ROW;
+            pdf.line(barX, barTop - 0.5, barX, barTop + 3.1);
+            y += STAGE_ROW + overflow;
             log("row", top, y);
         });
 

@@ -1,3 +1,21 @@
+## D51 snags 027 / 038 / 039 / 059 — Proposal site photos, director's message, programme labels, terms gap — 16 November 2026
+
+Branch `claude/d51-proposal-evidence`. Presentation versioning resolved against #194 (`caf912d`, #186 label suppression shipped at v3): D51 layout changes are stamped v4; v1–v3 snapshots are drawn as issued. Checks NOT RUN in this session; see `d51-proposal-evidence.md`.
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `src/lib/proposal-site-photos.ts` | new | `sitePhotoOrigin`, `sitePhotosForJob`, `SITE_PHOTO_ELSEWHERE_ERROR` | 027: tell a photo uploaded for this job from one stored for another job, as branding or as a case study |
+| `src/lib/proposal-publication.ts` | 14, 134–147, 520–523, 590–597 | Snapshot and cover photo use only this job's site photos; `CURRENT_DOCUMENT_PRESENTATION_VERSION = 4` | 027: unrelated photo never previewed or sent; 038/039: new layout only on new snapshots |
+| `src/app/dashboard/projects/proposal/actions.ts` | 30, 136–141 | Draft save refuses a photo that belongs elsewhere, before any write | 027: unrelated photo never saved to the job |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | 36, 810–814, 1151 | Inline notice on a saved photo that is left out; closing helper copy states the message is shown once | 027 visibility; 038 copy matches behaviour |
+| `src/lib/proposal-document.ts` | 86–87, 213–231, 518 | From presentation 4, director's message already used as the closing is not repeated under About; `presentationVersion` on the document | 038: message shown once; issued snapshots unchanged |
+| `src/lib/pdf/proposal-brochure.ts` | 575–583, 600–624 | From presentation 4, a long stage name wraps and its row grows; earlier snapshots keep the first-line layout | 039: no clipped stage label in new PDFs; issued PDFs unchanged |
+| `src/lib/proposal-site-photos.test.ts` | new | Origin rules, snapshot/document/preview filtering, issued snapshot untouched | 027 regression |
+| `src/app/dashboard/projects/proposal/actions.test.ts` | 23, 56–57, 257–300 | Save refusal without write; publish omits another job's photo with reviewed-content parity | 027 regression |
+| `src/lib/proposal-document.test.ts` | 401–480 | Message once on page and PDF; presentations 2 / 3 / absent still show both; full stage name in PDF; presentations 2 / 3 keep one-line rows | 038 / 039 regression |
+| `docs/delivery/2026-11-16/d51-terms-gap.md` | new | Terms gap described from source, quoting existing clauses only | 059: documented, no wording changed |
+| `docs/delivery/2026-11-16/d51-proposal-evidence.md` | new | Scope, behaviour, evidence limits, owner decisions | Handoff evidence |
+
 ## D49 P2 visual bundle CON-055–060 — 16 November 2026
 ## D57 PR #184 repair — postcode gates in the browser, UK date copy — 16 November 2026
 

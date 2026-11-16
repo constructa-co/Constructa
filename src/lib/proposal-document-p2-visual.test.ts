@@ -66,8 +66,8 @@ describe("CON-055 suppression applies from presentation version 3 only", () => {
         return facts.items.find((fact) => fact.label === "Type of work")?.value ?? null;
     };
 
-    it("stamps every newly built snapshot, draft preview or sent, with version 3", () => {
-        expect(buildProposalPublicationSnapshot(representativeInput()).document_presentation_version).toBe(3);
+    it("stamps every newly built snapshot, draft preview or sent, with the current version", () => {
+        expect(buildProposalPublicationSnapshot(representativeInput()).document_presentation_version).toBe(4);
     });
 
     it.each<[Issued, string, string]>([

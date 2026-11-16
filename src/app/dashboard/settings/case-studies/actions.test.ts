@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
     generateStructured: vi.fn(),
     order: [] as string[],
 }));
+vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/auth-utils", () => ({ requireAuth: mocks.requireAuth }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: mocks.createAdminClient }));
 vi.mock("@/lib/cohort-ai/case-study-enhance-enabled", () => ({

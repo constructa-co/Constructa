@@ -10,6 +10,8 @@ import { JOB_TYPE_EXAMPLES } from "@/lib/job-type-options";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import ManualAddressEntry from "@/components/manual-address-entry";
 import PostcodeAddressPicker from "@/components/postcode-address-picker";
+import UkDateInput from "@/components/uk-date-input";
+import { clientPostcodeLookup } from "@/lib/postcode-address-provider";
 import { coreFocusRing } from "@/lib/core-editing-palette";
 
 // --- Inline UI Components ---
@@ -248,7 +250,13 @@ export default function ClientProjectSettings({
                             </div>
                             <div className="space-y-1.5">
                                 <Label htmlFor="start_date">Target Start Date</Label>
-                                <Input id="start_date" name="start_date" type="date" defaultValue={project.start_date || ""} />
+                                <UkDateInput
+                                    id="start_date"
+                                    name="start_date"
+                                    defaultValue={project.start_date || ""}
+                                    className={inputCls}
+                                    mutedClassName={muted}
+                                />
                             </div>
                         </div>
                         <div className="grid sm:grid-cols-2 gap-4">
@@ -321,6 +329,7 @@ export default function ClientProjectSettings({
                             <Label htmlFor="client_address">Client Address</Label>
                             <PostcodeAddressPicker
                                 idPrefix="settings-client-picker"
+                                lookup={clientPostcodeLookup()}
                                 disabled={!!lockReason || isPending}
                                 onSelect={(preview) => applyAddressField("client_address", preview)}
                                 isDark={isDark}
@@ -349,6 +358,7 @@ export default function ClientProjectSettings({
                             <Label htmlFor="site_address">Site Address (if different)</Label>
                             <PostcodeAddressPicker
                                 idPrefix="settings-site-picker"
+                                lookup={clientPostcodeLookup()}
                                 disabled={!!lockReason || isPending}
                                 onSelect={(preview) => applyAddressField("site_address", preview)}
                                 isDark={isDark}

@@ -2,7 +2,7 @@
 
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
-Current count: 12 merged, 54 in progress, 9 in review, 10 Rob-gated, 0 not started.
+Current count: 15 merged, 51 in progress, 9 in review, 10 Rob-gated, 0 not started.
 
 | --- | --- | --- | --- | --- | --- |
 | CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
@@ -26,7 +26,7 @@ Current count: 12 merged, 54 in progress, 9 in review, 10 Rob-gated, 0 not start
 | CON-019 | P1 | Claude | — | in progress | D51 batch 03 — Proposal PDF pricing |
 | CON-020 | P1 | Claude | — | in progress | D51 batch 03 — Proposal PDF pricing |
 | CON-021 | P1 | Claude | — | in progress | D51 batch 03 — Proposal PDF pricing |
-| CON-022 | P1 | Cursor / Claude | [#181](https://github.com/constructa-co/Constructa/pull/181) | in progress | — |
+| CON-022 | P1 | Cursor / Claude | [#181](https://github.com/constructa-co/Constructa/pull/181) | merged | Kimi PASS and GitHub CI green. |
 | CON-023 | P1 | Claude | — | in progress | D51 batch 01 — Profile, save and sign-in |
 | CON-024 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | in progress | — |
 | CON-025 | P1 | Cursor | [#185](https://github.com/constructa-co/Constructa/pull/185) | in progress | — |
@@ -35,8 +35,8 @@ Current count: 12 merged, 54 in progress, 9 in review, 10 Rob-gated, 0 not start
 | CON-028 | P1 | Cursor / Grok | [#180](https://github.com/constructa-co/Constructa/pull/180) | merged | — |
 | CON-029 | P1 | Cursor / Grok | [#180](https://github.com/constructa-co/Constructa/pull/180) | merged | — |
 | CON-030 | P1 | Cursor / Grok | [#180](https://github.com/constructa-co/Constructa/pull/180) | merged | — |
-| CON-031 | P1 | Cursor / Claude | [#181](https://github.com/constructa-co/Constructa/pull/181) | in progress | — |
-| CON-032 | P1 | Cursor / Claude | [#181](https://github.com/constructa-co/Constructa/pull/181) | in progress | — |
+| CON-031 | P1 | Cursor / Claude | [#181](https://github.com/constructa-co/Constructa/pull/181) | merged | Kimi PASS and GitHub CI green. |
+| CON-032 | P1 | Cursor / Claude | [#181](https://github.com/constructa-co/Constructa/pull/181) | merged | Kimi PASS and GitHub CI green. |
 | CON-033 | P1 | Claude | — | in progress | D51 batch 02 — Estimate pricing |
 | CON-034 | P1 | Cursor | [#184](https://github.com/constructa-co/Constructa/pull/184) | in progress | — |
 | CON-035 | P1 | Cursor | [#184](https://github.com/constructa-co/Constructa/pull/184) | in progress | — |

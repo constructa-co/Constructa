@@ -20,6 +20,11 @@ import {
 import { addJobWorkingDays, jobCalendarOffset, jobProductiveMinutesPerDay, nextJobWorkingDayAfter, resolveJobWorkingPattern, resolveProgrammeCalendar } from "@/lib/job-working-pattern";
 import { resolveUkBankHolidayDivision } from "@/lib/uk-bank-holidays";
 import { programmeBasisNote } from "@/lib/relative-programme";
+import {
+    PROGRAMME_CIRCULAR_DEPENDENCY_ERROR,
+    reconcileDependenciesAfterMove,
+    wouldCreateCircularDependency,
+} from "@/lib/programme-phase-dependencies";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 // Working days for lengths, calendar days from the project start for offsets.
@@ -497,10 +502,23 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
         };
 
         const onMouseUp = () => {
-            if (dragStateRef.current) {
-                dragStateRef.current = null;
-                setIsDragging(false);
-            }
+            const drag = dragStateRef.current;
+            if (!drag) return;
+            dragStateRef.current = null;
+            setIsDragging(false);
+            if (drag.type !== "move") return;
+            const currentOffset = phasesRef.current[drag.phaseIndex]?.startOffset;
+            if (currentOffset === undefined || currentOffset === drag.originalValue) return;
+            const before = phasesRef.current;
+            setPhases(() => {
+                const reconciled = reconcileDependenciesAfterMove(before, drag.phaseIndex, daysPerWeek);
+                return reconciled.map((p, i) => {
+                    if (p.startOffset === before[i].startOffset) return p;
+                    return ("start_date" in p
+                        ? { ...p, start_date: toInputDate(addDays(programmeStart, p.startOffset)) }
+                        : p);
+                });
+            });
         };
 
         document.addEventListener("mousemove", onMouseMove);
@@ -523,6 +541,10 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
     const handleSetDependency = (idx: number, val: string) => {
         const depIdx = val === "" ? -1 : parseInt(val, 10);
+        if (depIdx >= 0 && wouldCreateCircularDependency(phases, idx, depIdx)) {
+            toast.error(PROGRAMME_CIRCULAR_DEPENDENCY_ERROR);
+            return;
+        }
         setPhases((prev) => {
             const u = [...prev];
             u[idx] = { ...u[idx], dependsOn: depIdx >= 0 ? [depIdx] : [] };

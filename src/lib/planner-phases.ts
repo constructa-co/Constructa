@@ -127,41 +127,83 @@ export function sequenceSuggestedPhases<T extends Pick<PlannerPhase, "name" | "c
     startDate?: string,
     workingPattern?: unknown,
 ): Array<T & { startOffset: number }> {
-    if (startDate && workingPattern !== undefined) return sequencePlannerPhases(
-        phases.map(phase => ({ ...phase, name: suggestedStageName(phase.name) })), startDate, workingPattern,
-    ) ?? [];
+    const named = phases.map(phase => ({ ...phase, name: suggestedStageName(phase.name) }));
+    if (startDate && workingPattern !== undefined) {
+        const placed = sequencePlannerPhases(named, startDate, workingPattern);
+        if (placed && placed.length === phases.length) return placed;
+    }
     let offset = 0;
-    return phases.map((phase) => {
-        const placed = { ...phase, name: suggestedStageName(phase.name), startOffset: offset };
+    return named.map((phase) => {
+        const placed = { ...phase, startOffset: offset };
         offset += plannerCalendarDays(phase.manualDays ?? phase.calculatedDays, daysPerWeek);
         return placed;
     });
 }
 
-/** Stages worked out from the labour hours in an estimate, one per section that has any. */
-export function estimateSuggestedPhases(estimate: PlannerEstimate | null | undefined, daysPerWeek: number, startDate?: string, workingPattern?: unknown): PlannerPhase[] {
+type EstimateSectionRollup = {
+    totalManhours: number;
+    linesWithWork: number;
+    zeroQuantityLines: number;
+};
+
+/**
+ * Unsequenced stages from estimate lines: labour durations, named placeholders
+ * when lines have no hours, and review flags for explicit zero-quantity work.
+ */
+export function estimateSectionsFromWork(
+    estimate: PlannerEstimate | null | undefined,
+    workingPattern?: unknown,
+): Omit<PlannerPhase, "startOffset">[] {
     const hoursPerDay = jobProductiveMinutesPerDay(workingPattern) / 60;
-    const sections = new Map<string, { perUnit: number; total: number }>();
+    const sections = new Map<string, EstimateSectionRollup>();
     for (const line of estimate?.estimate_lines ?? []) {
         const hours = (line.estimate_line_components ?? []).reduce((sum, component) => sum + (component.total_manhours || 0), 0);
         const section = line.trade_section || SIMPLE_LINE_SECTION;
-        // A missing quantity counts as one; an explicit quantity of 0 is no work.
+        const entry = sections.get(section) ?? { totalManhours: 0, linesWithWork: 0, zeroQuantityLines: 0 };
         const quantity = line.quantity ?? 1;
-        const entry = sections.get(section) ?? { perUnit: 0, total: 0 };
-        entry.perUnit += hours;
-        entry.total += hours * quantity;
+        if (quantity === 0) {
+            entry.zeroQuantityLines += 1;
+        } else {
+            entry.linesWithWork += 1;
+            entry.totalManhours += hours * quantity;
+        }
         sections.set(section, entry);
     }
-    const phases: Omit<PlannerPhase, "startOffset">[] = [...sections.entries()]
-        .filter(([, { perUnit, total }]) => perUnit > 0 || total > 0)
-        .map(([name, { total }]) => ({
-            name,
-            calculatedDays: total > 0 ? Math.max(Math.ceil(total / hoursPerDay), 1) : 0,
-            manualDays: null,
-            manhours: total,
-            ...(total > 0 ? {} : { needsReview: true }),
-        }));
-    return sequenceSuggestedPhases(phases, daysPerWeek, startDate, workingPattern);
+    return [...sections.entries()]
+        .filter(([, rollup]) => rollup.totalManhours > 0 || rollup.linesWithWork > 0 || rollup.zeroQuantityLines > 0)
+        .map(([name, rollup]) => {
+            const stageName = suggestedStageName(name);
+            if (rollup.totalManhours > 0) {
+                return {
+                    name: stageName,
+                    calculatedDays: Math.max(Math.ceil(rollup.totalManhours / hoursPerDay), 1),
+                    manualDays: null,
+                    manhours: rollup.totalManhours,
+                };
+            }
+            if (rollup.linesWithWork > 0) {
+                return {
+                    name: stageName,
+                    calculatedDays: WORKING_DAYS_PER_WEEK,
+                    manualDays: null,
+                    manhours: 0,
+                };
+            }
+            return {
+                name: stageName,
+                calculatedDays: 0,
+                manualDays: null,
+                manhours: 0,
+                needsReview: true,
+            };
+        });
+}
+
+/** Stages worked out from estimate work: labour hours per section, or named placeholders when hours are missing. */
+export function estimateSuggestedPhases(estimate: PlannerEstimate | null | undefined, daysPerWeek: number, startDate?: string, workingPattern?: unknown): PlannerPhase[] {
+    return sequenceSuggestedPhases(
+        estimateSectionsFromWork(estimate, workingPattern), daysPerWeek, startDate, workingPattern,
+    );
 }
 
 export interface PlannerOpening {

@@ -2,6 +2,7 @@ import { NewsletterSignup } from './newsletter-signup';
 import Link from 'next/link';
 import { ArrowDown, ArrowRight, Check, Plus } from 'lucide-react';
 import { HomeBusinessVisual } from './home-business-visual';
+import { MarketingMobileMenu } from './marketing-mobile-menu';
 import { ProductReviewGuide } from './product-review-guide';
 import { ProductScreenshots } from './product-screenshots';
 import ui from './phase-one.module.css';
@@ -20,23 +21,14 @@ export function MarketingHeader() {
         <Link className={ui.brand} href="/" aria-label="Constructa home"><span aria-hidden="true">C</span>constructa</Link>
         <nav aria-label="Main navigation" className={ui.nav}>
           <Link href="/features">Product</Link>
-          <Link href="/pricing">Pricing</Link>
+          <Link href="/pricing">Preview access</Link>
           <Link href="/about">About</Link>
           <Link href="/guides">Guides</Link>
         </nav>
         <div className={ui.headerActions}>
           <Link className={ui.applyCta} href="/apply" aria-label="Apply to the founding cohort">Apply <ArrowRight size={16} aria-hidden="true" /></Link>
           <Link className={ui.signIn} href="/login">Sign in <ArrowRight size={16} aria-hidden="true" /></Link>
-          <details className={ui.mobileMenu}>
-            <summary>Menu</summary>
-            <nav aria-label="Mobile navigation">
-              <Link href="/features">Product</Link>
-              <Link href="/pricing">Pricing</Link>
-              <Link href="/about">About</Link>
-              <Link href="/guides">Guides</Link>
-              <Link href="/login">Sign in</Link>
-            </nav>
-          </details>
+          <MarketingMobileMenu />
         </div>
       </div>
     </header>

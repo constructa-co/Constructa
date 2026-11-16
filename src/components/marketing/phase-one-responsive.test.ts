@@ -82,6 +82,14 @@ describe("declared phase-one responsive rules, not computed layout or browser pr
     expect(narrowHeader["flex-wrap"]).toBe("nowrap");
   });
 
+  it("keeps the two-word Preview access label on one line and tightens the row before the menu swap", () => {
+    expect(headerSource).toContain('<Link href="/pricing">Preview access</Link>');
+    expect(baseDeclarations(".nav a")["white-space"]).toBe("nowrap");
+    expect(mediaDeclarations(".nav", "(max-width: 1000px)").gap).toBe("20px");
+    expect(mediaDeclarations(".headerInner", "(max-width: 1000px)").gap).toBe("20px");
+    expect(mediaDeclarations(".headerInner", "(max-width: 800px)").gap).toBe("12px");
+  });
+
   it("keeps hero actions and footer stacks wrapping on narrow layouts without changing the sage focus palette", () => {
     expect(baseDeclarations(".actions")["flex-wrap"]).toBe("wrap");
     expect(mediaDeclarations(".footerTop", "(max-width: 800px)")["flex-wrap"]).toBe("wrap");

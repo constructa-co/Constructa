@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { PhaseOneHome, PhaseOnePricing, PhaseOneFeatures, MarketingHeader, MarketingFooter } from './phase-one';
+import { MarketingMobileMenu, closeMobileMenu } from './marketing-mobile-menu';
 import Home from '@/app/page';
 import Landing from '@/app/landing/page';
 import Pricing from '@/app/pricing/page';
@@ -20,15 +21,63 @@ vi.mock('next/navigation', () => ({ usePathname: () => route.pathname, useRouter
 afterEach(() => { vi.unstubAllEnvs(); route.pathname = '/'; });
 
 describe('phase-one marketing integration', () => {
-  it('simplifies phase-one navigation to Product, Pricing, About and Guides', () => {
+  it('simplifies phase-one navigation to Product, Preview access, About and Guides', () => {
     const html = renderToStaticMarkup(<MarketingHeader />);
     expect(html).toContain('href="/features">Product</a>');
-    expect(html).toContain('href="/pricing">Pricing</a>');
     expect(html).toContain('href="/about">About</a>');
     expect(html).toContain('href="/guides">Guides</a>');
     expect(html).toContain('aria-label="Mobile navigation"');
     expect(html).not.toContain('How it works');
-    expect(html).not.toContain('Preview access');
+    expect(html).not.toContain('Pricing');
+    // Main and mobile navigation both keep the /pricing destination under the Preview access label.
+    expect(html.match(/href="\/pricing">Preview access<\/a>/g) ?? []).toHaveLength(2);
+  });
+
+  it('renders the mobile menu closed with the same destinations plus sign-in', () => {
+    const html = renderToStaticMarkup(<MarketingMobileMenu />);
+    expect(html).toMatch(/^<details\b(?![^>]*\bopen\b)[^>]*><summary>Menu<\/summary>/);
+    const links = [...html.matchAll(/<a\b[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/g)].map(match => [match[1], match[2]]);
+    expect(links).toEqual([['/features', 'Product'], ['/pricing', 'Preview access'], ['/about', 'About'], ['/guides', 'Guides'], ['/login', 'Sign in']]);
+  });
+
+  it('closes the open mobile menu on selection without moving focus', () => {
+    const summary = { focus: vi.fn() };
+    const menu = { open: true, contains: vi.fn(() => false), querySelector: vi.fn(() => summary) };
+    expect(closeMobileMenu(menu as unknown as HTMLDetailsElement)).toBe(true);
+    expect(menu.open).toBe(false);
+    expect(summary.focus).not.toHaveBeenCalled();
+  });
+
+  it('closes the open mobile menu on Escape and returns focus from a hidden link to the Menu control', () => {
+    const summary = { focus: vi.fn() };
+    const inside = {} as Node;
+    const menu = { open: true, contains: vi.fn((node: Node) => node === inside), querySelector: vi.fn(() => summary) };
+    expect(closeMobileMenu(menu as unknown as HTMLDetailsElement, inside)).toBe(true);
+    expect(menu.open).toBe(false);
+    expect(menu.querySelector).toHaveBeenCalledWith('summary');
+    expect(summary.focus).toHaveBeenCalledTimes(1);
+
+    menu.open = true;
+    expect(closeMobileMenu(menu as unknown as HTMLDetailsElement, {} as Node)).toBe(true);
+    expect(summary.focus).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves a closed or unmounted mobile menu alone', () => {
+    const menu = { open: false, contains: vi.fn(), querySelector: vi.fn() };
+    expect(closeMobileMenu(menu as unknown as HTMLDetailsElement, {} as Node)).toBe(false);
+    expect(closeMobileMenu(null)).toBe(false);
+    expect(menu.contains).not.toHaveBeenCalled();
+    expect(menu.querySelector).not.toHaveBeenCalled();
+  });
+
+  it('wires selection and Escape to the close handler in source, not computed browser proof', () => {
+    const source = readFileSync(new URL('./marketing-mobile-menu.tsx', import.meta.url), 'utf8');
+    expect(source.match(/<Link\b/g) ?? []).toHaveLength(5);
+    expect(source.match(/<Link\b[^>]*onClick=\{closeOnSelection\}/g) ?? []).toHaveLength(5);
+    expect(source).toMatch(/event\.key === 'Escape'\) closeMobileMenu\(menu\.current, document\.activeElement\)/);
+    expect(source).toContain("document.addEventListener('keydown', onKeyDown)");
+    expect(source).toContain("document.removeEventListener('keydown', onKeyDown)");
+    expect(readFileSync(new URL('./phase-one.tsx', import.meta.url), 'utf8').match(/<MarketingMobileMenu \/>/g)).toHaveLength(1);
   });
 
   it('permanently redirects the dead /preview-access address to the pricing route', () => {

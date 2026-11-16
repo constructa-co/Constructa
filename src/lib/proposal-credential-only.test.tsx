@@ -26,7 +26,6 @@ describe("A073 credential-only company About", () => {
             {
                 type: "facts",
                 items: [
-                    { label: "Type of work", value: "Other" },
                     { label: "Specialisms", value: snapshot.contractor.specialisms },
                 ],
             },

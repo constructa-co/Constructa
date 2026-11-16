@@ -64,7 +64,7 @@ describe("library editor story boxes", () => {
 });
 
 describe("older case-study story boxes", () => {
-    const html = renderToStaticMarkup(createElement(CaseStudiesClient, { userId: "synthetic", initialCaseStudies: [{
+    const html = renderToStaticMarkup(createElement(CaseStudiesClient, { userId: "synthetic", initialStoredFingerprint: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", initialCaseStudies: [{
         id: "example", projectName: "Example renovation", projectType: "Renovation",
         contractValue: "£85,000", programmeDuration: "12 weeks", client: "Example client", location: "Surrey",
         whatWeDelivered: "Example work", valueAdded: "Own wording", photos: ["", "", ""],

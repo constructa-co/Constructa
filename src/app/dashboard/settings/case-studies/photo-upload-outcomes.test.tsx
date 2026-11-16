@@ -82,7 +82,7 @@ function expand(value: unknown, path: string): Host[] {
 }
 
 let initial: Study[];
-const render = () => expand(<CaseStudiesClient userId="synthetic" initialCaseStudies={initial} />, "root");
+const render = () => expand(<CaseStudiesClient userId="synthetic" initialStoredFingerprint="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" initialCaseStudies={initial} />, "root");
 
 function editorState() {
     const held = [...hook.state.instances.values()].flatMap(instance => instance.slots);

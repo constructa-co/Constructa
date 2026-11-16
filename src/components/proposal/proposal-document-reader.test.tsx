@@ -67,7 +67,8 @@ describe("named places within a long reading page", () => {
             const count = (kind: string) => parts.filter(part => part.kind === kind).length;
             expect((own.match(/data-doc-terms[\s\S]*?<\/ol>/)?.[0].match(/<li\b/g) ?? []).length, section.id).toBe(count("clause"));
             expect((own.match(/data-doc-case-study/g) ?? []).length, section.id).toBe(count("caseStudy"));
-            expect((own.match(/<h3 class="pt-3 /g) ?? []).length, section.id).toBe(count("subheading"));
+            // Subheading blocks always include pt-3; avoid assuming it is the first utility class.
+            expect((own.match(/<h3 class="[^"]*\bpt-3\b/g) ?? []).length, section.id).toBe(count("subheading"));
             expect(own).not.toMatch(/tabindex/i);
         }
     });

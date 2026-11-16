@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
     DEPLOY_CONTEXT_VARIABLE,
     EPHEMERAL_REPLAY_CONTEXT,
+    HOSTED_E2E_FIXTURE_PROJECT_REF,
     NONPROD_REF_VARIABLE,
     PRODUCTION_SUPABASE_PROJECT_REF,
     SupabaseTargetError,
@@ -323,6 +324,18 @@ describe("the compiled build", () => {
         };
         expect(checkCompiledTarget(replay, []).ok).toBe(true);
         expect(checkCompiledTarget(replay, [PRODUCTION]).ok).toBe(false);
+    });
+
+    it("allows an ephemeral replay build that only embeds the hosted E2E fixture map ref", () => {
+        const replay = {
+            [DEPLOY_CONTEXT_VARIABLE]: EPHEMERAL_REPLAY_CONTEXT,
+            [NONPROD_REF_VARIABLE]: EPHEMERAL,
+            NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
+            NEXT_PUBLIC_SUPABASE_ANON_KEY: key(EPHEMERAL, "anon"),
+            SUPABASE_SERVICE_ROLE_KEY: key(EPHEMERAL, "service_role"),
+        };
+        expect(checkCompiledTarget(replay, [HOSTED_E2E_FIXTURE_PROJECT_REF]).ok).toBe(true);
+        expect(checkCompiledTarget(preview(), [HOSTED_E2E_FIXTURE_PROJECT_REF]).ok).toBe(false);
     });
 
     it("leaves a production build alone", () => {

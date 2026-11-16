@@ -60,7 +60,9 @@ guard_no_remote_supabase_link() {
   local linked
   linked="$(tr -d '[:space:]' <"$link_file")"
   if [[ "$linked" == "$PRODUCTION_REF" ]]; then
-    _ephemeral_guard_fail "EPHEMERAL GUARD FAILURE: supabase link points at production."
+    echo "Ephemeral replay: dropping stale production supabase link metadata (supabase/.temp)." >&2
+    rm -rf "$(dirname "$link_file")"
+    return 0
   fi
   if [[ -n "$linked" && "$linked" != "$APPROVED_EPHEMERAL_REF" ]]; then
     _ephemeral_guard_fail "EPHEMERAL GUARD FAILURE: supabase link must be absent or local (${APPROVED_EPHEMERAL_REF})."

@@ -1,5 +1,17 @@
 # Cursor change log
 
+## 2026-11-16 — D38 ephemeral browser fallback (cursor/d38-con-001-and-con-002-disposable-browser-fallback-0dba)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/deployment/supabase-target.mjs` | `HOSTED_E2E_FIXTURE_PROJECT_REF`, `compiledRefsForEnforcement`, `checkCompiledTarget` | Ignore hosted E2E fixture ref in compiled scans for `e2e-replay` only | Fix CI/VM build guard when bundle still contains `umqtzfsnyoofmgfbnrgv` literals; preview guards unchanged |
+| `src/lib/deployment/supabase-target.test.ts` | new `it` | Ephemeral build with fixture ref only → PASS; preview → FAIL | Regression |
+| `e2e/support/ephemeral-replay-global-setup.ts` | foreign ref filter | Same fixture allowlist before Playwright | Align global setup with compiled guard |
+| `scripts/ephemeral-replay/guards.sh` | `guard_no_remote_supabase_link` | Strip `supabase/.temp` when it points at production | Disposable VM/clone safety without weakening non-production link checks |
+| `scripts/ephemeral-replay/d38-ephemeral-browser.sh` | Supabase start; default CLI | Default CLI **2.75.0**; up to 5 retries; exit 2 with explicit blocker message | npm had no `2.39.3`; flaky auth-schema init |
+| `scripts/test-ephemeral-replay-guards.sh` | production link case | Expect strip not fail | Match disposable setup behaviour |
+| `docs/temp-files/d38-ephemeral-browser-vm-evidence-20261116.md` | (new) | Docker, guard, compile, Supabase blocker notes | CON-001/002 VM run evidence |
+
 ## 2026-11-15 — D38 CON-007 recipient email confirmation (cursor/d38-con-007-proposal-email-default-off-20261115)
 
 | File | Lines (approx.) | Change | Intent |

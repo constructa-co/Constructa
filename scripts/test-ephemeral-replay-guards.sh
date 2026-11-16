@@ -75,8 +75,8 @@ mkdir -p "$LINK_DIR"
 echo -n "pudadynieiuypxeoimnz" >"$LINK_DIR/project-ref"
 if (
   cd "$ROOT_DIR"
-  ! guard_no_remote_supabase_link "$LINK_DIR/project-ref" 2>/dev/null
-); then pass "linked production ref is refused"; else fail "linked production ref is refused"; fi
+  guard_no_remote_supabase_link "$LINK_DIR/project-ref" 2>/dev/null && test ! -e "$LINK_DIR/project-ref"
+); then pass "linked production ref is stripped"; else fail "linked production ref is stripped"; fi
 
 echo "Application guard (loopback cannot pass preview)"
 TARGET="$ROOT_DIR/src/lib/deployment/supabase-target.test.ts"

@@ -10,7 +10,7 @@ source "$ROOT/scripts/ephemeral-replay/guards.sh"
 # shellcheck source=scripts/ephemeral-replay/parse-supabase-status-env.sh
 source "$ROOT/scripts/ephemeral-replay/parse-supabase-status-env.sh"
 
-SUPABASE_CLI_VERSION="${SUPABASE_CLI_VERSION:-2.39.3}"
+SUPABASE_CLI_VERSION="${SUPABASE_CLI_VERSION:-2.75.0}"
 SUPABASE_CLI=(npx --yes "supabase@${SUPABASE_CLI_VERSION}")
 
 export E2E_D38_BACKEND=ephemeral
@@ -37,7 +37,20 @@ project_id="$(sed -n 's/^project_id = "\([^"]*\)"$/\1/p' "$ROOT/supabase/config.
 guard_ephemeral_project_ref "$project_id" || exit 1
 
 echo "Starting local Supabase stack (CLI ${SUPABASE_CLI_VERSION})…"
-"${SUPABASE_CLI[@]}" start -x studio,imgproxy,vector,logflare,edge-runtime >/dev/null
+start_ok=0
+for attempt in 1 2 3 4 5; do
+  if "${SUPABASE_CLI[@]}" start -x studio,imgproxy,vector,logflare,edge-runtime >/dev/null; then
+    start_ok=1
+    break
+  fi
+  echo "Supabase start attempt ${attempt}/5 failed; retrying after brief cooldown…" >&2
+  "${SUPABASE_CLI[@]}" stop --no-backup >/dev/null 2>&1 || true
+  sleep 15
+done
+if [[ "$start_ok" -ne 1 ]]; then
+  echo "BLOCKER: local Supabase stack did not start after 5 attempts (often auth schema init pool timeout on constrained VMs)."
+  exit 2
+fi
 
 ephemeral_load_supabase_status_from_cli "${SUPABASE_CLI[@]}"
 

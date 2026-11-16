@@ -42,6 +42,16 @@ const METADATA_VARIABLE = /^(VERCEL_GIT_|GITHUB_|npm_)/;
 /** Ephemeral local Supabase stack (Supabase CLI on loopback). Not a hosted project. */
 export const EPHEMERAL_REPLAY_CONTEXT = "e2e-replay";
 
+/**
+ * Hosted disposable QA ref kept as static literals in E2E fixture maps and review
+ * policy tests. It is not the runtime backend when CONSTRUCTA_DEPLOY_CONTEXT is
+ * e2e-replay (NEXT_PUBLIC_SUPABASE_URL is loopback). Stripped from compiled scans
+ * for that context only; preview and hosted E2E checks are unchanged.
+ *
+ * @see e2e/support/env.ts APPROVED_DISPOSABLE_PROJECT.ref
+ */
+export const HOSTED_E2E_FIXTURE_PROJECT_REF = "umqtzfsnyoofmgfbnrgv";
+
 /** @typedef {"production" | "preview" | "e2e" | "e2e-replay" | "development" | "unspecified"} DeployContextName */
 /** @typedef {{ context: DeployContextName, guarded: boolean, source: string }} DeployContext */
 /** @typedef {{ context: DeployContextName, guarded: boolean, ok: boolean, problems: string[], summary: string }} TargetCheck */
@@ -331,6 +341,16 @@ export function supabaseRefsInBuild(dir, found = new Set()) {
 }
 
 /**
+ * @param {DeployContextName} context
+ * @param {string[]} refs
+ * @returns {string[]}
+ */
+function compiledRefsForEnforcement(context, refs) {
+    if (context !== EPHEMERAL_REPLAY_CONTEXT) return refs;
+    return refs.filter((ref) => ref !== HOSTED_E2E_FIXTURE_PROJECT_REF);
+}
+
+/**
  * Whether what was compiled is bound to the declared disposable project and
  * nothing else. This is the check on the browser's configuration: the public
  * URL is inlined into the bundle at build time, so the bundle is the truth.
@@ -341,7 +361,8 @@ export function supabaseRefsInBuild(dir, found = new Set()) {
  */
 export function checkCompiledTarget(env, refs) {
     const { context, guarded, source } = resolveDeployContext(env);
-    const found = refs.length > 0 ? refs.join(", ") : "none";
+    const enforced = compiledRefsForEnforcement(context, refs);
+    const found = enforced.length > 0 ? enforced.join(", ") : "none";
     const label = `context=${context} (from ${source})`;
     if (!guarded) {
         return {
@@ -362,10 +383,10 @@ export function checkCompiledTarget(env, refs) {
     if (refs.includes(PRODUCTION_SUPABASE_PROJECT_REF)) {
         problems.push("The compiled build names the production Supabase project.");
     }
-    if (refs.length === 0 && context !== EPHEMERAL_REPLAY_CONTEXT) {
+    if (enforced.length === 0 && context !== EPHEMERAL_REPLAY_CONTEXT) {
         problems.push("The compiled build names no Supabase project, so its backend cannot be proved.");
     }
-    const others = refs.filter((ref) => ref !== expected && ref !== PRODUCTION_SUPABASE_PROJECT_REF);
+    const others = enforced.filter((ref) => ref !== expected && ref !== PRODUCTION_SUPABASE_PROJECT_REF);
     if (expected && others.length > 0) {
         problems.push(`The compiled build names a project other than the declared disposable one: ${others.join(", ")}.`);
     }

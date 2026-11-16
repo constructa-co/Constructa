@@ -1,6 +1,9 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
-import { PRODUCTION_SUPABASE_PROJECT_REF } from "../../src/lib/deployment/supabase-target.mjs";
+import {
+    HOSTED_E2E_FIXTURE_PROJECT_REF,
+    PRODUCTION_SUPABASE_PROJECT_REF,
+} from "../../src/lib/deployment/supabase-target.mjs";
 import { E2EConfigurationError } from "./env";
 import { EPHEMERAL_REPLAY_PROJECT_REF, readEphemeralReplayEnv } from "./ephemeral-replay-env";
 
@@ -30,7 +33,9 @@ export default async function globalSetup() {
     if (refs.includes(PRODUCTION_SUPABASE_PROJECT_REF)) {
         throw new E2EConfigurationError(["The build under test names the production Supabase project. Rebuild with ephemeral env."]);
     }
-    const foreign = refs.filter((ref) => ref !== approved);
+    const foreign = refs.filter(
+        (ref) => ref !== approved && ref !== HOSTED_E2E_FIXTURE_PROJECT_REF,
+    );
     if (foreign.length > 0) {
         throw new E2EConfigurationError([
             `The build embeds hosted Supabase project(s) other than ephemeral replay: ${foreign.join(", ")}.`,

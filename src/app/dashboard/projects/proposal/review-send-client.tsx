@@ -488,6 +488,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
         }
     };
 
+
     const estimateTotals = preview && preview.commercial.contract_sum_ex_vat > 0 ? vatLines(preview.commercial) : null;
     // The stages as the client will read them, with what each comes to.
     const paymentSummary = preview && estimateTotals ? paymentRows(preview.commercial) : [];
@@ -1236,7 +1237,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                         </button>
                         <p id="presend-pdf-note" role={previewProblem ? "alert" : undefined} className={`text-sm ${s.muted}`}>
                             {preview
-                                ? "The PDF your client will get, marked as a draft. Downloading it sends nothing."
+                                ? "The PDF your client will get, marked as a draft. Downloading it sends nothing. A clean copy without markings is available from sent versions after issue."
                                 : previewProblem ?? "The PDF is available once the job has a name and an estimate."}
                             {previewProblem && previewTermIssues.length > 0 && <> <a href="#review-terms" className={s.quietButton}>Review the current terms</a>.</>}
                             {checkCode && <> Check code <span className="font-mono font-semibold" data-check-code>{checkCode}</span>.</>}

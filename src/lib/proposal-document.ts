@@ -121,6 +121,30 @@ function lines(text: string | null | undefined): string[] {
     return (text ?? "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
 }
 
+/** Collapses newlines so site lines can be compared to a single client name string. */
+function singleLineAddress(value: string | null | undefined): string | null {
+    const trimmed = value?.trim();
+    if (!trimmed) return null;
+    return trimmed.replace(/\s*\n\s*/g, ", ");
+}
+
+/**
+ * The client name shown on the PDF and public proposal.
+ * Uses only the saved client name, and drops the site address when it was
+ * mistyped into the client field.
+ */
+export function publicationClientDisplayName(project: {
+    name: string;
+    client_name: string | null;
+    site_address?: string | null;
+}): string | null {
+    const client = project.client_name?.trim();
+    if (!client) return null;
+    const site = singleLineAddress(project.site_address);
+    if (site && client === site) return null;
+    return client;
+}
+
 /** A list field: one item per line, with any typed bullet mark removed. */
 export function listItems(text: string | null | undefined): string[] {
     return lines(text).map((line) => line.replace(BULLET, "").trim()).filter(Boolean);
@@ -255,6 +279,39 @@ function quantityLabel(quantity: number, unit: string): string {
 }
 
 /** How VAT is stated. Identical wherever the price appears. */
+export function documentPresentationVersion(snapshot: ProposalPublicationSnapshot): number {
+    return snapshot.document_presentation_version ?? 1;
+}
+
+function coverPriceFact(
+    commercial: ProposalPublicationSnapshot["commercial"],
+    presentation: number,
+): DocFact | null {
+    if (!(commercial.contract_sum_ex_vat > 0)) return null;
+    if (presentation >= 2) {
+        if (commercial.vat_rate > 0) {
+            return { label: "Price including VAT", value: formatGbp(commercial.contract_sum_inc_vat) };
+        }
+        return { label: "Price", value: formatGbp(commercial.contract_sum_ex_vat) };
+    }
+    if (commercial.vat_rate > 0) {
+        return { label: "Price including VAT", value: formatGbp(commercial.contract_sum_inc_vat) };
+    }
+    return { label: "Price", value: formatGbp(commercial.contract_sum_ex_vat) };
+}
+
+function priceBlockTotals(
+    commercial: ProposalPublicationSnapshot["commercial"],
+    presentation: number,
+): Array<DocFact & { strong: boolean }> {
+    const totals = vatLines(commercial);
+    if (presentation >= 2) {
+        if (commercial.vat_rate > 0 && totals.length === 3) return totals.slice(0, 2);
+        if (commercial.vat_rate === 0) return [];
+    }
+    return totals;
+}
+
 export function vatLines(commercial: ProposalPublicationSnapshot["commercial"]): Array<DocFact & { strong: boolean }> {
     const exVat = { label: "Total before VAT", value: formatGbp(commercial.contract_sum_ex_vat), strong: false };
     if (commercial.vat_rate > 0) {
@@ -320,10 +377,11 @@ function priceSection(snapshot: ProposalPublicationSnapshot): DocSection | null 
     }
     if (groups.length === 1 && groups[0].title === "General") groups[0].title = null;
 
+    const presentation = documentPresentationVersion(snapshot);
     const blocks: DocBlock[] = [{
         type: "price",
         groups,
-        totals: vatLines(commercial),
+        totals: priceBlockTotals(commercial, presentation),
         note: vatNote(commercial),
     }];
 
@@ -406,12 +464,10 @@ export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, opt
     const kind = responseKindOfSnapshot(snapshot);
     const wording = responseWording(kind);
 
+    const presentation = documentPresentationVersion(snapshot);
     const keyFacts: DocFact[] = [];
-    if (commercial.contract_sum_ex_vat > 0) {
-        keyFacts.push(commercial.vat_rate > 0
-            ? { label: "Price including VAT", value: formatGbp(commercial.contract_sum_inc_vat) }
-            : { label: "Price", value: formatGbp(commercial.contract_sum_ex_vat) });
-    }
+    const coverPrice = coverPriceFact(commercial, presentation);
+    if (coverPrice) keyFacts.push(coverPrice);
     if (plan) {
         keyFacts.push(...programmeFacts(plan, "short"));
     } else if (snapshot.programme_intent !== "omit" && snapshot.project.start_date && formatPlanDate(snapshot.project.start_date, "short")) {
@@ -439,7 +495,7 @@ export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, opt
         },
         reference: options.isDraft ? "Draft" : proposalReference(snapshot),
         title: snapshot.project.name,
-        clientName: snapshot.project.client_name,
+        clientName: publicationClientDisplayName(snapshot.project),
         siteAddress: snapshot.project.site_address || null,
         projectType: snapshot.project.project_type,
         issued: formatLongDate(snapshot.publication.sent_at),

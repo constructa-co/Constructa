@@ -67,7 +67,7 @@ export async function saveCaseStudiesAction(
             .update({ case_studies: caseStudies })
             .eq("id", user.id);
         if (stored === null) update = update.is("case_studies", null);
-        else update = update.eq("case_studies", stored);
+        else update = update.eq("case_studies", JSON.stringify(stored));
         reply = await update.select("id, case_studies");
     } catch {
         return unknown("threw");

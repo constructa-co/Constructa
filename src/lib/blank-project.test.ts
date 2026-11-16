@@ -7,6 +7,7 @@ import {
     buildBlankProjectGraph,
     parseBlankProjectInput,
     resolveBlankProjectCreation,
+    stampCompanyMarkupOnEstimateSeeds,
     validateBlankProjectForm,
 } from "./blank-project";
 import { PROJECT_TEMPLATES } from "./templates";
@@ -163,5 +164,20 @@ describe("resolveBlankProjectCreation", () => {
 describe("briefPathForProject", () => {
     it("routes to the named project's Brief", () => {
         expect(briefPathForProject("p1")).toBe("/dashboard/projects/brief?projectId=p1");
+    });
+});
+
+describe("stampCompanyMarkupOnEstimateSeeds", () => {
+    it("stamps the company method on each seed that does not already carry a valid one", () => {
+        expect(stampCompanyMarkupOnEstimateSeeds([], "compound")).toEqual([]);
+        expect(
+            stampCompanyMarkupOnEstimateSeeds(
+                [{ version_name: "Estimate v1", is_active: true }, { markup_method: "on_net" }],
+                "compound",
+            ),
+        ).toEqual([
+            { version_name: "Estimate v1", is_active: true, markup_method: "compound" },
+            { markup_method: "on_net" },
+        ]);
     });
 });

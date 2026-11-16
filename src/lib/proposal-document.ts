@@ -18,7 +18,7 @@ import { formatPlanDate } from "@/lib/programme-plan";
 import { programmeFacts, type DisplayProgrammePlan } from "@/lib/relative-programme";
 import type { ProposalCoverPhoto } from "@/lib/proposal-cover-photo";
 import { safeImageUrl, type ProposalPublicationSnapshot } from "@/lib/proposal-publication";
-import { formatContractValue, typedValueAmount } from "@/lib/case-study-value";
+import { contractValueVatBasis, formatContractValue, typedValueAmount } from "@/lib/case-study-value";
 import {
     responseKindOfSnapshot,
     responseNoticeOfSnapshot,
@@ -313,13 +313,18 @@ function experienceSection(snapshot: ProposalPublicationSnapshot): DocSection | 
                 study.project_type && { label: "Type of work", value: study.project_type },
                 study.location && { label: "Location", value: study.location },
                 study.client && { label: "Client", value: study.client },
-                // A numeric value with its VAT basis prints like the proposal's
-                // other figures; older free text prints exactly as it did.
-                ...(study.contract_value_amount != null
+                // A numeric value prints like the proposal's other figures only with
+                // a known VAT basis; an amount without one (only possible on a
+                // snapshot written before the basis was validated) falls back to the
+                // free text, else prints the figure alone with no basis claimed.
+                // Older free text prints exactly as it did.
+                ...(study.contract_value_amount != null && contractValueVatBasis(study.contract_value_vat_basis) !== null
                     ? [{ label: "Value", value: formatContractValue(study.contract_value_amount, study.contract_value_vat_basis) }]
                     : study.contract_value
                         ? [{ label: "Value", value: formatTypedValue(study.contract_value) }]
-                        : []),
+                        : study.contract_value_amount != null
+                            ? [{ label: "Value", value: formatContractValue(study.contract_value_amount, null) }]
+                            : []),
                 study.duration && { label: "Programme", value: study.duration },
             ].filter((fact): fact is DocFact => Boolean(fact)),
             delivered: lines(study.delivered),

@@ -24,7 +24,7 @@ import {
     coreProfileTextarea,
     coreSuggestionPrimary,
 } from "@/lib/core-editing-palette";
-import ChallengeResolution, { storyTyped, type StoryNotes } from "./challenge-resolution";
+import ChallengeResolution, { type StoryNotes } from "./challenge-resolution";
 import { typedValueAmount } from "@/lib/case-study-value";
 
 type Enhance = (whatWeDelivered: string, valueAdded: string, projectName: string, projectType: string) => Promise<CaseStudyResult>;
@@ -320,7 +320,9 @@ function CaseStudyCard({
     const savedStory: StoryNotes = { challenge: cs.challenge ?? "", response: cs.solution ?? "" };
     const [story, setStory] = useState<StoryNotes>(savedStory);
     const differsFromSaved = (next: StoryNotes): boolean => next.challenge !== savedStory.challenge || next.response !== savedStory.response;
-    const changeStory = (next: StoryNotes) => { setStory(next); onStoryTyped(storyTyped(next) && differsFromSaved(next)); };
+    // The warning stays on while the boxes differ from what is saved, including
+    // cleared boxes: an emptied story is still an unsaved change until it is kept.
+    const changeStory = (next: StoryNotes) => { setStory(next); onStoryTyped(differsFromSaved(next)); };
     const tagSuggestions = exampleTagSuggestions({ projectType: cs.projectType, client: cs.client });
 
     const handleEnhance = async () => {

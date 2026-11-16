@@ -30,7 +30,13 @@ export function typedValueAmount(value: string): number | null {
     return Number.isFinite(amount) ? amount : null;
 }
 
-/** A stored numeric contract value, printed like the proposal's other figures, with its VAT basis. */
+/**
+ * A stored numeric contract value, printed like the proposal's other figures.
+ * A basis that is not one of the two known values prints with no basis words:
+ * "ex VAT" is never assumed, so a stored record cannot put a VAT claim the
+ * contractor never made onto a client proposal.
+ */
 export function formatContractValue(amount: number, basis: ContractValueVatBasis | null | undefined): string {
-    return `${formatGbp(amount)} ${basis === "inc_vat" ? "inc VAT" : "ex VAT"}`;
+    const basisWords = basis === "inc_vat" ? " inc VAT" : basis === "ex_vat" ? " ex VAT" : "";
+    return `${formatGbp(amount)}${basisWords}`;
 }

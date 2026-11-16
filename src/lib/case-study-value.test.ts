@@ -36,6 +36,11 @@ describe("formatContractValue", () => {
     it("prints like the proposal's other figures, with the basis", () => {
         expect(formatContractValue(85000, "ex_vat")).toBe("£85,000.00 ex VAT");
         expect(formatContractValue(9800.5, "inc_vat")).toBe("£9,800.50 inc VAT");
-        expect(formatContractValue(85000, null)).toBe("£85,000.00 ex VAT");
+    });
+
+    it("claims no basis when the stored basis is missing or not recognised", () => {
+        expect(formatContractValue(85000, null)).toBe("£85,000.00");
+        expect(formatContractValue(85000, undefined)).toBe("£85,000.00");
+        expect(formatContractValue(85000, "gross" as never)).toBe("£85,000.00");
     });
 });

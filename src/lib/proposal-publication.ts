@@ -443,9 +443,10 @@ export function selectCaseStudies(all: unknown[] | null | undefined, selected: u
                     .map(safeImageUrl)
                     .filter((url): url is string => url !== null)
                     .slice(0, 3),
-                // Only when the stored entry holds a value, so a study saved
-                // before these fields keeps its exact proposal shape.
-                ...(amount !== null ? { contract_value_amount: amount, contract_value_vat_basis: vatBasis } : {}),
+                // Only when both parts are usable: a figure without a known VAT
+                // basis never prints, so a stored "gross" or a missing basis
+                // cannot put an invented "ex VAT" on a client proposal.
+                ...(amount !== null && vatBasis !== null ? { contract_value_amount: amount, contract_value_vat_basis: vatBasis } : {}),
                 ...(clientQuote ? { client_quote: clientQuote, client_quote_attribution: textField(row, "clientQuoteAttribution", 200) } : {}),
                 ...(challenge ? { challenge } : {}),
                 ...(solution ? { solution } : {}),

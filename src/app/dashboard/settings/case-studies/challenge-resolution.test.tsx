@@ -274,6 +274,42 @@ describe("older case studies: a challenge and how it was resolved", () => {
         expect(shown.value_added).toBe("Own value, kept.");
     });
 
+    it("is cleared by keeping empty boxes, saved away, and read back with no story on the record or a proposal", async () => {
+        initial = [older("a", "Alpha", { challenge: CHALLENGE, solution: RESOLVED })];
+        profile = { case_studies: structuredClone(initial) };
+        rows = new Map([[ME, profile]]);
+
+        // Independent of any other edit: only the two boxes are emptied and kept.
+        let tree = renderOlder();
+        typeInto(labelled(tree, "What was the challenge or problem?")[0], "");
+        typeInto(labelled(renderOlder(), "How did you resolve it?")[0], "");
+        tree = renderOlder();
+        // Emptying kept boxes is a change like any other: the warning stays until Keep.
+        expect(marked(tree, "data-challenge-unadded")).toBe(true);
+        expect(mocks.guard).toHaveBeenLastCalledWith(true, expect.any(String));
+
+        press(buttons(tree, "Keep with this example")[0]);
+        tree = renderOlder();
+        expect(olderDraft()[0].challenge).toBe("");
+        expect(olderDraft()[0].solution).toBe("");
+        expect(notices(tree)[0]).toBe("Cleared for this example. Save removes it from this example, and no proposal shows it.");
+        expect(marked(tree, "data-challenge-unadded")).toBe(false);
+
+        await saveOlder();
+        const list = profile.case_studies as Record<string, unknown>[];
+        expect(list[0]).toEqual({ ...initial[0], challenge: "", solution: "" });
+
+        // Read back: the boxes open on the now-empty fields.
+        hook.instances.clear();
+        initial = list as unknown as Study[];
+        expect(labelled(renderOlder(), "What was the challenge or problem?")[0].props.value).toBe("");
+        expect(labelled(renderOlder(), "How did you resolve it?")[0].props.value).toBe("");
+        // A proposal carries no story: empty fields are no fields.
+        const [shown] = selectCaseStudies(list, ["a"]);
+        expect("challenge" in shown).toBe(false);
+        expect("solution" in shown).toBe(false);
+    });
+
     it("keeps an old combined story exactly as stored: no new keys, the boxes stay closed, and a proposal carries the one text", async () => {
         const before = "Stripped out; refitted — as agreed (phase 1).";
         initial = [older("a", "Alpha", { whatWeDelivered: story(before) })];

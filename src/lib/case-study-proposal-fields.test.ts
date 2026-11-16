@@ -107,6 +107,36 @@ describe("selectCaseStudies with the CON-062/063/064 fields", () => {
         const [negative] = selectCaseStudies([stored({ contractValueAmount: -5, contractValueVatBasis: "ex_vat" })], ["cs-1"]);
         expect("contract_value_amount" in negative).toBe(false);
     });
+
+    it("drops a usable amount saved with an unknown basis, never inferring ex VAT", () => {
+        // The amount is a real figure but the basis is not one of the two known
+        // values: the numeric form is not carried, so no basis the contractor
+        // never chose can reach a client proposal.
+        const [study] = selectCaseStudies([stored({
+            contractValue: "£85,000",
+            contractValueAmount: 85000,
+            contractValueVatBasis: "gross",
+        })], ["cs-1"]);
+        expect("contract_value_amount" in study).toBe(false);
+        expect("contract_value_vat_basis" in study).toBe(false);
+        expect(study.contract_value).toBe("£85,000");
+
+        const [missing] = selectCaseStudies([stored({ contractValue: "", contractValueAmount: 85000 })], ["cs-1"]);
+        expect("contract_value_amount" in missing).toBe(false);
+    });
+
+    it("bounds the kept fields to the existing snapshot limits", () => {
+        const [study] = selectCaseStudies([stored({
+            clientQuote: "q".repeat(1500),
+            clientQuoteAttribution: "a".repeat(300),
+            challenge: "c".repeat(6000),
+            solution: "s".repeat(6000),
+        })], ["cs-1"]);
+        expect(study.client_quote).toHaveLength(1000);
+        expect(study.client_quote_attribution).toHaveLength(200);
+        expect(study.challenge).toHaveLength(5000);
+        expect(study.solution).toHaveLength(5000);
+    });
 });
 
 describe("proposal document with the CON-062/063/064 fields", () => {
@@ -126,6 +156,30 @@ describe("proposal document with the CON-062/063/064 fields", () => {
         expect(experienceStudy(doc).facts).toContainEqual({ label: "Value", value: "£9,800" });
         const words = documentWith(stored({ contractValue: "about £85k" }));
         expect(experienceStudy(words).facts).toContainEqual({ label: "Value", value: "about £85k" });
+    });
+
+    it("never prints ex VAT for an amount without a known basis: the free text carries it, or the figure prints alone", () => {
+        // A stored amount with an unrecognised basis: the selection drops the
+        // numeric form, so the client's document shows the free text.
+        const doc = documentWith(stored({ contractValue: "£85,000", contractValueAmount: 85000, contractValueVatBasis: "gross" as never }));
+        expect(experienceStudy(doc).facts).toContainEqual({ label: "Value", value: "£85,000" });
+
+        // An already-issued snapshot can hold an amount with a null basis and no
+        // free text: the figure still prints, with no basis words claimed.
+        const input = representativeInput();
+        const snapshot = buildProposalPublicationSnapshot({
+            ...input,
+            profile: { ...input.profile, case_studies: [stored({ contractValue: "", contractValueAmount: 85000, contractValueVatBasis: "ex_vat" })] as never },
+            project: { ...input.project, selected_case_study_ids: ["cs-1"] as never },
+        });
+        // As a snapshot written before the basis was validated would hold it.
+        snapshot.case_studies![0].contract_value_vat_basis = null;
+        snapshot.case_studies![0].contract_value = null;
+        const alone = buildProposalDocument(snapshot);
+        expect(experienceStudy(alone).facts).toContainEqual({ label: "Value", value: "£85,000.00" });
+        const pdf = pdfStrings(alone);
+        expect(pdf).toContain("£85,000.00");
+        expect(pdf).not.toContain("ex VAT");
     });
 
     it("shows the challenge and solution under their own headings, with the delivered text beside them", () => {

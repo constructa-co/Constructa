@@ -33,7 +33,7 @@ describe("working days", () => {
         [6, "2026-10-19", "the sixth day is the next Monday"],
         [10, "2026-10-23", "two weeks end on the second Friday"],
         [15, "2026-10-30", "three weeks"],
-        [260, "2027-10-08", "a year of working weeks"],
+        [260, "2027-10-20", "a year of working weeks"],
     ])("a start date and %i working days gives one end date", (days, end) => {
         expect(addWorkingDays(MONDAY, days)).toBe(end);
         // The same answer the other way round.
@@ -53,7 +53,8 @@ describe("working days", () => {
     });
 
     it("crosses a month end, a year end and a leap day", () => {
-        expect(addWorkingDays("2026-12-28", 5)).toBe("2027-01-01");
+        expect(isWorkingDay("2027-01-01")).toBe(false);
+        expect(addWorkingDays("2026-12-24", 5)).toBe("2027-01-04");
         expect(addWorkingDays("2028-02-28", 3)).toBe("2028-03-01");
     });
 

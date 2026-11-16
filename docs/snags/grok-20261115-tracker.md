@@ -2,7 +2,7 @@
 
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
-Current count: 21 merged, 45 in progress, 9 in review, 10 Rob-gated, 0 not started.
+Current count: 24 merged, 41 in progress, 10 in review, 10 Rob-gated, 0 not started.
 
 | --- | --- | --- | --- | --- | --- |
 | CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
@@ -23,9 +23,9 @@ Current count: 21 merged, 45 in progress, 9 in review, 10 Rob-gated, 0 not start
 | CON-016 | P1 | Claude | — | in progress | D51 batch 02 — Estimate pricing |
 | CON-017 | P1 | Cursor | [#184](https://github.com/constructa-co/Constructa/pull/184) | merged | Kimi PASS and GitHub CI green. |
 | CON-018 | P1 | Cursor | [#185](https://github.com/constructa-co/Constructa/pull/185) | in progress | — |
-| CON-019 | P1 | Claude | — | in progress | D51 batch 03 — Proposal PDF pricing |
-| CON-020 | P1 | Claude | — | in progress | D51 batch 03 — Proposal PDF pricing |
-| CON-021 | P1 | Claude | — | in progress | D51 batch 03 — Proposal PDF pricing |
+| CON-019 | P1 | Claude | [#193](https://github.com/constructa-co/Constructa/pull/193) | in review | D51 batch 03 — Proposal PDF pricing |
+| CON-020 | P1 | Claude | [#193](https://github.com/constructa-co/Constructa/pull/193) | in review | D51 batch 03 — Proposal PDF pricing |
+| CON-021 | P1 | Claude | [#193](https://github.com/constructa-co/Constructa/pull/193) | in review | D51 batch 03 — Proposal PDF pricing |
 | CON-022 | P1 | Cursor / Claude | [#181](https://github.com/constructa-co/Constructa/pull/181) | merged | Kimi PASS and GitHub CI green. |
 | CON-023 | P1 | Claude | — | in progress | D51 batch 01 — Profile, save and sign-in |
 | CON-024 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | merged | Independent PASS and GitHub browser green. |
@@ -81,11 +81,11 @@ Current count: 21 merged, 45 in progress, 9 in review, 10 Rob-gated, 0 not start
 | CON-074 | P2 | Claude | — | in progress | D51 batch 05 — Phone layout and theme |
 | CON-075 | P2 | Claude | — | in progress | D51 batch 12 — Dashboard and demo state |
 | CON-076 | P2 | Claude | — | in progress | D51 batch 01 — Profile, save and sign-in |
-| CON-077 | P2 | Claude | — | in progress | D51 batch 03 — Proposal PDF pricing |
+| CON-077 | P2 | Claude | [#193](https://github.com/constructa-co/Constructa/pull/193) | in review | D51 batch 03 — Proposal PDF pricing |
 | CON-078 | P2 | Claude | — | in progress | D51 batch 12 — Dashboard and demo state |
-| CON-079 | P2 | Kimi | [#190](https://github.com/constructa-co/Constructa/pull/190) | in review | D51 batch 10 — Marketing navigation and copy |
-| CON-080 | P2 | Kimi | [#190](https://github.com/constructa-co/Constructa/pull/190) | in review | D51 batch 10 — Marketing navigation and copy |
-| CON-081 | P2 | Kimi | [#190](https://github.com/constructa-co/Constructa/pull/190) | in review | D51 batch 10 — Marketing navigation and copy |
+| CON-079 | P2 | Kimi | [#190](https://github.com/constructa-co/Constructa/pull/190) | merged | D51 batch 10 — Marketing navigation and copy |
+| CON-080 | P2 | Kimi | [#190](https://github.com/constructa-co/Constructa/pull/190) | merged | D51 batch 10 — Marketing navigation and copy |
+| CON-081 | P2 | Kimi | [#190](https://github.com/constructa-co/Constructa/pull/190) | merged | D51 batch 10 — Marketing navigation and copy |
 | CON-082 | P2 | Kimi | [#192](https://github.com/constructa-co/Constructa/pull/192) | in review | D51 batch 11 — Product presentation |
 | CON-083 | P2 | Claude | — | in progress | D51 batch 01 — Profile, save and sign-in |
 | CON-084 | P2 | Kimi | [#192](https://github.com/constructa-co/Constructa/pull/192) | in review | D51 batch 11 — Product presentation |

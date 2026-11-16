@@ -9,9 +9,7 @@ import { keyboardDriver, pointerDriver, type FocusRecord } from "../support/driv
  * the real action can return; the real action is covered by unit tests.
  *
  * This shows HONEST saving: what the editor says, what it keeps, and what it
- * sends. It is NOT about two tabs. The last step shows, on purpose, that a
- * stale editor still overwrites a newer list and is told "saved": that fault
- * is still open and nothing here closes it.
+ * sends. The last step shows a stale tab refused after storage changes elsewhere.
  *
  * No sign-in, no Supabase, no network. Not an authenticated hosted run. The
  * phone project is a phone-sized viewport, not a real phone.
@@ -20,9 +18,10 @@ const EVIDENCE = process.env.E2E_EVIDENCE === "1";
 const DIR = path.resolve(EVIDENCE ? "docs/evidence/legacy-case-editor-honest-save" : "test-results/import-fixture/case-study-save");
 const HARNESS = "/admin-e2e-import-fixture/case-study";
 const OWN = "we refitted the kitchen moved the wall and replastered throughout";
-const UNKNOWN = "We couldn't confirm whether that was saved. Your changes are still on this page. Saving again sends this whole list and replaces whatever is stored, including anything changed in another tab or window.";
+const UNKNOWN = "We couldn't confirm whether that was saved. Your changes are still on this page. Save again to retry.";
+const CONFLICT = "Another tab or window changed your case studies after this page loaded. Reload to see the latest list, then save your changes again.";
 
-test("Older case-study editor: says saved only when it was, keeps what was typed, and still does not protect against another tab", async ({ page, context, hasTouch }, testInfo) => {
+test("Older case-study editor: says saved only when it was, keeps what was typed, and refuses a stale tab", async ({ page, context, hasTouch }, testInfo) => {
     const project = testInfo.project.name;
     const keyboardRun = project === "desktop-keyboard";
     const focusLog: FocusRecord[] = [];
@@ -140,20 +139,20 @@ test("Older case-study editor: says saved only when it was, keeps what was typed
         expect(state.stored[0].whatWeDelivered).toBe("Sent to be saved. Then more, typed while saving.");
         expect(await wouldWarnOnLeaving(page)).toBe(false);
 
-        // ── 7. STILL OPEN: this editor is stale after another tab saves, overwrites it, and is told "saved" ──
+        // ── 7. Stale tab after another save: refused, storage unchanged ──
         const elsewhere = [{ ...state.stored[0], whatWeDelivered: "Rewritten in another tab." }, { id: "added-elsewhere", projectName: "Added in another tab", photos: ["", "", ""] }];
         await control({ storeElsewhere: elsewhere });
         await use.fill(delivered, "Typed in this stale tab.");
         await use.activate(saveButton);
-        await expect(status, "no warning: the overwrite is a real save").toHaveText("Saved.");
+        await expect(status).toHaveText(CONFLICT);
         state = await control();
-        expect(state.stored, "the other tab's entry is gone and its rewrite replaced").toHaveLength(1);
-        expect(state.stored[0].whatWeDelivered).toBe("Typed in this stale tab.");
-        await done("still-open-stale-overwrite");
+        expect(state.stored).toHaveLength(2);
+        expect(state.stored[0].whatWeDelivered).toBe("Rewritten in another tab.");
+        await done("stale-tab-conflict");
 
         expect(outside.filter((host) => !["plausible.io", "www.clarity.ms"].includes(host)), "no outside host was contacted").toEqual([]);
         results.blockedThirdPartyHosts = Array.from(new Set(outside));
-        results.stillOpen = "A stale editor overwrote a newer list and was told 'saved'. Not fixed by this change.";
+        results.staleTabProtection = "stale save refused with conflict message";
         results.outcome = testInfo.errors.length === 0 ? "passed" : "failed";
     } finally {
         mkdirSync(DIR, { recursive: true });

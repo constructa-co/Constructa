@@ -91,14 +91,23 @@ describe("web proposal key facts share label and value rows", () => {
         expect(html(doc)).not.toContain("data-key-fact");
     });
 
-    it("shows a custom type of work such as Other exactly as entered, outside the key facts", () => {
+    it("shows a chosen type of work on the cover only, never in the key-facts strip", () => {
+        const input = representativeInput();
+        input.project.project_type = "Kitchen extension";
+        const doc = buildProposalDocument(buildProposalPublicationSnapshot(input));
+        const markup = html(doc);
+        expect(doc.projectType).toBe("Kitchen extension");
+        expect(markup).toMatch(/<dt class="inline">Type of work(<!-- -->)?: <\/dt><dd class="inline font-semibold text-stone-900">Kitchen extension<\/dd>/);
+        expect(keyFacts(markup)!.facts.map((fact) => fact.label)).not.toContain("Type of work");
+    });
+
+    it("does not treat the unspecified placeholder as a type of work on the cover", () => {
         const input = representativeInput();
         input.project.project_type = "Other";
         const doc = buildProposalDocument(buildProposalPublicationSnapshot(input));
         const markup = html(doc);
-        expect(doc.projectType).toBe("Other");
-        expect(markup).toMatch(/<dt class="inline">Type of work(<!-- -->)?: <\/dt><dd class="inline font-semibold text-stone-900">Other<\/dd>/);
-        expect(keyFacts(markup)!.facts.map((fact) => fact.label)).not.toContain("Type of work");
+        expect(doc.projectType).toBeNull();
+        expect(markup).not.toMatch(/Type of work.*Other/);
     });
 
     it("changes only the key-facts markup: terms wording and the cover facts keep their classes", () => {

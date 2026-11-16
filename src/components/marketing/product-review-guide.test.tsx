@@ -19,13 +19,13 @@ const guideHtml = () => renderToStaticMarkup(<ProductReviewGuide />);
 const heldList = () => guideHtml().match(/Held back from this preview[\s\S]*?<\/ul>/)?.[0] ?? '';
 
 describe('phase-one product review guide', () => {
-  it('sits inside the real features page, directly after the journey and before the scope', () => {
+  it('sits inside the real features page without a repeated journey or scope block', () => {
     const html = renderToStaticMarkup(<PhaseOneFeatures />);
-    const [journey, guide, scope] = ['id="how-it-works"', GUIDE_MARKER, 'id="phase-one"'].map(marker => html.indexOf(marker));
-    expect(journey).toBeGreaterThan(-1);
-    expect(guide).toBeGreaterThan(journey);
-    expect(scope).toBeGreaterThan(guide);
+    expect(html).toContain(GUIDE_MARKER);
     expect(html.match(new RegExp(GUIDE_MARKER, 'g'))).toHaveLength(1);
+    expect(html).toContain('href="/#how-it-works"');
+    expect(html).not.toContain('id="how-it-works"');
+    expect(html).not.toContain('id="phase-one"');
   });
 
   it('stays off the home and pricing pages', () => {

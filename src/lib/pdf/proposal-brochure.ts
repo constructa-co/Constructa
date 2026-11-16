@@ -573,11 +573,11 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
         const axisAndNoteHeight = Math.max(12, 6 + basisLines.length * STYLES.small.lineHeight);
         const headline: DocFact[] = programmeFacts(plan);
         // A stage name too long for its column runs on to further lines, and
-        // its row grows to hold them. Proposals issued before presentation 3
+        // its row grows to hold them. Proposals issued before presentation 4
         // printed the first line only and are still drawn that way.
         const stageNames = plan.stages.map((stage) => {
             const nameLines = wrap(stage.name, PAGE.contentWidth - 78, STYLES.strong);
-            return document.presentationVersion >= 3 ? nameLines : nameLines.slice(0, 1);
+            return document.presentationVersion >= 4 ? nameLines : nameLines.slice(0, 1);
         });
         const nameOverflow = (index: number) => Math.max(0, (stageNames[index]?.length ?? 0) - 1) * STYLES.strong.lineHeight;
         ensure(TIMELINE_FACTS + STAGE_ROW + nameOverflow(0));
@@ -979,10 +979,12 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
             if (name) drawBlockLines(wrap(name, columnWidth, STYLES.strong).slice(0, 1), columnX, cursor + 5, STYLES.strong);
             ["Signature", "Name", "Date"].forEach((line, index) => {
                 const lineY = cursor + 16 + index * 7;
+                const fieldTop = lineY - 3;
                 pdf.setDrawColor(...MUTED);
                 pdf.setLineWidth(0.2);
                 pdf.line(columnX + 18, lineY, columnX + columnWidth, lineY);
-                drawBlockLines([line], columnX, lineY - 3, STYLES.small);
+                drawBlockLines([line], columnX, fieldTop, STYLES.small);
+                log("signature-field", fieldTop, lineY + 0.5, `signature-${Math.round(columnX)}`);
             });
         };
         signature(x, `For ${document.company.name}`, null);

@@ -429,7 +429,7 @@ describe("D51 director's message is shown once", () => {
         expect(noClosing.sections.map((section) => section.id)).not.toContain("closing");
     });
 
-    it.each([2, undefined] as const)("draws a proposal issued at presentation %s as it was issued, with both", (version) => {
+    it.each([2, 3, undefined] as const)("draws a proposal issued at presentation %s as it was issued, with both", (version) => {
         const issued = structuredClone(usedAsClosing(MESSAGE));
         if (version) issued.document_presentation_version = version;
         else delete issued.document_presentation_version;
@@ -458,7 +458,7 @@ describe("D51 programme stage names in the PDF", () => {
     it("prints a long stage name in full and gives its row the room", () => {
         expect(longSnapshot.programme_plan!.stages[1].name).toBe(LONG_NAME);
         const doc = buildProposalDocument(longSnapshot);
-        expect(doc.presentationVersion).toBe(3);
+        expect(doc.presentationVersion).toBe(4);
         expect(pdfStrings(doc).replace(/\n/g, " ")).toContain(LONG_NAME);
         const rows = programmeRows(doc);
         expect(rows).toHaveLength(4);
@@ -473,8 +473,8 @@ describe("D51 programme stage names in the PDF", () => {
         expect(htmlText(buildProposalDocument(longSnapshot))).toContain(LONG_NAME);
     });
 
-    it("draws a proposal issued before this change with the layout it was issued in", () => {
-        const issued = { ...longSnapshot, document_presentation_version: 2 as const };
+    it.each([2, 3] as const)("draws a proposal issued at presentation %s with the layout it was issued in", (version) => {
+        const issued = { ...longSnapshot, document_presentation_version: version };
         const doc = buildProposalDocument(issued);
         const pdf = pdfStrings(doc).replace(/\n/g, " ");
         expect(pdf).toContain("First fix plumbing and electrics");

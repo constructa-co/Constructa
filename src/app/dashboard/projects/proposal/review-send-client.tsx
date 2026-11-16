@@ -23,6 +23,7 @@ import {
     DRAFT_PROPOSAL_REFERENCE,
     paymentRows,
     proposalReference,
+    publicationProjectTypeDisplay,
     vatLines,
     vatNote,
 } from "@/lib/proposal-document";
@@ -94,6 +95,8 @@ import {
 import PublicationHistoryPanel, { type ProposalPublicationHistoryRow } from "./publication-history-panel";
 import PastJobsExtras from "./past-jobs-extras";
 import { buildPastJobs } from "@/lib/case-library/past-jobs";
+import { roundMoney } from "@/lib/financial";
+import { evaluateProposalFigureConsistency } from "@/lib/proposal-figure-consistency";
 
 export interface CaseStudyOption {
     /** The case study's own id, or its position when it has none. */
@@ -218,6 +221,26 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
         () => buildPreviewSnapshot(context, draft, state.responseKind, previewTime),
         [context, draft, state.responseKind, previewTime],
     );
+    const figureWarnings = useMemo(() => {
+        if (!preview) return [];
+        const commercial = preview.commercial;
+        const paymentAmounts = (commercial.payment_schedule ?? []).map((row) =>
+            row.amount ?? roundMoney((commercial.contract_sum_ex_vat * row.percentage) / 100),
+        );
+        return evaluateProposalFigureConsistency({
+            wordingFields: [
+                draft.introduction,
+                draft.scope,
+                draft.exclusions,
+                draft.clarifications,
+                draft.closing,
+            ],
+            briefText: context.project.brief_scope,
+            contractSumExVat: commercial.contract_sum_ex_vat,
+            contractSumIncVat: commercial.contract_sum_inc_vat,
+            paymentAmounts,
+        });
+    }, [preview, draft, context.project.brief_scope]);
     const previewDocument = useMemo(() => (preview ? buildProposalDocument(preview, { isDraft: true }) : null), [preview]);
     const nextIssuedReference = preview
         ? proposalReference({
@@ -529,6 +552,18 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
 
     const preparing = proposalStage === "prepare";
     const showingDocument = !preparing && documentView.open && documentView.projectId === project.id && !locked && previewDocument !== null;
+    const signatureLine = (label: string, key: string) => (
+        <div key={key} className="break-inside-avoid space-y-1" data-signature-field>
+            <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">{label}</p>
+            <div className="mt-5 border-b border-stone-400" aria-hidden="true" />
+        </div>
+    );
+    const signatureColumn = (heading: string, prefix: string) => (
+        <div className="break-inside-avoid min-w-0 space-y-4" data-signature-column>
+            <p className="text-xs font-semibold uppercase tracking-wide text-stone-900">{heading}</p>
+            {["Signature", "Name", "Date"].map((line) => signatureLine(line, `${prefix}-${line}`))}
+        </div>
+    );
     const documentResponse = previewDocument ? (
         <>
             <h2 id="doc-response" className="font-serif text-3xl leading-tight text-stone-900">{previewDocument.response.heading}</h2>
@@ -539,6 +574,10 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                 {previewDocument.response.actionLabel}
             </p>
             <p className="mt-2 text-sm text-stone-600">Your client fills in their name and presses this button. It does nothing in the preview.</p>
+            <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2" data-doc-signature-preview>
+                {signatureColumn(`For ${previewDocument.company.name}`, "contractor")}
+                {signatureColumn(previewDocument.response.signatureLabel, "client")}
+            </div>
         </>
     ) : null;
     const documentContent = previewDocument ? (
@@ -588,6 +627,21 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                         {readiness.ready ? "Everything needed is in place" : `${readiness.missing.length} ${readiness.missing.length === 1 ? "thing is" : "things are"} needed before you can send`}
                     </h2>
                     {estimateIssue && <p role="alert" className={`mt-3 ${s.errorBox} text-sm`}>{estimateIssue}</p>}
+
+                    {figureWarnings.length > 0 && (
+                        <div
+                            role="alert"
+                            className={`mt-3 ${s.noticeBox} text-sm space-y-2`}
+                            data-figure-consistency-warning
+                        >
+                            <p className={`font-semibold ${s.body}`}>Check prices in your wording</p>
+                            <ul className="list-disc pl-5 space-y-1">
+                                {figureWarnings.map((warning) => (
+                                    <li key={warning.id}>{warning.message}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
 
                     <h3 className={`mt-4 text-sm font-semibold ${s.body}`}>Needed</h3>
                     <ul className="mt-2 space-y-2">
@@ -670,9 +724,10 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                 ["Site", project.site_address || "Not set"],
                                 ["From", context.profile.company_name || "Not set"],
                             ] as Array<[string, string]>)
-                                .concat(project.project_type?.trim()
-                                    ? [["Type of work", project.project_type] as [string, string]]
-                                    : [])
+                                .concat((() => {
+                                    const jobType = publicationProjectTypeDisplay(project.project_type);
+                                    return jobType ? [["Type of work", jobType] as [string, string]] : [];
+                                })())
                             .map(([label, value]) => (
                                 <div key={label} className="min-w-0">
                                     <dt className={`font-semibold ${s.muted}`}>{label}</dt>

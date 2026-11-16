@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("server-only", () => ({}));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }) }));
 vi.mock("./library-actions", () => ({
     approveCaseStudyAction: vi.fn(), archiveCaseStudyAction: vi.fn(), archiveDisciplineAction: vi.fn(), checkCaseStudyAction: vi.fn(),

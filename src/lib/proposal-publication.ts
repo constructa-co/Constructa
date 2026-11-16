@@ -132,16 +132,17 @@ export interface ProposalPhoto {
 }
 
 /** PDF layout generation. Omitted on snapshots issued before headline price deduplication. */
-export type ProposalDocumentPresentationVersion = 1 | 2 | 3;
+export type ProposalDocumentPresentationVersion = 1 | 2 | 3 | 4;
 
 /** Written on every new snapshot. Issued snapshots keep the version they were sent with. */
-export const CURRENT_DOCUMENT_PRESENTATION_VERSION: ProposalDocumentPresentationVersion = 3;
+export const CURRENT_DOCUMENT_PRESENTATION_VERSION: ProposalDocumentPresentationVersion = 4;
 
 export interface ProposalPublicationSnapshot {
     schema_version: 1;
     /**
      * From 2, cover states the authoritative price and the price section avoids repeating it.
-     * From 3, a director's message used as the closing wording is shown once, and the PDF
+     * From 3, a placeholder job type and a generic lone price heading are left out.
+     * From 4, a director's message used as the closing wording is shown once, and the PDF
      * prints a long programme stage name in full.
      */
     document_presentation_version?: ProposalDocumentPresentationVersion;

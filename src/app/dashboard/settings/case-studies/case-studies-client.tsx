@@ -10,6 +10,7 @@ import { caseStudyTextEnhanceEnabled } from "@/lib/cohort-ai/case-study-enhance-
 import { COHORT_AI_OFF } from "@/lib/cohort-ai/shared";
 import { pendingFrom, sectionState, settle, type PendingCaseStudySuggestion } from "@/lib/cohort-ai/case-study-suggestion";
 import { uploadProfileImageAction } from "@/app/storage/actions";
+import { PUBLIC_IMAGE_LIMITS_HINT, publicImageProblem } from "@/lib/storage/public-image";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import { keepFirstThreePhotos, legacyExtraPhotoCount } from "./legacy-save-photos";
 import { SAVE_MESSAGES, initialSaveState, needsLeaveWarning, requestOf, saveReducer, statusLine, type SaveAction, type SaveCaseStudiesResult, type SaveState } from "./save-state";
@@ -28,6 +29,9 @@ import ChallengeResolution, { NO_STORY, storyTyped, type StoryNotes } from "./ch
 
 type Enhance = (whatWeDelivered: string, valueAdded: string, projectName: string, projectType: string) => Promise<CaseStudyResult>;
 type Save = (caseStudies: unknown) => Promise<SaveCaseStudiesResult>;
+
+/** Whether two picked files look like one file: same name, size and last-changed time. Their contents are not read. */
+const sameFile = (a: File, b: File) => a.name === b.name && a.size === b.size && a.lastModified === b.lastModified;
 
 interface CaseStudy {
     id: string;
@@ -143,7 +147,8 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
     const status = statusLine(state);
     const trouble = state.notice.kind === "failed" || state.notice.kind === "unknown" || state.uncertain;
 
-    const handlePhotoUpload = async (csIndex: number, slot: number, file: File) => {
+    /** Resolves true only when the picture was put on the example. */
+    const handlePhotoUpload = async (csIndex: number, slot: number, file: File): Promise<boolean> => {
         // Rows and photos can change while this waits, so the reply is placed from what is there when it arrives.
         const row = rowHandles.current[csIndex];
         const pickKey = `${row}:${slot}`;
@@ -162,9 +167,9 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
         const rowIndex = rowHandles.current.indexOf(row);
         if (rowIndex === -1) {
             toast.error("That past work was removed, so its photo wasn't added.");
-            return;
+            return false;
         }
-        if (latestPhotoPick.current.get(pickKey) !== pick) return;
+        if (latestPhotoPick.current.get(pickKey) !== pick) return false;
         const { url } = result;
         if (url) {
             setCaseStudies(prev => prev.map((cs, i) => {
@@ -174,9 +179,10 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
                 return { ...cs, photos: newPhotos };
             }));
             toast.success("Photo uploaded");
-        } else {
-            toast.error(result.error || "Upload failed");
+            return true;
         }
+        toast.error(result.error || "Upload failed");
+        return false;
     };
 
     /** Takes a photo off the screen copy only. The file stays in storage; a pick still on its way for this slot no longer counts. */
@@ -282,7 +288,7 @@ function CaseStudyCard({
     index: number;
     onChange: (field: keyof CaseStudy, value: string | string[] | CaseStudySectorId[] | boolean) => void;
     onRemove: () => void;
-    onPhotoUpload: (slot: number, file: File) => void;
+    onPhotoUpload: (slot: number, file: File) => Promise<boolean>;
     onPhotoRemove: (slot: number) => void;
     onStoryTyped: (typed: boolean) => void;
     inputCls: string;
@@ -291,6 +297,53 @@ function CaseStudyCard({
     const [expanded, setExpanded] = useState(true);
     const [enhancing, setEnhancing] = useState(false);
     const extraPhotos = legacyExtraPhotoCount(cs.photos);
+
+    // Which slots have a picture on its way, so the slot says so until its reply is in. Never saved.
+    const [uploading, setUploading] = useState<boolean[]>([false, false, false]);
+    const [photoNote, setPhotoNote] = useState<string | null>(null);
+    /** The latest pick for each slot on this card. Only its reply ends that slot's "uploading". */
+    const latestPick = useRef<(symbol | null)[]>([null, null, null]);
+    /** The file each slot's picture came from on this page, so the same picture added twice is noticed. Never saved. */
+    const pickedFiles = useRef<(File | null)[]>([null, null, null]);
+    const markUploading = (slot: number, on: boolean) => setUploading(prev => prev.map((value, i) => (i === slot ? on : value)));
+
+    const pickPhoto = async (slot: number, input: HTMLInputElement) => {
+        const file = input.files?.[0];
+        // Cleared so choosing the same file again, after a failure for one, is still a change the browser reports.
+        input.value = "";
+        if (!file) return;
+        // Refused here, in the words the upload would use, before anything is sent. A pick already on its way is left alone.
+        const problem = publicImageProblem(file);
+        if (problem) {
+            toast.error(problem);
+            return;
+        }
+        const pick = Symbol();
+        latestPick.current[slot] = pick;
+        setPhotoNote(null);
+        markUploading(slot, true);
+        const added = await onPhotoUpload(slot, file);
+        if (latestPick.current[slot] !== pick) return;
+        markUploading(slot, false);
+        if (!added) return;
+        const twin = pickedFiles.current.findIndex((other, i) => i !== slot && other !== null && sameFile(other, file));
+        pickedFiles.current[slot] = file;
+        // Said, not refused: both pictures stay until the contractor removes one.
+        if (twin !== -1) setPhotoNote(`Photo ${slot + 1} looks like the same picture as photo ${twin + 1}. Both are kept. Remove one if you didn't mean to add it twice.`);
+    };
+
+    const removePhoto = (slot: number) => {
+        latestPick.current[slot] = null;
+        pickedFiles.current[slot] = null;
+        markUploading(slot, false);
+        setPhotoNote(null);
+        onPhotoRemove(slot);
+    };
+
+    const uploadingSlots = uploading.flatMap((on, slot) => (on ? [slot + 1] : []));
+    const photoStatus = uploadingSlots.length > 0
+        ? `Uploading ${uploadingSlots.length === 1 ? "photo" : "photos"} ${uploadingSlots.join(" and ")}…`
+        : photoNote ?? "";
 
     // A reply is held here until the contractor decides. It never replaces what is in the form by arriving.
     const [pending, setPending] = useState<PendingCaseStudySuggestion | null>(null);
@@ -473,7 +526,7 @@ function CaseStudyCard({
 
                     {/* Photos */}
                     <div>
-                        <label className={labelCls}>Photos (up to 3)</label>
+                        <label className={labelCls}>{`Photos (up to 3. ${PUBLIC_IMAGE_LIMITS_HINT})`}</label>
                         <div className={ui.photos}>
                             {[0, 1, 2].map(slot => (
                                 <div key={slot} className={`${ui.photoSlot} border rounded-lg overflow-hidden relative group`}>
@@ -483,9 +536,9 @@ function CaseStudyCard({
                                             <img src={cs.photos[slot]} alt={`Photo ${slot + 1}`} className="w-full h-full object-cover" />
                                             <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
                                                 <Upload className="w-5 h-5 text-white" />
-                                                <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={`Replace photo ${slot + 1} for past work ${index + 1}`} className="sr-only" onChange={e => e.target.files?.[0] && onPhotoUpload(slot, e.target.files[0])} />
+                                                <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={`Replace photo ${slot + 1} for past work ${index + 1}`} className="sr-only" onChange={e => pickPhoto(slot, e.target)} />
                                             </label>
-                                            <button type="button" aria-label={`Remove photo ${slot + 1} for past work ${index + 1}`} onClick={() => onPhotoRemove(slot)} className={`absolute top-1 right-1 z-10 flex h-11 w-11 items-center justify-center rounded-lg bg-black/70 text-white hover:bg-black ${coreFocusVisibleRing}`}>
+                                            <button type="button" aria-label={`Remove photo ${slot + 1} for past work ${index + 1}`} onClick={() => removePhoto(slot)} className={`absolute top-1 right-1 z-10 flex h-11 w-11 items-center justify-center rounded-lg bg-black/70 text-white hover:bg-black ${coreFocusVisibleRing}`}>
                                                 <Trash2 className="w-4 h-4" aria-hidden />
                                             </button>
                                         </>
@@ -493,12 +546,21 @@ function CaseStudyCard({
                                         <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-slate-700 transition-colors">
                                             <Upload className="w-5 h-5 text-slate-500 mb-1" />
                                             <span className="text-[10px] text-slate-500">Upload</span>
-                                            <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={`Upload photo ${slot + 1} for past work ${index + 1}`} className="sr-only" onChange={e => e.target.files?.[0] && onPhotoUpload(slot, e.target.files[0])} />
+                                            <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={`Upload photo ${slot + 1} for past work ${index + 1}`} className="sr-only" onChange={e => pickPhoto(slot, e.target)} />
                                         </label>
+                                    )}
+                                    {uploading[slot] && (
+                                        // Shown over the slot, without blocking it: a newer pick or a removal still works, and the latest one stands.
+                                        <div data-photo-uploading={slot + 1} aria-hidden className="absolute inset-0 flex items-center justify-center gap-1.5 bg-black/70 text-xs font-semibold text-white pointer-events-none">
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Uploading…
+                                        </div>
                                     )}
                                 </div>
                             ))}
                         </div>
+                        {/* Says a picture is on its way, or that the same picture was added twice. A failure is said where failures already are. */}
+                        <p data-photo-status role="status" aria-live="polite" className={photoStatus ? "mt-2 text-xs font-semibold text-slate-200" : "sr-only"}>{photoStatus}</p>
                         {extraPhotos > 0 && (
                             // Older data can hold more than three. They are not shown and cannot be removed slot by slot, and a save with them is refused, so the choice is offered here. Nothing is dropped until it is pressed.
                             <div data-extra-photos role="status" className="mt-2 flex flex-wrap items-center gap-3 rounded-lg border border-amber-500/50 bg-amber-950/40 p-3 text-xs text-amber-100">

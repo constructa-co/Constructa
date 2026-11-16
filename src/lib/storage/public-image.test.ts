@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   MAX_PUBLIC_IMAGE_BYTES,
+  PUBLIC_IMAGE_LIMITS_HINT,
+  publicImageProblem,
   validatePublicImage,
 } from "./public-image";
 
@@ -46,5 +48,34 @@ describe("validatePublicImage", () => {
     );
 
     await expect(validatePublicImage(oversized)).rejects.toThrow("10 MB or smaller");
+  });
+});
+
+describe("publicImageProblem", () => {
+  it("passes each supported type up to and including the size limit", () => {
+    for (const type of ["image/jpeg", "image/png", "image/webp"]) {
+      expect(publicImageProblem({ size: 1, type })).toBeNull();
+      expect(publicImageProblem({ size: MAX_PUBLIC_IMAGE_BYTES, type })).toBeNull();
+    }
+  });
+
+  it.each([
+    [{ size: 0, type: "image/png" }, "Choose a non-empty image file."],
+    [{ size: MAX_PUBLIC_IMAGE_BYTES + 1, type: "image/png" }, "Images must be 10 MB or smaller."],
+    [{ size: 1, type: "image/gif" }, "Only JPEG, PNG and WebP images are supported."],
+    [{ size: 1, type: "" }, "Only JPEG, PNG and WebP images are supported."],
+    [{ size: 1, type: "toString" }, "Only JPEG, PNG and WebP images are supported."],
+  ])("says why %j is refused", (file, message) => {
+    expect(publicImageProblem(file)).toBe(message);
+  });
+
+  it("gives the wording the upload itself gives", async () => {
+    const gif = imageFile([0x47, 0x49, 0x46], "image/gif", "moving.gif");
+    await expect(validatePublicImage(gif)).rejects.toThrow(publicImageProblem(gif)!);
+  });
+
+  it("states the limit the check enforces", () => {
+    expect(MAX_PUBLIC_IMAGE_BYTES).toBe(10 * 1024 * 1024);
+    expect(PUBLIC_IMAGE_LIMITS_HINT).toBe("JPEG, PNG or WebP, up to 10 MB each");
   });
 });

@@ -15,6 +15,7 @@
 | `src/components/estimating.module.css` | `advancedWorkspaceRoot`, `totalDock` z-index | Isolation + bottom padding; dock below workspace overlays | CON-032 panel overlap |
 | `src/app/dashboard/projects/costs/estimate-client.tsx` | advanced wrapper classes | Apply workspace layout classes | CON-032 |
 | `src/lib/*.test.ts`, `con-032-advanced-panel-layout.test.ts` | (new) | Focused CON-022/031/032 tests | No live data |
+| `package-lock.json` | revert | Restored to `868df15` main; drop accidental npm-install churn from first push | Keep P1 diff scoped to estimate work |
 
 ## 2026-11-15 — D38 CON-007 recipient email confirmation (cursor/d38-con-007-proposal-email-default-off-20261115)
 

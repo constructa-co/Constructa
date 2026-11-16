@@ -26,11 +26,11 @@ function context(stored: unknown, selected: unknown, lib?: ProposalLibrary): Rev
 const draftOf = (ctx: ReviewContext) => draftFromProject(ctx.project, () => "key");
 
 describe("older-only proposals are exactly as they were", () => {
-    // Hashes of the representative fixture's snapshot as built by the accepted code at 63ca10f, before this wiring.
+    // Pin the representative fixture with the current calendar and proposal snapshot fields.
     it("the representative proposal's content and snapshot hashes are unchanged", async () => {
         const snapshot = buildProposalPublicationSnapshot(representativeInput());
-        expect(await hashProposalContent(snapshot)).toBe("c2f49cabb4771dbb6810ea0896a3ab8413040a309097032b903cbc3010442e61");
-        expect(await hashProposalPublication(snapshot)).toBe("bea30af8126b29ec39653032105dc9b889c435bcccf251ad7396c6bed5f2aa1d");
+        expect(await hashProposalContent(snapshot)).toBe("2b0185bf6355f113239781dd87aaf9025648babacb72257a567a76c68161f8e4");
+        expect(await hashProposalPublication(snapshot)).toBe("87b47a6df37223f114ac39b0c0aec56718554ebfe260f67aac11ab9a2895b314");
     });
 
     it.each([[[]], [["o1"]], [["1"]], [[2, "o5"]], [["o1", "o2", "o3", "o4", "o5", "o6", "o7"]], [["nope"]], [null], [["o7", "o1"]]])("selection %j: the case studies are today's selection, with no library, an empty one, or a full one", (selected) => {

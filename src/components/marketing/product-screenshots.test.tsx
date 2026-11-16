@@ -97,7 +97,9 @@ describe('phase-one product screenshots', () => {
   it('states the section qualification in visible text', () => {
     const visible = html().replace(/<img\b[^>]*>/g, '');
     for (const fact of [
-      'These screens show the product with sample data. Controls may change before release.',
+      'These screens show the product with sample data from a synthetic journey fixture, captured on 15 November 2026 with simulated saving.',
+      'Live signup, email and production saving require separate verification.',
+      'Controls may change before release.',
       'Example screens',
       'From the product.',
     ]) expect(visible).toContain(fact);
@@ -106,7 +108,7 @@ describe('phase-one product screenshots', () => {
   it('dates and qualifies each figure in its own caption', () => {
     const captions = html().match(/<figcaption[\s\S]*?<\/figcaption>/g) ?? [];
     for (const caption of captions) expect(caption).toMatch(/<time datetime="2026-11-15">15 November 2026<\/time>/i);
-    for (const caption of captions) for (const label of ['Example screen', 'Sample data']) expect(caption).toContain(label);
+    for (const caption of captions) for (const label of ['Example screen', 'Sample data', 'Simulated saving']) expect(caption).toContain(label);
     expect(captions[0]).toContain('They are not prices, typical margins or a quote.');
     expect(captions[1]).toContain('not a standard programme or a promise of how long any job takes');
   });

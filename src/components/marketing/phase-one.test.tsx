@@ -75,6 +75,7 @@ describe('phase-one marketing integration', () => {
     const html = renderToStaticMarkup(<PhaseOneFeatures />);
     expect(html).toContain('not available as a live chatbot');
     expect(html).toContain('being verified before live customer use');
+    expect(html).toContain('not a claim that every part is ready for release');
     expect(html).not.toContain('24/7');
     expect(html).not.toContain('AI-powered construction management');
   });

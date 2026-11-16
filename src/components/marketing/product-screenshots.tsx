@@ -52,7 +52,7 @@ export function ProductScreenshots() {
       </div>
 
       <p className={shots.qualification}>
-        These screens show the product with sample data. Controls may change before release.
+        These screens show the product with sample data from a synthetic journey fixture, captured on 15 November 2026 with simulated saving. Live signup, email and production saving require separate verification. Controls may change before release.
       </p>
 
       <div className={shots.figures}>
@@ -62,7 +62,7 @@ export function ProductScreenshots() {
             <figcaption>
               <div>
                 <h3>{capture.title}</h3>
-                <p className={shots.capturedLine}>Example screen · <time dateTime={capture.capturedOn}>{capture.capturedLabel}</time> · Sample data</p>
+                <p className={shots.capturedLine}>Example screen · <time dateTime={capture.capturedOn}>{capture.capturedLabel}</time> · Sample data · Simulated saving</p>
               </div>
               <div>
                 <p>{capture.description}</p>

@@ -58,6 +58,9 @@ export interface ProposalPublicationProfileInput {
     md_name?: string | null;
     md_message?: string | null;
     case_studies?: unknown[] | null;
+    vat_registered?: boolean | null;
+    default_vat_rate?: number | null;
+    default_vat_reverse_charge?: boolean | null;
 }
 
 export interface ProposalPublicationEstimateLineInput {

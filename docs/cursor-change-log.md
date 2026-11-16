@@ -1,5 +1,27 @@
 # Cursor change log
 
+## 2026-11-16 — D49 CON-018 / CON-025 / CON-026 settings (cursor/d49-settings-con-018-025-026-ade5)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/company-vat-settings.ts` | (new) | Gate, normalise VAT number, `vatFromCompanyAndProject` | CON-018 company VAT rate/registration/reverse-charge defaults |
+| `supabase/migrations/20261116103000_con018_profile_vat_settings.sql` | (new) | `profiles` VAT columns | **OWNER/MIGRATION GATE — not applied** |
+| `src/lib/profile-update.ts` | vat_number + gated fields | Normalise VAT number; persist gated columns when `CONSTRUCTA_PROFILE_VAT_SETTINGS=1` | Safe pre-migration saves |
+| `src/app/dashboard/settings/profile/profile-form.tsx` | company basics | VAT on proposals fieldset when gate on | CON-018 UI |
+| `src/app/dashboard/settings/profile/page.tsx` | pass gate | `vatSettingsEnabled` prop | Deploy-time switch |
+| `src/lib/proposal-review.ts` | `vatFor` | Thread profile into company VAT helper | Proposal preview/publish parity |
+| `src/app/dashboard/projects/proposal/actions.ts` | publish | `vatFor(project, profile)` | Publish uses company VAT when enabled |
+| `src/lib/company-interview/storage-ready.ts` | (new) | Missing-table PostgREST codes | CON-025 |
+| `src/lib/company-interview/service.ts` | readAnswers/loadInterview | Treat missing interview storage as empty state | CON-025 no whole-page failure |
+| `src/app/dashboard/settings/profile/interview/page.tsx` | load try/catch | Fail closed to client load error UI | CON-025 |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | cover section | Cover upload via `proposal-photos` path; site choice not blocked | CON-026 |
+| `src/app/dashboard/projects/proposal/a074-cover-photo-choice.test.tsx` | CON-026 case | Cover upload control regression | |
+| `src/lib/company-vat-settings.test.ts`, `storage-ready.test.ts`, `service.test.ts`, `proposal-review.test.ts` | tests | Focused regressions | |
+
+**Rollout gates (no live activation):**
+- CON-018: `CONSTRUCTA_PROFILE_VAT_SETTINGS=1` **and** migration `20261116103000_con018_profile_vat_settings.sql` applied by **Rob**.
+- CON-026 cover persistence unchanged: `CONSTRUCTA_PROPOSAL_COVER_PHOTO=1` **and** migration `20261114201500_a074_proposal_cover_photo.sql`.
+
 ## 2026-11-15 — D36 CON-005/014 PDF identity and price repair (cursor/d36-pdf-identity-and-price-repair-141e)
 
 | File | Lines (approx.) | Change | Intent |

@@ -1,3 +1,11 @@
+import {
+    isProfileVatSettingsEnabled,
+    normalizeVatNumber,
+    parseDefaultVatRate,
+    parseDefaultVatReverseCharge,
+    parseVatRegistered,
+} from "@/lib/company-vat-settings";
+
 /**
  * What the Company Profile form is allowed to save, built from the posted
  * form. Shared by the real server action and the fixture harness so both
@@ -22,7 +30,7 @@ export function profileUpdateFromForm(userId: string, formData: FormData): Recor
         website: formData.get("website") as string,
         address: formData.get("address") as string,
         company_number: formData.get("company_number") as string,
-        vat_number: formData.get("vat_number") as string,
+        vat_number: normalizeVatNumber(formData.get("vat_number")),
         years_trading: formData.get("years_trading") ? parseInt(formData.get("years_trading") as string, 10) : null,
         financial_year_start_month: formData.get("financial_year_start_month") ? parseInt(formData.get("financial_year_start_month") as string, 10) : 4,
         specialisms: formData.get("specialisms") as string,
@@ -43,5 +51,15 @@ export function profileUpdateFromForm(userId: string, formData: FormData): Recor
         })(),
         data_consent: formData.get("data_consent") === "true",
         data_consent_at: formData.get("data_consent") === "true" ? new Date().toISOString() : null,
+        ...(isProfileVatSettingsEnabled()
+            ? (() => {
+                const vatRegistered = parseVatRegistered(formData.get("vat_registered"));
+                return {
+                    vat_registered: vatRegistered,
+                    default_vat_rate: vatRegistered ? parseDefaultVatRate(formData.get("default_vat_rate")) : 0,
+                    default_vat_reverse_charge: parseDefaultVatReverseCharge(formData.get("default_vat_reverse_charge")),
+                };
+            })()
+            : {}),
     };
 }

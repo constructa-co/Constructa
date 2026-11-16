@@ -386,6 +386,8 @@ describe("preview", () => {
     it("charges VAT the same way in the preview as in the publication", () => {
         expect(vatFor({ is_vat_reverse_charge: true })).toEqual({ vatRate: 0, vatTreatment: "domestic_reverse_charge" });
         expect(vatFor({})).toEqual({ vatRate: 20, vatTreatment: "standard" });
+        vi.stubEnv("CONSTRUCTA_PROFILE_VAT_SETTINGS", "1");
+        expect(vatFor({}, { vat_registered: false, default_vat_rate: 20 })).toEqual({ vatRate: 0, vatTreatment: "standard" });
         const reverse = contextFrom({ is_vat_reverse_charge: true });
         const preview = buildPreviewSnapshot(reverse, draftFromProject(reverse.project, keys()), "acknowledgement", now)!;
         expect(preview.commercial.vat_amount).toBe(0);

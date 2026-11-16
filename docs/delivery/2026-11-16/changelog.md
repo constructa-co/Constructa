@@ -1,3 +1,12 @@
+## D49 CON-018 / CON-025 / CON-026 — Company VAT, interview load, cover upload — 16 November 2026
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `src/lib/company-vat-settings.ts` | (new) | Company VAT helpers + deploy gate | CON-018 |
+| `supabase/migrations/20261116103000_con018_profile_vat_settings.sql` | (new) | Profile VAT columns | NOT APPLIED — owner gate |
+| `src/lib/company-interview/service.ts` | load paths | Missing storage → empty interview | CON-025 |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | cover | Upload cover photo in cover section | CON-026 |
+
 ## D46 CON-028 / CON-029 / CON-030 — Programme regenerate, dependencies, drag — 16 November 2026
 
 ### Block #180 follow-up (Grok)

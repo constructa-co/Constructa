@@ -200,6 +200,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
     const confirmRef = useRef<HTMLInputElement>(null);
     const sendBlockRef = useRef<HTMLDivElement>(null);
     const fileRef = useRef<HTMLInputElement>(null);
+    const coverFileRef = useRef<HTMLInputElement>(null);
     const linkRef = useRef<HTMLInputElement>(null);
     const saveAlertRef = useRef<HTMLDivElement>(null);
     const resultRef = useRef<HTMLDivElement>(null);
@@ -407,13 +408,16 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
 
     // ── Photos ───────────────────────────────────────────────────────────────
 
-    const addPhoto = async (file: File | undefined) => {
+    const addPhoto = async (file: File | undefined, opts?: { selectSiteCover?: boolean }) => {
         if (!file || draft.photos.length >= MAX_PHOTOS) return;
         setUpload({ busy: true, error: "" });
         try {
             const result = await api.upload(file);
             if (result.url) {
-                edit({ photos: [...store.getState().draft.photos, { url: result.url, caption: "" }] });
+                edit({
+                    photos: [...store.getState().draft.photos, { url: result.url, caption: "" }],
+                    ...(opts?.selectSiteCover && coverPhotoEnabled ? { coverPhoto: "site" as const } : {}),
+                });
                 setUpload({ busy: false, error: "" });
             } else {
                 setUpload({ busy: false, error: result.error || "The photo could not be uploaded. Try again." });
@@ -422,6 +426,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
             setUpload({ busy: false, error: "The photo could not be uploaded. Check your connection and try again." });
         }
         if (fileRef.current) fileRef.current.value = "";
+        if (coverFileRef.current) coverFileRef.current.value = "";
     };
 
     // ── After publishing ─────────────────────────────────────────────────────
@@ -675,23 +680,22 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                 ["illustrative_render", COVER_PHOTO_CHOICE_LABELS.illustrative_render] as const,
                             ]).map(([value, label]) => {
                                 const choice = value as ProposalCoverPhotoChoice | null;
-                                const disabled = choice === "site" && draft.photos.length === 0;
                                 const id = value === null ? "review-cover-photo-none" : `review-cover-photo-${value}`;
                                 return (
-                                    <label key={id} htmlFor={id} className={`flex items-start gap-3 min-h-11 py-1 text-base ${disabled ? s.muted : s.body}`}>
+                                    <label key={id} htmlFor={id} className={`flex items-start gap-3 min-h-11 py-1 text-base ${s.body}`}>
                                         <input
                                             id={id}
                                             type="radio"
                                             name="review-cover-photo"
                                             className="mt-1 w-5 h-5 flex-shrink-0"
                                             checked={draft.coverPhoto === choice}
-                                            disabled={busy || disabled}
+                                            disabled={busy}
                                             onChange={() => edit({ coverPhoto: choice })}
                                         />
                                         <span className="min-w-0">
                                             <span className="font-semibold">{label}</span>
                                             {choice === "site" && (
-                                                <span className={`block text-sm ${s.muted}`}>Uses your first site photo from the scope section.</span>
+                                                <span className={`block text-sm ${s.muted}`}>Uses your first site photo. You can upload one here or in Scope of works.</span>
                                             )}
                                             {choice === "illustrative_render" && (
                                                 <span className={`block text-sm ${s.muted}`}>{COVER_RENDER_CAPTION}</span>
@@ -700,6 +704,16 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                     </label>
                                 );
                             })}
+                            {draft.coverPhoto === "site" && draft.photos[0]?.url && (
+                                <figure className={`${s.inset} p-3 space-y-2`} data-review-cover-site-preview>
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        src={draft.photos[0].url}
+                                        alt={draft.photos[0].caption || "Site cover photo"}
+                                        className="w-full max-w-md aspect-[4/3] object-cover rounded-lg"
+                                    />
+                                </figure>
+                            )}
                             {draft.coverPhoto === "illustrative_render" && (
                                 <figure className={`${s.inset} p-3 space-y-2`}>
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -710,6 +724,26 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                     />
                                     <figcaption className={`text-xs ${s.muted}`}>{coverForIllustrativeRender().caption}</figcaption>
                                 </figure>
+                            )}
+                            {!locked && draft.photos.length < MAX_PHOTOS && (
+                                <div data-review-cover-upload>
+                                    <input
+                                        ref={coverFileRef}
+                                        id="review-cover-photo-file"
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp"
+                                        className="sr-only"
+                                        onChange={(e) => void addPhoto(e.target.files?.[0], { selectSiteCover: true })}
+                                    />
+                                    <label
+                                        htmlFor="review-cover-photo-file"
+                                        className={`${s.secondaryButton} min-h-11 text-sm cursor-pointer inline-flex ${upload.busy ? "opacity-60 pointer-events-none" : ""}`}
+                                    >
+                                        {upload.busy
+                                            ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> Uploading…</>
+                                            : <><Plus className="w-4 h-4" aria-hidden="true" /> Upload a site cover photo</>}
+                                    </label>
+                                </div>
                             )}
                             {fieldErrors.coverPhoto && <p role="alert" className={`text-sm ${s.errorText}`}>{fieldErrors.coverPhoto}</p>}
                         </fieldset>}

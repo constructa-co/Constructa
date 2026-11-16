@@ -333,6 +333,9 @@ export interface Profile {
     website?: string | null;
     company_number?: string | null;
     vat_number?: string | null;
+    vat_registered?: boolean | null;
+    default_vat_rate?: number | null;
+    default_vat_reverse_charge?: boolean | null;
     years_trading?: number | null;
     business_type?: string | null;
     specialisms?: string | null;

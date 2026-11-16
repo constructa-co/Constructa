@@ -13,6 +13,7 @@ import { Upload, Loader2, Sparkles } from "lucide-react";
 import { literalNameMatches } from "@/lib/trade-literal-match";
 import { accreditationEntries, accreditationsValue } from "./accreditation-list";
 import ui from "@/components/company-profile.module.css";
+import { UK_VAT_RATE_OPTIONS } from "@/lib/company-vat-settings";
 import {
     coreFocusVisibleRing,
     coreFormAccent,
@@ -29,6 +30,9 @@ interface Profile {
     company_name?: string | null;
     company_number?: string | null;
     vat_number?: string | null;
+    vat_registered?: boolean | null;
+    default_vat_rate?: number | null;
+    default_vat_reverse_charge?: boolean | null;
     address?: string | null;
     website?: string | null;
     years_trading?: number | null;
@@ -135,9 +139,10 @@ function ProfileSuggestion({ id, suggestion, onUse, onDiscard }: {
     );
 }
 
-export default function ProfileForm({ profile, userEmail, save = updateProfileAction }: {
+export default function ProfileForm({ profile, userEmail, vatSettingsEnabled = false, save = updateProfileAction }: {
     profile: Profile | null;
     userEmail: string;
+    vatSettingsEnabled?: boolean;
     /** Defaults to the real server action; replaced only by the fixture harness. */
     save?: typeof updateProfileAction;
 }) {
@@ -164,6 +169,7 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
     const [ownLabels] = useState<string[]>(() => [...new Set((profile?.preferred_trades || []).filter(trade => !ALL_TRADES.includes(trade)))]);
     const [mdMessage, setMdMessage] = useState(profile?.md_message || '');
     const [rewritingMdMessage, setRewritingMdMessage] = useState(false);
+    const [vatRegistered, setVatRegistered] = useState(profile?.vat_registered === true);
 
     // A reply is held here as a suggestion. It replaces nothing until the contractor chooses it.
     const [capabilitySuggestion, setCapabilitySuggestion] = useState<string | null>(null);
@@ -460,6 +466,50 @@ export default function ProfileForm({ profile, userEmail, save = updateProfileAc
                             placeholder="GB 123 4567 89"
                         />
                     </div>
+                    {vatSettingsEnabled && (
+                        <fieldset className="sm:col-span-2 space-y-4 rounded-lg border border-slate-700/60 p-4" data-profile-vat-settings>
+                            <legend className="px-1 text-sm font-semibold text-slate-200">VAT on proposals</legend>
+                            <input type="hidden" name="vat_registered" value={vatRegistered ? "true" : "false"} />
+                            <label className="flex items-start gap-3 min-h-11 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    className="mt-1 h-4 w-4 rounded"
+                                    checked={vatRegistered}
+                                    onChange={(e) => setVatRegistered(e.target.checked)}
+                                />
+                                <span className="text-sm text-slate-300">
+                                    <span className="font-semibold text-slate-100">VAT registered</span>
+                                    <span className="block text-slate-500 mt-0.5">Turn off if you are not registered; proposals use 0% VAT unless a job uses domestic reverse charge.</span>
+                                </span>
+                            </label>
+                            <div className="space-y-1.5">
+                                <label htmlFor="company-default_vat_rate" className="text-sm font-medium text-slate-400">Standard VAT rate (%)</label>
+                                <select
+                                    id="company-default_vat_rate"
+                                    name="default_vat_rate"
+                                    defaultValue={String(profile?.default_vat_rate ?? 20)}
+                                    disabled={!vatRegistered}
+                                    className={coreProfileField}
+                                >
+                                    {UK_VAT_RATE_OPTIONS.map((rate) => (
+                                        <option key={rate} value={rate}>{rate}%</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <label className="flex items-start gap-3 min-h-11 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    name="default_vat_reverse_charge"
+                                    defaultChecked={profile?.default_vat_reverse_charge === true}
+                                    className="mt-1 h-4 w-4 rounded"
+                                />
+                                <span className="text-sm text-slate-300">
+                                    <span className="font-semibold text-slate-100">Usually use domestic reverse charge</span>
+                                    <span className="block text-slate-500 mt-0.5">Hint for commercial CIS jobs. Each project still has its own VAT switch under job settings.</span>
+                                </span>
+                            </label>
+                        </fieldset>
+                    )}
                     <div className="space-y-1.5">
                         <label htmlFor="company-address" className="text-sm font-medium text-slate-400">Trading Address</label>
                         <input

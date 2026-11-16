@@ -2,7 +2,7 @@
 
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
-Current count: 12 merged, 28 in progress, 6 in review, 10 Rob-gated, 29 not started.
+Current count: 12 merged, 43 in progress, 6 in review, 10 Rob-gated, 14 not started.
 
 | --- | --- | --- | --- | --- | --- |
 | CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
@@ -47,9 +47,9 @@ Current count: 12 merged, 28 in progress, 6 in review, 10 Rob-gated, 29 not star
 | CON-040 | P1 | Cursor / Grok | [#182](https://github.com/constructa-co/Constructa/pull/182) | merged | — |
 | CON-041 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | in progress | — |
 | CON-042 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | in progress | — |
-| CON-043 | P1 | Cursor | — | not started | D51 batch 05 — Phone layout and theme |
-| CON-044 | P1 | Cursor | — | not started | D51 batch 06 — Programme interactions |
-| CON-045 | P1 | Cursor | — | not started | D51 batch 06 — Programme interactions |
+| CON-043 | P1 | Claude | — | in progress | D51 batch 05 — Phone layout and theme |
+| CON-044 | P1 | Claude | — | in progress | D51 batch 06 — Programme interactions |
+| CON-045 | P1 | Claude | — | in progress | D51 batch 06 — Programme interactions |
 | CON-046 | P1 | Kimi | [#191](https://github.com/constructa-co/Constructa/pull/191) | in review | D51 batch 09 — Marketing identity and contact |
 | CON-047 | P1 | Kimi | [#187](https://github.com/constructa-co/Constructa/pull/187) | in progress | — |
 | CON-048 | P1 | Kimi | [#187](https://github.com/constructa-co/Constructa/pull/187) | in progress | — |
@@ -62,7 +62,7 @@ Current count: 12 merged, 28 in progress, 6 in review, 10 Rob-gated, 29 not star
 | CON-055 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | in progress | — |
 | CON-056 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | in progress | — |
 | CON-057 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | in progress | — |
-| CON-058 | P2 | Cursor | — | not started | D51 batch 06 — Programme interactions |
+| CON-058 | P2 | Claude | — | in progress | D51 batch 06 — Programme interactions |
 | CON-059 | P2 | Claude | — | not started | D51 batch 04 — Proposal evidence and terms |
 | CON-060 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | in progress | — |
 | CON-061 | P2 | Claude | — | not started | D51 batch 08 — Case-study media and selection |
@@ -70,23 +70,23 @@ Current count: 12 merged, 28 in progress, 6 in review, 10 Rob-gated, 29 not star
 | CON-063 | P2 | Claude | — | not started | D51 batch 07 — Case-study fields |
 | CON-064 | P2 | Claude | — | not started | D51 batch 07 — Case-study fields |
 | CON-065 | P2 | Claude | — | not started | D51 batch 08 — Case-study media and selection |
-| CON-066 | P2 | Cursor | — | not started | D51 batch 05 — Phone layout and theme |
-| CON-067 | P2 | Cursor | — | not started | D51 batch 05 — Phone layout and theme |
+| CON-066 | P2 | Claude | — | in progress | D51 batch 05 — Phone layout and theme |
+| CON-067 | P2 | Claude | — | in progress | D51 batch 05 — Phone layout and theme |
 | CON-068 | P2 | Claude | — | in progress | D51 batch 02 — Estimate pricing |
 | CON-069 | P2 | Claude | — | in progress | D51 batch 02 — Estimate pricing |
 | CON-070 | P2 | Claude | — | in progress | D51 batch 02 — Estimate pricing |
-| CON-071 | P2 | Cursor | — | not started | D51 batch 06 — Programme interactions |
-| CON-072 | P2 | Cursor | — | not started | D51 batch 06 — Programme interactions |
-| CON-073 | P2 | Cursor | — | not started | D51 batch 12 — Dashboard and demo state |
-| CON-074 | P2 | Cursor | — | not started | D51 batch 05 — Phone layout and theme |
-| CON-075 | P2 | Cursor | — | not started | D51 batch 12 — Dashboard and demo state |
+| CON-071 | P2 | Claude | — | in progress | D51 batch 06 — Programme interactions |
+| CON-072 | P2 | Claude | — | in progress | D51 batch 06 — Programme interactions |
+| CON-073 | P2 | Claude | — | in progress | D51 batch 12 — Dashboard and demo state |
+| CON-074 | P2 | Claude | — | in progress | D51 batch 05 — Phone layout and theme |
+| CON-075 | P2 | Claude | — | in progress | D51 batch 12 — Dashboard and demo state |
 | CON-076 | P2 | Claude | — | in progress | D51 batch 01 — Profile, save and sign-in |
 | CON-077 | P2 | Claude | — | not started | D51 batch 03 — Proposal PDF pricing |
-| CON-078 | P2 | Cursor | — | not started | D51 batch 12 — Dashboard and demo state |
+| CON-078 | P2 | Claude | — | in progress | D51 batch 12 — Dashboard and demo state |
 | CON-079 | P2 | Kimi | [#190](https://github.com/constructa-co/Constructa/pull/190) | in review | D51 batch 10 — Marketing navigation and copy |
 | CON-080 | P2 | Kimi | [#190](https://github.com/constructa-co/Constructa/pull/190) | in review | D51 batch 10 — Marketing navigation and copy |
 | CON-081 | P2 | Kimi | [#190](https://github.com/constructa-co/Constructa/pull/190) | in review | D51 batch 10 — Marketing navigation and copy |
-| CON-082 | P2 | Cursor | — | not started | D51 batch 11 — Product presentation |
+| CON-082 | P2 | Kimi | — | in progress | D51 batch 11 — Product presentation |
 | CON-083 | P2 | Claude | — | in progress | D51 batch 01 — Profile, save and sign-in |
-| CON-084 | P2 | Cursor | — | not started | D51 batch 11 — Product presentation |
-| CON-085 | P2 | Cursor | — | not started | D51 batch 11 — Product presentation |
+| CON-084 | P2 | Kimi | — | in progress | D51 batch 11 — Product presentation |
+| CON-085 | P2 | Kimi | — | in progress | D51 batch 11 — Product presentation |

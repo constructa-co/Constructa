@@ -47,7 +47,7 @@ const held = [
   'Release for real customers and live jobs',
   'Checkout, subscriptions and payment',
   'Complete photo, consent and recovery journeys',
-  'Security certification. None is claimed',
+  'Security certification',
 ] as const;
 
 function GuideList({ items }: { items: readonly string[] }) {

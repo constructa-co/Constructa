@@ -76,7 +76,7 @@ export function GuideArticleView({ article }: { article: GuideArticle }) {
         </ul>
         <p className={styles.note}>
           Live AI assistance, new account sign-up, release for real customers, checkout, complete photo, consent and recovery
-          journeys and security certification are held back from this preview. None is claimed here.
+          journeys and security certification are held back from this preview.
         </p>
         <nav className={styles.footerNav} aria-label="Related links">
           <Link href="/guides" className={ui.textLink}>

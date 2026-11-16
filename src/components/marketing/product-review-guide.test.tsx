@@ -72,7 +72,7 @@ describe('phase-one product review guide', () => {
     const html = guideHtml();
     expect(html.indexOf('What you can review')).toBeGreaterThan(-1);
     expect(html.indexOf('Held back from this preview')).toBeGreaterThan(html.indexOf('What you can review'));
-    for (const item of ['Live AI assistance', 'New account sign-up', 'Release for real customers and live jobs', 'Checkout, subscriptions and payment', 'Complete photo, consent and recovery journeys', 'Security certification. None is claimed']) expect(heldList()).toContain(item);
+    for (const item of ['Live AI assistance', 'New account sign-up', 'Release for real customers and live jobs', 'Checkout, subscriptions and payment', 'Complete photo, consent and recovery journeys', 'Security certification']) expect(heldList()).toContain(item);
   });
 
   it('does not claim availability, invent commercial facts or add a processor', () => {

@@ -128,6 +128,7 @@ describe("saved per-job working patterns in programme and proposals", () => {
 
     it("rejects unsafe dates and duration overflow without throwing or inventing dates", () => {
         expect(addWorkingDays("9999-12-31", 2)).toBeNull();
+        expect(addWorkingDays("9999-12-31", 1, { version: 1, weekdays: [6] })).toBeNull();
         expect(nextWorkingDayAfter("9999-12-31")).toBeNull();
         expect(addWorkingDays(FRIDAY, Number.MAX_VALUE)).toBeNull();
         expect(formatWorkingDuration(Number.POSITIVE_INFINITY, sixDays())).toBe("");
@@ -220,7 +221,7 @@ describe("saved per-job working patterns in programme and proposals", () => {
         expect(html).toContain("UK bank holidays for England and Wales are not working days.");
         expect(overview).toContain("UK bank holidays for England and Wales are not working days.");
         // jsPDF may wrap the disclosure across separate text operations.
-        expect(raw).toMatch(/Bank[\s\S]{0,120}holidays[\s\S]{0,120}are[\s\S]{0,120}not[\s\S]{0,120}allowed[\s\S]{0,120}for\./);
+        expect(raw).toMatch(/UK bank[\s\S]{0,120}holidays for England and Wales are not working days\./);
         expect(JSON.stringify(snapshot)).toBe(recorded);
     });
 

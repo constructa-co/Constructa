@@ -67,7 +67,7 @@ function loopbackAppUrl(value: string, name: string, problems: string[]): string
  * Fail-closed environment for D38 ephemeral replay. Requires keys from
  * `supabase status -o env` (or equivalent) and refuses hosted Supabase URLs.
  */
-export function readEphemeralReplayEnv(source: NodeJS.ProcessEnv = process.env): EphemeralReplayEnv {
+export function readEphemeralReplayEnv(source: Readonly<Record<string, string | undefined>> = process.env): EphemeralReplayEnv {
     const problems: string[] = [];
     const approved = EPHEMERAL_REPLAY_PROJECT_REF;
 

@@ -101,7 +101,7 @@ function Journey() {
 
 function Scope({ showAccessLink = true }: { showAccessLink?: boolean }) {
   return (
-    <section id="phase-one" className={`${ui.section} ${ui.scope}`}>
+    <section id="phase-one" className={`${ui.section} ${ui.scope}`} data-reveal>
       <div><p className={ui.eyebrow}>A focused first release</p><h2>The work-winning essentials.<br />Not a catalogue of add-ons.</h2><p>This phase-one preview brings together company profiles, estimating, programmes and proposals — the essentials for winning work, in one connected flow. It is a working review, not a claim that every part is ready for release.</p></div>
       <div className={ui.scopeList}>
         {['Company profile and past work', 'Job brief and estimating', 'Programme and proposal preparation'].map(item => <p key={item}><Check size={18} aria-hidden="true" />{item}</p>)}

@@ -57,14 +57,14 @@ describe('marketing section-entry reveal motion', () => {
     expect(html).not.toContain('<script');
   });
 
-  it('keeps the reveal transition restrained and honours prefers-reduced-motion', () => {
+  it('keeps the reveal transition restrained and honours reduced motion and print', () => {
     const css = globalCss();
     expect(css).toContain('.reveal-armed [data-reveal]');
     expect(css).toContain('.reveal-armed [data-reveal].reveal-in');
     expect(css).toContain('transform: translateY(26px)');
     expect(css).not.toContain('infinite');
     expect(css).not.toContain('animation:');
-    const reduceBlock = css.match(/@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\.reveal-armed \[data-reveal\][\s\S]*?\}/);
+    const reduceBlock = css.match(/@media print, \(prefers-reduced-motion: reduce\) \{[\s\S]*?\.reveal-armed \[data-reveal\][\s\S]*?\}/);
     expect(reduceBlock).toBeTruthy();
     expect(reduceBlock![0]).toContain('opacity: 1');
     expect(reduceBlock![0]).toContain('transition: none');

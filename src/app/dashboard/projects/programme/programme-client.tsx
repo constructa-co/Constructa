@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Loader2, Pencil, AlertTriangle, CheckCircle2, Clock, TrendingUp } from "lucide-react";
 import { saveAsBuiltPhasesAction } from "./actions";
-import { computeProgrammePlan, parseIsoDate, PROGRAMME_BASIS_NOTE } from "@/lib/programme-plan";
+import { parseIsoDate, programmeBasisNoteForPlan, programmePlanForProject } from "@/lib/programme-plan";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Phase {
@@ -62,10 +62,12 @@ interface Props {
     projectId:     string;
     projectName:   string;
     startDate:     string | null;
+    region?:       string | null;
+    programmeWorkingPattern?: unknown;
     initialPhases: Phase[];
 }
 
-export default function ProgrammeClient({ projectId, projectName, startDate, initialPhases }: Props) {
+export default function ProgrammeClient({ projectId, projectName, startDate, region, programmeWorkingPattern, initialPhases }: Props) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [phases, setPhases] = useState<Phase[]>(initialPhases);
@@ -125,7 +127,9 @@ export default function ProgrammeClient({ projectId, projectName, startDate, ini
     const today = new Date();
 
     // Only a complete saved working-day programme can replace the legacy baseline.
-    const proposalPlan = parseIsoDate(startDate) !== null ? computeProgrammePlan(startDate, phases) : null;
+    const proposalPlan = parseIsoDate(startDate) !== null
+        ? programmePlanForProject({ start_date: startDate, programme_phases: phases, programme_working_pattern: programmeWorkingPattern, region })
+        : null;
     const baselinePlan = proposalPlan && proposalPlan.stages.length === phases.length && phases.every(ph =>
         Number.isInteger(ph.manualDays ?? ph.calculatedDays) && (ph.manualDays ?? ph.calculatedDays) > 0
         && Number.isInteger(ph.startOffset) && ph.startOffset >= 0) ? proposalPlan : null;
@@ -236,7 +240,11 @@ export default function ProgrammeClient({ projectId, projectName, startDate, ini
 
     return (
         <div className="space-y-5">
-            {baselinePlan && <p className="text-sm text-slate-300" data-canonical-baseline>Baseline matches the saved proposal programme. {PROGRAMME_BASIS_NOTE}</p>}
+            {baselinePlan && (
+                <p className="text-sm text-slate-300" data-canonical-baseline>
+                    Baseline matches the saved proposal programme. {programmeBasisNoteForPlan(baselinePlan)}
+                </p>
+            )}
             {/* ── Summary cards ── */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">

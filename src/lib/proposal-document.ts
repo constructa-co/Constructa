@@ -473,6 +473,12 @@ function closingSection(snapshot: ProposalPublicationSnapshot): DocSection | nul
 
 // ── Build ────────────────────────────────────────────────────────────────────
 
+/** Matches the id used for on-screen preview snapshots only — never stored as a sent publication. */
+export const PREVIEW_PROPOSAL_PUBLICATION_ID = "00000000-0000-4000-8000-000000000000";
+
+/** Reference label on draft previews and draft PDFs; not an issued proposal number. */
+export const DRAFT_PROPOSAL_REFERENCE = "Draft";
+
 export function proposalReference(snapshot: {
     project: Pick<ProposalPublicationSnapshot["project"], "id">;
     publication: Pick<ProposalPublicationSnapshot["publication"], "version_number">;
@@ -488,7 +494,15 @@ export interface BuildDocumentOptions {
     draftCheckCode?: string | null;
 }
 
+function isDraftProposalDocument(
+    snapshot: ProposalPublicationSnapshot,
+    options: BuildDocumentOptions,
+): boolean {
+    return options.isDraft === true || snapshot.publication.id === PREVIEW_PROPOSAL_PUBLICATION_ID;
+}
+
 export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, options: BuildDocumentOptions = {}): ProposalDocument {
+    const draftDocument = isDraftProposalDocument(snapshot, options);
     const commercial = snapshot.commercial;
     const plan = snapshot.programme_intent === "omit" ? undefined : snapshot.programme_plan;
     const kind = responseKindOfSnapshot(snapshot);
@@ -515,7 +529,7 @@ export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, opt
     ].filter((section): section is DocSection => section !== null);
 
     return {
-        isDraft: options.isDraft === true,
+        isDraft: draftDocument,
         theme: documentThemeName(snapshot.contractor.pdf_theme),
         company: {
             name: snapshot.contractor.company_name,
@@ -523,7 +537,7 @@ export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, opt
             phone: snapshot.contractor.phone,
             website: snapshot.contractor.website,
         },
-        reference: options.isDraft ? "Draft" : proposalReference(snapshot),
+        reference: draftDocument ? DRAFT_PROPOSAL_REFERENCE : proposalReference(snapshot),
         title: snapshot.project.name,
         clientName: publicationClientDisplayName(snapshot.project),
         siteAddress: snapshot.project.site_address || null,
@@ -542,7 +556,7 @@ export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, opt
             signatureLabel: wording.pdfSignatureLabel,
         },
         snapshotRef: options.snapshotHash ? options.snapshotHash.slice(0, 12) : null,
-        draftCheckCode: options.isDraft && options.draftCheckCode ? options.draftCheckCode : null,
+        draftCheckCode: draftDocument && options.draftCheckCode ? options.draftCheckCode : null,
     };
 }
 

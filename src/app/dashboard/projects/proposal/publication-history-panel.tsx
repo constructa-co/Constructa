@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown, FileDown, Loader2 } from "lucide-react";
+import { proposalReference } from "@/lib/proposal-document";
 import type { ProposalPublicationSnapshot } from "@/lib/proposal-publication";
 import { describeRecordedResponse, type RecordedResponseKind } from "@/lib/proposal-response";
 import type { WorkspaceStyles } from "@/lib/workspace-styles";
@@ -65,11 +66,12 @@ export function publicationStatusLabel(row: ProposalPublicationHistoryRow): stri
  * version's own snapshot, whatever the draft says now.
  */
 export default function PublicationHistoryPanel({
-    publications, s, loadPublication,
+    publications, s, loadPublication, projectId,
 }: {
     publications: ProposalPublicationHistoryRow[];
     s: WorkspaceStyles;
     loadPublication: LoadPublication;
+    projectId: string;
 }) {
     const [open, setOpen] = useState(false);
     const [pdf, setPdf] = useState<{ id: string | null; note: string; failed: boolean }>({ id: null, note: "", failed: false });
@@ -126,7 +128,16 @@ export default function PublicationHistoryPanel({
                                     <p className={`text-base font-bold ${s.heading}`}>Version {publication.version_number}</p>
                                     <p className={`text-sm font-semibold ${s.body}`}>{publicationStatusLabel(publication)}</p>
                                 </div>
-                                <p className={`text-sm ${s.muted}`}>Sent {formatDate(publication.sent_at)}. Valid until {formatDate(publication.expires_at)}.</p>
+                                <p className={`text-sm ${s.muted}`}>
+                                    Reference{" "}
+                                    <span className="font-mono font-semibold" data-issued-reference>
+                                        {proposalReference({
+                                            project: { id: projectId },
+                                            publication: { version_number: publication.version_number },
+                                        })}
+                                    </span>
+                                    . Sent {formatDate(publication.sent_at)}. Valid until {formatDate(publication.expires_at)}.
+                                </p>
                                 <p className={`text-sm ${s.muted}`}>Asked the client for {ASKED_FOR[publicationResponseKind(publication)]}.</p>
                                 {publication.first_viewed_at && (
                                     <p className={`text-sm ${s.muted}`}>First opened {formatDate(publication.first_viewed_at)}.</p>

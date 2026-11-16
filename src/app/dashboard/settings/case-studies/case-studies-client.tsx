@@ -15,6 +15,7 @@ import { keepFirstThreePhotos, legacyExtraPhotoCount } from "./legacy-save-photo
 import { SAVE_MESSAGES, initialSaveState, needsLeaveWarning, requestOf, saveReducer, statusLine, type SaveAction, type SaveCaseStudiesResult, type SaveState } from "./save-state";
 import { JOB_TYPE_EXAMPLES } from "@/lib/job-type-options";
 import type { CaseStudySectorId } from "@/lib/case-study-example-tags";
+import { legacyCaseStudiesStoredFingerprint } from "@/lib/case-library/legacy-case-studies-cas";
 import { exampleTagSuggestions, legacyCaseStudyForSave } from "@/lib/case-study-example-tags";
 import ExampleTagsSection from "./example-tags-section";
 import {
@@ -27,7 +28,7 @@ import {
 import ChallengeResolution, { NO_STORY, storyTyped, type StoryNotes } from "./challenge-resolution";
 
 type Enhance = (whatWeDelivered: string, valueAdded: string, projectName: string, projectType: string) => Promise<CaseStudyResult>;
-type Save = (caseStudies: unknown) => Promise<SaveCaseStudiesResult>;
+type Save = (caseStudies: unknown, expectedFingerprint: string) => Promise<SaveCaseStudiesResult>;
 
 interface CaseStudy {
     id: string;
@@ -47,23 +48,27 @@ interface CaseStudy {
 }
 
 /**
- * The older case-study editor. Saving here replaces the whole stored list and
- * is NOT protected against another tab: a tab that loaded an older list still
- * overwrites a newer one. What this screen does guarantee is narrower: it
- * says "saved" only when a save was confirmed, it never clears what was typed
- * because a save failed, was slow or was not confirmed, and it warns before
- * leaving by reload or by a link. It does not cover navigation made by code
- * or the browser's Back and Forward buttons.
+ * The older case-study editor. A save is confirmed only when storage still
+ * matches the fingerprint from load; stale tabs are refused rather than
+ * overwriting a newer list.
  */
-export default function CaseStudiesClient({ initialCaseStudies, userId, enhance = enhanceCaseStudyAction, save = saveCaseStudiesAction }: {
+export default function CaseStudiesClient({ initialCaseStudies, initialStoredFingerprint, userId, enhance = enhanceCaseStudyAction, save = saveCaseStudiesAction }: {
     initialCaseStudies: CaseStudy[];
+    initialStoredFingerprint?: string;
     userId: string;
     /** Defaults to the real server action; replaced only by tests and the fixture harness. */
     enhance?: Enhance;
     /** Defaults to the real server action; replaced only by tests and the fixture harness. */
     save?: Save;
 }) {
-    const [state, dispatch] = useReducer(saveReducer as Reducer<SaveState<CaseStudy>, SaveAction<CaseStudy>>, initialCaseStudies, initialSaveState<CaseStudy>);
+    const [state, dispatch] = useReducer(
+        saveReducer as Reducer<SaveState<CaseStudy>, SaveAction<CaseStudy>>,
+        initialCaseStudies,
+        (loaded) => initialSaveState(
+            loaded,
+            initialStoredFingerprint ?? legacyCaseStudiesStoredFingerprint(loaded.map((entry) => legacyCaseStudyForSave(entry))),
+        ),
+    );
     const caseStudies = state.draft;
     const isPending = state.saving !== null;
     const sentToken = useRef(0);
@@ -89,7 +94,10 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
         void (async () => {
             let result: SaveCaseStudiesResult;
             try {
-                result = await save(request.sent.map((entry) => legacyCaseStudyForSave(entry)));
+                result = await save(
+                    request.sent.map((entry) => legacyCaseStudyForSave(entry)),
+                    request.expectedFingerprint,
+                );
             } catch {
                 // The request itself failed. Whether it reached the server is not known.
                 result = { status: "unknown", message: SAVE_MESSAGES.unknown };

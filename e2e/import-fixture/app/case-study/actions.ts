@@ -20,6 +20,7 @@
 import { notFound } from "next/navigation";
 import { cohortRig, type Canned } from "@/lib/cohort-ai/__fixtures__/rig";
 import { enhanceCaseStudy } from "@/lib/cohort-ai/case-study-enhance";
+import { legacyCaseStudiesStoredFingerprint } from "@/lib/case-library/legacy-case-studies-cas";
 import { SAVE_MESSAGES, type SaveCaseStudiesResult } from "@/app/dashboard/settings/case-studies/save-state";
 
 /**
@@ -86,7 +87,7 @@ export async function fixtureSaveCaseStudies(run: string, caseStudies: unknown):
     if (mode === "unknown") return { status: "unknown", message: SAVE_MESSAGES.unknown };
     saves.stored = structuredClone(caseStudies);
     if (mode === "written-unknown") return { status: "unknown", message: SAVE_MESSAGES.unknown };
-    return { status: "saved", refreshed: true };
+    return { status: "saved", refreshed: true, fingerprint: legacyCaseStudiesStoredFingerprint(saves.stored) };
 }
 
 /** What the spec reads back, and how it sets the next canned reply, a delay or a used-up allowance. */

@@ -1,5 +1,21 @@
 # Cursor change log
 
+## 2026-11-16 — D49 CON-024/041/042 concurrent saves, admin conversion, pipeline totals (cursor/d49-admin-con-024-041-042-5fd6)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/case-library/legacy-case-studies-cas.ts` | (new) | MD5 fingerprint of stored legacy `case_studies` | CON-024 compare-and-set for older case-study list saves |
+| `src/app/dashboard/settings/case-studies/actions.ts` | `saveCaseStudiesAction` | Read profile, refuse stale `expectedFingerprint`, update with `case_studies` guard | CON-024 prevent blind whole-list overwrite across tabs |
+| `src/app/dashboard/settings/case-studies/save-state.ts` | reducer + types | `storedFingerprint`, `conflict` result, save sends fingerprint | Client reflects CAS outcomes |
+| `src/app/dashboard/settings/case-studies/case-studies-client.tsx` | save effect | Pass `expectedFingerprint`; optional `initialStoredFingerprint` | Wire CON-024 through UI |
+| `src/app/dashboard/projects/costs/simple-actions.ts` | update + adjustments | Column guards on read-then-update for simple estimate paths | CON-024 estimate concurrent edits |
+| `src/lib/pipeline-value.ts` | (new) | Shared home/kanban pipeline valuation using contract sum | CON-042 align Home KPI with CRM kanban |
+| `src/app/dashboard/home/home-client.tsx` | pipeline KPI | `totalHomePipelineValue` | CON-042 |
+| `src/app/dashboard/page.tsx` | kanban total | `kanbanFinancialsFromEstimates` + `totalKanbanPipelineValue` | CON-042 |
+| `src/lib/admin-dashboard-metrics.ts` | (new) | `sumSignupPoints`, `signupConversionRatePct` | CON-041 same 30d window as Plausible visitors |
+| `src/app/admin/page.tsx` | website metrics | Conversion from last-30d signups | CON-041 |
+| `*.test.ts` / `save-state.test.ts` | synthetic | CAS and metric regressions; stale-tab tests now expect refusal | Same auth boundaries as production actions |
+
 ## 2026-11-15 — D36 CON-005/014 PDF identity and price repair (cursor/d36-pdf-identity-and-price-repair-141e)
 
 | File | Lines (approx.) | Change | Intent |

@@ -9,6 +9,7 @@ vi.mock("@/lib/supabase/auth-utils", () => ({ requireAuth: mocks.requireAuth }))
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: mocks.createAdminClient }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
+import { legacyCaseStudiesStoredFingerprint } from "@/lib/case-library/legacy-case-studies-cas";
 import { saveCaseStudiesAction } from "./actions";
 import { legacyCaseStudyForSave } from "@/lib/case-study-example-tags";
 
@@ -67,24 +68,35 @@ describe("A037 legacy example discipline/sector tags", () => {
         const rows = new Map<string, Row>([[ME, { case_studies: [] }]]);
         const client = {
             from() {
+                const filters: Array<[string, unknown, "eq" | "is" | undefined]> = [];
+                let payload: Row | null = null;
+                let op: "select" | "update" = "select";
+                const run = async () => {
+                    if (op === "select") return { data: rows.get(ME) ?? null, error: null };
+                    const row = rows.get(ME)!;
+                    Object.assign(row, structuredClone(payload!));
+                    return { data: [{ id: ME, case_studies: structuredClone(row.case_studies) }], error: null };
+                };
                 return {
-                    update(payload: Row) {
-                        const filters: Array<[string, unknown]> = [];
-                        let selected: string | null = null;
+                    select() {
+                        op = "select";
                         const query = {
                             eq(column: string, value: unknown) {
-                                filters.push([column, value]);
+                                filters.push([column, value, "eq"]);
                                 return query;
                             },
-                            select(columns: string) {
-                                selected = columns;
-                                return query;
-                            },
-                            then(resolve: (value: unknown) => unknown) {
-                                const row = rows.get(ME);
-                                if (row) Object.assign(row, structuredClone(payload));
-                                return Promise.resolve({ data: selected ? [{ id: ME }] : null, error: null }).then(resolve);
-                            },
+                            maybeSingle: () => run(),
+                        };
+                        return query;
+                    },
+                    update(nextPayload: Row) {
+                        op = "update";
+                        payload = nextPayload;
+                        const query = {
+                            eq(column: string, value: unknown) { filters.push([column, value, "eq"]); return query; },
+                            is(column: string, value: unknown) { filters.push([column, value, "is"]); return query; },
+                            select() { return query; },
+                            then(resolve: (value: unknown) => unknown) { return run().then(resolve); },
                         };
                         return query;
                     },
@@ -109,7 +121,7 @@ describe("A037 legacy example discipline/sector tags", () => {
             sectorTags: ["domestic"],
             sectorTagsExplicit: true,
         });
-        expect(await saveCaseStudiesAction([withTags])).toMatchObject({ status: "saved" });
+        expect(await saveCaseStudiesAction([withTags], legacyCaseStudiesStoredFingerprint(rows.get(ME)?.case_studies))).toMatchObject({ status: "saved" });
         const stored = (rows.get(ME)?.case_studies as Row[])[0];
         expect(stored.disciplineTags).toEqual(["General building"]);
         expect(stored.sectorTags).toEqual(["domestic"]);

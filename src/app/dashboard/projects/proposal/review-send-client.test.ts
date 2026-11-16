@@ -118,7 +118,7 @@ describe("Review and Send", () => {
         const programme = weekend.slice(weekend.indexOf('id="review-programme"'), weekend.indexOf('id="review-terms"'));
         expect(programme).toContain("Sunday 15 November 2026");
         expect(programme).not.toContain("Tuesday 17 November 2026");
-        expect(programme).toContain("Bank holidays are not allowed for.");
+        expect(programme).toContain("UK bank holidays for England and Wales are not working days.");
     });
 
     it("distinguishes project details from the company profile on the cover", () => {

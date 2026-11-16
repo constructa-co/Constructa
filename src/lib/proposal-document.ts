@@ -401,11 +401,9 @@ function priceSection(snapshot: ProposalPublicationSnapshot): DocSection | null 
             amount: formatGbp(item.amount_ex_vat),
         });
     }
-    for (const group of groups) {
-        const title = group.title ? feeSectionTitle(group.title) : null;
-        group.title = title;
+    if (groups.length === 1 && groups[0].title) {
+        groups[0].title = feeSectionTitle(groups[0].title);
     }
-    if (groups.length === 1 && !groups[0].title) groups[0].title = null;
 
     const presentation = documentPresentationVersion(snapshot);
     const blocks: DocBlock[] = [{

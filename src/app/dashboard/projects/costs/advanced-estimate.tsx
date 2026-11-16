@@ -5,6 +5,7 @@
 // the simple pricing screen, which owns the estimates and the running total.
 
 import { useState, useTransition, useRef, useCallback, useId, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -28,9 +29,11 @@ import { isCapabilityEnabled } from "@/lib/launch-profile";
 import { formatGBP, parseAdvancedQuantityDraft, type AdvancedRunningTotalDraft } from "@/lib/simple-estimate";
 import { computeAdvancedRunningTotalDraft } from "@/lib/advanced-running-total-draft";
 import ui from "@/components/estimating.module.css";
+import { catalogueDropdownPanel } from "./catalogue-library-dropdown";
 import type { EstimateLineComponent, EstimateLine, Estimate, CostLibraryItem, LabourRate, RateBuildup } from "./types";
 import { savePriceLineActivityAction } from "./activity-actions";
 import { workspaceStyles } from "@/lib/workspace-styles";
+import { groupLinesBySection, orderedEstimateSections } from "@/lib/estimate-batch-sections";
 import type { ComponentProps } from "react";
 
 interface Props {
@@ -1197,8 +1200,9 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
             lineUncertainRef.current.size || pendingResourceLinesRef.current.size || applyingResourceLinesRef.current.size ||
             !currentEstimate || currentEstimate.project_id !== projectId || currentEstimate.is_client_boq ||
             line.estimate_id !== currentEstimate.id || line.pricing_mode !== "simple" || line.trade_section === "Preliminaries" ||
-            !currentEstimate.estimate_lines.includes(line)) return false;
-        const review: ActivityReview = { line, context: catalogueContext, projectId, orgId, raw: line.trade_section ?? "", phase: "editing", message: "" };
+            !currentEstimate.estimate_lines.some((row) => row.id === line.id)) return false;
+        const owned = currentEstimate.estimate_lines.find((row) => row.id === line.id)!;
+        const review: ActivityReview = { line: owned, context: catalogueContext, projectId, orgId, raw: owned.trade_section ?? "", phase: "editing", message: "" };
         activityReviewRef.current = review; setActivityReview(review);
         draftResourceLinesRef.current.add(line.id); setDraftResourceLines(new Set(draftResourceLinesRef.current));
         onResourceSaveStateChanged?.(`activity:${line.id}`, "draft");
@@ -1328,22 +1332,12 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     // Filter out blank lines for display
     const displayLines = lines.filter(l => l.description && l.description !== "" && l.description !== "\u2014");
 
-    // Group lines by trade section (only display lines with descriptions)
-    // Contractor names must not collide with inherited object keys.
-    const sectionGroups: Record<string, EstimateLine[]> = Object.create(null);
-    lines.forEach((l) => {
-        // Keep the open editor mounted if an external activity change moves its row.
-        const sec = (activityReview?.line.id === l.id ? activityReview.line.trade_section : l.trade_section) || "General";
-        if (!sectionGroups[sec]) sectionGroups[sec] = [];
-        sectionGroups[sec].push(l);
-    });
-
-    // All sections that have lines, plus keep order from TRADE_SECTIONS
-    const activeSections = TRADE_SECTIONS.filter((s) => sectionGroups[s]?.length);
-    // Add any custom sections not in the predefined list
-    Object.keys(sectionGroups).forEach((s) => {
-        if (!activeSections.includes(s)) activeSections.push(s);
-    });
+    const sectionSource = lines.map((l) => ({
+        ...l,
+        trade_section: activityReview?.line.id === l.id ? activityReview.line.trade_section : l.trade_section,
+    }));
+    const sectionGroups = groupLinesBySection(sectionSource);
+    const activeSections = orderedEstimateSections(sectionSource);
 
     return (
         <>
@@ -1712,7 +1706,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                         );
 
                         return (
-                            <div key={section} role="group" aria-label={section} className="bg-slate-800/50 border border-slate-700/50 rounded-xl" style={{ overflow: "visible" }}>
+                            <div key={section} role="group" aria-label={section} className={`${ui.advancedSectionCard} bg-slate-800/50 border border-slate-700/50 rounded-xl`}>
                                 {/* Section header */}
                                 <div className="flex items-center justify-between px-5 py-3 bg-slate-900/50 border-b border-slate-700/50 rounded-t-xl">
                                     <h3 className="font-bold text-sm uppercase tracking-wide text-slate-200">{section}</h3>
@@ -1834,7 +1828,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                                         helpText: "Use your own activity name or a current estimate activity, up to 100 characters. Only this line's activity changes; its price and resources stay unchanged. Client BoQ, built-up and Preliminaries lines are not assigned by this control.",
                                                     } : undefined}
                                                 />
-                                                {activityReview?.line.id === line.id && line.trade_section !== activityReview.line.trade_section && <p role="status" className="px-5 py-2 text-sm text-amber-200">The saved activity changed. This review stays in its original group to retain your text; Cancel and review the current activity before saving.</p>}
+                                                {activityReview?.line.id === line.id && (lines.find((l) => l.id === line.id)?.trade_section ?? line.trade_section) !== activityReview.line.trade_section && <p role="status" className="px-5 py-2 text-sm text-amber-200">The saved activity changed. This review stays in its original group to retain your text; Cancel and review the current activity before saving.</p>}
                                                 {catalogueReview?.line.id === line.id && <section data-catalogue-review={line.id} aria-label="Review catalogue rate" className="m-3 rounded-lg border border-emerald-700 p-4 space-y-2 text-sm text-slate-200">
                                                     <h4 className="font-semibold">Review catalogue rate before saving</h4>
                                                     <p>{catalogueReview.item.code}: {catalogueReview.item.description}</p>
@@ -2059,7 +2053,16 @@ function LineItemRow({
     const proposedRate = rateDraft ? parseAdvancedQuantityDraft(rateDraft.raw) : null;
     const rateValid = proposedRate !== null && Number.isFinite(line.quantity * proposedRate);
     const [showDropdown, setShowDropdown] = useState(false);
+    const [dropdownCoords, setDropdownCoords] = useState<{ top: number; left: number; width: number } | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const syncDropdownCoords = () => {
+        if (typeof window === "undefined") {
+            setDropdownCoords(null);
+            return;
+        }
+        const rect = dropdownRef.current?.getBoundingClientRect();
+        setDropdownCoords(rect ? { top: rect.bottom + 4, left: rect.left, width: rect.width } : null);
+    };
     const blurEpoch = useRef(0);
     const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const rowMounted = useRef(false);
@@ -2092,6 +2095,7 @@ function LineItemRow({
             })
             .slice(0, 15)
         : [];
+    const dropdownOpen = showDropdown && filtered.length > 0;
 
     return (
         <div className={`grid gap-2 px-5 py-2 border-b border-slate-700/30 items-center hover:bg-slate-700/20 transition-colors ${
@@ -2167,12 +2171,17 @@ function LineItemRow({
                         setSearchDraft({ source: line.description, value: e.target.value });
                         if (e.target.value.length > 0) {
                             setShowDropdown(true);
+                            syncDropdownCoords();
                         } else {
                             setShowDropdown(false);
+                            setDropdownCoords(null);
                         }
                     }}
                     onFocus={() => {
-                        if (search.length > 0) setShowDropdown(true);
+                        if (search.length > 0) {
+                            setShowDropdown(true);
+                            syncDropdownCoords();
+                        }
                     }}
                     onBlur={() => {
                         // Delay so click on dropdown registers
@@ -2206,12 +2215,17 @@ function LineItemRow({
                         setSearchDraft({ source: line.description, value: e.target.value });
                         if (e.target.value.length > 0) {
                             setShowDropdown(true);
+                            syncDropdownCoords();
                         } else {
                             setShowDropdown(false);
+                            setDropdownCoords(null);
                         }
                     }}
                     onFocus={() => {
-                        if (search.length > 0) setShowDropdown(true);
+                        if (search.length > 0) {
+                            setShowDropdown(true);
+                            syncDropdownCoords();
+                        }
                     }}
                     onBlur={() => {
                         // Delay so click on dropdown registers
@@ -2239,41 +2253,42 @@ function LineItemRow({
                         setShowDropdown(false);
                         return activity.onBegin();
                     }} />}
-                {showDropdown && filtered.length > 0 && (
-                    <div className="absolute z-50 w-full bg-slate-800 border border-slate-700 rounded-lg shadow-xl mt-1 max-h-48 overflow-y-auto">
-                        {filtered.map((item) => (
-                            <button
-                                type="button"
-                                disabled={saveBlocked || savePending || isClientBoQ || line.pricing_mode !== "simple" || section === "Preliminaries"}
-                                title="Review a catalogue rate for a simple non-BoQ line; quantities are not converted."
-                                key={item.id}
-                                onMouseDown={(e) => {
-                                    e.preventDefault();
-                                }}
-                                onFocus={() => {
-                                    blurEpoch.current++;
-                                    if (blurTimer.current) clearTimeout(blurTimer.current);
-                                }}
-                                onClick={() => {
-                                    blurEpoch.current++;
-                                    if (blurTimer.current) clearTimeout(blurTimer.current);
-                                    setSearchDraft(current => ({ ...current }));
-                                    setShowDropdown(false);
-                                    onLibrarySelect(line.id, item.id, section);
-                                }}
-                                className="w-full text-left px-3 py-1.5 hover:bg-slate-700/50 flex items-center justify-between text-sm transition-colors"
-                            >
-                                <span className="text-slate-200 truncate">
-                                    <span className="text-slate-500 text-xs mr-1.5">{item.code}</span>
-                                    {item.description}
-                                </span>
-                                <span className="text-slate-400 text-xs ml-2 whitespace-nowrap">
-                                    {formatGBP(item.base_rate)}/{item.unit}
-                                </span>
-                            </button>
-                        ))}
-                    </div>
-                )}
+                {dropdownOpen && (() => {
+                    const pick = (itemId: string) => {
+                        blurEpoch.current++;
+                        if (blurTimer.current) clearTimeout(blurTimer.current);
+                        setSearchDraft((current) => ({ ...current }));
+                        setShowDropdown(false);
+                        onLibrarySelect(line.id, itemId, section);
+                    };
+                    const disabled = saveBlocked || savePending || isClientBoQ || line.pricing_mode !== "simple" || section === "Preliminaries";
+                    const panelProps = {
+                        items: filtered,
+                        disabled,
+                        onPick: pick,
+                        onOptionFocus: () => {
+                            blurEpoch.current++;
+                            if (blurTimer.current) clearTimeout(blurTimer.current);
+                        },
+                    };
+                    if (dropdownCoords && typeof document !== "undefined") {
+                        const fixedPanel = catalogueDropdownPanel({
+                            ...panelProps,
+                            className: "fixed z-[60] max-h-48 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800 shadow-xl",
+                            style: {
+                                top: dropdownCoords.top,
+                                left: dropdownCoords.left,
+                                width: dropdownCoords.width,
+                                maxWidth: "min(100vw - 16px, 480px)",
+                            },
+                        });
+                        return createPortal(fixedPanel, document.body);
+                    }
+                    return catalogueDropdownPanel({
+                        ...panelProps,
+                        className: "absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800 shadow-xl",
+                    });
+                })()}
             </div>
 
             {/* Qty */}

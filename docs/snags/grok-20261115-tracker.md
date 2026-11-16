@@ -2,13 +2,13 @@
 
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
-Current count: 11 merged, 20 in progress, 0 in review, 8 Rob-gated, 46 not started.
+Current count: 12 merged, 19 in progress, 0 in review, 8 Rob-gated, 46 not started.
 
 | --- | --- | --- | --- | --- | --- |
 | CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
 | CON-002 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
 | CON-003 | P0 | Rob | — | Rob-gated | Confirm signup activation after acceptance. |
-| CON-004 | P0 | Codex / Kimi | [#171](https://github.com/constructa-co/Constructa/pull/171) | in progress | — |
+| CON-004 | P0 | Codex / Kimi | [#171](https://github.com/constructa-co/Constructa/pull/171) | merged | D48 targeted suite 91/91 and Kimi PASS. Main CI and production readback pending. |
 | CON-005 | P0 | Cursor / Claude | [#178](https://github.com/constructa-co/Constructa/pull/178) | merged | — |
 | CON-006 | P0 | Cursor / Grok | [#172](https://github.com/constructa-co/Constructa/pull/172) | merged | — |
 | CON-007 | P0 | Cursor / Claude | [#173](https://github.com/constructa-co/Constructa/pull/173) | merged | — |

@@ -11,6 +11,7 @@ import {
     type PostcodeAddressCandidate,
     type PostcodeLookupFn,
 } from "@/lib/postcode-address";
+import { postcodeLookupConfigurationGap } from "@/lib/postcode-address-provider";
 import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 
 type Props = {
@@ -69,7 +70,7 @@ export default function PostcodeAddressPicker({
         if (!lookup) {
             applyIfCurrentGeneration(generation, () => {
                 setStatus("info");
-                setMessage(POSTCODE_LOOKUP_NOT_AVAILABLE_MESSAGE);
+                setMessage(postcodeLookupConfigurationGap() ?? POSTCODE_LOOKUP_NOT_AVAILABLE_MESSAGE);
                 setLoading(false);
             });
             return;
@@ -189,8 +190,10 @@ export default function PostcodeAddressPicker({
                     ))}
                 </ul>
             )}
-            <p className={`text-sm ${muted}`}>
-                Results appear only when address search is connected. You can always type below or use structured parts.
+            <p className={`text-sm ${muted}`} data-postcode-lookup-hint>
+                {lookup
+                    ? "Choose a matching address or edit the text below. Street-level search depends on the connected provider."
+                    : (postcodeLookupConfigurationGap() ?? "You can always type below or use structured parts.")}
             </p>
         </div>
     );

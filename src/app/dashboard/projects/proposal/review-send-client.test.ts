@@ -107,6 +107,14 @@ describe("Review and Send", () => {
         expect(html).toContain("12 terms are shown to the client");
     });
 
+    it("surfaces inconsistent £ figures between the brief and the priced proposal", () => {
+        const mismatch = review({
+            context: context({ brief_scope: "Client discussed a fixed price of £50,000.00 for the full refurbishment." }),
+        });
+        expect(mismatch).toContain("data-figure-consistency-warning");
+        expect(mismatch).toMatch(/£50,000\.00 appears/);
+    });
+
     it("shows a saved all-week working pattern in the programme section, not the default Monday–Friday finish", () => {
         const weekend = review({
             context: context({

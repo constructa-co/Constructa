@@ -1,5 +1,20 @@
 # Cursor change log
 
+## 2026-11-16 — D49 CON-017 / CON-034 / CON-035 (cursor/d49-brief-con-017-034-035-483d)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/proposal-figure-consistency.ts` | 1–82 | `evaluateProposalFigureConsistency` compares £ in text to canonical totals | CON-017 snag |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | readiness block | Alert list with `data-figure-consistency-warning` | Surface mismatches before send |
+| `src/lib/postcode-address-provider.ts` | 1–81 | postcodes.io lookup gated by env flag; gap message | CON-034 integration + fallback |
+| `src/components/postcode-address-picker.tsx` | Find/hint | Configuration gap copy when lookup off | CON-034 |
+| `src/components/uk-date-input.tsx` | (new) | UK `lang`, `formatPlanDate` preview, controlled/uncontrolled | CON-035 |
+| `src/app/dashboard/projects/new/new-project-form.tsx` | address + date | `clientPostcodeLookup()`; UK start date | Wire CON-034/035 on create job |
+| `src/app/dashboard/projects/brief/brief-client.tsx` | start date | `UkDateInput` | CON-035 on brief |
+| `src/app/dashboard/projects/settings/client-page.tsx` | pickers + date | Lookup provider + UK start date | CON-034/035 on settings |
+| `src/lib/*.test.ts`, `src/components/*.test.tsx`, `review-send-client.test.ts` | (new/updated) | Focused regressions | Lock CON-017/034/035 behaviour |
+| `src/app/dashboard/projects/brief/brief-edit-lock.test.tsx` | ~337 | Assert `UkDateInput` wrapper, not raw `input` count | SSR harness does not expand client components |
+
 ## 2026-11-15 — D36 CON-005/014 PDF identity and price repair (cursor/d36-pdf-identity-and-price-repair-141e)
 
 | File | Lines (approx.) | Change | Intent |

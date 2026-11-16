@@ -7,6 +7,7 @@ import {
     POSTCODE_LOOKUP_NOT_AVAILABLE_MESSAGE,
     type PostcodeLookupResult,
 } from "@/lib/postcode-address";
+import { POSTCODE_LOOKUP_CONFIGURATION_GAP } from "@/lib/postcode-address-provider";
 
 const hooks = vi.hoisted(() => ({
     slots: [] as unknown[],
@@ -137,7 +138,7 @@ describe("PostcodeAddressPicker", () => {
         clickFind({ onSelect });
         expect(onSelect).not.toHaveBeenCalled();
         expect(nodes(renderPicker({ onSelect }).node).find(n => n.props.id === "test-picker-lookup-status")!.props.children).toBe(
-            POSTCODE_LOOKUP_NOT_AVAILABLE_MESSAGE,
+            POSTCODE_LOOKUP_CONFIGURATION_GAP,
         );
     });
 

@@ -334,7 +334,8 @@ describe("Brief reuses site context instead of asking for it again", () => {
         expect(text(tree)).toContain("6 November 2026");
         expect(text(tree)).toContain(fields.region);
         expect(byId(tree, "brief-postcode")).toBeUndefined();
-        expect(tree.filter(e => e.type === "input")).toHaveLength(1);
+        expect(byId(tree, "brief-start-date")).toBeDefined();
+        expect(tree.filter(e => e.type === "input")).toHaveLength(0);
         expect(current.fetch).not.toHaveBeenCalled(); expect(current.save).not.toHaveBeenCalled();
         expect(current.store.getState().draft).toEqual(current.store.getState().saved);
     });

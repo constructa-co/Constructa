@@ -2,7 +2,7 @@
 
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
-Current count: 35 merged, 28 in progress, 11 in review, 11 Rob-gated, 0 not started.
+Current count: 37 merged, 28 in progress, 9 in review, 11 Rob-gated, 0 not started.
 
 | --- | --- | --- | --- | --- | --- |
 | CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
@@ -58,7 +58,7 @@ Current count: 35 merged, 28 in progress, 11 in review, 11 Rob-gated, 0 not star
 | CON-051 | P1 | Kimi | [#191](https://github.com/constructa-co/Constructa/pull/191) | in review | D51 batch 09 — Marketing identity and contact |
 | CON-052 | P1 | Kimi | — | Rob-gated | Confirm legal entity details. |
 | CON-053 | P1 | Kimi | — | Rob-gated | Confirm contact form scope and destination. |
-| CON-054 | P1 | Claude | [#195](https://github.com/constructa-co/Constructa/pull/195) | in review | D51 batch 08 — Case-study media and selection |
+| CON-054 | P1 | Claude | [#195](https://github.com/constructa-co/Constructa/pull/195) | merged | #195 merged at 02cdeb0. Main CI, secret scan and production deployment passed. |
 | CON-055 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | merged | Independent PASS and GitHub CI green. |
 | CON-056 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | merged | Independent PASS and GitHub CI green. |
 | CON-057 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | merged | Independent PASS and GitHub CI green. |
@@ -69,7 +69,7 @@ Current count: 35 merged, 28 in progress, 11 in review, 11 Rob-gated, 0 not star
 | CON-062 | P2 | Claude | [#196](https://github.com/constructa-co/Constructa/pull/196) | in review | D51 batch 07 — Case-study fields |
 | CON-063 | P2 | Claude | [#196](https://github.com/constructa-co/Constructa/pull/196) | in review | D51 batch 07 — Case-study fields |
 | CON-064 | P2 | Claude | [#196](https://github.com/constructa-co/Constructa/pull/196) | in review | D51 batch 07 — Case-study fields |
-| CON-065 | P2 | Claude | [#195](https://github.com/constructa-co/Constructa/pull/195) | in review | D51 batch 08 — Case-study media and selection |
+| CON-065 | P2 | Claude | [#195](https://github.com/constructa-co/Constructa/pull/195) | merged | #195 merged at 02cdeb0. Main CI, secret scan and production deployment passed. |
 | CON-066 | P2 | Claude | — | in progress | D51 batch 05 — Phone layout and theme |
 | CON-067 | P2 | Claude | — | in progress | D51 batch 05 — Phone layout and theme |
 | CON-068 | P2 | Claude | — | in progress | D51 batch 02 — Estimate pricing |

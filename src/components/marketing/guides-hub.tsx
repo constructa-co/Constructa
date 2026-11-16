@@ -12,7 +12,7 @@ export function GuidesHub() {
         <h1>Short reads for<br /><em>phase-one review.</em></h1>
         <p>
           Practical checklists tied to the company, brief, price, programme and proposal journey.
-          Written for people using an existing review account — not a claim that every held feature is available.
+          Written for people using an existing review account.
         </p>
       </section>
       <section className={ui.section} aria-labelledby="guides-list-title" data-reveal>

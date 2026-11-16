@@ -12,6 +12,7 @@ import {
     type ProposalCoverPhoto,
 } from "@/lib/proposal-cover-photo";
 import { sitePhotosForJob } from "@/lib/proposal-site-photos";
+import { contractValueVatBasis, type ContractValueVatBasis } from "@/lib/case-study-value";
 
 /** Said when a chosen past job cannot be sent. The proposal is not published short of it. */
 export const CASE_STUDY_UNSENDABLE_ERROR = "One of the past jobs you chose can't be sent. Untick it under Relevant experience, or fix it in Case Studies, then check the proposal again.";
@@ -124,6 +125,17 @@ export interface ProposalCaseStudy {
     delivered: string | null;
     value_added: string | null;
     photos: string[];
+    /**
+     * CON-062/063/064 fields. Absent on snapshots issued before they existed,
+     * so an issued proposal keeps reading exactly as it was sent. Each is only
+     * present on a new snapshot when the stored case study holds a value.
+     */
+    client_quote?: string | null;
+    client_quote_attribution?: string | null;
+    challenge?: string | null;
+    solution?: string | null;
+    contract_value_amount?: number | null;
+    contract_value_vat_basis?: ContractValueVatBasis | null;
 }
 
 export interface ProposalPhoto {
@@ -398,6 +410,13 @@ function textField(row: Record<string, unknown>, key: string, maxLength: number)
     return trimmed ? trimmed.slice(0, maxLength) : null;
 }
 
+/** A stored numeric contract value: a finite, non-negative number or nothing. */
+function amountField(row: Record<string, unknown>, key: string): number | null {
+    const value = row[key];
+    if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 1e12) return null;
+    return value;
+}
+
 /**
  * The past jobs the contractor chose for this proposal, as they wrote them.
  * A case study is included only when it is ticked; nothing is added or
@@ -409,20 +428,34 @@ export function selectCaseStudies(all: unknown[] | null | undefined, selected: u
     return all
         .map((entry, index) => ({ row: asRecord(entry), index }))
         .filter(({ row, index }) => chosen.has(String(index)) || (typeof row.id === "string" && chosen.has(row.id)))
-        .map(({ row }) => ({
-            title: textField(row, "projectName", 200) ?? "",
-            project_type: textField(row, "projectType", 200),
-            location: textField(row, "location", 200),
-            client: textField(row, "client", 200),
-            contract_value: textField(row, "contractValue", 50),
-            duration: textField(row, "programmeDuration", 100),
-            delivered: textField(row, "whatWeDelivered", 5000),
-            value_added: textField(row, "valueAdded", 5000),
-            photos: (Array.isArray(row.photos) ? row.photos : [])
-                .map(safeImageUrl)
-                .filter((url): url is string => url !== null)
-                .slice(0, 3),
-        }))
+        .map(({ row }) => {
+            const amount = amountField(row, "contractValueAmount");
+            const vatBasis = contractValueVatBasis(row.contractValueVatBasis);
+            const clientQuote = textField(row, "clientQuote", 1000);
+            const challenge = textField(row, "challenge", 5000);
+            const solution = textField(row, "solution", 5000);
+            return {
+                title: textField(row, "projectName", 200) ?? "",
+                project_type: textField(row, "projectType", 200),
+                location: textField(row, "location", 200),
+                client: textField(row, "client", 200),
+                contract_value: textField(row, "contractValue", 50),
+                duration: textField(row, "programmeDuration", 100),
+                delivered: textField(row, "whatWeDelivered", 5000),
+                value_added: textField(row, "valueAdded", 5000),
+                photos: (Array.isArray(row.photos) ? row.photos : [])
+                    .map(safeImageUrl)
+                    .filter((url): url is string => url !== null)
+                    .slice(0, 3),
+                // Only when both parts are usable: a figure without a known VAT
+                // basis never prints, so a stored "gross" or a missing basis
+                // cannot put an invented "ex VAT" on a client proposal.
+                ...(amount !== null && vatBasis !== null ? { contract_value_amount: amount, contract_value_vat_basis: vatBasis } : {}),
+                ...(clientQuote ? { client_quote: clientQuote, client_quote_attribution: textField(row, "clientQuoteAttribution", 200) } : {}),
+                ...(challenge ? { challenge } : {}),
+                ...(solution ? { solution } : {}),
+            };
+        })
         .filter((study) => study.title !== "")
         .slice(0, 6);
 }

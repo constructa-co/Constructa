@@ -1,3 +1,19 @@
+## D51 snags 054 / 061 / 065 — Case-study media: limits, upload feedback — 16 November 2026
+
+Checks: **NOT RUN** in the authoring session (no shell). Evidence, commands to run and the open owner decision are in `d51-case-study-media-evidence.md`.
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `src/lib/storage/public-image.ts` | 31–62 | `publicImageProblem` (size and declared type) and `PUBLIC_IMAGE_LIMITS_HINT`; `validatePublicImage` now calls the same check | One wording for the 10 MB / JPEG-PNG-WebP limit on screen and at upload |
+| `src/app/dashboard/settings/case-studies/case-studies-client.tsx` | 32–33, 150–186, 301–346, 525–560 | Limits in the photo label; oversize/unsupported/empty picks refused before sending; per-slot "Uploading…" tied to the latest pick; input cleared after each pick; same-file-twice note | Accurate limit messages; feedback for concurrent and repeated picks |
+| `src/app/dashboard/settings/case-studies/library/case-study-editor.tsx` | 132–160 | Same pre-send refusal; thrown upload reported, not left unhandled; reply placed on current photos | Two library uploads on their way no longer undo each other (path still gated off) |
+| `src/app/dashboard/settings/case-studies/library/case-study-photo-slots.tsx` | 6–15, 43, 57, 65 | Limits in the copy; input cleared after each pick | Same limit wording; same file can be chosen again |
+| `src/lib/storage/public-image.test.ts` | 52–82 | `publicImageProblem` cases and wording parity with the upload | Regression |
+| `src/app/dashboard/settings/case-studies/photo-upload-outcomes.test.tsx` | 312–470 | Limits, uploading state, refused later pick, same file again and twice | Regression |
+
+Not changed: `saveCaseStudiesAction`, `save-state.ts`, `savePricingExperienceAction` and `saveProposalDraftAction` (no save or compare-and-set path touched); which past jobs a proposal starts with (owner decision, see evidence note).
+
+## D46 CON-028 / CON-029 / CON-030 — Programme regenerate, dependencies, drag — 16 November 2026
 ## D51 snags 027 / 038 / 039 / 059 — Proposal site photos, director's message, programme labels, terms gap — 16 November 2026
 
 Branch `claude/d51-proposal-evidence`. Presentation versioning resolved against #194 (`caf912d`, #186 label suppression shipped at v3): D51 layout changes are stamped v4; v1–v3 snapshots are drawn as issued. Checks NOT RUN in this session; see `d51-proposal-evidence.md`.

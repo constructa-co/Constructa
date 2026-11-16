@@ -97,7 +97,7 @@ describe('phase-one marketing integration', () => {
     expect(html).toContain('href="/login"');
     expect(html).toContain('Sign in with your review account');
     expect(html).toContain('href="/contact"');
-    expect(html).toContain('Neutral preview-access questions');
+    expect(html).toContain('Questions about preview access');
     expect(html).toContain('existing review account');
     expect(html).not.toContain('id="phase-one"');
     expect(html).not.toContain('The work-winning essentials');
@@ -154,14 +154,17 @@ describe('phase-one marketing integration', () => {
   it('keeps chatbot and release limitations explicit on the canonical home page', () => {
     const html = renderToStaticMarkup(<PhaseOneHome />);
     expect(html).toContain('not available as a live chatbot');
-    expect(html).toContain('need release verification');
+    expect(html).toContain('being verified before live customer use');
+    expect(html).toContain('not a claim that every part is ready for release');
     expect(html).not.toContain('24/7');
     expect(html).not.toContain('AI-powered construction management');
   });
 
   it('does not invent a price, free trial, payment link or paid entitlement', () => {
     const html = renderToStaticMarkup(<PhaseOnePricing />);
-    expect(html).toContain('does not sell a subscription');
+    expect(html).toContain('no subscription, free trial or payment is offered here');
+    expect(html).toContain('Preview access remains on hold for new accounts');
+    expect(html).toContain('not ready for live customer work');
     expect(html).toContain('Sign in with your review account');
     expect(html).toContain('href="/contact"');
     expect(html).not.toContain('Open Constructa');

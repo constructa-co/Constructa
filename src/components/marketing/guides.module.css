@@ -46,7 +46,7 @@
   color: var(--ink);
   font-size: 14px;
 }
-.articleSection { margin-top: 0; padding-left: 0; padding-right: 0; }
+.measure .articleSection { margin-top: 0; padding-left: 0; padding-right: 0; }
 .articleSection h2 {
   color: var(--ink);
   font-size: clamp(28px, 3vw, 40px);

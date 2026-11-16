@@ -229,7 +229,7 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("older case studies: a challenge and how it was resolved", () => {
-    it("is added to What We Delivered by the press, saved in that one string, and read back and into a proposal unchanged", async () => {
+    it("is kept as this example's own fields by the press, saved, read back and carried into a proposal separately", async () => {
         const before = "Stripped out; refitted — as agreed (phase 1).";
         initial = [older("a", "Alpha", { whatWeDelivered: before, valueAdded: "Own value, kept." })];
         profile = { case_studies: structuredClone(initial) };
@@ -237,36 +237,113 @@ describe("older case studies: a challenge and how it was resolved", () => {
         typeInto(labelled(renderOlder(), "What was the challenge or problem?")[0], CHALLENGE);
         typeInto(labelled(renderOlder(), "How did you resolve it?")[0], RESOLVED);
         let tree = renderOlder();
-        // Typed but not added: the text is untouched, the screen says so, and leaving warns.
+        // Typed but not kept: the delivered text is untouched, the screen says so, and leaving warns.
         expect(olderDraft()[0].whatWeDelivered).toBe(before);
+        expect(olderDraft()[0].challenge ?? "").toBe("");
         expect(marked(tree, "data-challenge-unadded")).toBe(true);
         expect(mocks.guard).toHaveBeenLastCalledWith(true, expect.any(String));
 
-        press(buttons(tree, "Add to ‘What We Delivered’")[0]);
+        press(buttons(tree, "Keep with this example")[0]);
         tree = renderOlder();
-        expect(olderDraft()[0].whatWeDelivered).toBe(story(before));
+        // The story is its own fields; the delivered text is not touched.
+        expect(olderDraft()[0].challenge).toBe(CHALLENGE);
+        expect(olderDraft()[0].solution).toBe(RESOLVED);
+        expect(olderDraft()[0].whatWeDelivered).toBe(before);
         expect(olderDraft()[0].valueAdded).toBe("Own value, kept.");
-        expect(labelled(tree, "What We Delivered")[0].props.value).toBe(story(before));
+        expect(labelled(tree, "What was the challenge or problem?")[0].props.value).toBe(CHALLENGE);
+        expect(labelled(tree, "How did you resolve it?")[0].props.value).toBe(RESOLVED);
         expect(marked(tree, "data-challenge-unadded")).toBe(false);
-        expect(marked(tree, "data-challenge-present")).toBe(true);
+        // The kept notes are part of the draft now, so leaving still warns until they are saved.
+        expect(mocks.guard).toHaveBeenLastCalledWith(true, expect.any(String));
 
         await saveOlder();
         const list = profile.case_studies as Record<string, unknown>[];
         expect(list).toHaveLength(1);
-        expect(Object.keys(list[0]).sort()).toEqual(Object.keys(initial[0]).sort());
-        expect(list[0]).toEqual({ ...initial[0], whatWeDelivered: story(before) });
+        expect(list[0]).toEqual({ ...initial[0], challenge: CHALLENGE, solution: RESOLVED });
 
-        // Read back: the editor opens on the stored words, in the same box.
+        // Read back: the boxes open on the stored words, as their own fields.
         hook.instances.clear();
         initial = list as unknown as Study[];
-        expect(labelled(renderOlder(), "What We Delivered")[0].props.value).toBe(story(before));
-        // A proposal carries exactly that text as what was delivered.
+        expect(labelled(renderOlder(), "What was the challenge or problem?")[0].props.value).toBe(CHALLENGE);
+        expect(labelled(renderOlder(), "How did you resolve it?")[0].props.value).toBe(RESOLVED);
+        // A proposal carries the story as its own fields, and the delivered text unchanged.
         const [shown] = selectCaseStudies(list, ["a"]);
-        expect(shown.delivered).toBe(story(before));
+        expect(shown.challenge).toBe(CHALLENGE);
+        expect(shown.solution).toBe(RESOLVED);
+        expect(shown.delivered).toBe(before);
         expect(shown.value_added).toBe("Own value, kept.");
     });
 
-    it("is optional: untouched and blank entries save exactly as stored, with no key added, and nothing is added without a challenge", async () => {
+    it("says nothing changed when the boxes hold the saved story unchanged", async () => {
+        initial = [older("a", "Alpha", { challenge: CHALLENGE, solution: RESOLVED })];
+        profile = { case_studies: structuredClone(initial) };
+        rows = new Map([[ME, profile]]);
+        const tree = renderOlder();
+        // The saved story is already kept, so pressing Keep with nothing edited is a no-op…
+        press(buttons(tree, "Keep with this example")[0]);
+        expect(notices(renderOlder())[0]).toBe("Nothing changed. The story kept with this example stays as it is.");
+        expect(olderDraft()[0].challenge).toBe(CHALLENGE);
+        expect(olderDraft()[0].solution).toBe(RESOLVED);
+        // …and the leave warning never fired, since no edit was made.
+        expect(mocks.guard).toHaveBeenLastCalledWith(false, expect.any(String));
+    });
+
+    it("is cleared by keeping empty boxes, saved away, and read back with no story on the record or a proposal", async () => {
+        initial = [older("a", "Alpha", { challenge: CHALLENGE, solution: RESOLVED })];
+        profile = { case_studies: structuredClone(initial) };
+        rows = new Map([[ME, profile]]);
+
+        // Independent of any other edit: only the two boxes are emptied and kept.
+        let tree = renderOlder();
+        typeInto(labelled(tree, "What was the challenge or problem?")[0], "");
+        typeInto(labelled(renderOlder(), "How did you resolve it?")[0], "");
+        tree = renderOlder();
+        // Emptying kept boxes is a change like any other: the warning stays until Keep.
+        expect(marked(tree, "data-challenge-unadded")).toBe(true);
+        expect(mocks.guard).toHaveBeenLastCalledWith(true, expect.any(String));
+
+        press(buttons(tree, "Keep with this example")[0]);
+        tree = renderOlder();
+        expect(olderDraft()[0].challenge).toBe("");
+        expect(olderDraft()[0].solution).toBe("");
+        expect(notices(tree)[0]).toBe("Cleared for this example. Save removes it from this example. Future proposals won't show it; proposals already issued keep exactly what they carry.");
+        expect(marked(tree, "data-challenge-unadded")).toBe(false);
+
+        await saveOlder();
+        const list = profile.case_studies as Record<string, unknown>[];
+        expect(list[0]).toEqual({ ...initial[0], challenge: "", solution: "" });
+
+        // Read back: the boxes open on the now-empty fields.
+        hook.instances.clear();
+        initial = list as unknown as Study[];
+        expect(labelled(renderOlder(), "What was the challenge or problem?")[0].props.value).toBe("");
+        expect(labelled(renderOlder(), "How did you resolve it?")[0].props.value).toBe("");
+        // A proposal carries no story: empty fields are no fields.
+        const [shown] = selectCaseStudies(list, ["a"]);
+        expect("challenge" in shown).toBe(false);
+        expect("solution" in shown).toBe(false);
+    });
+
+    it("keeps an old combined story exactly as stored: no new keys, the boxes stay closed, and a proposal carries the one text", async () => {
+        const before = "Stripped out; refitted — as agreed (phase 1).";
+        initial = [older("a", "Alpha", { whatWeDelivered: story(before) })];
+        profile = { case_studies: structuredClone(initial) };
+        rows = new Map([[ME, profile]]);
+        const tree = renderOlder();
+        // The story sits inside the delivered text: the boxes are not offered, nothing is taken apart.
+        expect(marked(tree, "data-challenge-present")).toBe(true);
+        expect(tree.some((element) => element.props["aria-label"] === "What was the challenge or problem?")).toBe(false);
+
+        await saveOlder();
+        const list = profile.case_studies as Record<string, unknown>[];
+        expect(list[0]).toEqual(initial[0]);
+        const [shown] = selectCaseStudies(list, ["a"]);
+        expect(shown.delivered).toBe(story(before));
+        expect("challenge" in shown).toBe(false);
+        expect("solution" in shown).toBe(false);
+    });
+
+    it("is optional: nothing is kept without a challenge or response, and untouched and blank entries save exactly as stored", async () => {
         const odd = "  Older words, kept exactly…\r\nSecond line;  ";
         const legacyEntry = { ...older("b", "Bravo"), legacyExtra: "kept" } as Study;
         initial = [older("a", "Alpha", { whatWeDelivered: odd }), legacyEntry];
@@ -275,14 +352,16 @@ describe("older case studies: a challenge and how it was resolved", () => {
         let tree = renderOlder();
         expect(labelled(tree, "What We Delivered").map((element) => element.props.value)).toEqual([odd, ""]);
 
-        press(buttons(tree, "Add to ‘What We Delivered’")[0]);
+        press(buttons(tree, "Keep with this example")[0]);
         tree = renderOlder();
-        expect(notices(tree)[0]).toBe("Type the challenge first. Nothing was added.");
+        expect(notices(tree)[0]).toBe("Type the challenge or how you resolved it first. Nothing was kept.");
+
         typeInto(labelled(tree, "How did you resolve it?")[1], RESOLVED);
-        press(buttons(renderOlder(), "Add to ‘What We Delivered’")[1]);
+        press(buttons(renderOlder(), "Keep with this example")[1]);
         tree = renderOlder();
-        expect(notices(tree)[1]).toBe("Say what the challenge was first, then how you resolved it. Nothing was added.");
-        expect(labelled(tree, "How did you resolve it?")[1].props.value).toBe(RESOLVED);
+        // A response alone can be kept; there is no challenge-first rule for a record's own fields.
+        expect(olderDraft()[1].solution).toBe(RESOLVED);
+        expect(olderDraft()[1].challenge ?? "").toBe("");
         expect(olderDraft().map((row) => row.whatWeDelivered)).toEqual([odd, ""]);
 
         typeInto(labelled(tree, "How did you resolve it?")[1], "");
@@ -293,8 +372,9 @@ describe("older case studies: a challenge and how it was resolved", () => {
         const list = profile.case_studies as Record<string, unknown>[];
         expect(list[0]).toEqual({ ...initial[0], valueAdded: "Changed value." });
         expect(list[0].whatWeDelivered).toBe(odd);
-        expect(list[1]).toEqual(legacyEntry);
+        expect(list[1]).toEqual({ ...legacyEntry, challenge: "", solution: RESOLVED });
         expect(selectCaseStudies(list, ["b"])[0].delivered).toBeNull();
+        expect(selectCaseStudies(list, ["b"])[0].solution).toBe(RESOLVED);
     });
 });
 

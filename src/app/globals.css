@@ -39,7 +39,7 @@ html {
   opacity: 1;
   transform: none;
 }
-@media (prefers-reduced-motion: reduce) {
+@media print, (prefers-reduced-motion: reduce) {
   .reveal-armed [data-reveal] {
     opacity: 1;
     transform: none;

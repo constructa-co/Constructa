@@ -322,6 +322,26 @@ function Block({ block, sectionId }: { block: DocBlock; sectionId: DocSectionId 
                             <div className="mt-2"><Paragraphs paragraphs={block.valueAdded} /></div>
                         </div>
                     )}
+                    {block.challenge && block.challenge.length > 0 && (
+                        <div className="mt-5" data-doc-case-study-challenge>
+                            <h4 className="text-sm font-semibold uppercase tracking-wide text-stone-900">The challenge</h4>
+                            <div className="mt-2"><Paragraphs paragraphs={block.challenge} /></div>
+                        </div>
+                    )}
+                    {block.solution && block.solution.length > 0 && (
+                        <div className="mt-5" data-doc-case-study-solution>
+                            <h4 className="text-sm font-semibold uppercase tracking-wide text-stone-900">How we resolved it</h4>
+                            <div className="mt-2"><Paragraphs paragraphs={block.solution} /></div>
+                        </div>
+                    )}
+                    {block.quote && (
+                        <figure className="mt-5 border-l-2 border-[var(--doc-accent)] bg-[var(--doc-accent-soft)] px-5 py-4" data-doc-case-study-quote>
+                            <blockquote className="space-y-3 font-serif text-lg italic leading-relaxed text-stone-800">
+                                {block.quote.paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}
+                            </blockquote>
+                            {block.quote.attribution && <figcaption className="mt-3 text-sm font-semibold text-stone-900">{block.quote.attribution}</figcaption>}
+                        </figure>
+                    )}
                 </div>
             );
     }

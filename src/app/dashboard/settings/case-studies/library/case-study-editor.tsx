@@ -18,6 +18,7 @@ import { caseStudyTextEnhanceEnabled } from "@/lib/cohort-ai/case-study-enhance-
 import { COHORT_AI_OFF } from "@/lib/cohort-ai/shared";
 import { pendingFrom, sectionState, settle, type PendingCaseStudySuggestion } from "@/lib/cohort-ai/case-study-suggestion";
 import { uploadProfileImageAction } from "@/app/storage/actions";
+import { publicImageProblem } from "@/lib/storage/public-image";
 import { approveCaseStudyAction, checkCaseStudyAction, createCaseStudyAction, saveCaseStudyAction, saveDisciplineAction } from "../library-actions";
 import { enhanceCaseStudyAction } from "../actions";
 import ChallengeResolution, { NO_STORY, storyTyped, type StoryNotes } from "../challenge-resolution";
@@ -133,12 +134,27 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
             toast.error(fieldMessage("photos"));
             return;
         }
+        // Refused here, in the words the upload would use, before anything is sent.
+        const problem = publicImageProblem(file);
+        if (problem) {
+            toast.error(problem);
+            return;
+        }
         const formData = new FormData();
         formData.set("file", file);
         formData.set("purpose", "case-study");
-        const result = await upload(formData);
+        let result: Awaited<ReturnType<Upload>>;
+        try {
+            result = await upload(formData);
+        } catch {
+            // The request itself failed. Whether the file reached storage is not known; the photo has not been added.
+            result = { error: "We couldn't confirm that photo uploaded, so it hasn't been added. Please try again." };
+        }
         if (result.url) {
-            setPhoto(slot, { url: result.url });
+            // Placed on the photos as they are when the reply arrives, so two uploads on their way do not undo each other.
+            const photos = normalisePhotoSlots(stateRef.current.draft.content.photos);
+            photos[slot] = { ...photos[slot], url: result.url };
+            set({ photos });
             toast.success("Photo uploaded");
         } else {
             toast.error(result.error || "Upload failed");

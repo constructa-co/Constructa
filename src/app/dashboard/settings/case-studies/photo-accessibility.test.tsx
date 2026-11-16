@@ -8,7 +8,7 @@ vi.mock("@/app/storage/actions", () => ({ uploadProfileImageAction: actions.uplo
 import CaseStudiesClient from "./case-studies-client";
 
 function markup(photos: string[]) {
-    return renderToStaticMarkup(<CaseStudiesClient userId="synthetic" initialCaseStudies={[{
+    return renderToStaticMarkup(<CaseStudiesClient userId="synthetic" initialStoredFingerprint="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" initialCaseStudies={[{
         id: "example", projectName: "Example renovation", projectType: "Renovation",
         contractValue: "", programmeDuration: "", client: "", location: "",
         whatWeDelivered: "Example work", valueAdded: "Own wording", photos,

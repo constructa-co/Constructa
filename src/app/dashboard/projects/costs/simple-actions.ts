@@ -271,7 +271,7 @@ export async function updateSimplePriceLineAction(
 
         const { data: current } = await supabase
             .from("estimate_lines")
-            .select("id, pricing_mode")
+            .select("id, pricing_mode, quantity, unit_rate, description, unit")
             .eq("id", lineId)
             .eq("estimate_id", estimateId)
             .maybeSingle();
@@ -280,7 +280,7 @@ export async function updateSimplePriceLineAction(
             return { ok: false, error: "This line uses a rate build-up. Change it in Advanced estimating." };
         }
 
-        const { data: updated, error } = await supabase
+        let update = supabase
             .from("estimate_lines")
             .update({
                 description: parsed.data.description,
@@ -290,12 +290,21 @@ export async function updateSimplePriceLineAction(
                 line_total: lineTotal(parsed.data.quantity, parsed.data.unit_rate),
             })
             .eq("id", lineId)
-            .eq("estimate_id", estimateId)
+            .eq("estimate_id", estimateId);
+        update = current.quantity === null ? update.is("quantity", null) : update.eq("quantity", current.quantity);
+        update = current.unit_rate === null ? update.is("unit_rate", null) : update.eq("unit_rate", current.unit_rate);
+        update = current.description === null ? update.is("description", null) : update.eq("description", current.description);
+        update = current.unit === null ? update.is("unit", null) : update.eq("unit", current.unit);
+
+        const { data: updated, error } = await update
             .select("id, description, quantity, unit, unit_rate, line_total")
             .maybeSingle();
-        if (error || !updated) {
-            if (error) console.error("[updateSimplePriceLineAction] failed", { estimateId, code: error.code });
+        if (error) {
+            console.error("[updateSimplePriceLineAction] failed", { estimateId, code: error.code });
             return { ok: false, error: LINE_SAVE_ERROR };
+        }
+        if (!updated) {
+            return { ok: false, error: "This line was saved with different details while you were editing. Reload the page to reconcile your draft." };
         }
 
         try {
@@ -351,15 +360,27 @@ export async function savePriceAdjustmentsAction(estimateId: string, input: Adju
 
     try {
         const { supabase } = await editableEstimate(estimateId);
-        const { data, error } = await supabase
+        const { data: current, error: readError } = await supabase
             .from("estimates")
-            .update(parsed.data)
+            .select("id, prelims_pct, overhead_pct, risk_pct, profit_pct, discount_pct, discount_reason")
             .eq("id", estimateId)
-            .select("id")
             .maybeSingle();
-        if (error || !data) {
-            if (error) console.error("[savePriceAdjustmentsAction] failed", { estimateId, code: error.code });
+        if (readError || !current) return { ok: false, error: ADJUSTMENTS_SAVE_ERROR };
+
+        let update = supabase.from("estimates").update(parsed.data).eq("id", estimateId);
+        const guardKeys = ["prelims_pct", "overhead_pct", "risk_pct", "profit_pct", "discount_pct", "discount_reason"] as const;
+        for (const key of guardKeys) {
+            const value = current[key];
+            update = value === null || value === undefined ? update.is(key, null) : update.eq(key, value);
+        }
+
+        const { data, error } = await update.select("id").maybeSingle();
+        if (error) {
+            console.error("[savePriceAdjustmentsAction] failed", { estimateId, code: error.code });
             return { ok: false, error: ADJUSTMENTS_SAVE_ERROR };
+        }
+        if (!data) {
+            return { ok: false, error: "These percentages were changed elsewhere. Reload the page before saving again." };
         }
         return { ok: true };
     } catch (error) {

@@ -154,6 +154,33 @@ SELECT set_config(
   true
 );
 
+-- Exercise the same named RPC arguments as the brief server action, then
+-- read the project back under the same authenticated identity.
+SELECT public.save_phase1_brief(
+  p_project_id => :'smoke_project_id'::uuid,
+  p_brief => jsonb_build_object(
+    'brief_scope', 'Updated smoke brief',
+    'brief_trade_sections', jsonb_build_array('General'),
+    'brief_completed', true,
+    'client_type', 'domestic',
+    'start_date', '2027-02-01'
+  )
+);
+
+SELECT EXISTS (
+  SELECT 1
+    FROM public.projects
+   WHERE id = :'smoke_project_id'::uuid
+     AND brief_scope = 'Updated smoke brief'
+     AND brief_completed IS TRUE
+     AND start_date = DATE '2027-02-01'
+) AS smoke_brief_saved
+\gset
+\if :smoke_brief_saved
+\else
+DO $$ BEGIN RAISE EXCEPTION 'Authenticated brief save did not persist.'; END $$;
+\endif
+
 SELECT *
   FROM public.publish_proposal_publication(
     :'smoke_project_id'::uuid,

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { proposalPaymentSave } from "./proposal-payment-save";
 import { buildProposalPayload, draftFromProject } from "./proposal-review";
 
-const stages = [{ id: "one", stage: "Agreed milestone", description: "As agreed", percentage: 40 }];
+const stages = [{ id: "one", stage: "Agreed milestone", description: "As agreed", percentage: 100 }];
 function payload() {
     const built = buildProposalPayload(draftFromProject({ id: "job", name: "Job", payment_schedule: stages }, () => "key"));
     if (!built.ok) throw Error("Invalid fixture");

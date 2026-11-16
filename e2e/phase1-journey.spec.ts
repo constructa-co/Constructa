@@ -440,7 +440,11 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
             ...PAYMENT_STAGES.map((stage) => stage.name), money.deposit, money.balance,
         ];
 
-        const publish = async (version: number): Promise<string> => {
+        const publish = async (version: number, options?: { emailClient?: boolean }): Promise<string> => {
+            if (options?.emailClient) {
+                await use.check(send.getByRole("checkbox", { name: /Email the link to/ }));
+                await use.check(send.getByRole("checkbox", { name: /confirm Constructa should email the proposal link/i }));
+            }
             await use.check(send.getByRole("checkbox", { name: /I have read the preview/ }));
             await use.activate(button(`Send version ${version}`, send));
             await expect(send.getByText(`Version ${version} is published.`)).toBeVisible();
@@ -564,12 +568,13 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
             // The email fails once. The publication stands and only the email is retried.
             if (!keyboardRun) await stubControl({ failEmails: 1 });
             await expect(send).toContainText(`Check code for what will be sent: ${checkCode}.`);
-            firstLink = await publish(1);
+            firstLink = await publish(1, { emailClient: true });
             // What was published is what was checked: the server sends only that content.
             await expect(send.locator("[data-published-check]")).toContainText(checkCode);
             if (!keyboardRun) {
                 await expect(send.locator('[data-delivery="failed"]')).toContainText("The proposal is published, but the email");
                 await recorder.checkpoint("published-email-failed", { scope: "main main", focusOn: send.locator('[data-send-result="published"]') });
+                await use.check(send.getByRole("checkbox", { name: /confirm resending the proposal link/i }));
                 await use.activate(button("Try the email again", send));
             }
             await expect(send.locator('[data-delivery="sent"]')).toContainText(JOB.clientEmail);
@@ -673,7 +678,7 @@ test("Phase 1 journey: sign up to a recorded client response", async ({ page, co
                 await use.check(responseChoice.getByRole("radio", { name: new RegExp(RESPONSE.nonBindingIntent.option) }));
                 await expect(preview.getByRole("heading", { name: RESPONSE.nonBindingIntent.heading })).toBeVisible();
                 await recorder.checkpoint("send-non-binding-intent", { scope: "main main", focusOn: responseChoice, capture: false });
-                const secondLink = await publish(2);
+                const secondLink = await publish(2, { emailClient: true });
                 await expect(send.locator('[data-delivery="sent"]')).toContainText(JOB.clientEmail);
                 expect(secondLink).not.toBe(firstLink);
                 await clientView(secondLink, RESPONSE.nonBindingIntent, "non-binding-intent");

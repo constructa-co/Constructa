@@ -28,11 +28,18 @@ export default function PricingPaymentStages({ projectId, schedule, lockReason, 
     const [state, store] = useReducerStore(patchState, () => ({ saved: supported ? schedule : null,
         rows: supported ? rowsFrom(schedule) : [], editing: false, pending: false, uncertain: false, message: "" }));
     const proposalHref = `/dashboard/projects/proposal?projectId=${encodeURIComponent(projectId)}#review-payments`;
-    const builtDraft = supported && state.editing ? buildProposalPayload({
-        ...draftFromProject({ id: projectId, name: "", payment_schedule: null }, () => "draft-total"), payments: state.rows,
-    }) : null;
-    const draftPercentageTotal = builtDraft?.ok && builtDraft.payload.paymentSchedule?.length
-        ? roundMoney(builtDraft.payload.paymentSchedule.reduce((sum, row) => sum + row.percentage, 0)) : null;
+    const draftPercentageTotal = supported && state.editing ? (() => {
+        let total = 0;
+        let usable = false;
+        for (const row of state.rows) {
+            const cleaned = row.percentage.trim().replace(/%$/, "").trim();
+            if (!row.stage.trim() && !row.when.trim() && !cleaned) continue;
+            if (!/^\d{1,3}(\.\d{1,2})?$/.test(cleaned)) return null;
+            total += Number(cleaned);
+            usable = true;
+        }
+        return usable ? roundMoney(total) : null;
+    })() : null;
     const change = (rows: PaymentStageDraft[]) => {
         const fresh = store.getState();
         if (!fresh.editing || fresh.pending || fresh.uncertain || lockReason || !supported) return;
@@ -68,7 +75,7 @@ export default function PricingPaymentStages({ projectId, schedule, lockReason, 
                     store.dispatch({ editing: true, message: "" }); onWorkChange(true);
                 }}>{state.saved?.length ? "Edit payment stages" : "Set payment stages"}</button>
             </> : <form className="mt-4 space-y-4" onSubmit={event => { event.preventDefault(); void submit(); }}>
-                <p className={`text-sm ${s.muted}`}>Unsaved payment-stage draft. Enter your own stages and percentages; the total must not exceed 100%.</p>
+                <p className={`text-sm ${s.muted}`}>Unsaved payment-stage draft. Enter your own stages and percentages; saved stages must add up to 100%.</p>
                 <p className={`text-sm ${s.muted}`}>Draft percentage total (not saved): <output aria-label="Draft percentage total (not saved)" aria-live="polite">{draftPercentageTotal === null ? "Check the stage names and percentages." : `${draftPercentageTotal}%`}</output></p>
                 <fieldset disabled={state.pending || state.uncertain} className="space-y-4 min-w-0">
                     {state.rows.map((row, index) => <div key={row.key} className="grid gap-3 sm:grid-cols-2">

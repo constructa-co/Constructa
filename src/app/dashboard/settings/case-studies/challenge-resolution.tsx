@@ -84,12 +84,17 @@ export default function ChallengeResolution({ text, notes, onNotes, onAdd, onAdd
     const addNow = () => {
         if (onAddToRecord) {
             // Keeping empty notes is how a kept story is withdrawn: the press is
-            // refused only when nothing would change (the boxes hold the saved story).
-            if (!differsFromSaved) { setNotice("Type the challenge or how you resolved it first. Nothing was kept."); return; }
+            // refused only when the boxes hold the saved story unchanged.
+            if (!differsFromSaved) {
+                setNotice(typed
+                    ? "Nothing changed. The story kept with this example stays as it is."
+                    : "Type the challenge or how you resolved it first. Nothing was kept.");
+                return;
+            }
             onAddToRecord(notes);
             setNotice(typed
                 ? "Kept with this example, in your words. It is saved with your past work and stays editable here."
-                : "Cleared for this example. Save removes it from this example, and no proposal shows it.");
+                : "Cleared for this example. Save removes it from this example. Future proposals won't show it; proposals already issued keep exactly what they carry.");
             return;
         }
         const result = withChallengeAndResolution(text, notes);

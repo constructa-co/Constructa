@@ -274,6 +274,20 @@ describe("older case studies: a challenge and how it was resolved", () => {
         expect(shown.value_added).toBe("Own value, kept.");
     });
 
+    it("says nothing changed when the boxes hold the saved story unchanged", async () => {
+        initial = [older("a", "Alpha", { challenge: CHALLENGE, solution: RESOLVED })];
+        profile = { case_studies: structuredClone(initial) };
+        rows = new Map([[ME, profile]]);
+        const tree = renderOlder();
+        // The saved story is already kept, so pressing Keep with nothing edited is a no-op…
+        press(buttons(tree, "Keep with this example")[0]);
+        expect(notices(renderOlder())[0]).toBe("Nothing changed. The story kept with this example stays as it is.");
+        expect(olderDraft()[0].challenge).toBe(CHALLENGE);
+        expect(olderDraft()[0].solution).toBe(RESOLVED);
+        // …and the leave warning never fired, since no edit was made.
+        expect(mocks.guard).toHaveBeenLastCalledWith(false, expect.any(String));
+    });
+
     it("is cleared by keeping empty boxes, saved away, and read back with no story on the record or a proposal", async () => {
         initial = [older("a", "Alpha", { challenge: CHALLENGE, solution: RESOLVED })];
         profile = { case_studies: structuredClone(initial) };
@@ -292,7 +306,7 @@ describe("older case studies: a challenge and how it was resolved", () => {
         tree = renderOlder();
         expect(olderDraft()[0].challenge).toBe("");
         expect(olderDraft()[0].solution).toBe("");
-        expect(notices(tree)[0]).toBe("Cleared for this example. Save removes it from this example, and no proposal shows it.");
+        expect(notices(tree)[0]).toBe("Cleared for this example. Save removes it from this example. Future proposals won't show it; proposals already issued keep exactly what they carry.");
         expect(marked(tree, "data-challenge-unadded")).toBe(false);
 
         await saveOlder();

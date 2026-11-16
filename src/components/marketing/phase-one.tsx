@@ -199,6 +199,7 @@ export function PhaseOnePricing() {
         <p className={ui.eyebrow}>Preview access</p>
         <h1>A focused first phase.<br /><em>No add-on checkout.</em></h1>
         <p>We are reviewing the complete work-winning journey before release. This page does not sell a subscription, promise a free trial or take payment for later-phase features.</p>
+        <p>Preview access remains on hold for new accounts. This review is not ready for live customer work.</p>
         <p>This preview is for people using an existing review account. Sign in with the details you were given, then start with your company profile.</p>
         <div className={ui.actions}>
           <FoundingCohortApplyLink />

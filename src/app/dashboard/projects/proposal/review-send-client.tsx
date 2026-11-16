@@ -18,7 +18,14 @@ import { newClientId } from "@/lib/client-id";
 import { copyTextWithFallback } from "@/lib/clipboard-copy";
 import { programmePlanForProject } from "@/lib/programme-plan";
 import { proposalPaymentSave } from "@/lib/proposal-payment-save";
-import { buildProposalDocument, paymentRows, vatLines, vatNote } from "@/lib/proposal-document";
+import {
+    buildProposalDocument,
+    DRAFT_PROPOSAL_REFERENCE,
+    paymentRows,
+    proposalReference,
+    vatLines,
+    vatNote,
+} from "@/lib/proposal-document";
 import {
     COVER_PHOTO_CHOICE_LABELS,
     COVER_RENDER_CAPTION,
@@ -213,6 +220,12 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
         [context, draft, state.responseKind, previewTime],
     );
     const previewDocument = useMemo(() => (preview ? buildProposalDocument(preview, { isDraft: true }) : null), [preview]);
+    const nextIssuedReference = preview
+        ? proposalReference({
+            project: preview.project,
+            publication: { version_number: context.nextVersion },
+        })
+        : null;
     const previewValidation = !preview ? buildProposalPayload(draft) : null;
     const previewTermIssues = previewValidation && !previewValidation.ok
         ? (draft.terms ?? []).flatMap((clause, index) => {
@@ -323,6 +336,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
     const href = (path: string) => `/dashboard/projects/${path}?projectId=${encodeURIComponent(project.id)}`;
     const requiredFix: Partial<Record<ReadinessKey, { href: string; label: string }>> = {
         identity: { href: href("settings"), label: "Open project details" },
+        siteAddress: { href: href("settings"), label: "Open project details" },
         scope: { href: "#review-scope", label: "Go to the scope" },
         contractValue: { href: href("costs"), label: "Open Estimating" },
         programme: { href: href("schedule"), label: "Open Programme" },
@@ -1164,24 +1178,31 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                     <section id="review-closing" className={sectionCard} aria-labelledby="review-closing-title">
                         {sectionTitle("review-closing", 8, "Closing message", "The last thing your client reads before they respond.")}
                         {wordingField("closing", { rows: 4, help: "In your own words. Leave it empty and this section is left out." })}
-                        {companyMessage.trim() && (
-                            <details className={`${s.inset} mt-4 p-4`} data-company-closing-source>
-                                <summary className={`cursor-pointer text-sm font-semibold ${s.heading}`}>Use your managing director&apos;s message</summary>
-                                <p className={`mt-3 text-sm ${s.muted}`}>From your saved company profile. No new text is generated here. It can also appear under About your business. Review it for this proposal before saving.</p>
-                                <blockquote className={`mt-3 max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-sm ${s.body}`}>{companyMessage}</blockquote>
-                                <button type="button" data-use-company-closing disabled={companyClosingBlocked} className={`${s.secondaryButton} mt-3`}
-                                    onClick={() => {
-                                        const result = applyCompanyClosingMessage(store, companyMessage, !locked);
-                                        setCompanyClosingNote(result.ok ? "Company message copied to this unsaved draft. Review and save it when ready." : result.error);
-                                    }}>Use company message</button>
-                                <p className={`mt-2 text-sm ${s.muted}`}>{companyMessage.length > TEXT_LIMITS.closing
-                                    ? "This message exceeds the closing field's 20,000-character limit. Nothing will be copied or shortened."
-                                    : draft.closing.trim() || state.saved.closing.trim()
-                                        ? "Your proposal's existing wording is kept. Edit the closing field directly; using company text will not replace it."
-                                        : "This fills only an empty draft. It does not save the proposal or change your company profile."}</p>
-                                {companyClosingNote && <p role="status" className={`mt-2 text-sm ${s.body}`}>{companyClosingNote}</p>}
-                            </details>
-                        )}
+                        <details className={`${s.inset} mt-4 p-4`} data-company-closing-source>
+                            <summary className={`cursor-pointer text-sm font-semibold ${s.heading}`}>Use your managing director&apos;s message</summary>
+                            {companyMessage.trim() ? (
+                                <>
+                                    <p className={`mt-3 text-sm ${s.muted}`}>From your saved company profile. No new text is generated here. It can also appear under About your business. Review it for this proposal before saving.</p>
+                                    <blockquote className={`mt-3 max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-sm ${s.body}`} data-company-closing-saved>{companyMessage}</blockquote>
+                                    <button type="button" data-use-company-closing disabled={companyClosingBlocked} className={`${s.secondaryButton} mt-3`}
+                                        onClick={() => {
+                                            const result = applyCompanyClosingMessage(store, companyMessage, !locked);
+                                            setCompanyClosingNote(result.ok ? "Company message copied to this unsaved draft. Review and save it when ready." : result.error);
+                                        }}>Use saved company message</button>
+                                    <p className={`mt-2 text-sm ${s.muted}`}>{companyMessage.length > TEXT_LIMITS.closing
+                                        ? "This message exceeds the closing field's 20,000-character limit. Nothing will be copied or shortened."
+                                        : draft.closing.trim() || state.saved.closing.trim()
+                                            ? "Your proposal's existing wording is kept. Edit the closing field directly; using company text will not replace it."
+                                            : "This fills only an empty draft. It does not save the proposal or change your company profile."}</p>
+                                </>
+                            ) : (
+                                <p className={`mt-3 text-sm ${s.muted}`} data-company-closing-empty>
+                                    No managing director&apos;s message is saved in your company profile yet. Add one in{" "}
+                                    <a href="/dashboard/settings/profile" className={s.quietButton}>company profile</a> if you want to copy it here later.
+                                </p>
+                            )}
+                            {companyClosingNote && <p role="status" className={`mt-2 text-sm ${s.body}`}>{companyClosingNote}</p>}
+                        </details>
                     </section>
                 </fieldset>
 
@@ -1282,6 +1303,14 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                             {previewProblem && previewTermIssues.length > 0 && <> <a href="#review-terms" className={s.quietButton}>Review the current terms</a>.</>}
                             {checkCode && <> Check code <span className="font-mono font-semibold" data-check-code>{checkCode}</span>.</>}
                         </p>
+                        {preview && (
+                            <p className={`text-sm ${s.muted}`} data-draft-reference-note>
+                                Draft previews use reference <span className="font-mono font-semibold">{DRAFT_PROPOSAL_REFERENCE}</span>, not an issued number.
+                                {nextIssuedReference
+                                    ? <> Sending version {context.nextVersion} will issue reference <span className="font-mono font-semibold" data-next-issued-reference>{nextIssuedReference}</span>, which stays fixed on that sent copy.</>
+                                    : null}
+                            </p>
+                        )}
                         {draftPdf.text && <p role={draftPdf.failed ? "alert" : "status"} className={`text-sm ${draftPdf.failed ? s.errorText : s.body}`} data-presend-pdf-result>{draftPdf.text}</p>}
                     </div>
 
@@ -1529,6 +1558,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
             {publications.length > 0 && (
                 <PublicationHistoryPanel
                     publications={publications}
+                    projectId={project.id}
                     s={s as WorkspaceStyles}
                     loadPublication={(publicationId) => api.loadPublication(publicationId)}
                 />

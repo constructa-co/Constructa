@@ -498,6 +498,7 @@ export async function publishProposalAction(
     const readiness = evaluateProposalReadiness({
         projectName: project.name,
         clientName: project.client_name,
+        siteAddress: project.site_address,
         scope: project.scope_text,
         contractSum: contractSumOf(estimate),
         programmePhases: resolveProgrammeSource(project).phases,

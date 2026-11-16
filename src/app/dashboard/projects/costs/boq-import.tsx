@@ -172,6 +172,7 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
 
     const linesWithQty = boq?.lines.filter((l) => l.quantity != null && l.description?.trim()).length ?? 0;
     const warnedLines = boq?.lines.filter((l) => l.parse_warnings?.length) ?? [];
+    const mismatchedTotals = boq?.lines.filter((l) => l.total_mismatch).length ?? 0;
     const linesBlank = boq?.lines.filter((l) => l.quantity == null && l.description?.trim() && !l.parse_warnings?.length).length ?? 0;
 
     return (
@@ -301,6 +302,11 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
                                                                 Unreadable {line.parse_warnings.join(", ").replaceAll("_", " ")}
                                                             </span>
                                                         ) : null}
+                                                        {line.total_mismatch ? (
+                                                            <span className="ml-2 text-amber-400" data-boq-total-mismatch>
+                                                                File total £{line.total_mismatch.stated.toFixed(2)} ≠ qty × rate
+                                                            </span>
+                                                        ) : null}
                                                     </span>
                                                     <span className="text-slate-500 text-xs font-mono whitespace-nowrap">
                                                         {line.quantity != null ? `${line.quantity} ${line.unit}` : <span className="text-amber-500/70">qty TBC</span>}
@@ -317,6 +323,12 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
                                 <p className="text-amber-300 text-xs flex items-center gap-1.5" data-boq-warning-banner>
                                     <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
                                     {warnedLines.length} row(s) have unreadable quantities, rates or totals. Import is blocked until you fix or remove them in the source file.
+                                </p>
+                            )}
+                            {mismatchedTotals > 0 && (
+                                <p className="text-amber-400/80 text-xs flex items-center gap-1.5" data-boq-total-mismatch-banner>
+                                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                                    {mismatchedTotals} row(s) have a total that does not equal quantity × rate. They import at quantity × rate — check the rate on those rows.
                                 </p>
                             )}
                             {linesBlank > 0 && (

@@ -420,17 +420,22 @@ export async function loadAdvancedEstimatingDataAction(): Promise<
             labourRateQuery,
             supabase.from("profiles").select("preferred_trades").eq("id", user.id).single(),
         ]);
-        if (rateBuildups.error || categories.error || items.error || overrides.error || labourRates.error) {
+        if (rateBuildups.error || labourRates.error) {
             return { ok: false, error: "The advanced tools couldn't be loaded. Check your connection and try again." };
         }
 
-        const fromMom = mapMomRowsToCostLibrary(items.data || [], categories.data || [], overrides.data || []);
+        // The two catalogues back each other up. MoM is only used when all three
+        // of its reads succeed: without the overrides read an organisation's own
+        // rates are unknown, and base rates must not stand in for them.
+        const momError = categories.error || items.error || overrides.error;
+        if (momError) console.error("[loadAdvancedEstimatingDataAction] MoM catalogue unavailable", momError);
+        const fromMom = momError ? [] : mapMomRowsToCostLibrary(items.data || [], categories.data || [], overrides.data || []);
         /* eslint-disable @typescript-eslint/no-explicit-any */
         const legacy = legacyLibrary.error
             ? []
             : (legacyLibrary.data || []).map((row: any) => mapLegacyCostLibraryRow(row)).filter(Boolean) as CostLibraryItem[];
         const catalogueSource: "mom" | "legacy" = fromMom.length ? "mom" : "legacy";
-        if (!fromMom.length && legacyLibrary.error) {
+        if (!fromMom.length && (legacyLibrary.error || (momError && !legacy.length))) {
             return { ok: false, error: "The advanced tools couldn't be loaded. Check your connection and try again." };
         }
         const costLibrary = catalogueSource === "mom" ? fromMom : legacy;

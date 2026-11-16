@@ -24,8 +24,9 @@ vi.mock("@/lib/supabase/project-resource-access", () => ({
 vi.mock("@/lib/launch-profile", () => ({
     requireLaunchCapability: mocks.requireLaunchCapability,
 }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
-function fakeCatalogueDb(options: { legacyError?: boolean; momRate?: number }) {
+function fakeCatalogueDb(options: { legacyError?: boolean; momRate?: number; failTable?: string; emptyLegacy?: boolean }) {
     const momItem = {
         id: "mom-1",
         code: "GW01",
@@ -59,6 +60,12 @@ function fakeCatalogueDb(options: { legacyError?: boolean; momRate?: number }) {
                 if (table === "cost_library_items" && options.legacyError) {
                     return Promise.resolve(resolve({ data: null, error: { message: "legacy offline" } }));
                 }
+                if (table === options.failTable) {
+                    return Promise.resolve(resolve({ data: null, error: { message: `${table} offline` } }));
+                }
+                if (table === "cost_library_items" && options.emptyLegacy) {
+                    return Promise.resolve(resolve({ data: [], error: null }));
+                }
                 return Promise.resolve(resolve({ data: tables[table] ?? [], error: null }));
             },
         };
@@ -86,8 +93,43 @@ describe("CON-181 integration paths", () => {
         const result = parseEstimateBatchCsv(csv);
         expect(result.ok).toBe(true);
         if (!result.ok) return;
-        expect(result.lines[0]).toMatchObject({ unit: "m3", quantity: 2, line_total: 25 });
+        // 2 × £10 is stored; the file's £25 is reported, not persisted.
+        expect(result.lines[0]).toMatchObject({ unit: "m3", quantity: 2, line_total: 20, total_mismatch: { stated: 25, computed: 20 } });
         expect(result.lines[0].parse_warnings).toBeUndefined();
+    });
+
+    it("stores qty × rate server-side when a posted total disagrees", async () => {
+        mocks.requireLaunchCapability.mockImplementation(() => {});
+        const inserted: Record<string, unknown>[] = [];
+        const from = (table: string) => {
+            const builder: Record<string, unknown> = {
+                insert: (rows: unknown) => {
+                    if (table === "estimate_lines") inserted.push(...(rows as Record<string, unknown>[]));
+                    return builder;
+                },
+                update: () => builder,
+                select: () => builder,
+                eq: () => builder,
+                neq: () => builder,
+                single: async () => ({ data: table === "estimates" ? { id: "estimate-1" } : { status: "Estimating" }, error: null }),
+                then: (resolve: (v: unknown) => unknown) => Promise.resolve(resolve({ data: null, error: null })),
+            };
+            return builder;
+        };
+        mocks.requireEditableProjectAccess.mockResolvedValue({ supabase: { from } });
+        const line = { client_ref: "", section: "Groundworks", unit: "m3" };
+        const result = await createBoQEstimateAction("11111111-1111-4111-8111-111111111111", {
+            filename: "totals.csv",
+            sections: ["Groundworks"],
+            totalLines: 3,
+            lines: [
+                { ...line, description: "Dig out", quantity: 2, unit_rate: 10, line_total: 25 },
+                { ...line, description: "Cart away", quantity: 2, unit_rate: 10, line_total: 20 },
+                { ...line, description: "Provisional sum", quantity: null, unit_rate: 0, line_total: 500 },
+            ],
+        });
+        expect(result).toMatchObject({ success: true, estimateId: "estimate-1" });
+        expect(inserted.map(row => row.line_total)).toEqual([20, 20, 500]);
     });
 
     it("does not downgrade malformed priced CSV rows into headings", () => {
@@ -111,12 +153,12 @@ describe("CON-181 integration paths", () => {
         expect(result.error).toMatch(/unreadable/i);
     });
 
-    it("preserves explicit AI line totals and keeps malformed rows priced", () => {
+    it("reconciles explicit AI line totals and keeps malformed rows priced", () => {
         const lines = normalizeClientBoQLines([
             { section: "A", description: "Paving", quantity: 4, unit: "m2", unit_rate: 10, line_total: 55 },
             { section: "A", description: "Edge", quantity: "lots", unit: "m", unit_rate: 5, line_total: 0 },
         ]);
-        expect(lines[0]).toMatchObject({ unit: "m2", line_total: 55 });
+        expect(lines[0]).toMatchObject({ unit: "m2", line_total: 40, total_mismatch: { stated: 55, computed: 40 } });
         expect(lines[1]).toMatchObject({ unit: "m", parse_warnings: ["quantity"], quantity: null });
     });
 
@@ -132,6 +174,33 @@ describe("CON-181 integration paths", () => {
             if (!result.ok) return;
             expect(result.data.catalogueSource).toBe("mom");
             expect(result.data.costLibrary[0]).toMatchObject({ base_rate: 30, unit: "m3" });
+        });
+
+        it.each(["mom_categories", "mom_items", "mom_item_overrides"])(
+            "serves the legacy catalogue when %s fails",
+            async (failTable) => {
+                vi.spyOn(console, "error").mockImplementation(() => {});
+                mocks.requireAuth.mockResolvedValue({ supabase: fakeCatalogueDb({ failTable }), user: { id: "user-1" } });
+                const result = await loadAdvancedEstimatingDataAction();
+                expect(result.ok).toBe(true);
+                if (!result.ok) return;
+                expect(result.data.catalogueSource).toBe("legacy");
+                expect(result.data.costLibrary).toEqual([expect.objectContaining({ id: "leg-1", base_rate: 9 })]);
+            },
+        );
+
+        it("fails rather than serving an empty catalogue when MoM is down and legacy has no rows", async () => {
+            vi.spyOn(console, "error").mockImplementation(() => {});
+            mocks.requireAuth.mockResolvedValue({ supabase: fakeCatalogueDb({ failTable: "mom_items", emptyLegacy: true }), user: { id: "user-1" } });
+            const result = await loadAdvancedEstimatingDataAction();
+            expect(result.ok).toBe(false);
+        });
+
+        it("fails when both catalogues are down", async () => {
+            vi.spyOn(console, "error").mockImplementation(() => {});
+            mocks.requireAuth.mockResolvedValue({ supabase: fakeCatalogueDb({ failTable: "mom_items", legacyError: true }), user: { id: "user-1" } });
+            const result = await loadAdvancedEstimatingDataAction();
+            expect(result.ok).toBe(false);
         });
     });
 

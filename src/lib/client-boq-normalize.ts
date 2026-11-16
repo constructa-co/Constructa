@@ -1,4 +1,5 @@
 import type { ClientBoQLine } from "@/app/dashboard/projects/costs/boq-import-action";
+import { parseBoQNumberCell, reconcileBoQLineTotal, type BoQNumberCell } from "./boq-number";
 
 function asTrimmedString(value: unknown): string {
     if (typeof value === "string") return value.trim();
@@ -6,37 +7,27 @@ function asTrimmedString(value: unknown): string {
     return "";
 }
 
-function parseQuantity(raw: unknown): { quantity: number | null; malformed: boolean } {
-    if (raw === null || raw === undefined) return { quantity: null, malformed: false };
+function parseNumber(raw: unknown): BoQNumberCell {
+    if (raw === null || raw === undefined) return { value: null, malformed: false };
     if (typeof raw === "number") {
-        return Number.isFinite(raw) ? { quantity: raw, malformed: false } : { quantity: null, malformed: true };
+        return Number.isFinite(raw) ? { value: raw, malformed: false } : { value: null, malformed: true };
     }
-    const text = String(raw).trim();
-    if (!text || text === "-") return { quantity: null, malformed: false };
-    const value = Number(text.replace(/,/g, ""));
-    return Number.isFinite(value) ? { quantity: value, malformed: false } : { quantity: null, malformed: true };
+    return parseBoQNumberCell(String(raw));
+}
+
+function parseQuantity(raw: unknown): { quantity: number | null; malformed: boolean } {
+    const { value, malformed } = parseNumber(raw);
+    return { quantity: value, malformed };
 }
 
 function parseLineTotal(raw: unknown): { total: number | null; malformed: boolean } {
-    if (raw === null || raw === undefined || raw === "") return { total: null, malformed: false };
-    if (typeof raw === "number") {
-        return Number.isFinite(raw) ? { total: raw, malformed: false } : { total: null, malformed: true };
-    }
-    const text = String(raw).trim();
-    if (!text || text === "-") return { total: null, malformed: false };
-    const value = Number(text.replace(/,/g, ""));
-    return Number.isFinite(value) ? { total: value, malformed: false } : { total: null, malformed: true };
+    const { value, malformed } = parseNumber(raw);
+    return { total: value, malformed };
 }
 
 function parseRate(raw: unknown): { unit_rate: number; malformed: boolean } {
-    if (raw === null || raw === undefined || raw === "") return { unit_rate: 0, malformed: false };
-    if (typeof raw === "number") {
-        return Number.isFinite(raw) ? { unit_rate: raw, malformed: false } : { unit_rate: 0, malformed: true };
-    }
-    const text = String(raw).trim();
-    if (!text || text === "-") return { unit_rate: 0, malformed: false };
-    const value = Number(text.replace(/,/g, ""));
-    return Number.isFinite(value) ? { unit_rate: value, malformed: false } : { unit_rate: 0, malformed: true };
+    const { value, malformed } = parseNumber(raw);
+    return { unit_rate: value ?? 0, malformed };
 }
 
 function looksLikeSectionTitle(description: string, unit: string): boolean {
@@ -51,7 +42,9 @@ function isDescriptionOnlyHeading(description: string, quantity: number | null, 
     const normalizedUnit = unit.toLowerCase();
     if (["heading", "section", "header"].includes(normalizedUnit)) return true;
     if (unit_rate !== 0) return false;
-    if (!unit || normalizedUnit === "item" || normalizedUnit === "nr") {
+    // "item" is the placeholder the parser is told to use for headings; a real
+    // unit such as nr or m2 marks an unpriced item and is kept as a line.
+    if (!unit || normalizedUnit === "item") {
         return description.length > 0 && description.length <= 120;
     }
     return false;
@@ -66,7 +59,7 @@ export function normalizeClientBoQLines(rawLines: unknown[]): ClientBoQLine[] {
         if (!raw || typeof raw !== "object") continue;
         const row = raw as Record<string, unknown>;
 
-        const sectionText = typeof row.section === "string" ? row.section.trim() : "";
+        const sectionText = asTrimmedString(row.section);
         if (sectionText) currentSection = sectionText;
 
         const description = asTrimmedString(row.description);
@@ -103,11 +96,7 @@ export function normalizeClientBoQLines(rawLines: unknown[]): ClientBoQLine[] {
         const quantity = qty.malformed ? null : qty.quantity;
         const unit_rate = rate.malformed ? 0 : rate.unit_rate;
         const explicitTotal = lineTotalParsed.malformed ? null : lineTotalParsed.total;
-        const line_total = explicitTotal !== null
-            ? explicitTotal
-            : quantity !== null && !qty.malformed && !rate.malformed
-                ? quantity * unit_rate
-                : 0;
+        const { line_total, total_mismatch } = reconcileBoQLineTotal(quantity, unit_rate, explicitTotal);
 
         lines.push({
             client_ref: asTrimmedString(row.client_ref),
@@ -118,6 +107,7 @@ export function normalizeClientBoQLines(rawLines: unknown[]): ClientBoQLine[] {
             unit_rate,
             line_total,
             ...(parse_warnings.length ? { parse_warnings } : {}),
+            ...(total_mismatch ? { total_mismatch } : {}),
         });
     }
 

@@ -1,4 +1,5 @@
 import Papa from "papaparse";
+import { parseBoQNumberCell, reconcileBoQLineTotal, type BoQTotalMismatch } from "./boq-number";
 
 export type EstimateBatchCsvLine = {
     client_ref: string;
@@ -9,6 +10,8 @@ export type EstimateBatchCsvLine = {
     unit_rate: number;
     line_total: number;
     parse_warnings?: string[];
+    /** The file's Total disagreed with Qty × Rate; line_total holds Qty × Rate. Does not block import. */
+    total_mismatch?: BoQTotalMismatch;
 };
 
 function headerKey(row: Record<string, string>, names: string[]): string | undefined {
@@ -20,25 +23,21 @@ function headerKey(row: Record<string, string>, names: string[]): string | undef
     return undefined;
 }
 
-function parseFiniteNumber(raw: string | undefined): { value: number | null; malformed: boolean } {
-    if (raw === undefined || !raw.trim() || raw.trim() === "-") return { value: null, malformed: false };
-    const value = Number(raw.replace(/,/g, "").trim());
-    return Number.isFinite(value) ? { value, malformed: false } : { value: null, malformed: true };
-}
-
 function isExplicitHeadingUnit(unit: string): boolean {
     return ["heading", "section", "header"].includes(unit.toLowerCase());
 }
 
 function isDescriptionOnlyHeadingRow(
     description: string,
-    unit: string,
+    unitCell: string | undefined,
     qtyCell: string | undefined,
     rateCell: string | undefined,
     totalCell: string | undefined,
 ): boolean {
     if (qtyCell?.trim() || rateCell?.trim() || totalCell?.trim()) return false;
-    if (isExplicitHeadingUnit(unit)) return description.length > 0;
+    if (unitCell && isExplicitHeadingUnit(unitCell)) return description.length > 0;
+    // A real unit (m2, nr, tonne…) marks an unpriced item, not a heading.
+    if (unitCell && unitCell.toLowerCase() !== "item") return false;
     const words = description.trim().split(/\s+/).filter(Boolean);
     return words.length === 1 && description.length > 0 && description.length <= 48;
 }
@@ -65,13 +64,14 @@ export function parseEstimateBatchCsv(text: string):
         if (!description) continue;
 
         const ref = headerKey(row, ["ref", "reference", "item ref", "client ref"]) ?? "";
-        const unit = headerKey(row, ["unit", "uom"]) ?? "item";
+        const unitCell = headerKey(row, ["unit", "uom"]);
+        const unit = unitCell ?? "item";
         const qtyCell = headerKey(row, ["quantity", "qty", "q"]);
         const rateCell = headerKey(row, ["rate", "unit rate", "unit_rate", "price"]);
         const totalCell = headerKey(row, ["total", "line total", "line_total", "amount"]);
-        const quantityParsed = parseFiniteNumber(qtyCell);
-        const rateParsed = parseFiniteNumber(rateCell);
-        const totalParsed = parseFiniteNumber(totalCell);
+        const quantityParsed = parseBoQNumberCell(qtyCell);
+        const rateParsed = parseBoQNumberCell(rateCell);
+        const totalParsed = parseBoQNumberCell(totalCell);
         const parse_warnings: string[] = [];
         if (quantityParsed.malformed) parse_warnings.push("quantity");
         if (rateParsed.malformed) parse_warnings.push("unit_rate");
@@ -79,7 +79,7 @@ export function parseEstimateBatchCsv(text: string):
         const quantity = quantityParsed.value;
         const unit_rate = rateParsed.malformed ? 0 : (rateParsed.value ?? 0);
 
-        if (!parse_warnings.length && isDescriptionOnlyHeadingRow(description, unit, qtyCell, rateCell, totalCell)) {
+        if (!parse_warnings.length && isDescriptionOnlyHeadingRow(description, unitCell, qtyCell, rateCell, totalCell)) {
             if (sectionCell) currentSection = sectionCell;
             else if (description.split(/\s+/).filter(Boolean).length === 1) currentSection = description;
             lines.push({
@@ -96,11 +96,7 @@ export function parseEstimateBatchCsv(text: string):
 
         const qty = quantityParsed.malformed ? null : quantity;
         const explicitTotal = totalParsed.malformed ? null : totalParsed.value;
-        const line_total = explicitTotal !== null
-            ? explicitTotal
-            : qty !== null && !quantityParsed.malformed && !rateParsed.malformed
-                ? qty * unit_rate
-                : 0;
+        const { line_total, total_mismatch } = reconcileBoQLineTotal(qty, unit_rate, explicitTotal);
         const pricedUnit = unit.trim() || "item";
         lines.push({
             client_ref: ref,
@@ -111,6 +107,7 @@ export function parseEstimateBatchCsv(text: string):
             unit_rate,
             line_total,
             ...(parse_warnings.length ? { parse_warnings } : {}),
+            ...(total_mismatch ? { total_mismatch } : {}),
         });
     }
 

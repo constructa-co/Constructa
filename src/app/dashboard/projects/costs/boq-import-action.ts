@@ -8,6 +8,7 @@ import { CreateBoQEstimateSchema, parseInput } from "@/lib/validation/schemas";
 import { requireLaunchCapability } from "@/lib/launch-profile";
 import { batchSectionHeadings } from "@/lib/estimate-batch-sections";
 import { normalizeClientBoQLines } from "@/lib/client-boq-normalize";
+import { reconcileBoQLineTotal, type BoQTotalMismatch } from "@/lib/boq-number";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -21,6 +22,8 @@ export interface ClientBoQLine {
     line_total: number;
     /** Set when qty/rate cells were present but not readable — no invented numbers. */
     parse_warnings?: string[];
+    /** The client's stated total disagreed with qty × rate; line_total holds qty × rate. Does not block import. */
+    total_mismatch?: BoQTotalMismatch;
 }
 
 export interface ParsedClientBoQ {
@@ -204,8 +207,10 @@ export async function createBoQEstimateAction(
         .map((l) => {
             const unit = (l.unit || "item").trim() || "item";
             const quantity = l.quantity ?? 1;
+            // Never trust a posted total that disagrees with qty × rate: the row
+            // would read "2 × £10 = £25" and change on its first edit.
             const line_total = Number.isFinite(l.line_total)
-                ? l.line_total
+                ? reconcileBoQLineTotal(l.quantity, l.unit_rate || 0, l.line_total).line_total
                 : quantity * (l.unit_rate || 0);
             return {
             estimate_id: estimate.id,

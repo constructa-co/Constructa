@@ -27,6 +27,26 @@ html {
   z-index: 1;
 }
 
+/* Restrained marketing section-entry motion (opt-in via data-reveal).
+   Hidden states apply only after .reveal-armed is set by PublicChrome, so
+   content remains fully visible without JavaScript. */
+.reveal-armed [data-reveal] {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+.reveal-armed [data-reveal].reveal-in {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal-armed [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
 /* Hide scrollbar for Chrome, Safari and Opera */
 .snap-y::-webkit-scrollbar {
   display: none;

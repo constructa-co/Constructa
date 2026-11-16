@@ -15,6 +15,8 @@ const captures = [
     title: 'Price percentages on an estimate',
     description: 'Adjust overhead, risk, profit and discount on a priced estimate. The control stays inactive while nothing has changed.',
     sample: 'All figures belong to a synthetic roof repair job. They are not prices, typical margins or a quote.',
+    zoomClass: 'zoomEstimate',
+    zoomNote: 'Shown zoomed to the running total and price adjustments on larger screens; smaller screens show the full-length capture instead.',
     capturedOn: '2026-11-15',
     capturedLabel: '15 November 2026',
   },
@@ -25,6 +27,8 @@ const captures = [
     title: 'Saved programme stages',
     description: 'Name stages in your own words, set lengths, and preview how they read on the proposal before continuing.',
     sample: 'The stage names, lengths and dates are synthetic entries. They are not a standard programme or a promise of how long any job takes.',
+    zoomClass: 'zoomProgramme',
+    zoomNote: 'Shown zoomed to the programme at a glance on larger screens; smaller screens show the full-length capture instead.',
     capturedOn: '2026-11-15',
     capturedLabel: '15 November 2026',
   },
@@ -44,7 +48,7 @@ function CapturePicture({ capture }: { capture: (typeof captures)[number] }) {
 
 export function ProductScreenshots() {
   return (
-    <section id="product-screenshots" aria-labelledby="product-screenshots-title" className={`${ui.section} ${shots.screenshots}`}>
+    <section id="product-screenshots" aria-labelledby="product-screenshots-title" className={`${ui.section} ${shots.screenshots}`} data-reveal>
       <div className={ui.sectionIntro}>
         <p className={ui.eyebrow}>Example screens</p>
         <h2 id="product-screenshots-title">Two example screens.<br />From the current review interface.</h2>
@@ -58,11 +62,20 @@ export function ProductScreenshots() {
       <div className={shots.figures}>
         {captures.map(capture => (
           <figure key={capture.title} className={shots.figure}>
-            <CapturePicture capture={capture} />
+            <div className={shots.frame}>
+              <div className={shots.frameBar} aria-hidden="true">
+                <i /><i /><i />
+                <span className={shots.frameTitle}>Constructa review interface</span>
+              </div>
+              <div className={`${shots.viewport} ${shots[capture.zoomClass]}`}>
+                <CapturePicture capture={capture} />
+              </div>
+            </div>
             <figcaption>
               <div>
                 <h3>{capture.title}</h3>
                 <p className={shots.capturedLine}>Synthetic journey fixture capture · <time dateTime={capture.capturedOn}>{capture.capturedLabel}</time> · Current review interface · Simulated saves</p>
+                <p className={shots.zoomNote}>{capture.zoomNote}</p>
               </div>
               <div>
                 <p>{capture.description}</p>

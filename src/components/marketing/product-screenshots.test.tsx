@@ -132,6 +132,33 @@ describe('phase-one product screenshots', () => {
     expect(html()).toContain('<h2 id="product-screenshots-title">');
   });
 
+  it('frames each capture in a device chrome with a neutral window label', () => {
+    expect(html().match(/class="[^"]*frameBar[^"]*"/g)).toHaveLength(2);
+    expect(html().match(/Constructa review interface/g)).toHaveLength(2);
+    for (const label of ['Price adjustments', 'programme at a glance']) {
+      expect(html()).toContain(label);
+    }
+  });
+
+  it('notes the zoomed desktop view and the full-length small-screen view in each caption', () => {
+    const captions = html().match(/<figcaption[\s\S]*?<\/figcaption>/g) ?? [];
+    for (const caption of captions) {
+      expect(caption).toContain('Shown zoomed to');
+      expect(caption).toContain('smaller screens show the full-length capture instead');
+    }
+    expect(captions[0]).toContain('running total and price adjustments');
+    expect(captions[1]).toContain('programme at a glance');
+  });
+
+  it('zooms each desktop capture into its readable band only on larger screens', () => {
+    const styles = source('./product-screenshots.module.css');
+    expect(styles).toContain('@media (min-width: 601px)');
+    expect(styles).toContain('.zoomEstimate img { transform: translateY(-91%) scale(1.8); }');
+    expect(styles).toContain('.zoomProgramme img { transform: translateY(-29%) scale(1.6); }');
+    expect(styles).toContain('overflow: hidden');
+    expect(styles).not.toContain('@media (max-width: 600px)');
+  });
+
   it('imports the unchanged committed evidence images rather than copies', () => {
     const component = source('./product-screenshots.tsx');
     for (const [path, blob] of assets) {

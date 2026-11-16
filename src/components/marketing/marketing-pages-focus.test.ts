@@ -28,6 +28,20 @@ describe("declared marketing guides and cohort apply focus styles, not browser c
     expect(focus.outline).toContain("var(--accent)");
   });
 
+  it("keeps guide article prose at the editorial 680px measure", () => {
+    const measure = declarations(
+      new URL("./guides.module.css", import.meta.url),
+      ".measure",
+    );
+    expect(measure["max-width"]).toBe("680px");
+    const stepHeading = declarations(
+      new URL("./guides.module.css", import.meta.url),
+      ".articleSection h2::after",
+    );
+    expect(stepHeading.content).toBeDefined();
+    expect(stepHeading.background).toBe("var(--accent)");
+  });
+
   it("highlights cohort application fields and submit on focus-visible", () => {
     const cssPath = new URL("./founding-cohort-apply.module.css", import.meta.url);
     for (const selector of [".input:focus-visible", ".select:focus-visible", ".textarea:focus-visible"]) {

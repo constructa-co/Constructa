@@ -3,11 +3,23 @@ section.screenshots { padding-top: 0; }
 .figures { display: grid; gap: 48px; }
 .figure { min-width: 0; max-width: 1280px; margin: 0; }
 .figure picture { display: block; }
-.figure img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 10px; }
+.figure img { display: block; width: 100%; height: auto; }
+.frame { border: 1px solid var(--line); border-radius: 12px; background: #151a16; overflow: hidden; }
+.frameBar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.frameBar i { width: 10px; height: 10px; border-radius: 50%; background: #2e3831; flex-shrink: 0; }
+.frameTitle { margin-left: 10px; color: var(--muted); font-size: 14px; }
+.viewport { position: relative; overflow: hidden; }
 .figure figcaption { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; padding-top: 20px; }
 .figure figcaption > div { min-width: 0; }
 .figure h3 { color: var(--ink); font-size: 24px; font-weight: 500; line-height: 1.15; letter-spacing: -.6px; margin: 0 0 10px; }
 .figure p { color: var(--muted); font-size: 15px; line-height: 1.7; margin: 0 0 8px; }
 .figure p:last-child { margin-bottom: 0; }
 .figure .capturedLine { color: #c0cdc3; font-size: 14px; }
+.figure .zoomNote { color: #8f9a92; font-size: 14px; }
+@media (min-width: 601px) {
+  .viewport { height: 0; padding-top: 62.5%; }
+  .viewport img { position: absolute; top: 0; left: 0; transform-origin: left top; }
+  .zoomEstimate img { transform: translateY(-91%) scale(1.8); }
+  .zoomProgramme img { transform: translateY(-29%) scale(1.6); }
+}
 @media (max-width: 800px) { .qualification { padding: 18px 16px; margin-bottom: 24px; }.figures { gap: 36px; }.figure figcaption { grid-template-columns: 1fr; gap: 14px; padding-top: 16px; } }

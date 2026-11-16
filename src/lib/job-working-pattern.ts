@@ -3,6 +3,13 @@ import {
     elapsedLocalMinutes, isValidIanaTimeZone, localStartOfDayUtc, localWallClockStatus, localWeekday,
     nextLocalIsoDate,
 } from "./job-working-local";
+import {
+    isUkBankHoliday,
+    parseUkBankHolidayDivision,
+    resolveUkBankHolidayDivision,
+    ukBankHolidayWorkingDayClause,
+    type UkBankHolidayDivision,
+} from "./uk-bank-holidays";
 
 /** UTC civil weekdays: Sunday=0 through Saturday=6. Version 1 has no shift/hour capacity. */
 export interface JobWorkingPatternV1 {
@@ -203,6 +210,42 @@ export function resolveJobWorkingPattern(value: unknown): JobWorkingPattern | nu
     return weekdays ? freezeV1(weekdays) : null;
 }
 
+export interface ProgrammeCalendar {
+    pattern: JobWorkingPattern;
+    bankHolidayDivision: UkBankHolidayDivision;
+}
+
+function isCalendarRow(value: Record<string, unknown>): boolean {
+    return "bankHolidayDivision" in value || "pattern" in value || "workingPattern" in value;
+}
+
+/**
+ * Resolve the pattern and UK bank-holiday division used for programme working-day math.
+ * When only a pattern is supplied, England and Wales bank holidays apply unless a division is passed.
+ */
+export function resolveProgrammeCalendar(
+    value?: unknown,
+    bankHolidayDivision?: UkBankHolidayDivision | null,
+): ProgrammeCalendar | null {
+    const division = bankHolidayDivision ?? "england-and-wales";
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+        const row = value as Record<string, unknown>;
+        if (isCalendarRow(row)) {
+            const pattern = resolveJobWorkingPattern(row.pattern ?? row.workingPattern);
+            if (!pattern) return null;
+            const resolvedDivision = parseUkBankHolidayDivision(row.bankHolidayDivision) ?? division;
+            return { pattern, bankHolidayDivision: resolvedDivision };
+        }
+    }
+    const pattern = resolveJobWorkingPattern(value);
+    if (!pattern) return null;
+    return { pattern, bankHolidayDivision: division };
+}
+
+export function programmeCalendarForProject(project: { region?: string | null }, patternValue?: unknown): ProgrammeCalendar | null {
+    return resolveProgrammeCalendar(patternValue, resolveUkBankHolidayDivision(project.region));
+}
+
 /** Weekday order does not change the meaning of the legacy Monday-Friday week. Version 2 is never default. */
 export function isDefaultJobWorkingPattern(pattern: JobWorkingPattern): boolean {
     if (pattern.version !== 1) return false;
@@ -319,8 +362,10 @@ export function jobProductiveMinutesPerDay(value?: unknown): number {
  * working days actually begins. Version 2 only; null for anything else.
  */
 export function jobCapacityStartDay(iso: string, value?: unknown): string | null {
-    const pattern = resolveJobWorkingPattern(value);
-    return pattern && isJobWorkingPatternV2(pattern) ? rollForwardLocal(iso, pattern, maxLocalWalkDays(60)) : null;
+    const calendar = resolveProgrammeCalendar(value);
+    return calendar && isJobWorkingPatternV2(calendar.pattern)
+        ? rollForwardLocal(iso, calendar.pattern, calendar, maxLocalWalkDays(60))
+        : null;
 }
 
 /**
@@ -356,10 +401,15 @@ export function clearJobWorkingPatternCachesForTests() {
 }
 
 const DAY_MS = 86_400_000;
-const worksUtc = (ms: number, pattern: JobWorkingPatternV1) => pattern.weekdays.includes(new Date(ms).getUTCDay());
 
-function rollForwardUtc(ms: number, pattern: JobWorkingPatternV1): number {
-    while (!worksUtc(ms, pattern)) ms += DAY_MS;
+function worksUtc(ms: number, pattern: JobWorkingPatternV1, calendar: ProgrammeCalendar): boolean {
+    if (!pattern.weekdays.includes(new Date(ms).getUTCDay())) return false;
+    const iso = isoDateUtc(ms);
+    return iso !== null && !isUkBankHoliday(iso, calendar.bankHolidayDivision);
+}
+
+function rollForwardUtc(ms: number, pattern: JobWorkingPatternV1, calendar: ProgrammeCalendar): number {
+    while (!worksUtc(ms, pattern, calendar)) ms += DAY_MS;
     return ms;
 }
 
@@ -374,12 +424,14 @@ function maxLocalWalkDays(workingDays: number): number {
     return Math.min(5000, Math.max(Math.ceil(workingDays) * 14 + 21, 28));
 }
 
-function rollForwardLocal(iso: string, pattern: JobWorkingPatternV2, maxDays = 400): string | null {
+function rollForwardLocal(
+    iso: string, pattern: JobWorkingPatternV2, calendar: ProgrammeCalendar, maxDays = 400,
+): string | null {
     let current = iso;
     for (let guard = 0; guard < maxDays; guard += 1) {
         const minutes = effectiveLocalDayMinutesOnDate(current, pattern);
         if (minutes === null) return null;
-        if (minutes > 0) return current;
+        if (minutes > 0 && !isUkBankHoliday(current, calendar.bankHolidayDivision)) return current;
         const next = nextLocalIsoDate(current, pattern.timezone);
         if (!next) return null;
         current = next;
@@ -387,17 +439,17 @@ function rollForwardLocal(iso: string, pattern: JobWorkingPatternV2, maxDays = 4
     return null;
 }
 
-function addJobWorkingDaysV2(startIso: string, workingDays: number, pattern: JobWorkingPatternV2): string | null {
+function addJobWorkingDaysV2(startIso: string, workingDays: number, pattern: JobWorkingPatternV2, calendar: ProgrammeCalendar): string | null {
     if (!Number.isFinite(workingDays) || workingDays < 1 || !Number.isSafeInteger(Math.round(workingDays))) return null;
     if (localStartOfDayUtc(startIso, pattern.timezone) === null) return null;
     const required = Math.round(workingDays) * pattern.standardMinutesPerDay;
-    let current = rollForwardLocal(startIso, pattern, maxLocalWalkDays(workingDays));
+    let current = rollForwardLocal(startIso, pattern, calendar, maxLocalWalkDays(workingDays));
     if (!current) return null;
     let accumulated = 0;
     for (let guard = 0; guard < maxLocalWalkDays(workingDays); guard += 1) {
         const minutes = effectiveLocalDayMinutesOnDate(current, pattern);
         if (minutes === null) return null;
-        if (minutes > 0) {
+        if (minutes > 0 && !isUkBankHoliday(current, calendar.bankHolidayDivision)) {
             accumulated += minutes;
             if (accumulated >= required) return current;
         }
@@ -408,7 +460,7 @@ function addJobWorkingDaysV2(startIso: string, workingDays: number, pattern: Job
     return null;
 }
 
-function countJobWorkingDaysV2(startIso: string, endIso: string, pattern: JobWorkingPatternV2): number {
+function countJobWorkingDaysV2(startIso: string, endIso: string, pattern: JobWorkingPatternV2, calendar: ProgrammeCalendar): number {
     const startUtc = localStartOfDayUtc(startIso, pattern.timezone);
     const endUtc = localStartOfDayUtc(endIso, pattern.timezone);
     if (startUtc === null || endUtc === null || endUtc < startUtc) return 0;
@@ -418,7 +470,7 @@ function countJobWorkingDaysV2(startIso: string, endIso: string, pattern: JobWor
     for (let guard = 0; guard < maxDays; guard += 1) {
         const minutes = effectiveLocalDayMinutesOnDate(current, pattern);
         if (minutes === null) return 0;
-        if (minutes > 0) count += 1;
+        if (minutes > 0 && !isUkBankHoliday(current, calendar.bankHolidayDivision)) count += 1;
         if (current === endIso) break;
         const next = nextLocalIsoDate(current, pattern.timezone);
         if (!next) return 0;
@@ -427,59 +479,67 @@ function countJobWorkingDaysV2(startIso: string, endIso: string, pattern: JobWor
     return count;
 }
 
+function walkAddV1(startIso: string, workingDays: number, calendar: ProgrammeCalendar): string | null {
+    const pattern = calendar.pattern;
+    if (pattern.version !== 1) return null;
+    const start = parseIsoDate(startIso);
+    if (start === null) return null;
+    let cursor = rollForwardUtc(start, pattern, calendar);
+    let remaining = Math.round(workingDays) - 1;
+    for (let guard = 0; guard < maxLocalWalkDays(workingDays) && remaining > 0; guard += 1) {
+        cursor += DAY_MS;
+        if (!Number.isFinite(new Date(cursor).getTime())) return null;
+        if (worksUtc(cursor, pattern, calendar)) remaining -= 1;
+    }
+    return remaining === 0 ? isoDateUtc(cursor) : null;
+}
+
 export function isJobWorkingDay(iso: string, value?: unknown): boolean {
-    const pattern = resolveJobWorkingPattern(value);
-    if (!pattern) return false;
+    const calendar = resolveProgrammeCalendar(value);
+    if (!calendar) return false;
+    const pattern = calendar.pattern;
     if (isJobWorkingPatternV2(pattern)) {
         const minutes = effectiveLocalDayMinutesOnDate(iso, pattern);
-        return minutes !== null && minutes > 0;
+        return minutes !== null && minutes > 0 && !isUkBankHoliday(iso, calendar.bankHolidayDivision);
     }
     const ms = parseIsoDate(iso);
-    return ms !== null && worksUtc(ms, pattern);
+    return ms !== null && worksUtc(ms, pattern, calendar);
 }
 
 /** Inclusive duration; a non-working start rolls forward. Version 2 uses explicit capacity minutes per day. */
 export function addJobWorkingDays(startIso: string, workingDays: number, value?: unknown): string | null {
-    const pattern = resolveJobWorkingPattern(value);
-    if (!pattern) return null;
-    if (isJobWorkingPatternV2(pattern)) return addJobWorkingDaysV2(startIso, workingDays, pattern);
-    const start = parseIsoDate(startIso);
-    if (start === null || !Number.isFinite(workingDays) || workingDays < 1 || !Number.isSafeInteger(Math.round(workingDays))) return null;
-    let cursor = rollForwardUtc(start, pattern), remaining = Math.round(workingDays) - 1;
-    const weeks = Math.floor(remaining / pattern.weekdays.length);
-    cursor += weeks * 7 * DAY_MS;
-    remaining -= weeks * pattern.weekdays.length;
-    if (!Number.isFinite(new Date(cursor).getTime())) return null;
-    while (remaining > 0) {
-        cursor += DAY_MS;
-        if (!Number.isFinite(new Date(cursor).getTime())) return null;
-        if (worksUtc(cursor, pattern)) remaining -= 1;
-    }
-    return isoDateUtc(cursor);
+    const calendar = resolveProgrammeCalendar(value);
+    if (!calendar) return null;
+    const pattern = calendar.pattern;
+    if (!Number.isFinite(workingDays) || workingDays < 1 || !Number.isSafeInteger(Math.round(workingDays))) return null;
+    if (isJobWorkingPatternV2(pattern)) return addJobWorkingDaysV2(startIso, workingDays, pattern, calendar);
+  return walkAddV1(startIso, workingDays, calendar);
 }
 
 export function nextJobWorkingDayAfter(iso: string, value?: unknown): string | null {
-    const pattern = resolveJobWorkingPattern(value);
-    if (!pattern) return null;
+    const calendar = resolveProgrammeCalendar(value);
+    if (!calendar) return null;
+    const pattern = calendar.pattern;
     if (isJobWorkingPatternV2(pattern)) {
         const next = nextLocalIsoDate(iso, pattern.timezone);
-        return next ? rollForwardLocal(next, pattern) : null;
+        return next ? rollForwardLocal(next, pattern, calendar) : null;
     }
     const ms = parseIsoDate(iso);
-    return ms !== null ? isoDateUtc(rollForwardUtc(ms + DAY_MS, pattern)) : null;
+    return ms !== null ? isoDateUtc(rollForwardUtc(ms + DAY_MS, pattern, calendar)) : null;
 }
 
 /** Working dates in an inclusive range. Version 2 counts capacity-sized days from explicit intervals. */
 export function countJobWorkingDays(startIso: string, endIso: string, value?: unknown): number {
-    const pattern = resolveJobWorkingPattern(value);
-    if (!pattern) return 0;
-    if (isJobWorkingPatternV2(pattern)) return countJobWorkingDaysV2(startIso, endIso, pattern);
+    const calendar = resolveProgrammeCalendar(value);
+    if (!calendar) return 0;
+    const pattern = calendar.pattern;
+    if (isJobWorkingPatternV2(pattern)) return countJobWorkingDaysV2(startIso, endIso, pattern, calendar);
     const start = parseIsoDate(startIso), end = parseIsoDate(endIso);
     if (start === null || end === null || end < start) return 0;
-    const days = Math.round((end - start) / DAY_MS) + 1, weeks = Math.floor(days / 7);
-    let count = weeks * pattern.weekdays.length;
-    for (let cursor = start + weeks * 7 * DAY_MS; cursor <= end; cursor += DAY_MS) {
-        if (worksUtc(cursor, pattern)) count += 1;
+    let count = 0;
+    const maxDays = Math.min(5000, Math.round((end - start) / DAY_MS) + 1);
+    for (let cursor = start, guard = 0; guard <= maxDays && cursor <= end; guard += 1, cursor += DAY_MS) {
+        if (worksUtc(cursor, pattern, calendar)) count += 1;
     }
     return count;
 }
@@ -490,11 +550,12 @@ export function jobCalendarOffset(fromIso: string, toIso: string): number | null
     return from === null || to === null ? null : Math.round((to - from) / DAY_MS);
 }
 
-export function describeJobWorkingPattern(pattern: JobWorkingPattern): string {
+export function describeJobWorkingPattern(pattern: JobWorkingPattern, bankHolidayDivision?: ProgrammeCalendar["bankHolidayDivision"]): string {
+    const bankClause = ukBankHolidayWorkingDayClause(bankHolidayDivision ?? "england-and-wales");
     if (pattern.version === 1) {
         const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         const selected = weekdays.filter((_, day) => pattern.weekdays.includes(day)).join(", ");
-        return `Working days are ${selected}. A week means ${pattern.weekdays.length} working ${pattern.weekdays.length === 1 ? "day" : "days"}. Bank holidays are not allowed for.`;
+        return `Working days are ${selected}. A week means ${pattern.weekdays.length} working ${pattern.weekdays.length === 1 ? "day" : "days"}. ${bankClause}`;
     }
     const names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const clock = (minute: number) => `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`;
@@ -503,5 +564,5 @@ export function describeJobWorkingPattern(pattern: JobWorkingPattern): string {
         .sort((a, b) => a.weekday - b.weekday || a.startMinute - b.startMinute || a.endMinute - b.endMinute)
         .map(interval => `${names[interval.weekday]} ${clock(interval.startMinute)}-${clock(interval.endMinute)}`)
         .join("; ");
-    return `Working days follow ${pattern.timezone} local time. Working weekdays are ${days}. Working intervals are ${intervals}. Productivity is ${pattern.productivityPct}%. Each programme working day is ${pattern.standardMinutesPerDay} productive minutes. Bank holidays are not allowed for.`;
+    return `Working days follow ${pattern.timezone} local time. Working weekdays are ${days}. Working intervals are ${intervals}. Productivity is ${pattern.productivityPct}%. Each programme working day is ${pattern.standardMinutesPerDay} productive minutes. ${bankClause}`;
 }

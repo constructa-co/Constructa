@@ -18,6 +18,7 @@ export { isUntouchedStarterProgramme, type StarterPhaseSeed } from "./programme-
 
 export type ReadinessKey =
     | "identity"
+    | "siteAddress"
     | "scope"
     | "contractValue"
     | "programme"
@@ -46,6 +47,7 @@ export interface ReadinessItem<K extends string = ReadinessKey> {
 export interface ProposalReadinessInput {
     projectName?: string | null;
     clientName?: string | null;
+    siteAddress?: string | null;
     scope?: string | null;
     /** Canonical contract sum ex VAT from the active estimate. */
     contractSum?: number | null;
@@ -55,6 +57,8 @@ export interface ProposalReadinessInput {
     projectStartDate?: string | null;
     programmeWorkingPattern?: unknown;
     paymentSchedule?: unknown[] | null;
+    /** When true, the on-screen payment draft has non-blank rows that cannot be issued. */
+    paymentHasUnusableRows?: boolean;
     /** Resolved terms as they would be published. */
     terms?: unknown[] | null;
     // Recommended — never block publication.
@@ -152,6 +156,7 @@ function isVisibleTerm(clause: unknown): boolean {
 export function evaluateProposalReadiness(input: ProposalReadinessInput): ProposalReadiness {
     const hasProject = hasText(input.projectName);
     const hasClient = hasText(input.clientName);
+    const hasSite = hasText(input.siteAddress);
     const phases = Array.isArray(input.programmePhases) ? input.programmePhases : [];
     const programmeDecision = readProgrammeInclusion(phases);
     const payments = Array.isArray(input.paymentSchedule) ? input.paymentSchedule : [];
@@ -168,6 +173,7 @@ export function evaluateProposalReadiness(input: ProposalReadinessInput): Propos
     const hasStart = isValidDate(input.projectStartDate) || phases.some((phase) => isValidDate(asRecord(phase).start_date));
     const coverage = paymentCoverage(payments, input.contractSum);
     const paymentsExceedPrice = coverage !== null && coverage > 100.01;
+    const paymentsCoverFullPrice = coverage !== null && coverage >= 99.99 && !paymentsExceedPrice;
 
     const mandatory: ReadinessItem[] = [
         {
@@ -179,6 +185,12 @@ export function evaluateProposalReadiness(input: ProposalReadinessInput): Propos
                 : !hasProject
                     ? "Add the job name in project details."
                     : "Add the client's name in project details.",
+        },
+        {
+            key: "siteAddress",
+            label: "Site address",
+            ok: hasSite,
+            fix: "Add the site address in project details.",
         },
         {
             key: "scope",
@@ -207,10 +219,14 @@ export function evaluateProposalReadiness(input: ProposalReadinessInput): Propos
         {
             key: "payment",
             label: "Payment stages",
-            ok: payments.some(isValidPaymentRow) && !paymentsExceedPrice,
-            fix: paymentsExceedPrice
-                ? `Your payment stages add up to ${coverage}% of the price. Bring them down to 100% or less.`
-                : "Choose how you are paid: on completion, a deposit and balance, or your own stages.",
+            ok: !input.paymentHasUnusableRows && payments.some(isValidPaymentRow) && paymentsCoverFullPrice,
+            fix: input.paymentHasUnusableRows
+                ? "One of your payment stages has an invalid name or share. Fix or remove it before sending."
+                : paymentsExceedPrice
+                    ? `Your payment stages add up to ${coverage}% of the price. Bring them down to 100% or less.`
+                    : payments.some(isValidPaymentRow)
+                        ? `Your payment stages cover ${coverage ?? 0}% of the price. Add stages until they reach 100%.`
+                        : "Choose how you are paid: on completion, a deposit and balance, or your own stages.",
         },
         {
             key: "terms",

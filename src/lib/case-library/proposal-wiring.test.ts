@@ -47,7 +47,12 @@ describe("older-only proposals are exactly as they were", () => {
     it("readiness gains no new row unless something chosen cannot be sent", () => {
         const ctx = context(SEVEN, ["o1"]);
         const readiness = reviewReadiness(ctx, draftOf(ctx));
-        expect(readiness.mandatory.map((item) => item.key)).toEqual(["identity", "scope", "contractValue", "programme", "payment", "terms"]);
+        expect(readiness.mandatory.map((item) => item.key)).toEqual([
+            "identity", "siteAddress", "scope", "contractValue", "programme", "payment", "terms",
+        ]);
+        expect(readiness.mandatory.find((item) => item.key === "siteAddress")?.ok).toBe(true);
+        expect(readiness.mandatory.some((item) => item.key === "caseStudySelection")).toBe(false);
+        expect(readiness.missing.map((item) => item.key)).not.toContain("caseStudySelection");
         expect(evaluateProposalReadiness({ caseStudySelectionProblem: "  " }).mandatory.some((item) => item.key === "caseStudySelection")).toBe(false);
     });
 

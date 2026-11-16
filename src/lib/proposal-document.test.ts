@@ -4,7 +4,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
 import ProposalDocumentView from "@/components/proposal/proposal-document-view";
 import { minimalInput, representativeInput, stressInput } from "./__fixtures__/proposal";
-import { PROGRAMME_BASIS_NOTE, formatPlanDate } from "./programme-plan";
+import { formatPlanDate } from "./programme-plan";
+import { programmeBasisNote } from "./relative-programme";
 import { renderProposalBrochure, type ImageMap } from "./pdf/proposal-brochure";
 import {
     buildProposalDocument,
@@ -12,6 +13,7 @@ import {
     listItems,
     paymentRows,
     proposalReference,
+    publicationClientDisplayName,
     textBlocks,
     vatLines,
     vatNote,
@@ -53,6 +55,22 @@ function htmlText(doc: ProposalDocument): string {
 const blocksOf = (doc: ProposalDocument, id: string) => doc.sections.find((section) => section.id === id)?.blocks ?? [];
 const blockOf = <T extends DocBlock["type"]>(doc: ProposalDocument, id: string, type: T) =>
     blocksOf(doc, id).find((block): block is Extract<DocBlock, { type: T }> => block.type === type);
+
+describe("publication client identity", () => {
+    const base = representativeInput().project;
+
+    it("uses the saved client name and drops only the site when mistyped as client", () => {
+        expect(publicationClientDisplayName({ ...base, client_name: "Alex Client" })).toBe("Alex Client");
+        expect(publicationClientDisplayName({ ...base, client_name: base.name })).toBe(base.name);
+        expect(publicationClientDisplayName({ ...base, client_name: base.site_address! })).toBeNull();
+        const doc = buildProposalDocument(buildProposalPublicationSnapshot({
+            ...representativeInput(),
+            project: { ...base, client_name: base.name },
+        }));
+        expect(doc.clientName).toBe(base.name);
+        expect(pdfStrings(doc)).toContain(`Prepared for ${base.name}`);
+    });
+});
 
 describe("independent site address in the document", () => {
     it.each([null, "", "SITE ONLY - Plot 9\nNo postal address"])("uses only the saved site value %j, never the client's address", (site) => {
@@ -142,7 +160,7 @@ describe("price", () => {
         ]);
         expect(vatNote(snapshot.commercial)).toBeNull();
         const price = blockOf(document, "price", "price")!;
-        expect(price.totals).toEqual(vatLines(snapshot.commercial));
+        expect(price.totals).toEqual(vatLines(snapshot.commercial).slice(0, 2));
         expect(price.groups.map((group) => group.title)).toEqual(["Demolition", "Plumbing", "Finishes"]);
     });
 
@@ -160,7 +178,19 @@ describe("price", () => {
         expect(vatNote(reverse.commercial)).toContain("domestic reverse charge");
         const historic = { ...reverse.commercial, vat_treatment: undefined };
         expect(vatNote(historic)).toBe("No VAT is charged on this proposal.");
-        expect(buildProposalDocument(reverse).keyFacts[0]).toEqual({ label: "Price", value: "£7,552.05" });
+        const reverseDoc = buildProposalDocument(reverse);
+        expect(reverseDoc.keyFacts.map((fact) => fact.label)).toContain("Price");
+        const price = blockOf(reverseDoc, "price", "price")!;
+        expect(price.totals).toEqual([]);
+    });
+
+    it("re-exports a stored snapshot without presentation version using the legacy price layout", () => {
+        const legacy = buildProposalPublicationSnapshot(representativeInput());
+        delete legacy.document_presentation_version;
+        const doc = buildProposalDocument(legacy);
+        expect(doc.keyFacts.some((fact) => fact.label === "Price including VAT")).toBe(true);
+        const price = blockOf(doc, "price", "price")!;
+        expect(price.totals).toEqual(vatLines(legacy.commercial));
     });
 
     it("makes payment stages add up to the price exactly", () => {
@@ -260,12 +290,14 @@ describe("public page and PDF agree", () => {
     const pdf = pdfStrings(document).replace(/\n/g, " ");
 
     it("state the same price, VAT and totals", () => {
-        for (const line of vatLines(snapshot.commercial)) {
+        const price = blockOf(document, "price", "price")!;
+        for (const line of [...document.keyFacts, ...price.totals]) {
             expect(html).toContain(line.label);
             expect(html).toContain(line.value);
-            expect(pdf).toContain(line.label);
             expect(pdf).toContain(line.value);
+            expect(pdf.toUpperCase()).toContain(line.label.toUpperCase());
         }
+        expect(document.keyFacts.map((fact) => fact.label)).toContain("Price including VAT");
         for (const row of paymentRows(snapshot.commercial)) {
             expect(html).toContain(row.amount);
             expect(pdf).toContain(row.amount);
@@ -274,7 +306,7 @@ describe("public page and PDF agree", () => {
 
     it("state the same programme dates, duration and basis", () => {
         const plan = snapshot.programme_plan!;
-        for (const text of [formatPlanDate(plan.start_date), formatPlanDate(plan.end_date), plan.duration_label, PROGRAMME_BASIS_NOTE]) {
+        for (const text of [formatPlanDate(plan.start_date), formatPlanDate(plan.end_date), plan.duration_label, programmeBasisNote(plan)]) {
             expect(html).toContain(text);
             expect(pdf).toContain(text);
         }
@@ -351,6 +383,13 @@ describe("truthful content", () => {
         const doc = buildProposalDocument({ ...snapshot, contractor: { ...snapshot.contractor, logo_url: "javascript:alert(1)" }, photos: [{ url: "data:text/html,x", caption: "x" }] });
         expect(doc.company.logoUrl).toBeNull();
         expect(blockOf(doc, "scope", "photos")).toBeUndefined();
+    });
+
+    it("CON-040 marks preview snapshots as Draft even without an explicit draft flag", () => {
+        const previewSnapshot = structuredClone(snapshot);
+        previewSnapshot.publication.id = "00000000-0000-4000-8000-000000000000";
+        expect(buildProposalDocument(previewSnapshot).reference).toBe("Draft");
+        expect(buildProposalDocument(previewSnapshot).isDraft).toBe(true);
     });
 
     it("marks a draft preview so it cannot be mistaken for a sent proposal", () => {

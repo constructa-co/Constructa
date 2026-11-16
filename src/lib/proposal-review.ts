@@ -18,6 +18,11 @@
 
 import { buildPastJobs, type ProposalLibrary } from "@/lib/case-library/past-jobs";
 import { computeContractSum, roundMoney } from "./financial";
+import {
+    paymentStagesExceedHundredPercent,
+    paymentStagesMeetHundredPercent,
+    paymentStagesUnderHundredPercent,
+} from "./proposal-payment-percentages";
 import { splitScope } from "./guided-brief";
 import { resolveProgrammeSource } from "./programme-plan";
 import {
@@ -33,6 +38,7 @@ import {
     type ProposalPublicationProjectInput,
     type ProposalPublicationSnapshot,
 } from "./proposal-publication";
+import { PREVIEW_PROPOSAL_PUBLICATION_ID } from "./proposal-document";
 import { evaluateProposalReadiness, type ProposalReadiness } from "./proposal-readiness";
 import { DEFAULT_RESPONSE_KIND, type ProposalResponseKind } from "./proposal-response";
 import {
@@ -306,6 +312,14 @@ function parsePercentage(raw: string): number | null {
     return Number(cleaned);
 }
 
+/** Field errors for payment rows that are on screen at issue/save-persist boundaries. */
+export function draftPaymentFieldErrors(draft: ProposalDraft): ReviewFieldErrors {
+    if (draft.fixedPayments) return {};
+    const fieldErrors: ReviewFieldErrors = {};
+    builtPayments(draft, fieldErrors);
+    return fieldErrors;
+}
+
 /** The payment stages the draft describes, ignoring rows left completely blank. */
 function builtPayments(draft: ProposalDraft, fieldErrors: ReviewFieldErrors) {
     const rows: NonNullable<ProposalDraftPayload["paymentSchedule"]> = [];
@@ -323,7 +337,11 @@ function builtPayments(draft: ProposalDraft, fieldErrors: ReviewFieldErrors) {
         rows.push({ id: row.key, stage, description: when.slice(0, 1000), percentage });
     }
     const total = roundMoney(rows.reduce((sum, row) => sum + row.percentage, 0));
-    if (total > 100) fieldErrors.payments = `These stages add up to ${total}%. Bring them down to 100% or less.`;
+    if (paymentStagesExceedHundredPercent(total)) {
+        fieldErrors.payments = `These stages add up to ${total}%. Bring them down to 100% or less.`;
+    } else if (rows.length > 0 && paymentStagesUnderHundredPercent(total)) {
+        fieldErrors.payments = `These stages add up to ${total}%. Bring them up to 100%.`;
+    }
     return rows;
 }
 
@@ -331,7 +349,14 @@ export type BuildPayloadResult =
     | { ok: true; payload: ProposalDraftPayload }
     | { ok: false; fieldErrors: ReviewFieldErrors };
 
-export function buildProposalPayload(draft: ProposalDraft): BuildPayloadResult {
+/** When `draft`, incomplete or non-100% payment rows are omitted (`null`) so other fields can save. */
+export type ProposalPaymentBoundary = "draft" | "persist";
+
+export function buildProposalPayload(
+    draft: ProposalDraft,
+    options?: { paymentBoundary?: ProposalPaymentBoundary },
+): BuildPayloadResult {
+    const paymentBoundary = options?.paymentBoundary ?? "persist";
     const fieldErrors: ReviewFieldErrors = {};
 
     for (const field of WORDING_FIELDS) {
@@ -344,7 +369,24 @@ export function buildProposalPayload(draft: ProposalDraft): BuildPayloadResult {
     const validityDays = /^\d{1,3}$/.test(validity) ? Number(validity) : NaN;
     if (!(validityDays >= 1 && validityDays <= 365)) fieldErrors.validityDays = "Enter a number of days between 1 and 365.";
 
-    const paymentSchedule = draft.fixedPayments ? null : builtPayments(draft, fieldErrors);
+    let paymentSchedule: ProposalDraftPayload["paymentSchedule"] = null;
+    if (!draft.fixedPayments) {
+        const paymentErrors: ReviewFieldErrors = {};
+        const rows = builtPayments(draft, paymentErrors);
+        if (paymentBoundary === "persist") {
+            Object.assign(fieldErrors, paymentErrors);
+            paymentSchedule = rows;
+        } else {
+            const total = roundMoney(rows.reduce((sum, row) => sum + row.percentage, 0));
+            if (
+                Object.keys(paymentErrors).length === 0
+                && rows.length > 0
+                && paymentStagesMeetHundredPercent(total)
+            ) {
+                paymentSchedule = rows;
+            }
+        }
+    }
 
     let terms: ProposalTermsClause[] | null = null;
     if (draft.terms) {
@@ -387,10 +429,13 @@ export function buildProposalPayload(draft: ProposalDraft): BuildPayloadResult {
 
 // ── The draft as the project it would publish ────────────────────────────────
 
-/** The payment stages a draft would publish, in the stored shape. */
+/** The payment stages a draft would publish, in the stored shape (issue-boundary strict). */
 function draftPaymentSchedule(draft: ProposalDraft): unknown[] {
     if (draft.fixedPayments) return draft.fixedPayments;
-    return builtPayments(draft, {});
+    const fieldErrors: ReviewFieldErrors = {};
+    const rows = builtPayments(draft, fieldErrors);
+    if (Object.keys(fieldErrors).length > 0) return rows;
+    return rows;
 }
 
 function draftTerms(draft: ProposalDraft): ProposalTermsClause[] {
@@ -424,15 +469,18 @@ export function contractSumOf(estimate: ProposalPublicationEstimateInput | null)
 /** What must be true before this draft can be sent, and what would improve it. */
 export function reviewReadiness(context: ReviewContext, draft: ProposalDraft): ProposalReadiness {
     const project = projectWithDraft(context.project, draft);
+    const paymentFieldErrors = draftPaymentFieldErrors(draft);
     return evaluateProposalReadiness({
         projectName: project.name,
         clientName: project.client_name,
+        siteAddress: project.site_address,
         scope: draft.scope,
         contractSum: contractSumOf(context.estimate),
         programmePhases: resolveProgrammeSource(project).phases,
         projectStartDate: project.start_date,
         programmeWorkingPattern: project.programme_working_pattern,
         paymentSchedule: project.payment_schedule,
+        paymentHasUnusableRows: !draft.fixedPayments && Object.keys(paymentFieldErrors).length > 0,
         terms: draftTerms(draft),
         introduction: draft.introduction,
         aboutBusiness: context.profile.capability_statement,
@@ -445,7 +493,7 @@ export function reviewReadiness(context: ReviewContext, draft: ProposalDraft): P
     });
 }
 
-export const PREVIEW_PUBLICATION_ID = "00000000-0000-4000-8000-000000000000";
+export const PREVIEW_PUBLICATION_ID = PREVIEW_PROPOSAL_PUBLICATION_ID;
 
 /**
  * The snapshot this draft would publish, for the preview. It is built by the
@@ -577,7 +625,7 @@ export function initialReviewState(draft: ProposalDraft, saved: ProposalDraft): 
 export type ReviewAction =
     | { type: "draft/change"; patch: Partial<ProposalDraft> }
     | { type: "save/started" }
-    | { type: "save/succeeded"; snapshot: ProposalDraft }
+    | { type: "save/succeeded"; snapshot: ProposalDraft; paymentsPersisted: boolean }
     | { type: "save/failed"; error: string; fieldErrors?: ReviewFieldErrors }
     | { type: "ai/started"; field: WordingField; requestId: string }
     | { type: "ai/succeeded"; requestId: string; suggestion: WordingSuggestion }
@@ -611,8 +659,16 @@ export function reviewReducer(state: ReviewState, action: ReviewAction): ReviewS
             if (state.save.status === "saving") return state;
             return { ...state, save: { status: "saving", error: null }, fieldErrors: {} };
 
-        case "save/succeeded":
-            return { ...state, saved: action.snapshot, save: { status: "idle", error: null } };
+        case "save/succeeded": {
+            const saved = action.paymentsPersisted
+                ? action.snapshot
+                : {
+                    ...action.snapshot,
+                    payments: state.saved.payments,
+                    fixedPayments: state.saved.fixedPayments,
+                };
+            return { ...state, saved, save: { status: "idle", error: null } };
+        }
 
         case "save/failed":
             return { ...state, save: { status: "failed", error: action.error }, fieldErrors: action.fieldErrors ?? {} };
@@ -795,7 +851,7 @@ export async function saveDraft(store: ReviewStore, save: SaveProposalDraft): Pr
     const state = store.getState();
     if (state.save.status === "saving") return "busy";
 
-    const built = buildProposalPayload(state.draft);
+    const built = buildProposalPayload(state.draft, { paymentBoundary: "draft" });
     if (!built.ok) {
         store.dispatch({ type: "save/failed", error: "Fix the highlighted details, then save.", fieldErrors: built.fieldErrors });
         return "invalid";
@@ -806,7 +862,8 @@ export async function saveDraft(store: ReviewStore, save: SaveProposalDraft): Pr
     try {
         const result = await save(built.payload);
         if (result.success) {
-            store.dispatch({ type: "save/succeeded", snapshot });
+            const paymentsPersisted = built.payload.paymentSchedule !== null;
+            store.dispatch({ type: "save/succeeded", snapshot, paymentsPersisted });
             return "saved";
         }
         store.dispatch({ type: "save/failed", error: result.error || DRAFT_SAVE_ERROR });

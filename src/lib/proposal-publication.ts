@@ -1,6 +1,7 @@
 import { computeContractSum, MARKUP_METHOD_NOTE, roundMoney, toNumber } from "@/lib/financial";
 import { planCoversEveryPhase, resolveProgrammeSource } from "@/lib/programme-plan";
 import { computeDisplayProgramme, hasRelativeProgramme, RELATIVE_PROGRAMME_BASIS, type DisplayProgrammePlan } from "@/lib/relative-programme";
+import { resolveUkBankHolidayDivision } from "@/lib/uk-bank-holidays";
 import { readProgrammeInclusion } from "@/lib/programme-inclusion";
 import { isProposalResponseKind, responseWording, type ProposalResponseKind } from "@/lib/proposal-response";
 import { resolveSelectedCaseStudies, type LibraryRow } from "@/lib/case-library/resolve";
@@ -29,6 +30,7 @@ export interface ProposalPublicationProjectInput {
     client_name?: string | null;
     client_address?: string | null;
     site_address?: string | null;
+    region?: string | null;
     start_date?: string | null;
     proposal_introduction?: string | null;
     scope_text?: string | null;
@@ -130,8 +132,13 @@ export interface ProposalPhoto {
     caption: string | null;
 }
 
+/** PDF layout generation. Omitted on snapshots issued before headline price deduplication. */
+export type ProposalDocumentPresentationVersion = 1 | 2;
+
 export interface ProposalPublicationSnapshot {
     schema_version: 1;
+    /** When 2, cover states the authoritative price and the price section avoids repeating it. */
+    document_presentation_version?: ProposalDocumentPresentationVersion;
     publication: {
         id: string;
         version_number: number;
@@ -492,7 +499,12 @@ export function buildProposalPublicationSnapshot(
     const programmeSource = resolveProgrammeSource(input.project);
     const programmeDecision = readProgrammeInclusion(programmeSource.phases);
     const omitted = programmeDecision.intent === "omit";
-    const programmePlan = omitted ? null : computeDisplayProgramme(input.project.start_date, programmeSource.phases, input.project.programme_working_pattern);
+    const programmePlan = omitted ? null : computeDisplayProgramme(
+        input.project.start_date,
+        programmeSource.phases,
+        input.project.programme_working_pattern,
+        resolveUkBankHolidayDivision(input.project.region),
+    );
     if ((!programmePlan && !omitted || programmeDecision.intent === "invalid") && !options.allowIncomplete) throw new Error(PROGRAMME_REQUIRED_ERROR);
     // A stage the contractor saved is never left out of what is sent.
     if (programmePlan && !options.allowIncomplete && !planCoversEveryPhase(programmePlan, programmeSource.phases)) {
@@ -507,6 +519,7 @@ export function buildProposalPublicationSnapshot(
 
     const snapshot: ProposalPublicationSnapshot = {
         schema_version: 1,
+        document_presentation_version: 2,
         publication: {
             id: requiredText(input.publicationId, "Publication id", 100),
             version_number: input.versionNumber,
@@ -612,7 +625,8 @@ export function canonicalProposalPublicationJson(snapshot: ProposalPublicationSn
 }
 
 export async function hashProposalPublication(snapshot: ProposalPublicationSnapshot): Promise<string> {
-    const bytes = new TextEncoder().encode(canonicalProposalPublicationJson(snapshot));
+    const { document_presentation_version: _layout, ...body } = snapshot;
+    const bytes = new TextEncoder().encode(canonicalProposalPublicationJson(body as ProposalPublicationSnapshot));
     const digest = await crypto.subtle.digest("SHA-256", bytes);
     return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
@@ -630,7 +644,8 @@ export async function hashProposalPublication(snapshot: ProposalPublicationSnaps
  */
 export async function hashProposalContent(snapshot: ProposalPublicationSnapshot): Promise<string> {
     const { version_number, validity_days, response_mode } = snapshot.publication;
-    const content = { ...snapshot, publication: { version_number, validity_days, response_mode } };
+    const { document_presentation_version: _layout, ...body } = snapshot;
+    const content = { ...body, publication: { version_number, validity_days, response_mode } };
     const bytes = new TextEncoder().encode(JSON.stringify(canonicalise(content)));
     const digest = await crypto.subtle.digest("SHA-256", bytes);
     return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");

@@ -1,5 +1,29 @@
 # Cursor change log
 
+## 2026-11-16 — D46 P1 proposal CON-036/037/040 (cursor/d46-p1-proposal-con-036-037-040-445c)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/proposal-readiness.ts` | `ReadinessKey`, input, mandatory[] | `siteAddress` seventh mandatory gate | CON-036: cannot mark proposal ready without site address |
+| `src/lib/proposal-review.ts`, `src/app/dashboard/projects/proposal/actions.ts` | readiness wiring | Pass `project.site_address` into readiness | Publish path matches review checklist |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | fixes, closing, draft ref UI | `siteAddress` fix link; MD message empty state + saved button; draft vs next issued reference | CON-036 UI; CON-037 explicit empty/saved MD message; CON-040 reference labelling |
+| `src/lib/proposal-document.ts` | preview id, `isDraftProposalDocument`, reference | Preview publication → reference `Draft`; issued uses `proposalReference` | CON-040 draft immutable distinction (no issued PDF / #178 changes) |
+| `src/app/dashboard/projects/proposal/publication-history-panel.tsx` | `projectId`, row labels | `data-issued-reference` per sent version | CON-040 correct issued reference display in history |
+| `src/lib/case-library/proposal-wiring.test.ts` | readiness baseline | Mandatory checklist includes `siteAddress`; case-study guards unchanged | CON-036 wiring regression with library hashes |
+| `src/lib/proposal-readiness.test.ts`, `proposal-document.test.ts`, `company-closing-entry.test.tsx`, `review-send-client.test.ts` | CON-036/037/040 cases | Focused Vitest (122 tests in 4 files) | Regression coverage per ID |
+
+## 2026-11-15 — D36 CON-005/014 PDF identity and price repair (cursor/d36-pdf-identity-and-price-repair-141e)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/proposal-document.ts` | presentation helpers, client name, price layout | Site-only client suppression; v2 cover authoritative price (incl. zero VAT); legacy layout when `document_presentation_version` absent | CON-005/014 + issued snapshot compat |
+| `src/lib/proposal-publication.ts` | snapshot + content hash | `document_presentation_version: 2` on new snapshots; excluded from content hash | Freeze layout without changing send fingerprint |
+| `src/lib/pdf/proposal-pdf-data.test.ts` | (new) | PDF counts, zero-VAT once, draft vs issued routes via `downloadProposalPdf` | Generated PDF data regression |
+| `src/lib/proposal-document.test.ts` | identity + legacy layout | Allow client same as job title; legacy totals when presentation version omitted | Document layer regression |
+| `src/components/proposal/proposal-metric-alignment.test.tsx` | reverse-charge key facts | Cover `Price` plus programme on zero VAT | Authoritative headline on cover |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | presend PDF copy | Draft watermark before issue; clean PDF from issued snapshots only | CON-014 export posture |
+| `src/lib/pdf/proposal-brochure.ts` | `responseBlock` | Pack receipt block toward page foot when terms share the page | A075 compact pagination after shorter price block |
+
 ## 2026-11-15 — D38 CON-007 recipient email confirmation (cursor/d38-con-007-proposal-email-default-off-20261115)
 
 | File | Lines (approx.) | Change | Intent |
@@ -21,6 +45,39 @@
 | `src/app/dashboard/projects/proposal/review-send-client.test.ts` | new `it` | SSR guard: email opt-in unchecked by default | Focused D38 regression |
 | `src/lib/proposal-review.test.ts` | new `it` | `sendProposal` with `deliverByEmail: false` | Controller still publishes link-only delivery |
 | `e2e/phase1-journey.spec.ts` | `publish()` helper | `{ emailClient: true }` opts in before send | Preserve mocked email journey when explicitly requested |
+
+## 2026-11-15 — D38 CON-004 BLOCK #171 follow-up (cursor/constructa-d38-con-004-b37b)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/uk-bank-holidays.ts` | parseUkBankHolidayDivision | Validate persisted GOV.UK division strings | Reject malformed stored divisions |
+| `src/lib/job-working-pattern.ts` | resolveProgrammeCalendar | Fall back to job region when stored division invalid | Safe calendar resolution |
+| `src/instrumentation.ts` | register | Fire-and-forget GOV.UK feed refresh on Node boot | Wire official holiday feed with bundled fallback |
+| `src/lib/server/planning-request.ts` | verifyPlanningRequest select | Include `region` for planning fingerprint/context | Regional holidays in planning request path |
+| `src/lib/planner-phases.ts` | plannerDisplayPlan, plannerPhaseSpan | Optional `bankHolidayDivision` passed to canonical plan | Planner display uses job region |
+| `src/app/dashboard/projects/schedule/client-page.tsx` | display plan + offsets | Resolve division from `project.region` | Detailed planner calendar matches region |
+| `src/app/dashboard/projects/programme/*` | page + client | Region-aware baseline via `programmePlanForProject` / basis note | As-built baseline matches proposal calendar |
+| `src/app/dashboard/projects/schedule/simple-programme-client.tsx` | basis fallback | Region-specific basis when no plan rendered | Simple programme empty-state copy |
+| `src/lib/programme-plan.test.ts` | year-end case | 5 days from 2026-12-24 → 2027-01-04 skips New Year BH | Meaningful year-end regression |
+| `src/lib/uk-bank-holidays.test.ts` | malformed division | Calendar rejects invalid stored division | Malformed persisted division validation |
+| `src/lib/planning-conversation.test.ts` | region case | Scotland wording in planning context | Region propagation evidence |
+| `src/lib/proposal-document.test.ts` | PDF/HTML basis | `programmeBasisNote(plan)` not static default | Fix stale PDF assertion |
+| `docs/temp-files/d38-con-004-test-evidence.md` | (pending update) | BLOCK #171 receipts | Test evidence for review |
+
+## 2026-11-15 — D38 CON-004 UK bank holidays in programme math (cursor/constructa-d38-con-004-b37b)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/data/uk-bank-holidays-bundled.json` | (new) | Snapshot of GOV.UK `bank-holidays.json` for all UK divisions | Offline fallback for programme working-day math |
+| `src/lib/uk-bank-holidays.ts` | (new) | Regional division resolver, holiday lookup, basis-note copy, feed merge | CON-004 core: England/Scotland/NI bank holidays excluded from working days |
+| `src/lib/uk-bank-holidays-feed.ts` | (new) | `refreshUkBankHolidaysFromGovUk` with TTL + merge over bundled | Live GOV.UK feed with bundled fallback |
+| `src/lib/programme-calendar.ts` | (new) | Re-export calendar helpers from job-working-pattern | Avoid circular imports; project region → division |
+| `src/lib/job-working-pattern.ts` | worksUtc, add/count/next, describe | Thread `ProgrammeCalendar` through all working-day math; skip bank holidays for v1 and v2 | All programme working-day paths honour UK holidays |
+| `src/lib/programme-plan.ts` | compute/plan types, basis notes | `bank_holiday_division` on plans; region-aware `programmePlanForProject` | Publication/editor share one calendar |
+| `src/lib/relative-programme.ts` | compute/basis note | Division on relative plans; updated basis wording | Relative + dated programmes consistent |
+| `src/lib/simple-programme.ts`, `planning-conversation.ts`, `proposal-publication.ts` | call sites | Pass job region into display/snapshot programme math | Regional holidays follow brief site region |
+| `src/lib/*.test.ts`, schedule/proposal tests | expectations | CON-004 acceptance (65 days → 2027-05-05); basis note copy; dates with holidays | Focused regression evidence |
+| `docs/cursor-change-log.md` | this entry | Log D38 CON-004 scope | User change-log rule |
 
 ## 2026-11-15 — Marketing Features example screens follow-up (cursor/marketing-features-captures-e459)
 

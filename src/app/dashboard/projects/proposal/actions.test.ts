@@ -93,6 +93,10 @@ function setup(projectPatch: Record<string, unknown> = {}, publications: Record<
             client_email: "alex@example.test",
             is_vat_reverse_charge: false,
             current_proposal_publication_id: null,
+            payment_schedule: structuredClone(input.project.payment_schedule),
+            programme_phases: structuredClone(input.project.programme_phases),
+            site_photos: structuredClone(input.project.site_photos),
+            selected_case_study_ids: structuredClone(input.project.selected_case_study_ids),
             ...projectPatch,
         }],
         estimates: [{ ...input.estimate, id: ESTIMATE_ID, project_id: PROJECT_ID, is_active: true }],
@@ -125,7 +129,10 @@ const payload: ProposalDraftPayload = {
     closing: "",
     validityDays: 21,
     coverPhoto: null,
-    paymentSchedule: [{ id: "p1", stage: "Deposit", description: "On booking", percentage: 30 }],
+    paymentSchedule: [
+        { id: "p1", stage: "Deposit", description: "On booking", percentage: 30 },
+        { id: "p2", stage: "Balance", description: "On completion", percentage: 70 },
+    ],
     photos: [{ url: "https://images.example.test/a.jpg", caption: "Before" }],
     caseStudyIds: ["cs-1"],
     terms: null,
@@ -179,13 +186,29 @@ describe("saveProposalDraftAction", () => {
             site_photos: [{ url: "https://images.example.test/a.jpg", caption: "Before" }],
             selected_case_study_ids: ["cs-1"],
             tc_overrides: null,
-            payment_schedule: [{ id: "p1", stage: "Deposit", description: "On booking", percentage: 30 }],
+            payment_schedule: [
+                { id: "p1", stage: "Deposit", description: "On booking", percentage: 30 },
+                { id: "p2", stage: "Balance", description: "On completion", percentage: 70 },
+            ],
         });
     });
 
     it("leaves fixed-amount payment stages untouched when told to", async () => {
         const { db } = setup();
         await saveProposalDraftAction(PROJECT_ID, { ...payload, paymentSchedule: null });
+        expect(db.updates[0].values).not.toHaveProperty("payment_schedule");
+    });
+
+    it("persists unrelated draft fields when payment stages are omitted for an in-progress payment draft", async () => {
+        const { db } = setup();
+        const before = structuredClone(db.tables.projects[0].payment_schedule);
+        await expect(saveProposalDraftAction(PROJECT_ID, {
+            ...payload,
+            scope: "Scope saved while payment percentages are incomplete on screen.",
+            paymentSchedule: null,
+        })).resolves.toEqual({ success: true });
+        expect(db.tables.projects[0].scope_text).toBe("Scope saved while payment percentages are incomplete on screen.");
+        expect(db.tables.projects[0].payment_schedule).toEqual(before);
         expect(db.updates[0].values).not.toHaveProperty("payment_schedule");
     });
 
@@ -213,6 +236,7 @@ describe("saveProposalDraftAction", () => {
     it.each([
         ["an unsafe photo link", { ...payload, photos: [{ url: "javascript:alert(1)", caption: "" }] }],
         ["payment stages over 100%", { ...payload, paymentSchedule: [{ id: "a", stage: "A", description: "", percentage: 60 }, { id: "b", stage: "B", description: "", percentage: 60 }] }],
+        ["payment stages under 100%", { ...payload, paymentSchedule: [{ id: "a", stage: "Deposit", description: "", percentage: 40 }] }],
         ["a validity of zero days", { ...payload, validityDays: 0 }],
         ["an oversized scope", { ...payload, scope: "x".repeat(20_001) }],
     ])("rejects %s without writing", async (_label, bad) => {
@@ -230,6 +254,16 @@ describe("saveProposalDraftAction", () => {
 });
 
 describe("publishProposalAction", () => {
+    it("refuses to issue when saved payment stages do not cover the full price", async () => {
+        setup({ payment_schedule: [{ id: "p1", stage: "Deposit", description: "On booking", percentage: 30 }] });
+        const reviewed = await reviewedContent("acknowledgement");
+        const result = await publishProposalAction(PROJECT_ID, { responseKind: "acknowledgement", deliverByEmail: false, reviewedContent: reviewed });
+        expect(result.success).toBe(false);
+        if (result.success) return;
+        expect(result.error).toMatch(/100%/);
+        expect(world.rpcCalls).toEqual([]);
+    });
+
     it("publishes an acknowledgement proposal with the canonical programme in the snapshot", async () => {
         const { db } = setup();
         const result = await publishAsReviewed("acknowledgement", false);
@@ -397,7 +431,12 @@ describe("what is published is what was reviewed", () => {
         ["the price", () => { (world.tables.estimates[0].estimate_lines as Array<{ line_total: number }>)[0].line_total += 100; }],
         ["a programme stage", () => { (world.tables.projects[0].programme_phases as Array<{ name: string }>)[0].name = "Demolition"; }],
         ["the start date", () => { world.tables.projects[0].start_date = "2026-11-09"; }],
-        ["a payment stage", () => { (world.tables.projects[0].payment_schedule as Array<{ percentage: number }>)[0].percentage = 25; }],
+        ["a payment stage", () => {
+            world.tables.projects[0].payment_schedule = [
+                { id: "p1", stage: "Revised deposit", description: "On booking", percentage: 35 },
+                { id: "p2", stage: "Balance", description: "On completion", percentage: 65 },
+            ];
+        }],
         ["the scope", () => { world.tables.projects[0].scope_text = "A different scope."; }],
         ["the terms", () => { world.tables.projects[0].tc_overrides = [{ clause_number: 1, title: "Payment", body: "Paid on the day." }]; }],
         ["the company profile", () => { world.tables.profiles[0].capability_statement = "A different description."; }],

@@ -71,6 +71,7 @@ const PROGRAMME: SimpleProgrammeInput = {
 /** Worked out by hand from the calendar, Monday to Friday. Not read from the application. */
 const EXPECTED_PLAN: ProgrammePlan = {
     basis: "mon_fri_working_days",
+    bank_holiday_division: "england-and-wales",
     start_date: "2026-11-02",
     end_date: "2026-11-24",
     working_days: 17,

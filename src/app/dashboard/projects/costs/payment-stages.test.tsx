@@ -43,6 +43,13 @@ function draft() {
     click("Set payment stages"); click("Add payment stage");
     change("Stage 1 name", "My chosen stage"); change("Stage 1 percentage", "40"); change("Stage 1 due", "When agreed with client");
 }
+function draftTotalling100() {
+    draft();
+    click("Add payment stage");
+    change("Stage 2 name", "Completion");
+    change("Stage 2 percentage", "60");
+    change("Stage 2 due", "On finish");
+}
 beforeEach(() => { replay.state = undefined; replay.save.mockReset(); replay.work.mockReset(); });
 
 describe("explicit payment stages while pricing", () => {
@@ -56,12 +63,21 @@ describe("explicit payment stages while pricing", () => {
         click("Cancel"); expect(replay.work).toHaveBeenLastCalledWith(false); expect(replay.save).not.toHaveBeenCalled();
         click("Set payment stages"); expect(nodes(view()).filter(n => n.type === "input")).toEqual([]);
     });
-    it("sends only explicitly saved stages and confirms the returned saved state", async () => {
-        draft(); replay.save.mockImplementationOnce(async (_id, _expected, rows) => ({ success: true, paymentSchedule: rows }));
+    it("sends only explicitly saved stages totalling 100% and confirms the returned saved state", async () => {
+        draftTotalling100();
+        replay.save.mockImplementationOnce(async (_id, _expected, rows) => ({ success: true, paymentSchedule: rows }));
         await submit(); expect(replay.save).toHaveBeenCalledOnce();
-        expect(replay.save.mock.calls[0]).toEqual(["job", null, [{ id: expect.any(String), stage: "My chosen stage", description: "When agreed with client", percentage: 40 }]]);
+        expect(replay.save.mock.calls[0][2]).toEqual(expect.arrayContaining([
+            expect.objectContaining({ stage: "My chosen stage", percentage: 40 }),
+            expect.objectContaining({ stage: "Completion", percentage: 60 }),
+        ]));
         expect(text(view())).toContain("saved for this project's proposal"); expect(replay.work).toHaveBeenLastCalledWith(false);
         expect(text(view())).toContain("My chosen stage - 40%");
+    });
+    it("keeps a partial draft open without saving when the total is below 100%", async () => {
+        draft(); await submit();
+        expect(replay.save).not.toHaveBeenCalled();
+        expect(text(view())).toMatch(/100%/);
     });
     it.each(["0", "100.1", "1.234", "abc"])("retains invalid percentage %s without a save", async value => {
         draft(); change("Stage 1 percentage", value); await submit();
@@ -81,7 +97,7 @@ describe("explicit payment stages while pricing", () => {
         expect(replay.save).toHaveBeenCalledWith("job", saved, []); expect(text(view(saved))).toContain("still need payment stages before sending");
     });
     it("blocks immediate duplicate saves, editing and Cancel while saving", async () => {
-        draft(); let resolve!: (result: unknown) => void; replay.save.mockReturnValueOnce(new Promise(done => { resolve = done; }));
+        draftTotalling100(); let resolve!: (result: unknown) => void; replay.save.mockReturnValueOnce(new Promise(done => { resolve = done; }));
         const form = nodes(view()).find(n => n.type === "form")!;
         (form.props.onSubmit as (event: unknown) => void)({ preventDefault() {} });
         await submit(); expect(replay.save).toHaveBeenCalledOnce(); expect(button("Cancel").disabled).toBe(true);
@@ -91,12 +107,12 @@ describe("explicit payment stages while pricing", () => {
         expect(text(view())).toContain("Agreed milestone");
     });
     it("retains draft and navigation guard after a definite server refusal", async () => {
-        draft(); replay.save.mockResolvedValueOnce({ success: false, error: "Changed elsewhere" }); await submit();
+        draftTotalling100(); replay.save.mockResolvedValueOnce({ success: false, error: "Changed elsewhere" }); await submit();
         expect(text(view())).toContain("Changed elsewhere"); expect(button("Cancel").disabled).toBe(false);
         expect(replay.work).toHaveBeenLastCalledWith(true); expect(nodes(view()).find(n => n.props["aria-label"] === "Stage 1 name")!.props.value).toBe("My chosen stage");
     });
     it.each(["throw", "uncertain"])("does not claim saved or blindly retry an %s outcome", async outcome => {
-        draft(); if (outcome === "throw") replay.save.mockRejectedValueOnce(Error("Transport"));
+        draftTotalling100(); if (outcome === "throw") replay.save.mockRejectedValueOnce(Error("Transport"));
         else replay.save.mockResolvedValueOnce({ success: false, uncertain: true, error: "May have saved; reload" });
         await submit(); await submit(); expect(replay.save).toHaveBeenCalledOnce(); expect(button("Cancel").disabled).toBe(true);
         expect(button("Save payment stages").disabled).toBe(true); expect(replay.work).toHaveBeenLastCalledWith(true);

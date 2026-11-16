@@ -29,7 +29,8 @@ const rowMatches = (id: string, row: { case_studies: unknown }, filters: TableFi
         if (column === "id") return id === value;
         if (column === "case_studies") {
             if (kind === "is") return (row.case_studies === null || row.case_studies === undefined) && value === null;
-            return legacyCaseStudiesStoredFingerprint(row.case_studies) === legacyCaseStudiesStoredFingerprint(value);
+            return typeof value === "string"
+                && legacyCaseStudiesStoredFingerprint(row.case_studies) === legacyCaseStudiesStoredFingerprint(JSON.parse(value));
         }
         return false;
     });

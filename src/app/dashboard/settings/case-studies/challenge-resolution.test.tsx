@@ -124,7 +124,8 @@ const rowMatches = (id: string, row: Row, filters: TableFilter[]) =>
         const current = row[column];
         if (column === "case_studies") {
             if (kind === "is") return (current === null || current === undefined) && value === null;
-            return legacyCaseStudiesStoredFingerprint(current) === legacyCaseStudiesStoredFingerprint(value);
+            return typeof value === "string"
+                && legacyCaseStudiesStoredFingerprint(current) === legacyCaseStudiesStoredFingerprint(JSON.parse(value));
         }
         if (kind === "is") return (current === null || current === undefined) && value === null;
         return current === value;

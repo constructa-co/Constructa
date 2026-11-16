@@ -32,6 +32,47 @@
 | `src/app/dashboard/projects/settings/client-page.tsx` | pickers + date | Lookup provider + UK start date | CON-034/035 on settings |
 | `src/lib/*.test.ts`, `src/components/*.test.tsx`, `review-send-client.test.ts` | (new/updated) | Focused regressions | Lock CON-017/034/035 behaviour |
 | `src/app/dashboard/projects/brief/brief-edit-lock.test.tsx` | ~337 | Assert `UkDateInput` wrapper, not raw `input` count | SSR harness does not expand client components |
+## 2026-11-16 — D46 P1 estimate #181 follow-up (portal, warnings, MoM) (cursor/d46-p1-estimate-con-022-031-032-a05d)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `catalogue-library-dropdown.tsx` | `catalogueDropdownPanel` + optional portal helper | Body-portal dropdown; inline fallback for replay/tests |
+| `advanced-estimate.tsx` | `createPortal` + focus-synced coords | Non-clipping catalogue search at scroll edges |
+| `estimate-batch-csv.ts`, `client-boq-normalize.ts` | Stricter heading rules, explicit totals | Priced/malformed rows stay priced; `parse_warnings` |
+| `boq-import.tsx`, `boq-import-action.ts` | Warning banner + import block | Display and act on unreadable cells |
+| `simple-actions.ts` | Legacy error only when MoM empty | Valid MoM survives legacy query failure |
+| `con-181-integration.test.ts` | (new) | Real-path integration for portal, CSV, MoM, import guard |
+| `estimating.module.css` | Mobile `advancedWorkspaceWide` | Narrow viewport + dock padding |
+
+## 2026-11-16 — D46 P1 estimate #181 CI fix (cursor/d46-p1-estimate-con-022-031-032-a05d)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/client-boq-normalize.ts` | (new) | `normalizeClientBoQLines` — non-string sections, heading heuristics, `parse_warnings` | #181: guard AI JSON; no invented qty/rate |
+| `src/app/dashboard/projects/costs/boq-import-action.ts` | PDF/Excel parse | Normalise AI lines before `batchSectionHeadings` | Same |
+| `src/lib/estimate-batch-csv.ts` | parse loop | Description-only headings; malformed qty/rate flags; no default qty | CON-022 CSV hardening |
+| `src/app/dashboard/projects/costs/simple-actions.ts` | `loadAdvancedEstimatingDataAction` | Fail on `legacyLibrary.error`; explicit `catalogueSource` | CON-031 error handling + source |
+| `src/app/dashboard/projects/costs/advanced-estimate.tsx` | activity | Match lines by `id` (sectionSource copies); live-section drift banner | Fix `catalogue-line-review` activity regression |
+| `src/components/estimating.module.css` | workspace | `totalDock` z-index 20; scroller `overflow: visible`; wide inner scroll | CON-032 dropdown without lowering dock |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | wrapper | `advancedWorkspaceWide` class on wide column | CON-032 |
+| `src/lib/client-boq-normalize.test.ts`, `estimate-batch-csv.test.ts`, `con-032-advanced-panel-layout.test.ts` | tests | Expanded guards | Meaningful regressions |
+
+## 2026-11-16 — D46 P1 estimate CON-022 / CON-031 / CON-032 (cursor/d46-p1-estimate-con-022-031-032-a05d)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/estimate-batch-sections.ts` | (new) | `orderedEstimateSections`, `groupLinesBySection`, `batchSectionHeadings` | CON-022: section order follows batch/line sequence, not trade template |
+| `src/lib/estimate-batch-csv.ts` | (new) | Deterministic BoQ CSV parser (`Section`, `Description`, `Qty`, `Rate`, …) | CON-022: structured CSV import without inventing prices |
+| `src/lib/cost-library-catalog.ts` | (new) | MoM + override mapping; `parseStoredCatalogueRate` | CON-031: advanced catalogue uses same stored rates as library; skip missing rates |
+| `src/app/dashboard/projects/costs/simple-actions.ts` | `loadAdvancedEstimatingDataAction` | Load `mom_items` + `mom_item_overrides`; legacy `cost_library_items` fallback only | CON-031 real source/display |
+| `src/app/dashboard/projects/costs/advanced-estimate.tsx` | section grouping | Shared batch section helpers; `advancedSectionCard` | CON-022 coherent headings in advanced workspace |
+| `src/app/dashboard/projects/costs/boq-import.tsx` | `processFile` | CSV fast path via `parseEstimateBatchCsv` before AI Excel parse | CON-022 CSV import |
+| `src/app/dashboard/projects/costs/boq-import-action.ts` | sections | `batchSectionHeadings` for parsed BoQ | CON-022 heading order |
+| `src/app/dashboard/projects/costs/boq-excel-export.ts` | section order | Shared `orderedEstimateSections` | CON-022 export matches display order |
+| `src/components/estimating.module.css` | `advancedWorkspaceRoot`, `totalDock` z-index | Isolation + bottom padding; dock below workspace overlays | CON-032 panel overlap |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | advanced wrapper classes | Apply workspace layout classes | CON-032 |
+| `src/lib/*.test.ts`, `con-032-advanced-panel-layout.test.ts` | (new) | Focused CON-022/031/032 tests | No live data |
+| `package-lock.json` | revert | Restored to `868df15` main; drop accidental npm-install churn from first push | Keep P1 diff scoped to estimate work |
 ## 2026-11-16 — D46 P1 proposal CON-036/037/040 (cursor/d46-p1-proposal-con-036-037-040-445c)
 
 | File | Lines (approx.) | Change | Intent |

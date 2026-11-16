@@ -18,6 +18,7 @@ import { formatPlanDate } from "@/lib/programme-plan";
 import { programmeFacts, type DisplayProgrammePlan } from "@/lib/relative-programme";
 import type { ProposalCoverPhoto } from "@/lib/proposal-cover-photo";
 import { safeImageUrl, type ProposalPublicationSnapshot } from "@/lib/proposal-publication";
+import { formatContractValue, typedValueAmount } from "@/lib/case-study-value";
 import {
     responseKindOfSnapshot,
     responseNoticeOfSnapshot,
@@ -50,7 +51,7 @@ export type DocBlock =
     | { type: "timeline"; plan: DisplayProgrammePlan }
     | { type: "stageList"; start: string | null; rows: Array<{ name: string; duration: string }> }
     | { type: "terms"; clauses: Array<{ number: number; title: string; body: string }> }
-    | { type: "caseStudy"; title: string; facts: DocFact[]; delivered: string[]; valueAdded: string[]; photos: string[] };
+    | { type: "caseStudy"; title: string; facts: DocFact[]; delivered: string[]; valueAdded: string[]; photos: string[]; challenge?: string[]; solution?: string[]; quote?: { paragraphs: string[]; attribution: string | null } };
 
 export type DocSectionId = "about" | "experience" | "scope" | "price" | "programme" | "terms" | "closing";
 
@@ -189,9 +190,9 @@ function formatLongDate(iso: string): string {
 
 /** A figure the contractor typed for a past job: grouped when it is a number, otherwise as typed. */
 function formatTypedValue(value: string): string {
-    const cleaned = value.replace(/[£,\s]/g, "");
-    return /^\d+(\.\d+)?$/.test(cleaned)
-        ? `£${Number(cleaned).toLocaleString("en-GB", { maximumFractionDigits: 2 })}`
+    const amount = typedValueAmount(value);
+    return amount !== null
+        ? `£${amount.toLocaleString("en-GB", { maximumFractionDigits: 2 })}`
         : value;
 }
 
@@ -312,12 +313,27 @@ function experienceSection(snapshot: ProposalPublicationSnapshot): DocSection | 
                 study.project_type && { label: "Type of work", value: study.project_type },
                 study.location && { label: "Location", value: study.location },
                 study.client && { label: "Client", value: study.client },
-                study.contract_value && { label: "Value", value: formatTypedValue(study.contract_value) },
+                // A numeric value with its VAT basis prints like the proposal's
+                // other figures; older free text prints exactly as it did.
+                ...(study.contract_value_amount != null
+                    ? [{ label: "Value", value: formatContractValue(study.contract_value_amount, study.contract_value_vat_basis) }]
+                    : study.contract_value
+                        ? [{ label: "Value", value: formatTypedValue(study.contract_value) }]
+                        : []),
                 study.duration && { label: "Programme", value: study.duration },
             ].filter((fact): fact is DocFact => Boolean(fact)),
             delivered: lines(study.delivered),
             valueAdded: lines(study.value_added),
             photos: study.photos.map(safeImageUrl).filter((url): url is string => url !== null),
+            // Saved as their own fields (CON-063): printed under their own
+            // headings. Old combined text stays inside `delivered`, as issued.
+            ...(study.challenge ? { challenge: lines(study.challenge) } : {}),
+            ...(study.solution ? { solution: lines(study.solution) } : {}),
+            // An attributed client pull quote (CON-062). Only a new snapshot
+            // can hold one, so issued proposals never gain a quote retroactively.
+            ...(study.client_quote
+                ? { quote: { paragraphs: lines(study.client_quote), attribution: study.client_quote_attribution?.trim() || null } }
+                : {}),
         })),
     };
 }

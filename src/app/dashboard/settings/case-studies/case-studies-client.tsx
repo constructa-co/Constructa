@@ -24,7 +24,8 @@ import {
     coreProfileTextarea,
     coreSuggestionPrimary,
 } from "@/lib/core-editing-palette";
-import ChallengeResolution, { NO_STORY, storyTyped, type StoryNotes } from "./challenge-resolution";
+import ChallengeResolution, { storyTyped, type StoryNotes } from "./challenge-resolution";
+import { typedValueAmount } from "@/lib/case-study-value";
 
 type Enhance = (whatWeDelivered: string, valueAdded: string, projectName: string, projectType: string) => Promise<CaseStudyResult>;
 type Save = (caseStudies: unknown, expectedFingerprint: string, unconfirmed: unknown[][]) => Promise<SaveCaseStudiesResult>;
@@ -44,6 +45,15 @@ interface CaseStudy {
     sectorTags?: CaseStudySectorId[];
     disciplineTagsExplicit?: boolean;
     sectorTagsExplicit?: boolean;
+    /** CON-062: an optional client quote and who said it, shown as an attributed pull quote on new proposals. */
+    clientQuote?: string;
+    clientQuoteAttribution?: string;
+    /** CON-063: the challenge and its solution, kept as their own fields once kept; older entries may still hold both inside `whatWeDelivered`. */
+    challenge?: string;
+    solution?: string;
+    /** CON-064: a numeric contract value with its VAT basis. Absent on older entries, whose free-text `contractValue` is shown as typed. */
+    contractValueAmount?: number | null;
+    contractValueVatBasis?: string;
 }
 
 /**
@@ -119,10 +129,14 @@ export default function CaseStudiesClient({ initialCaseStudies, initialStoredFin
             whatWeDelivered: "",
             valueAdded: "",
             photos: ["", "", ""],
+            clientQuote: "",
+            clientQuoteAttribution: "",
+            challenge: "",
+            solution: "",
         }]);
     };
 
-    const updateCaseStudy = (index: number, field: keyof CaseStudy, value: string | string[] | CaseStudySectorId[] | boolean) => {
+    const updateCaseStudy = (index: number, field: keyof CaseStudy, value: string | string[] | CaseStudySectorId[] | boolean | number | null) => {
         setCaseStudies(prev => prev.map((cs, i) => {
             if (i !== index) return cs;
             const next = { ...cs, [field]: value } as CaseStudy;
@@ -286,7 +300,7 @@ function CaseStudyCard({
     enhance: Enhance;
     cs: CaseStudy;
     index: number;
-    onChange: (field: keyof CaseStudy, value: string | string[] | CaseStudySectorId[] | boolean) => void;
+    onChange: (field: keyof CaseStudy, value: string | string[] | CaseStudySectorId[] | boolean | number | null) => void;
     onRemove: () => void;
     onPhotoUpload: (slot: number, file: File) => void;
     onPhotoRemove: (slot: number) => void;
@@ -301,9 +315,12 @@ function CaseStudyCard({
     // A reply is held here until the contractor decides. It never replaces what is in the form by arriving.
     const [pending, setPending] = useState<PendingCaseStudySuggestion | null>(null);
     const [notice, setNotice] = useState<string | null>(null);
-    // A challenge and how it was resolved, as typed. Held by the card so closing it keeps them; never saved until added.
-    const [story, setStory] = useState<StoryNotes>(NO_STORY);
-    const changeStory = (next: StoryNotes) => { setStory(next); onStoryTyped(storyTyped(next)); };
+    // A challenge and how it was resolved, as typed. Held by the card so closing it keeps them; kept
+    // to the example's own fields only on an explicit press, then saved by the ordinary save.
+    const savedStory: StoryNotes = { challenge: cs.challenge ?? "", response: cs.solution ?? "" };
+    const [story, setStory] = useState<StoryNotes>(savedStory);
+    const differsFromSaved = (next: StoryNotes): boolean => next.challenge !== savedStory.challenge || next.response !== savedStory.response;
+    const changeStory = (next: StoryNotes) => { setStory(next); onStoryTyped(storyTyped(next) && differsFromSaved(next)); };
     const tagSuggestions = exampleTagSuggestions({ projectType: cs.projectType, client: cs.client });
 
     const handleEnhance = async () => {
@@ -409,7 +426,53 @@ function CaseStudyCard({
                         </div>
                         <div>
                             <label htmlFor={`${fieldId}-value`} className={labelCls}>Contract Value</label>
-                            <input id={`${fieldId}-value`} className={inputCls} value={cs.contractValue} onChange={e => onChange("contractValue", e.target.value)} placeholder="e.g. £85,000" />
+                            {cs.contractValueAmount != null ? (
+                                <div className="flex gap-2">
+                                    <input
+                                        id={`${fieldId}-value`}
+                                        type="number"
+                                        inputMode="decimal"
+                                        min="0"
+                                        step="any"
+                                        className={inputCls}
+                                        value={cs.contractValueAmount}
+                                        onChange={e => {
+                                            const next = e.target.value === "" ? null : Number(e.target.value);
+                                            onChange("contractValueAmount", next !== null && (!Number.isFinite(next) || next < 0) ? null : next);
+                                        }}
+                                        placeholder="85000"
+                                        aria-label="Contract Value"
+                                    />
+                                    <select
+                                        id={`${fieldId}-value-vat`}
+                                        className={inputCls}
+                                        value={cs.contractValueVatBasis ?? "ex_vat"}
+                                        onChange={e => onChange("contractValueVatBasis", e.target.value)}
+                                        aria-label="VAT basis"
+                                    >
+                                        <option value="ex_vat">ex VAT</option>
+                                        <option value="inc_vat">inc VAT</option>
+                                    </select>
+                                </div>
+                            ) : (
+                                <>
+                                    <input id={`${fieldId}-value`} className={inputCls} value={cs.contractValue} onChange={e => onChange("contractValue", e.target.value)} placeholder="e.g. £85,000" />
+                                    {typedValueAmount(cs.contractValue) !== null && (
+                                        // A plain figure can be kept as a number with its VAT basis, and prints
+                                        // like the proposal's other figures. The typed words stay on the record.
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                onChange("contractValueAmount", typedValueAmount(cs.contractValue));
+                                                onChange("contractValueVatBasis", "ex_vat");
+                                            }}
+                                            className={`mt-1 min-h-11 px-3 rounded-lg border border-slate-400 text-sm font-semibold text-slate-100 hover:bg-white/5 ${coreFocusVisibleRing}`}
+                                        >
+                                            Keep as exact figure with VAT basis
+                                        </button>
+                                    )}
+                                </>
+                            )}
                         </div>
                         <div>
                             <label htmlFor={`${fieldId}-duration`} className={labelCls}>Programme Duration</label>
@@ -455,6 +518,12 @@ function CaseStudyCard({
                         notes={story}
                         onNotes={changeStory}
                         onAdd={next => onChange("whatWeDelivered", next)}
+                        onAddToRecord={next => {
+                            onChange("challenge", next.challenge);
+                            onChange("solution", next.response);
+                            onStoryTyped(false);
+                        }}
+                        savedNotes={savedStory}
                         idPrefix={fieldId}
                         target="What We Delivered"
                         labelCls={labelCls}
@@ -462,6 +531,24 @@ function CaseStudyCard({
                         hintCls="text-xs text-slate-300"
                         buttonCls={`min-h-11 px-3 rounded-lg border border-slate-400 text-sm font-semibold text-slate-100 hover:bg-white/5 ${coreFocusVisibleRing}`}
                     />
+
+                    <div>
+                        <label htmlFor={`${fieldId}-quote`} className={labelCls}>What did the client say? <span className="font-normal text-slate-300">(optional)</span></label>
+                        <textarea
+                            id={`${fieldId}-quote`}
+                            className={coreProfileTextarea}
+                            rows={2}
+                            maxLength={1000}
+                            aria-label="What did the client say?"
+                            value={cs.clientQuote ?? ""}
+                            onChange={e => onChange("clientQuote", e.target.value)}
+                            placeholder="A line or two in the client's own words. Only quote what they actually said."
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor={`${fieldId}-quote-by`} className={labelCls}>Who said it <span className="font-normal text-slate-300">(optional)</span></label>
+                        <input id={`${fieldId}-quote-by`} className={inputCls} maxLength={200} value={cs.clientQuoteAttribution ?? ""} onChange={e => onChange("clientQuoteAttribution", e.target.value)} placeholder="e.g. Mrs Smith" />
+                    </div>
 
                     <div>
                         <label htmlFor={`${fieldId}-added`} className={labelCls}>Value Added</label>

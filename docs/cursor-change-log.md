@@ -1,5 +1,13 @@
 # Cursor change log
 
+## 2026-11-16 — D54 document repair of #186 at 69d10b6 (CON-055 suppression gated by presentation version)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/proposal-document.ts` | after `feeSectionTitle`; About, price, cover use | `LABEL_SUPPRESSION_PRESENTATION_VERSION = 3`; `snapshotProjectTypeDisplay`, `snapshotFeeSectionTitle` | Snapshots issued without a version or at version 2 keep the type of work and lone price heading they were issued with; CON-055 suppression applies from version 3 |
+| `src/lib/proposal-publication.ts` | presentation version type, snapshot build | New snapshots (draft preview and sent) carry `document_presentation_version: 3`; still outside both hashes | Explicitly versioned new snapshot; send fingerprint unchanged |
+| `src/lib/proposal-document-p2-visual.test.ts` | new describe | Issued no-version and v2 wording kept (also when drawn as a draft); v3 suppressed in preview and sent alike; entered values stay in the snapshot; multi-group headings kept; hashes equal across versions | Regression cover. Written without a shell: Vitest, `tsc` and build NOT RUN in this session |
+
 ## 2026-11-16 — D46 P1 proposal CON-036/037/040 (cursor/d46-p1-proposal-con-036-037-040-445c)
 
 | File | Lines (approx.) | Change | Intent |

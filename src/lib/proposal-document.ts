@@ -225,6 +225,30 @@ export function feeSectionTitle(title: string): string | null {
     return title;
 }
 
+/**
+ * The first presentation version that leaves out placeholder job types and
+ * generic price headings. A snapshot issued before it keeps the type of work
+ * and the price heading it was issued with, whatever they say.
+ */
+export const LABEL_SUPPRESSION_PRESENTATION_VERSION = 3;
+
+function suppressesGenericLabels(snapshot: ProposalPublicationSnapshot): boolean {
+    return documentPresentationVersion(snapshot) >= LABEL_SUPPRESSION_PRESENTATION_VERSION;
+}
+
+/** Type of work for this snapshot: as saved on anything issued before label suppression. */
+function snapshotProjectTypeDisplay(snapshot: ProposalPublicationSnapshot): string | null {
+    const type = snapshot.project.project_type;
+    if (suppressesGenericLabels(snapshot)) return publicationProjectTypeDisplay(type);
+    return type?.trim() ? type : null;
+}
+
+/** Heading of a lone price group: before label suppression only the unnamed "General" group had none. */
+function snapshotFeeSectionTitle(snapshot: ProposalPublicationSnapshot, title: string): string | null {
+    if (suppressesGenericLabels(snapshot)) return feeSectionTitle(title);
+    return title === "General" ? null : title;
+}
+
 /** Saved contractor profile facts only (not the job work type). Literal strings. */
 function contractorProfileCredentialFacts(contractor: ProposalPublicationSnapshot["contractor"]): DocFact[] {
     const items: DocFact[] = [];
@@ -248,7 +272,7 @@ function aboutSection(snapshot: ProposalPublicationSnapshot): DocSection | null 
 
     const blocks: DocBlock[] = [];
     const credentialFacts: DocFact[] = [];
-    const jobType = publicationProjectTypeDisplay(snapshot.project.project_type);
+    const jobType = snapshotProjectTypeDisplay(snapshot);
     if (jobType) credentialFacts.push({ label: "Type of work", value: jobType });
     credentialFacts.push(...profileCredentials);
     if (credentialFacts.length > 0) blocks.push({ type: "facts", items: credentialFacts });
@@ -402,7 +426,7 @@ function priceSection(snapshot: ProposalPublicationSnapshot): DocSection | null 
         });
     }
     if (groups.length === 1 && groups[0].title) {
-        groups[0].title = feeSectionTitle(groups[0].title);
+        groups[0].title = snapshotFeeSectionTitle(snapshot, groups[0].title);
     }
 
     const presentation = documentPresentationVersion(snapshot);
@@ -539,7 +563,7 @@ export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, opt
         title: snapshot.project.name,
         clientName: publicationClientDisplayName(snapshot.project),
         siteAddress: snapshot.project.site_address || null,
-        projectType: publicationProjectTypeDisplay(snapshot.project.project_type),
+        projectType: snapshotProjectTypeDisplay(snapshot),
         issued: formatLongDate(snapshot.publication.sent_at),
         validUntil: formatLongDate(snapshot.publication.expires_at),
         keyFacts,

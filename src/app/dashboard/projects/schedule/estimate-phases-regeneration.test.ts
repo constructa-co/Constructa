@@ -9,6 +9,7 @@ vi.mock("@/lib/cohort-ai/programme-update", () => ({ PROGRAMME_NOT_SAVED: "not s
 vi.mock("@/lib/cohort-ai/shared", () => ({ COHORT_AI_UNAVAILABLE: "unavailable" }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
+import * as plannerPhases from "@/lib/planner-phases";
 import { estimateSuggestedPhases } from "@/lib/planner-phases";
 import { getEstimatePhasesAction } from "./actions";
 
@@ -85,5 +86,19 @@ describe("getEstimatePhasesAction uses the same suggestions as the planner", () 
         setup([{ trade_section: "Drawing items", quantity: 4, estimate_line_components: [] }]);
         const [stage] = await getEstimatePhasesAction(PROJECT_ID);
         expect(stage).toMatchObject({ name: "Drawing items", calculatedDays: 5, manhours: 0 });
+    });
+
+    it("CON-028 action regression wires shared placeholders when dated suggestion returns empty", async () => {
+        const lines = [{ trade_section: "Drawing items", quantity: 4, estimate_line_components: [] }];
+        setup(lines, sixHourDays);
+        vi.spyOn(plannerPhases, "estimateSuggestedPhases").mockReturnValueOnce([]);
+        const phases = await getEstimatePhasesAction(PROJECT_ID);
+        expect(phases).toEqual(plannerPhases.sequenceSuggestedPhases(
+            plannerPhases.estimateSectionsFromWork({ estimate_lines: lines }, sixHourDays),
+            5,
+            undefined,
+            sixHourDays,
+        ));
+        expect(phases[0]).toMatchObject({ name: "Drawing items", calculatedDays: 5, manhours: 0, startOffset: 0 });
     });
 });

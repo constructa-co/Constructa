@@ -25,7 +25,7 @@ export function MarketingHeader() {
           <Link href="/guides">Guides</Link>
         </nav>
         <div className={ui.headerActions}>
-          <Link className={ui.applyCta} href="/apply">Apply <ArrowRight size={16} aria-hidden="true" /></Link>
+          <Link className={ui.applyCta} href="/apply" aria-label="Apply to the founding cohort">Apply <ArrowRight size={16} aria-hidden="true" /></Link>
           <Link className={ui.signIn} href="/login">Sign in <ArrowRight size={16} aria-hidden="true" /></Link>
           <details className={ui.mobileMenu}>
             <summary>Menu</summary>
@@ -181,6 +181,7 @@ export function PhaseOneFeatures() {
         <p className={ui.eyebrow}>The phase-one product</p>
         <h1>From first hello.<br /><em>To a considered proposal.</em></h1>
         <p>One connected work-winning journey. Company profile, brief, price, programme and proposal, with room for your own experience and judgement.</p>
+        <p>The contextual assistant is not available as a live chatbot in this preview.</p>
         <div className={ui.actions}>
           <FoundingCohortApplyLink />
           <SignInLink />

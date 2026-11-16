@@ -1,5 +1,13 @@
 # Cursor change log
 
+## 2026-11-16 — D54 document repair of #186 at 69d10b6 (CON-055 suppression gated by presentation version)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/proposal-document.ts` | after `feeSectionTitle`; About, price, cover use | `LABEL_SUPPRESSION_PRESENTATION_VERSION = 3`; `snapshotProjectTypeDisplay`, `snapshotFeeSectionTitle` | Snapshots issued without a version or at version 2 keep the type of work and lone price heading they were issued with; CON-055 suppression applies from version 3 |
+| `src/lib/proposal-publication.ts` | presentation version type, snapshot build | New snapshots (draft preview and sent) carry `document_presentation_version: 3`; still outside both hashes | Explicitly versioned new snapshot; send fingerprint unchanged |
+| `src/lib/proposal-document-p2-visual.test.ts` | new describe | Issued no-version and v2 wording kept (also when drawn as a draft); v3 suppressed in preview and sent alike; entered values stay in the snapshot; multi-group headings kept; hashes equal across versions | Regression cover. Written without a shell: Vitest, `tsc` and build NOT RUN in this session |
+
 ## 2026-11-16 — D57 PR #184 repair (cursor/d49-brief-con-017-034-035-483d)
 
 | File | Lines (approx.) | Change | Intent |
@@ -84,6 +92,19 @@
 | `src/app/dashboard/projects/proposal/publication-history-panel.tsx` | `projectId`, row labels | `data-issued-reference` per sent version | CON-040 correct issued reference display in history |
 | `src/lib/case-library/proposal-wiring.test.ts` | readiness baseline | Mandatory checklist includes `siteAddress`; case-study guards unchanged | CON-036 wiring regression with library hashes |
 | `src/lib/proposal-readiness.test.ts`, `proposal-document.test.ts`, `company-closing-entry.test.tsx`, `review-send-client.test.ts` | CON-036/037/040 cases | Focused Vitest (122 tests in 4 files) | Regression coverage per ID |
+## 2026-11-16 — D49 P2 visual bundle CON-055–060 (cursor/d49-p2-document-polish-con-055-056-057-060-cecf)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/proposal-document.ts` | 197–225, 361–378, 499 | `publicationProjectTypeDisplay`, `feeSectionTitle`, About/cover/price use | CON-055: hide placeholder Other and misleading Other work labels |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | 659–663, 517–540 | Cover summary + signature preview columns with `break-inside-avoid` | CON-055 prep cover; CON-056 signature labels stay with lines |
+| `src/components/proposal/proposal-document-view.tsx` | 38–39, 110, 178 | `data-cover-logo`, `break-after-avoid` on section/subheadings | CON-057 headings with content; CON-060 logo hook |
+| `src/components/proposal/proposal-web-pages.module.css` | 51–72 | Paginated logo max size, column break rules, signature groups | CON-057/060 web paginated layout |
+| `src/lib/pdf/proposal-brochure.ts` | 970–976 | `signature-field` layout log entries | CON-056 PDF signature field grouping |
+| `src/lib/proposal-document-p2-visual.test.ts` | (new) | CON-055/057/060 unit regressions | Focused bundle tests |
+| `e2e/local-phase1/reader-styled.spec.ts` | 144–146, 205–207, 296 | Tab order/button count for layout toggles | Reader chrome parity with current UI |
+| `docs/temp-files/playwright-p2-visual-reader.config.ts` | (new) | Chromium config for offline reader fixture | Synthetic layout screenshots/CI |
+| Associated test updates | credential/metric/custom-job-type/preparation | Expectations for suppressed placeholder types | CON-055 regression |
 
 ## 2026-11-16 — D49 CON-024/041/042 concurrent saves, admin conversion, pipeline totals (cursor/d49-admin-con-024-041-042-5fd6)
 

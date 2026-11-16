@@ -969,10 +969,12 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
             if (name) drawBlockLines(wrap(name, columnWidth, STYLES.strong).slice(0, 1), columnX, cursor + 5, STYLES.strong);
             ["Signature", "Name", "Date"].forEach((line, index) => {
                 const lineY = cursor + 16 + index * 7;
+                const fieldTop = lineY - 3;
                 pdf.setDrawColor(...MUTED);
                 pdf.setLineWidth(0.2);
                 pdf.line(columnX + 18, lineY, columnX + columnWidth, lineY);
-                drawBlockLines([line], columnX, lineY - 3, STYLES.small);
+                drawBlockLines([line], columnX, fieldTop, STYLES.small);
+                log("signature-field", fieldTop, lineY + 0.5, `signature-${Math.round(columnX)}`);
             });
         };
         signature(x, `For ${document.company.name}`, null);

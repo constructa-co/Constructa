@@ -11,6 +11,7 @@
  * out; no heading, statistic, caption or claim is supplied to fill a gap.
  */
 
+import { UNSPECIFIED_PROJECT_TYPE } from "@/lib/blank-project";
 import { roundMoney } from "@/lib/financial";
 import { formatGbp } from "@/lib/pdf/pdf-money";
 import { formatPlanDate } from "@/lib/programme-plan";
@@ -198,6 +199,56 @@ function hasSavedCredentialText(value: string | null | undefined): boolean {
     return Boolean(value?.trim());
 }
 
+/** The default type stored when the contractor did not choose one — not shown as a job category. */
+export function isUnspecifiedProjectType(type: string | null | undefined): boolean {
+    const trimmed = type?.trim();
+    return !trimmed || trimmed === UNSPECIFIED_PROJECT_TYPE;
+}
+
+/**
+ * Type of work shown on the cover and in About credentials.
+ * Omits the neutral placeholder and misleading "Other work" estimate section label.
+ */
+export function publicationProjectTypeDisplay(type: string | null | undefined): string | null {
+    const trimmed = type?.trim();
+    if (!trimmed || isUnspecifiedProjectType(trimmed)) return null;
+    if (trimmed.localeCompare("Other work", undefined, { sensitivity: "accent" }) === 0) return null;
+    return type!;
+}
+
+/** Heading for a price-table group. Hides generic buckets that would mislead the client. */
+export function feeSectionTitle(title: string): string | null {
+    const trimmed = title.trim();
+    if (!trimmed || trimmed === "General") return null;
+    if (isUnspecifiedProjectType(trimmed)) return null;
+    if (trimmed.localeCompare("Other work", undefined, { sensitivity: "accent" }) === 0) return null;
+    return title;
+}
+
+/**
+ * The first presentation version that leaves out placeholder job types and
+ * generic price headings. A snapshot issued before it keeps the type of work
+ * and the price heading it was issued with, whatever they say.
+ */
+export const LABEL_SUPPRESSION_PRESENTATION_VERSION = 3;
+
+function suppressesGenericLabels(snapshot: ProposalPublicationSnapshot): boolean {
+    return documentPresentationVersion(snapshot) >= LABEL_SUPPRESSION_PRESENTATION_VERSION;
+}
+
+/** Type of work for this snapshot: as saved on anything issued before label suppression. */
+function snapshotProjectTypeDisplay(snapshot: ProposalPublicationSnapshot): string | null {
+    const type = snapshot.project.project_type;
+    if (suppressesGenericLabels(snapshot)) return publicationProjectTypeDisplay(type);
+    return type?.trim() ? type : null;
+}
+
+/** Heading of a lone price group: before label suppression only the unnamed "General" group had none. */
+function snapshotFeeSectionTitle(snapshot: ProposalPublicationSnapshot, title: string): string | null {
+    if (suppressesGenericLabels(snapshot)) return feeSectionTitle(title);
+    return title === "General" ? null : title;
+}
+
 /** Saved contractor profile facts only (not the job work type). Literal strings. */
 function contractorProfileCredentialFacts(contractor: ProposalPublicationSnapshot["contractor"]): DocFact[] {
     const items: DocFact[] = [];
@@ -221,9 +272,8 @@ function aboutSection(snapshot: ProposalPublicationSnapshot): DocSection | null 
 
     const blocks: DocBlock[] = [];
     const credentialFacts: DocFact[] = [];
-    if (hasSavedCredentialText(snapshot.project.project_type)) {
-        credentialFacts.push({ label: "Type of work", value: snapshot.project.project_type! });
-    }
+    const jobType = snapshotProjectTypeDisplay(snapshot);
+    if (jobType) credentialFacts.push({ label: "Type of work", value: jobType });
     credentialFacts.push(...profileCredentials);
     if (credentialFacts.length > 0) blocks.push({ type: "facts", items: credentialFacts });
     blocks.push(...capabilityBlocks);
@@ -375,7 +425,9 @@ function priceSection(snapshot: ProposalPublicationSnapshot): DocSection | null 
             amount: formatGbp(item.amount_ex_vat),
         });
     }
-    if (groups.length === 1 && groups[0].title === "General") groups[0].title = null;
+    if (groups.length === 1 && groups[0].title) {
+        groups[0].title = snapshotFeeSectionTitle(snapshot, groups[0].title);
+    }
 
     const presentation = documentPresentationVersion(snapshot);
     const blocks: DocBlock[] = [{
@@ -511,7 +563,7 @@ export function buildProposalDocument(snapshot: ProposalPublicationSnapshot, opt
         title: snapshot.project.name,
         clientName: publicationClientDisplayName(snapshot.project),
         siteAddress: snapshot.project.site_address || null,
-        projectType: snapshot.project.project_type,
+        projectType: snapshotProjectTypeDisplay(snapshot),
         issued: formatLongDate(snapshot.publication.sent_at),
         validUntil: formatLongDate(snapshot.publication.expires_at),
         keyFacts,

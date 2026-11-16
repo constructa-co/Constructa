@@ -19,7 +19,7 @@ import { representativeInput } from "@/lib/__fixtures__/proposal";
 import { isDashboardPathAllowed } from "@/lib/launch-profile";
 import { responseWording } from "@/lib/proposal-response";
 import { buildPreviewSnapshot, draftFromProject, type ReviewContext } from "@/lib/proposal-review";
-import { buildProposalDocument } from "@/lib/proposal-document";
+import { buildProposalDocument, proposalReference } from "@/lib/proposal-document";
 import SimpleProgrammeClient from "../schedule/simple-programme-client";
 import PublicationHistoryPanel, {
     publicationResponseKind,
@@ -378,9 +378,58 @@ describe("sent versions", () => {
     });
 
     it("renders closed, with every version behind one disclosure", () => {
-        const html = renderToStaticMarkup(createElement(PublicationHistoryPanel, { publications: history, s, loadPublication: vi.fn() }));
+        const html = renderToStaticMarkup(createElement(PublicationHistoryPanel, {
+            publications: history,
+            projectId: input.project.id,
+            s,
+            loadPublication: vi.fn(),
+        }));
         expect(html).toContain("Sent versions (3)");
         expect(html).toContain('aria-expanded="false"');
+    });
+});
+
+describe("CON-040 issued reference numbering", () => {
+    it("formats immutable issued references from the frozen project id and version number", () => {
+        expect(proposalReference({
+            project: { id: input.project.id },
+            publication: { version_number: 3 },
+        })).toBe("22222222-V3");
+        expect(proposalReference({
+            project: { id: input.project.id },
+            publication: { version_number: 1 },
+        })).toBe("22222222-V1");
+    });
+});
+
+describe("CON-036 site address readiness", () => {
+    it("blocks send when the site address is missing", () => {
+        const html = review({ context: context({ site_address: "" }) });
+        expect(html).toContain('data-readiness-item="siteAddress"');
+        expect(html).toContain('data-ok="false"');
+        expect(html).toContain("Add the site address in project details.");
+    });
+});
+
+describe("CON-037 managing director message empty state", () => {
+    it("shows the saved message when present and an explicit empty state when not", () => {
+        const withMessage = review();
+        expect(withMessage).toContain("data-company-closing-saved");
+        expect(withMessage).toContain("Use saved company message");
+        const without = review({ context: { ...context(), profile: { ...input.profile, md_message: "" } } });
+        expect(without).toContain("data-company-closing-empty");
+        expect(without).toContain("No managing director");
+    });
+});
+
+describe("CON-040 draft versus issued reference", () => {
+    it("labels the draft preview separately from the next issued reference", () => {
+        const html = review({ publications: history, context: { ...context(), nextVersion: 4 } });
+        expect(html).toContain("data-draft-reference-note");
+        expect(html).toContain("Draft previews use reference");
+        expect(html).toContain('data-next-issued-reference="true">22222222-V4');
+        const preview = buildPreviewSnapshot(context(), draftFromProject(context().project, () => "k"), "acknowledgement", NOW);
+        expect(buildProposalDocument(preview!, { isDraft: true }).reference).toBe("Draft");
     });
 });
 

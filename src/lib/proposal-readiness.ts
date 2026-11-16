@@ -18,6 +18,7 @@ export { isUntouchedStarterProgramme, type StarterPhaseSeed } from "./programme-
 
 export type ReadinessKey =
     | "identity"
+    | "siteAddress"
     | "scope"
     | "contractValue"
     | "programme"
@@ -46,6 +47,7 @@ export interface ReadinessItem<K extends string = ReadinessKey> {
 export interface ProposalReadinessInput {
     projectName?: string | null;
     clientName?: string | null;
+    siteAddress?: string | null;
     scope?: string | null;
     /** Canonical contract sum ex VAT from the active estimate. */
     contractSum?: number | null;
@@ -154,6 +156,7 @@ function isVisibleTerm(clause: unknown): boolean {
 export function evaluateProposalReadiness(input: ProposalReadinessInput): ProposalReadiness {
     const hasProject = hasText(input.projectName);
     const hasClient = hasText(input.clientName);
+    const hasSite = hasText(input.siteAddress);
     const phases = Array.isArray(input.programmePhases) ? input.programmePhases : [];
     const programmeDecision = readProgrammeInclusion(phases);
     const payments = Array.isArray(input.paymentSchedule) ? input.paymentSchedule : [];
@@ -182,6 +185,12 @@ export function evaluateProposalReadiness(input: ProposalReadinessInput): Propos
                 : !hasProject
                     ? "Add the job name in project details."
                     : "Add the client's name in project details.",
+        },
+        {
+            key: "siteAddress",
+            label: "Site address",
+            ok: hasSite,
+            fix: "Add the site address in project details.",
         },
         {
             key: "scope",

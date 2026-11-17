@@ -30,6 +30,7 @@ import {
     summarisePrice,
     type AdvancedRunningTotalDraft,
     unitOptions,
+    priceUnitLabel,
     type AdjustmentKey,
     type EstimatingServer,
     type LineOp,
@@ -1110,9 +1111,9 @@ function InlineRateEditor({ line, op, s, onChange, onUseArea, onCancel, onSave, 
             {error("quantity")}
         </td>
         <td data-label="Unit" className={ui.priceLineUnit}>
-            <select {...field("unit", "Unit")} value={draft.unit} className={s.input}
+            <select {...field("unit", "Unit")} value={draft.unit} className={`${s.input} min-w-[72px]`}
                 onChange={event => onChange({ unit: event.target.value })}>
-                {unitOptions(draft.unit).map(unit => <option key={unit} value={unit}>{unit}</option>)}
+                {unitOptions(draft.unit).map(unit => <option key={unit} value={unit}>{priceUnitLabel(unit)}</option>)}
             </select>
             {error("unit")}
         </td>
@@ -1203,8 +1204,8 @@ function InlineNewPriceLine({ idPrefix, title, op, s, showDetails, onChange, onU
                 {error("quantity")}
             </td>
             <td data-label="Unit" className={ui.priceLineUnit}>
-                <select {...field("unit", "New priced unit")} value={draft.unit} className={s.input} onChange={event => onChange({ unit: event.target.value })}>
-                    {unitOptions(draft.unit).map(unit => <option key={unit} value={unit}>{unit}</option>)}
+                <select {...field("unit", "New priced unit")} value={draft.unit} className={`${s.input} min-w-[72px]`} onChange={event => onChange({ unit: event.target.value })}>
+                    {unitOptions(draft.unit).map(unit => <option key={unit} value={unit}>{priceUnitLabel(unit)}</option>)}
                 </select>
                 {error("unit")}
             </td>
@@ -1348,9 +1349,9 @@ function LineForm({
                             {...field("unit")}
                             value={draft.unit}
                             onChange={(e) => onChange({ unit: e.target.value })}
-                            className={`${s.input} mt-1.5 px-2`}
+                            className={`${s.input} mt-1.5 px-2 min-w-[72px]`}
                         >
-                            {unitOptions(draft.unit).map((unit) => <option key={unit} value={unit}>{unit}</option>)}
+                            {unitOptions(draft.unit).map((unit) => <option key={unit} value={unit}>{priceUnitLabel(unit)}</option>)}
                         </select>
                     </div>
                     <div>

@@ -20,6 +20,10 @@ import { getLaunchProfile, isCapabilityEnabled } from "./launch-profile";
 
 export const PRICE_UNITS: readonly string[] = ["item", "m", "m2", "m3", "nr", "day", "week", "tonne", "kg", "lm"];
 
+export function priceUnitLabel(unit: string): string {
+    return ({ m2: "m²", m3: "m³", week: "wk" } as Record<string, string>)[unit] ?? unit;
+}
+
 /** The units offered for a draft: the standard list plus the line's own unit. */
 export function unitOptions(currentUnit: string): string[] {
     const unit = currentUnit.trim();
@@ -54,7 +58,7 @@ export const EMPTY_PRICE_LINE_DRAFT: PriceLineDraft = {
     mode: "amount",
     amount: "",
     quantity: "",
-    unit: "m2",
+    unit: "item",
     rate: "",
 };
 

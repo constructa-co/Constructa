@@ -143,9 +143,9 @@ describe('phase-one product screenshots', () => {
     const captions = html().match(/<figcaption[\s\S]*?<\/figcaption>/g) ?? [];
     for (const caption of captions) {
       expect(caption).toMatch(/larger screens/i);
-      expect(caption).toContain('smaller screens show the full-length capture instead');
+      expect(caption).toMatch(/smaller screens show the full(?:-length)? capture/i);
     }
-    expect(captions[0]).toContain('running total and price adjustments');
+    expect(captions[0]).toContain('running total, price adjustments and save control');
     expect(captions[1]).toContain('programme at a glance');
   });
 

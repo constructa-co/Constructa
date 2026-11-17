@@ -12,7 +12,7 @@
  */
 
 import type { Estimate, EstimateLine } from "@/app/dashboard/projects/costs/types";
-import { computeContractSum, roundMoney, toNumber } from "./financial";
+import { computeContractSum, isPricedPreliminariesLine, roundMoney, toNumber } from "./financial";
 import type { LaunchProfile } from "./launch-profile";
 import { getLaunchProfile, isCapabilityEnabled } from "./launch-profile";
 
@@ -168,6 +168,8 @@ export interface AdjustmentRow {
     pct: number;
     /** Signed: the discount is negative. */
     amount: number;
+    /** Shown under the row when the amount is £0 for a reason the user should know. */
+    note?: string;
 }
 
 export interface PriceSummary {
@@ -195,14 +197,23 @@ export function summarisePrice(
 ): PriceSummary {
     const percentages = estimate ?? { prelims_pct: 0, overhead_pct: 0, risk_pct: 0, profit_pct: 0, discount_pct: 0, total_cost: 0 };
     const sum = computeContractSum(percentages, lines);
-    const prelimsFromLines = lines.some((l) => l.trade_section === "Preliminaries");
+    const prelimsFromLines = lines.some(isPricedPreliminariesLine);
 
     const linesTotal = prelimsFromLines ? sum.totalConstructionCost : sum.totalConstructionCost - sum.prelimsTotal;
     const adjustments: AdjustmentRow[] = [];
     const push = (key: AdjustmentKey, label: string, pct: number, amount: number) => {
         if (pct > 0) adjustments.push({ key, label, pct, amount: roundMoney(amount) });
     };
-    if (!prelimsFromLines) push("prelims", "Preliminaries", toNumber(percentages.prelims_pct), sum.prelimsTotal);
+    const prelimsPct = toNumber(percentages.prelims_pct);
+    adjustments.push({
+        key: "prelims",
+        label: "Preliminaries",
+        pct: prelimsPct,
+        amount: prelimsFromLines ? 0 : roundMoney(sum.prelimsTotal),
+        note: prelimsFromLines && prelimsPct > 0
+            ? `You have ${formatGBP(sum.prelimsTotal)} of prelims lines and a ${prelimsPct}% prelims allowance. Priced lines take precedence, so the allowance is not charged — check you are not double counting.`
+            : undefined,
+    });
     push("overhead", "Overhead", toNumber(percentages.overhead_pct), sum.overheadAmount);
     push("risk", "Risk", toNumber(percentages.risk_pct), sum.riskAmount);
     push("profit", "Profit", toNumber(percentages.profit_pct), sum.profitAmount);

@@ -168,7 +168,9 @@ describe("canonical totals", () => {
 
     it("with no adjustments the total is exactly the contractor's lines", () => {
         const summary = summarisePrice(estimate(), lines);
-        expect(summary).toMatchObject({ linesTotal: 4000, adjustments: [], adjustmentsTotal: 0, contractSum: 4000, vat: 800, totalIncVat: 4800 });
+        expect(summary).toMatchObject({ linesTotal: 4000, adjustmentsTotal: 0, contractSum: 4000, vat: 800, totalIncVat: 4800 });
+        // CON-033 — the prelims percentage row stays visible even at 0%.
+        expect(summary.adjustments).toEqual([{ key: "prelims", label: "Preliminaries", pct: 0, amount: 0, note: undefined }]);
     });
 
     it("matches computeContractSum for every figure it shows", () => {
@@ -193,15 +195,43 @@ describe("canonical totals", () => {
 
     it("uses the contractor's own preliminaries lines instead of the percentage", () => {
         const withPrelims = [...lines, line({ id: "p", trade_section: "Preliminaries", line_total: 600 })];
+        const withoutAllowance = summarisePrice(estimate({ prelims_pct: 0 }), withPrelims);
+        expect(withoutAllowance.adjustments[0]).toMatchObject({ key: "prelims", pct: 0, amount: 0 });
+        expect(withoutAllowance.adjustments[0].note).toBeUndefined();
         const summary = summarisePrice(estimate({ prelims_pct: 10 }), withPrelims);
         expect(summary.prelimsFromLines).toBe(true);
         expect(summary.linesTotal).toBe(4600);
-        expect(summary.adjustments).toEqual([]);
+        // CON-033 — the row stays visible with the configured percentage, a
+        // £0 amount and a double-counting warning instead of disappearing.
+        expect(summary.adjustments).toHaveLength(1);
+        expect(summary.adjustments[0]).toMatchObject({ key: "prelims", pct: 10, amount: 0 });
+        expect(summary.adjustments[0].note).toContain("£600.00 of prelims lines");
+        expect(summary.adjustments[0].note).toContain("10% prelims allowance");
+        expect(summary.adjustments[0].note).toContain("not charged");
         expect(summary.contractSum).toBe(4600);
     });
 
+    it("a zero-total Preliminaries placeholder does not hide the percentage allowance", () => {
+        const withPlaceholder = [...lines, line({ id: "p", trade_section: "Preliminaries", line_total: 0 })];
+        const summary = summarisePrice(estimate({ prelims_pct: 10 }), withPlaceholder);
+        expect(summary.prelimsFromLines).toBe(false);
+        expect(summary.adjustments[0]).toMatchObject({ key: "prelims", pct: 10, amount: 400 });
+        expect(summary.adjustments[0].note).toBeUndefined();
+        expect(summary.contractSum).toBe(4400);
+    });
+
+    it("a credit (negative) Preliminaries line counts as priced and takes precedence", () => {
+        const withCredit = [...lines, line({ id: "p", trade_section: "Preliminaries", line_total: -50 })];
+        const summary = summarisePrice(estimate({ prelims_pct: 10 }), withCredit);
+        expect(summary.prelimsFromLines).toBe(true);
+        expect(summary.linesTotal).toBe(3950);
+        expect(summary.adjustments[0]).toMatchObject({ key: "prelims", pct: 10, amount: 0 });
+        expect(summary.contractSum).toBe(3950);
+    });
+
     it("is zero for a blank project", () => {
-        expect(summarisePrice(null, [])).toMatchObject({ linesTotal: 0, contractSum: 0, vat: 0, totalIncVat: 0, adjustments: [] });
+        expect(summarisePrice(null, [])).toMatchObject({ linesTotal: 0, contractSum: 0, vat: 0, totalIncVat: 0, adjustmentsTotal: 0 });
+        expect(summarisePrice(null, []).adjustments).toEqual([{ key: "prelims", label: "Preliminaries", pct: 0, amount: 0, note: undefined }]);
     });
 });
 

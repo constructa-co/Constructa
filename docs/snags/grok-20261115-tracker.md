@@ -2,7 +2,7 @@
 
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
-Current count: 43 merged, 25 in progress, 6 in review, 11 Rob-gated, 0 not started.
+Current count: 45 merged, 25 in progress, 3 in review, 12 Rob-gated, 0 not started.
 
 | --- | --- | --- | --- | --- | --- |
 | CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
@@ -50,12 +50,12 @@ Current count: 43 merged, 25 in progress, 6 in review, 11 Rob-gated, 0 not start
 | CON-043 | P1 | Claude | — | in progress | D51 batch 05 — Phone layout and theme |
 | CON-044 | P1 | Claude | — | in progress | D51 batch 06 — Programme interactions |
 | CON-045 | P1 | Claude | — | in progress | D51 batch 06 — Programme interactions |
-| CON-046 | P1 | Kimi | [#191](https://github.com/constructa-co/Constructa/pull/191) | in review | D51 batch 09 — Marketing identity and contact |
+| CON-046 | P1 | Kimi | [#191](https://github.com/constructa-co/Constructa/pull/191) | merged | #191 merged at 34c7e85. Main CI, secret scan and production passed. |
 | CON-047 | P1 | Kimi | [#187](https://github.com/constructa-co/Constructa/pull/187) | merged | #187 merged at 97121a8. Main CI, secret scan and production deployment passed. |
 | CON-048 | P1 | Kimi | [#187](https://github.com/constructa-co/Constructa/pull/187) | merged | #187 merged at 97121a8. Main CI, secret scan and production deployment passed. |
 | CON-049 | P1 | Kimi | [#187](https://github.com/constructa-co/Constructa/pull/187) | merged | #187 merged at 97121a8. Main CI, secret scan and production deployment passed. |
-| CON-050 | P1 | Kimi | [#191](https://github.com/constructa-co/Constructa/pull/191) | in review | D51 batch 09 — Marketing identity and contact |
-| CON-051 | P1 | Kimi | [#191](https://github.com/constructa-co/Constructa/pull/191) | in review | D51 batch 09 — Marketing identity and contact |
+| CON-050 | P1 | Kimi | [#191](https://github.com/constructa-co/Constructa/pull/191) | merged | #191 merged at 34c7e85. Main CI, secret scan and production passed. |
+| CON-051 | P1 | Kimi | [#191](https://github.com/constructa-co/Constructa/pull/191) | Rob-gated | Review captures shipped in #191. Testimonials and pricing need approved owner inputs. |
 | CON-052 | P1 | Kimi | — | Rob-gated | Confirm legal entity details. |
 | CON-053 | P1 | Kimi | — | Rob-gated | Confirm contact form scope and destination. |
 | CON-054 | P1 | Claude | [#195](https://github.com/constructa-co/Constructa/pull/195) | merged | #195 merged at 02cdeb0. Main CI, secret scan and production deployment passed. |

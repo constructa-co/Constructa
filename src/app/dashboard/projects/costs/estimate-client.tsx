@@ -1443,6 +1443,12 @@ function TotalCard({
                     <dt className={`text-base ${s.body}`}>Your price lines</dt>
                     <dd className={`text-base font-semibold ${s.heading}`}>{formatGBP(summary.linesTotal)}</dd>
                 </div>
+                {summary.faceValueTotal !== 0 && (
+                    <div className={row} data-face-value-sums>
+                        <dt className={`text-base ${s.muted}`}>Prime cost &amp; provisional sums (face value)</dt>
+                        <dd className={`text-base ${s.body}`}>{formatGBP(summary.faceValueTotal)}</dd>
+                    </div>
+                )}
                 {summary.adjustments.map((a) => (
                     <div key={a.key} className={row}>
                         <dt className={`text-base ${s.muted}`}>

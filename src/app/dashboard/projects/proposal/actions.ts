@@ -477,7 +477,7 @@ export async function publishProposalAction(
 
     const { data: estimates, error: estimateError } = await supabase
         .from("estimates")
-        .select("*, estimate_lines(id, trade_section, description, quantity, unit, line_total)")
+        .select("*, estimate_lines(id, trade_section, description, quantity, unit, line_total, line_type)")
         .eq("project_id", projectId)
         .eq("is_active", true);
     if (estimateError || !estimates || estimates.length !== 1) {

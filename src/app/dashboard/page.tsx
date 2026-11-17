@@ -31,7 +31,7 @@ export default async function Dashboard({
     // different numbers to every other view. Now uses computeContractSum.
     const { data: activeEstimates } = await supabase
         .from("estimates")
-        .select("id, project_id, total_cost, prelims_pct, overhead_pct, profit_pct, risk_pct, discount_pct, is_active, estimate_lines(trade_section, line_total)")
+        .select("id, project_id, total_cost, prelims_pct, overhead_pct, profit_pct, risk_pct, discount_pct, is_active, estimate_lines(trade_section, line_total, line_type)")
         .in("project_id", safeProjects.map(p => p.id))
         .eq("is_active", true);
 

@@ -245,7 +245,7 @@ describe("price", () => {
         });
 
         it("stamps new snapshots with the current presentation", () => {
-            expect(snapshot.document_presentation_version).toBe(5);
+            expect(snapshot.document_presentation_version).toBe(6);
         });
 
         it.each([2, 3, 4, undefined] as const)("re-exports a snapshot issued under presentation %s with the grouping and wording it was issued with", (version) => {
@@ -526,7 +526,7 @@ describe("D51 programme stage names in the PDF", () => {
     it("prints a long stage name in full and gives its row the room", () => {
         expect(longSnapshot.programme_plan!.stages[1].name).toBe(LONG_NAME);
         const doc = buildProposalDocument(longSnapshot);
-        expect(doc.presentationVersion).toBe(5);
+        expect(doc.presentationVersion).toBe(6);
         expect(pdfStrings(doc).replace(/\n/g, " ")).toContain(LONG_NAME);
         const rows = programmeRows(doc);
         expect(rows).toHaveLength(4);

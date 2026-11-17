@@ -29,12 +29,20 @@
  *   8. + Profit               — adjusted × profit_pct
  *   9. = Pre-Discount Total
  *  10. − Discount             — preDiscount × discount_pct
- *  11. = Contract Sum (exc. VAT)  ← shown to client
+ *  11. = Marked-up total
+ *  12. + PC / provisional sums — at face value, no adjustment
+ *  13. = Contract Sum (exc. VAT)  ← shown to client
  *
  * Overhead / Risk / Profit / Discount are compounded in that order;
  * they do NOT commute. Prelims-then-compound is the correct RICS
  * hierarchy. Changing any step breaks contractor trust.
+ *
+ * Prime-cost and provisional sum lines (CON-016) bypass this hierarchy:
+ * they are added to the contract sum at the exact face value typed, never
+ * multiplied, so the client never reads a mark-up on an allowance.
  */
+
+import { isFaceValueLineType } from "@/lib/estimate-line-type";
 
 // ── Input types ──────────────────────────────────────────────────────────────
 
@@ -55,6 +63,8 @@ export interface EstimateLineInput {
     line_total?: number | string | null;
     quantity?: number | string | null;
     unit_rate?: number | string | null;
+    /** "pc_sum" / "provisional_sum" are carried at face value, never marked up. */
+    line_type?: string | null;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -87,13 +97,15 @@ export interface ContractSumBreakdown {
     riskAmount: number;
     profitAmount: number;
     discountAmount: number;
+    /** Prime-cost / provisional sum lines, added at face value after the mark-up. */
+    faceValueTotal: number;
     contractSum: number;
     /** Handy multiplier for converting a single line rate into an all-in rate. */
     ohRiskProfitMultiplier: number;
 }
 
 export function isPricedPreliminariesLine(line: EstimateLineInput): boolean {
-    return line.trade_section === "Preliminaries" && toNumber(line.line_total) !== 0;
+    return line.trade_section === "Preliminaries" && !isFaceValueLineType(line.line_type) && toNumber(line.line_total) !== 0;
 }
 
 /**
@@ -104,15 +116,28 @@ export function computeContractSum(
     estimate: EstimateInput,
     lines: EstimateLineInput[]
 ): ContractSumBreakdown {
-    // 1. Direct cost — everything that isn't a Preliminaries line. Credit
-    // (negative) lines reduce the total just as positive lines increase it;
-    // zero-value lines are ignored.
+    // 1. Direct cost — everything that isn't a Preliminaries line or a
+    // face-value (PC / provisional sum) line. Credit (negative) lines reduce
+    // the total just as positive lines increase it; zero-value lines are
+    // ignored. Face-value lines are counted separately below and are never
+    // part of the marked-up base.
     const directLines = lines.filter(
         (l) =>
             (l.trade_section ?? "General") !== "Preliminaries" &&
+            !isFaceValueLineType(l.line_type) &&
             toNumber(l.line_total) !== 0
     );
     const directCost = directLines.reduce(
+        (sum, l) => sum + toNumber(l.line_total),
+        0
+    );
+
+    // Prime-cost and provisional sums — carried at exactly the typed value,
+    // before any adjustment, so the client reads the allowance, not a mark-up.
+    const faceValueLines = lines.filter(
+        (l) => isFaceValueLineType(l.line_type) && toNumber(l.line_total) !== 0
+    );
+    const faceValueTotal = faceValueLines.reduce(
         (sum, l) => sum + toNumber(l.line_total),
         0
     );
@@ -121,7 +146,8 @@ export function computeContractSum(
     // but only when at least one carries a non-zero value. A zero-total
     // Preliminaries placeholder (e.g. an auto-scaffolded row) must not
     // suppress the percentage allowance. Negative prelims lines count as
-    // explicit values, symmetric with positive ones.
+    // explicit values, symmetric with positive ones. A face-value line is
+    // governed by its type, so it is never also treated as a prelims line.
     const explicitPrelimsLines = lines.filter(isPricedPreliminariesLine);
     const explicitPrelimsTotal = explicitPrelimsLines.reduce(
         (sum, l) => sum + toNumber(l.line_total),
@@ -129,9 +155,10 @@ export function computeContractSum(
     );
 
     // Fallback base for prelims when there are no priced direct lines
-    // (legacy estimates with only a total_cost value).
+    // (legacy estimates with only a total_cost value). Face-value lines do
+    // not trigger the fallback: they are not construction cost.
     const constructionBase =
-        directLines.length > 0 || explicitPrelimsLines.length > 0
+        directLines.length > 0 || explicitPrelimsLines.length > 0 || faceValueLines.length > 0
             ? directCost
             : toNumber(estimate.total_cost);
     const prelimsFromPct = constructionBase * (toNumber(estimate.prelims_pct) / 100);
@@ -155,7 +182,7 @@ export function computeContractSum(
     const preDiscount = adjustedTotal + profitAmount;
     const discountAmount = preDiscount * (discountPct / 100);
 
-    const contractSum = preDiscount - discountAmount;
+    const contractSum = preDiscount - discountAmount + faceValueTotal;
 
     // Multiplier used by the PDF to convert a raw line rate into an all-in
     // rate displayed to the client (matches the same order of compounding).
@@ -173,6 +200,7 @@ export function computeContractSum(
         riskAmount,
         profitAmount,
         discountAmount,
+        faceValueTotal,
         contractSum,
         ohRiskProfitMultiplier,
     };

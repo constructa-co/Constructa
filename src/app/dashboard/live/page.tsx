@@ -112,7 +112,7 @@ export default async function LiveProjectsPage(props: { searchParams: Promise<{ 
         supabase.from("invoices").select("project_id, amount, status").in("project_id", projectIds),
         supabase.from("variations").select("project_id, amount, status").in("project_id", projectIds),
         supabase.from("estimates")
-            .select("project_id, total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, discount_pct, is_active, estimate_lines(trade_section, line_total)")
+            .select("project_id, total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, discount_pct, is_active, estimate_lines(trade_section, line_total, line_type)")
             .in("project_id", projectIds),
     ]);
 

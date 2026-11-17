@@ -175,7 +175,10 @@ export interface AdjustmentRow {
 export interface PriceSummary {
     /** Sum of the contractor's own price lines. */
     linesTotal: number;
+    /** Prime-cost / provisional sum lines, carried at face value. */
+    faceValueTotal: number;
     adjustments: AdjustmentRow[];
+    /** Mark-up adjustments only: contract sum minus lines and face-value sums. */
     adjustmentsTotal: number;
     /** Canonical contract sum, before VAT. */
     contractSum: number;
@@ -193,11 +196,12 @@ type EstimatePercentages = Pick<Estimate, "prelims_pct" | "overhead_pct" | "risk
  */
 export function summarisePrice(
     estimate: EstimatePercentages | null,
-    lines: Pick<EstimateLine, "trade_section" | "line_total">[],
+    lines: Pick<EstimateLine, "trade_section" | "line_total" | "line_type">[],
 ): PriceSummary {
     const percentages = estimate ?? { prelims_pct: 0, overhead_pct: 0, risk_pct: 0, profit_pct: 0, discount_pct: 0, total_cost: 0 };
     const sum = computeContractSum(percentages, lines);
     const prelimsFromLines = lines.some(isPricedPreliminariesLine);
+    const faceValueTotal = roundMoney(sum.faceValueTotal);
 
     const linesTotal = prelimsFromLines ? sum.totalConstructionCost : sum.totalConstructionCost - sum.prelimsTotal;
     const adjustments: AdjustmentRow[] = [];
@@ -223,8 +227,9 @@ export function summarisePrice(
     const vat = roundMoney(contractSum * VAT_RATE);
     return {
         linesTotal: roundMoney(linesTotal),
+        faceValueTotal,
         adjustments,
-        adjustmentsTotal: roundMoney(contractSum - linesTotal),
+        adjustmentsTotal: roundMoney(contractSum - linesTotal - faceValueTotal),
         contractSum,
         vat,
         totalIncVat: roundMoney(contractSum + vat),
@@ -392,7 +397,7 @@ export function currentSummary(state: EstimatingState): PriceSummary {
     return summarisePrice(estimate, estimate?.estimate_lines ?? []);
 }
 
-type LineTotalRow = Pick<EstimateLine, "trade_section" | "line_total"> & { id: string };
+type LineTotalRow = Pick<EstimateLine, "trade_section" | "line_total" | "line_type"> & { id: string };
 
 export interface AdvancedRunningTotalDraft {
     estimateId: string;
@@ -413,6 +418,7 @@ function applySimpleLineOps(estimate: Estimate, ops: LineOp[]): LineTotalRow[] |
         id: line.id,
         trade_section: line.trade_section,
         line_total: line.line_total,
+        line_type: line.line_type,
     }));
 
     for (const op of ops) {
@@ -427,7 +433,7 @@ function applySimpleLineOps(estimate: Estimate, ops: LineOp[]): LineTotalRow[] |
             if (lines.some((line) => line.id === op.lineId)) {
                 lines = lines.map((line) => (line.id === op.lineId ? { ...line, line_total } : line));
             } else {
-                lines.push({ id: op.lineId, trade_section: SIMPLE_LINE_SECTION, line_total });
+                lines.push({ id: op.lineId, trade_section: SIMPLE_LINE_SECTION, line_total, line_type: "general" });
             }
             continue;
         }
@@ -476,6 +482,7 @@ export function previewRunningTotal(state: EstimatingState, options: PreviewRunn
         id: line.id,
         trade_section: line.trade_section,
         line_total: line.line_total,
+        line_type: line.line_type,
     }));
 
     if (state.advancedOpen && advanced) {

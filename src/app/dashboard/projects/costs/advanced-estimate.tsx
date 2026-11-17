@@ -81,7 +81,18 @@ const TRADE_SECTIONS = [
 
 const UNITS = ["m", "m2", "m3", "nr", "item", "day", "week", "tonne", "kg", "lm"];
 
-const LINE_TYPES = ["general", "labour", "plant", "material", "subcontract", "consultancy"];
+const LINE_TYPES = ["general", "labour", "plant", "material", "subcontract", "consultancy", "pc_sum", "provisional_sum"];
+const LINE_TYPE_LABELS: Record<string, string> = {
+    general: "General",
+    labour: "Labour",
+    plant: "Plant",
+    material: "Material",
+    subcontract: "Subcontract",
+    consultancy: "Consultancy",
+    pc_sum: "PC sum",
+    provisional_sum: "Provisional sum",
+};
+const lineTypeLabel = (type: string) => LINE_TYPE_LABELS[type] ?? type.charAt(0).toUpperCase() + type.slice(1);
 type CatalogueReview = { line: EstimateLine; item: CostLibraryItem; context: string };
 type QuantityDraft = { line: EstimateLine; raw: string; context: string };
 type RateDraft = QuantityDraft & { projectId: string; orgId: string };
@@ -2113,7 +2124,7 @@ function LineItemRow({
                     }} className="w-full h-8 px-1 border border-slate-700 rounded text-xs text-slate-400 bg-slate-900/50">
                     {!LINE_TYPES.includes(line.line_type) && <option value={typeof line.line_type === "string" ? line.line_type : ""}>Saved: {JSON.stringify(line.line_type) ?? "not supplied"}</option>}
                     {lineTypeDraft && !LINE_TYPES.includes(lineTypeDraft.raw) && lineTypeDraft.raw !== line.line_type && <option value={lineTypeDraft.raw}>Reviewed: {JSON.stringify(lineTypeDraft.raw)}</option>}
-                    {LINE_TYPES.map(type => <option key={type} value={type}>{type.charAt(0).toUpperCase() + type.slice(1)}</option>)}
+                    {LINE_TYPES.map(type => <option key={type} value={type}>{lineTypeLabel(type)}</option>)}
                 </select>
                 {typeof line.line_type !== "string" && <p role="status" className="text-xs">The stored type is not text. Review this source before changing it.</p>}
                 {lineTypeDraft && <>
@@ -2136,7 +2147,7 @@ function LineItemRow({
                 >
                     {LINE_TYPES.map((t) => (
                         <option key={t} value={t}>
-                            {t.charAt(0).toUpperCase() + t.slice(1)}
+                            {lineTypeLabel(t)}
                         </option>
                     ))}
                 </select>

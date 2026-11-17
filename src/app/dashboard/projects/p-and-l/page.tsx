@@ -64,7 +64,7 @@ export default async function PLPage(props: { searchParams: Promise<{ projectId?
                     .in("project_id", projectIds),
                 supabase
                     .from("estimates")
-                    .select("project_id, total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, discount_pct, is_active, estimate_lines(trade_section, line_total)")
+                    .select("project_id, total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, discount_pct, is_active, estimate_lines(trade_section, line_total, line_type)")
                     .in("project_id", projectIds),
             ]);
             allExpenses  = expData  ?? [];

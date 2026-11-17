@@ -42,7 +42,7 @@ export default async function FinalAccountPage(props: { searchParams: Promise<{ 
         { data: profile },
     ] = await Promise.all([
         supabase.from("projects").select("*").eq("id", projectId).single(),
-        supabase.from("estimates").select("id, total_cost, is_active, overhead_pct, risk_pct, profit_pct, discount_pct, prelims_pct, estimate_lines(trade_section, line_total)").eq("project_id", projectId),
+        supabase.from("estimates").select("id, total_cost, is_active, overhead_pct, risk_pct, profit_pct, discount_pct, prelims_pct, estimate_lines(trade_section, line_total, line_type)").eq("project_id", projectId),
         supabase.from("variations").select("*").eq("project_id", projectId).order("created_at", { ascending: true }),
         supabase.from("invoices").select("*").eq("project_id", projectId).order("created_at", { ascending: true }),
         supabase.from("final_accounts").select("*").eq("project_id", projectId).maybeSingle(),

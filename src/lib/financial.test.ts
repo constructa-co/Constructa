@@ -507,3 +507,99 @@ describe("preliminaries-only estimates", () => {
         expect(result.contractSum).toBe(lineTotal);
     });
 });
+
+describe("computeContractSum — prime-cost and provisional sums (CON-016)", () => {
+    const adjusted = { prelims_pct: 0, overhead_pct: 10, risk_pct: 0, profit_pct: 15, discount_pct: 0 };
+
+    it("carries a PC sum at face value, outside the mark-up base", () => {
+        const result = computeContractSum(adjusted, [
+            { trade_section: "Kitchen", line_total: 10000, line_type: "material" },
+            { trade_section: "Kitchen", line_total: 7500, line_type: "pc_sum" },
+        ]);
+        expect(result.directCost).toBe(10000);
+        expect(result.faceValueTotal).toBe(7500);
+        // 10000 × 1.10 × 1.15 = 12650; the £7,500 PC sum is untouched.
+        expect(result.contractSum).toBe(20150);
+    });
+
+    it("carries a provisional sum at face value and excludes it from prelims percentage", () => {
+        const result = computeContractSum(
+            { ...adjusted, prelims_pct: 10 },
+            [
+                { trade_section: "Drainage", line_total: 10000 },
+                { trade_section: "Drainage", line_total: 850, line_type: "provisional_sum" },
+            ],
+        );
+        // Prelims 10% of the 10000 measured base; 850 added at face value.
+        expect(result.prelimsTotal).toBe(1000);
+        expect(roundMoney(result.contractSum)).toBe(roundMoney(11000 * 1.265 + 850));
+        expect(result.contractSum).toBe(14765);
+    });
+
+    it("applies no discount to face-value sums", () => {
+        const result = computeContractSum(
+            { ...adjusted, discount_pct: 10 },
+            [
+                { trade_section: "General", line_total: 10000 },
+                { trade_section: "General", line_total: 7500, line_type: "pc_sum" },
+            ],
+        );
+        // 10000 × 1.10 × 1.15 × 0.90 = 11385; PC sum unaffected by the 10% discount.
+        expect(roundMoney(result.contractSum)).toBe(18885);
+    });
+
+    it("PC-sum-only estimates do not fall back to the legacy stored total", () => {
+        const result = computeContractSum(
+            { prelims_pct: 10, overhead_pct: 10, risk_pct: 0, profit_pct: 15, discount_pct: 0, total_cost: 99999 },
+            [{ trade_section: "Kitchen", line_total: 7500, line_type: "pc_sum" }],
+        );
+        expect(result.directCost).toBe(0);
+        expect(result.prelimsTotal).toBe(0);
+        expect(result.contractSum).toBe(7500);
+    });
+
+    it("a negative PC sum is a credit at face value", () => {
+        const result = computeContractSum(
+            { prelims_pct: 0, overhead_pct: 0, risk_pct: 0, profit_pct: 0, discount_pct: 0 },
+            [
+                { trade_section: "General", line_total: 10000 },
+                { trade_section: "General", line_total: -500, line_type: "pc_sum" },
+            ],
+        );
+        expect(result.contractSum).toBe(9500);
+    });
+
+    it("a PC sum filed under Preliminaries counts once, at face value", () => {
+        const result = computeContractSum(
+            { prelims_pct: 10, overhead_pct: 0, risk_pct: 0, profit_pct: 0, discount_pct: 0 },
+            [
+                { trade_section: "General", line_total: 10000 },
+                { trade_section: "Preliminaries", line_total: 500, line_type: "pc_sum" },
+            ],
+        );
+        // Not an explicit prelims line: the 10% allowance still applies to the base.
+        expect(result.prelimsTotal).toBe(1000);
+        expect(result.contractSum).toBe(11000 + 500);
+    });
+
+    it("unknown stored line types keep the fully marked-up legacy behaviour", () => {
+        const typed = computeContractSum(adjusted, [
+            { trade_section: "Kitchen", line_total: 7500, line_type: "PC Sum" },
+        ]);
+        const freeText = computeContractSum(adjusted, [
+            { trade_section: "Kitchen", line_total: 7500 },
+        ]);
+        // Only the exact typed values are face value; anything else is marked up.
+        expect(typed.faceValueTotal).toBe(0);
+        expect(roundMoney(typed.contractSum)).toBe(roundMoney(7500 * 1.265));
+        expect(freeText.faceValueTotal).toBe(0);
+    });
+
+    it("coerces a string line_total and string line_type from Supabase", () => {
+        const result = computeContractSum(adjusted, [
+            { trade_section: "Kitchen", line_total: "7500", line_type: "pc_sum" },
+        ]);
+        expect(result.faceValueTotal).toBe(7500);
+        expect(result.contractSum).toBe(7500);
+    });
+});

@@ -278,7 +278,9 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
                         </p>
                     )}
                     <div data-wide-workspace className="rounded-xl bg-[#0d0d0d] p-3 sm:p-4 overflow-x-auto">
-                        <div className="min-w-[760px]">
+                        {/* The chart and tracking table scroll sideways on their own, so the planner's
+                            title, Save and settings stay within a phone's width. */}
+                        <div className="min-w-0">
                             <DetailedPlanner project={project as never} estimate={estimate} projectId={project.id} />
                         </div>
                     </div>
@@ -620,7 +622,7 @@ function ProgrammeEditor({
                         <p id="programme-working-days-note" className={`text-sm ${s.muted}`}>Monday to Friday is the default. Include weekends only when this job works them. A week uses the selected working days. Review the dates, then save the programme; these choices are not saved just in this browser.</p>
                         {([6, 0] as const).map(day => (
                             <label key={day} className={`flex items-center gap-3 min-h-11 text-sm ${s.body}`}>
-                                <input type="checkbox" id={`programme-weekend-${day}`}
+                                <input type="checkbox" id={`programme-weekend-${day}`} className="w-5 h-5 flex-shrink-0"
                                     checked={draftWeekdays(draft.workingPattern).includes(day)}
                                     onChange={event => {
                                         const weekdays = event.target.checked
@@ -637,7 +639,7 @@ function ProgrammeEditor({
                         ))}
                         {errorText("programme-working-days-error", fieldErrors.workingPattern)}
                         <label className={`flex items-center gap-3 min-h-11 text-sm ${s.body}`}>
-                            <input type="checkbox" id="programme-local-hours"
+                            <input type="checkbox" id="programme-local-hours" className="w-5 h-5 flex-shrink-0"
                                 checked={isWorkingPatternV2Draft(draft.workingPattern)}
                                 onChange={event => {
                                     if (event.target.checked) {

@@ -736,7 +736,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
             <div className="flex items-center gap-4 flex-wrap bg-slate-800/40 border border-slate-700/50 rounded-xl px-4 py-3">
                 {/* Start date */}
                 <div className="flex items-center gap-2.5">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Start date</span>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Start date</span>
                     <div className="relative">
                         <input
                             type="date"
@@ -745,7 +745,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                             onChange={(e) => handleStartDateChange(e.target.value)}
                         />
                     </div>
-                    <span className="text-[10px] text-slate-600">
+                    <span className="text-[10px] text-slate-400">
                         {fmtDate(programmeStart)}
                     </span>
                 </div>
@@ -754,7 +754,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
                 {/* Working week */}
                 <div className="flex items-center gap-2.5">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Working week</span>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Working week</span>
                     <span className="text-xs text-slate-300" data-planner-saved-working-days>
                         {workingPattern?.weekdays.map(day => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][day]).join(", ")}
                     </span>
@@ -778,9 +778,9 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                         },
                     ].map(({ label, value, sub }) => (
                         <div key={label} className="bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-3">
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">{label}</p>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">{label}</p>
                             <p className="text-base font-bold text-white">{value}</p>
-                            <p className="text-[10px] text-slate-500 mt-0.5">{sub}</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">{sub}</p>
                         </div>
                     ))}
                 </div>
@@ -788,7 +788,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
             {/* ── Drag hint ── */}
             {phases.length > 0 && (
-                <div className="flex items-center gap-4 text-[11px] text-slate-500 flex-wrap">
+                <div className="flex items-center gap-4 text-[11px] text-slate-400 flex-wrap">
                     <span>Drag bar to move · Drag right edge to resize · Snaps to week</span>
                     {weekHeaders[0].weeks > 1 && (
                         <span>Grid columns group up to {weekHeaders[0].weeks} calendar weeks; the last column may be shorter. Weekly move and resize snapping is unchanged.</span>
@@ -838,7 +838,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                             </svg>
                         </div>
                         <p className="text-sm font-medium text-slate-300">No programme phases yet</p>
-                        <p className="text-xs text-slate-500 max-w-xs">
+                        <p className="text-xs text-slate-400 max-w-xs">
                             {estimate
                                 ? "Add labour components with manhours to estimate lines, then click Regenerate."
                                 : "Set an estimate as active to auto-generate the programme."}
@@ -861,16 +861,16 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                     <div className="flex min-w-[900px] border-b border-slate-700/50 bg-slate-900/40 lg:sticky lg:top-0 lg:z-40 lg:bg-slate-900">
                         <div className="flex shrink-0 lg:sticky lg:left-0 lg:z-10 lg:bg-slate-900">
                             <div className="w-[216px] shrink-0 border-r border-slate-700/50 px-3 py-2.5">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Phase / Trade</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Phase / Trade</span>
                             </div>
                             <div className="w-14 shrink-0 border-r border-slate-700/50 text-center py-2.5">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Calc</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Calc</span>
                             </div>
                             <div className="w-16 shrink-0 border-r border-slate-700/50 text-center py-2.5">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Days</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Days</span>
                             </div>
                             <div className="w-[108px] shrink-0 border-r border-slate-700/50 text-center py-2.5">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Starts After</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Starts After</span>
                             </div>
                         </div>
                         <div className="flex-1 flex">
@@ -878,8 +878,8 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                 <div key={wk.weekIndex} data-planner-week-start={wk.weekIndex + 1} data-planner-week-span={wk.weeks}
                                     title={wk.range} aria-label={wk.range}
                                     className="shrink-0 min-w-0 text-center py-1.5 border-r border-slate-700/20 last:border-0" style={{ width: `${wk.weeks / totalWeeks * 100}%` }}>
-                                    <div className="text-[9px] font-bold text-slate-500 leading-tight truncate">{wk.label}</div>
-                                    <div className="text-[8px] text-slate-600 leading-tight truncate hidden md:block">{wk.date}</div>
+                                    <div className="text-[9px] font-bold text-slate-400 leading-tight truncate">{wk.label}</div>
+                                    <div className="text-[8px] text-slate-400 leading-tight truncate hidden md:block">{wk.date}</div>
                                     {wk.weeks === 1 && <div className="grid grid-cols-7 mt-1" aria-label="Calendar days Monday to Sunday">
                                         {[1, 2, 3, 4, 5, 6, 0].map(day => <span key={day} data-planner-calendar-day={day}
                                             data-working-day={workingPattern?.weekdays.includes(day) ? "true" : "false"}
@@ -921,11 +921,11 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                                     onChange={(e) => updatePhaseName(idx, e.target.value)}
                                                 />
                                                 <button type="button" onClick={() => deletePhase(idx)}
-                                                    className="shrink-0 w-4 text-slate-600 hover:text-red-400 transition-colors text-lg leading-none" title="Remove phase">
+                                                    className="shrink-0 w-4 text-slate-400 hover:text-red-400 transition-colors text-lg leading-none" title="Remove phase">
                                                     ×
                                                 </button>
                                             </div>
-                                            <div className="text-[9px] text-slate-500 pl-[14px] mt-0.5 flex items-center gap-1.5">
+                                            <div className="text-[9px] text-slate-400 pl-[14px] mt-0.5 flex items-center gap-1.5">
                                                 <span>{fmtDate(phaseStart)} – {fmtDate(phaseEnd)}</span>
                                                 {phase.manhours > 0 && <span>· {Math.round(phase.manhours)}h</span>}
                                                 {isCritical && <span className="text-yellow-500">★</span>}
@@ -1117,7 +1117,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                         + Add Phase
                     </button>
                     <div className="flex items-center gap-3">
-                        <p className="text-[11px] text-slate-500">
+                        <p className="text-[11px] text-slate-400">
                             Days = working days ({daysPerWeek}d/wk). Coloured bar = calendar span; ticks and grips are controls, not extra days. ★ = critical path.
                         </p>
                         <button
@@ -1199,29 +1199,29 @@ function LiveTrackingPanel({
         <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">
             {/* Header */}
             <div className="px-5 py-4 border-b border-slate-700/50">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
                     <div>
                         <h2 className="text-sm font-semibold text-white">Live Programme Tracking</h2>
-                        <p className="text-xs text-slate-500 mt-0.5">Update % complete and actual dates — saves automatically with the Gantt</p>
+                        <p className="text-xs text-slate-400 mt-0.5">Update % complete and actual dates — saves automatically with the Gantt</p>
                     </div>
-                    <div className="flex items-center gap-6">
+                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
                         <div className="text-right">
-                            <p className="text-[11px] text-slate-500 uppercase tracking-wider">Overall</p>
+                            <p className="text-[11px] text-slate-400 uppercase tracking-wider">Overall</p>
                             <p className={`text-xl font-bold ${overallPct === 100 ? "text-emerald-400" : overallPct > 0 ? "text-blue-400" : "text-slate-400"}`}>{overallPct}%</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-[11px] text-slate-500 uppercase tracking-wider">Complete</p>
+                            <p className="text-[11px] text-slate-400 uppercase tracking-wider">Complete</p>
                             <p className="text-xl font-bold text-emerald-400">{complete}</p>
                         </div>
                         {inProgress > 0 && (
                             <div className="text-right">
-                                <p className="text-[11px] text-slate-500 uppercase tracking-wider">In Progress</p>
+                                <p className="text-[11px] text-slate-400 uppercase tracking-wider">In Progress</p>
                                 <p className="text-xl font-bold text-blue-400">{inProgress}</p>
                             </div>
                         )}
                         {delayed > 0 && (
                             <div className="text-right">
-                                <p className="text-[11px] text-slate-500 uppercase tracking-wider">Delayed</p>
+                                <p className="text-[11px] text-slate-400 uppercase tracking-wider">Delayed</p>
                                 <p className="text-xl font-bold text-red-400">{delayed}</p>
                             </div>
                         )}
@@ -1236,12 +1236,13 @@ function LiveTrackingPanel({
                 </div>
             </div>
 
-            {/* Phase table */}
-            <table className="w-full text-sm">
+            {/* Phase table: scrolls sideways inside the card on a narrow screen */}
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] text-sm">
                 <thead>
                     <tr className="border-b border-slate-700/50">
                         {["Phase", "Planned Dates", "% Complete", "Actual Start", "Actual Finish", "Status"].map(h => (
-                            <th key={h} className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 ${h === "% Complete" ? "text-center" : "text-left"}`}>{h}</th>
+                            <th key={h} className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 ${h === "% Complete" ? "text-center" : "text-left"}`}>{h}</th>
                         ))}
                     </tr>
                 </thead>
@@ -1280,7 +1281,7 @@ function LiveTrackingPanel({
                                         {" → "}
                                         {plannedEnd.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                                     </p>
-                                    <p className="text-[10px] text-slate-600 mt-0.5">{phase.manualDays ?? phase.calculatedDays}d working</p>
+                                    <p className="text-[10px] text-slate-400 mt-0.5">{phase.manualDays ?? phase.calculatedDays}d working</p>
                                 </td>
                                 <td className="px-4 py-3">
                                     <div className="flex items-center gap-2">
@@ -1322,6 +1323,7 @@ function LiveTrackingPanel({
                     })}
                 </tbody>
             </table>
+            </div>
 
             {/* AI Update section */}
             <div className="border-t border-slate-700/50 p-5">

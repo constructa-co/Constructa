@@ -77,11 +77,30 @@ export function parseAdvancedQuantityDraft(raw: string): number | null {
     return Number.isFinite(number) ? number : null;
 }
 
-/** Plain digits with optional decimals. No sign, exponent or hex forms. */
+/**
+ * Plain digits with optional decimals. No sign, exponent or hex forms. A
+ * single comma with one or two digits after it and no dot is an en-GB decimal
+ * comma ("1,5" → 1.5). Any other comma must be valid thousands grouping in
+ * threes ("1,500", "1,234.5"); malformed commas such as "1,2,3" or "1,2345"
+ * are rejected instead of being silently stripped into a different number.
+ */
 function parseDecimal(raw: string, maxDecimals: number): number | null {
-    const cleaned = raw.trim().replace(/[£,\s]/g, "");
-    if (!new RegExp(`^\\d+(\\.\\d{1,${maxDecimals}})?$`).test(cleaned)) return null;
-    return Number(cleaned);
+    const cleaned = raw.trim().replace(/[£\s]/g, "");
+    if (!cleaned) return null;
+    let normalised = cleaned;
+    if (!/\./.test(cleaned) && /^\d+,\d{1,2}$/.test(cleaned)) {
+        normalised = cleaned.replace(",", ".");
+    } else if (cleaned.includes(",")) {
+        if (!/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(cleaned)) return null;
+        normalised = cleaned.replace(/,/g, "");
+    }
+    if (!new RegExp(`^\\d+(\\.\\d{1,${maxDecimals}})?$`).test(normalised)) return null;
+    return Number(normalised);
+}
+
+/** True when the text is plainly a number below zero, so the message can say so. */
+function isNegativeNumberText(raw: string): boolean {
+    return /^-\s*\d/.test(raw.trim());
 }
 
 export function lineTotal(quantity: number, unitRate: number): number {
@@ -119,8 +138,10 @@ export function buildPriceLine(draft: PriceLineDraft): BuildPriceLineResult {
 
     const quantity = parseDecimal(draft.quantity, 3);
     const rate = parseDecimal(draft.rate, 2);
-    if (quantity === null) fieldErrors.quantity = "Enter the quantity as a number.";
-    else if (quantity <= 0) fieldErrors.quantity = "Enter a quantity above 0.";
+    if (quantity === null) fieldErrors.quantity = isNegativeNumberText(draft.quantity)
+        ? "Quantity must be more than 0."
+        : "Enter the quantity as a number.";
+    else if (quantity <= 0) fieldErrors.quantity = "Quantity must be more than 0.";
     else if (quantity > MAX_LINE_QUANTITY) fieldErrors.quantity = "That quantity is too large.";
     if (rate === null) fieldErrors.rate = "Enter the rate as a number.";
     else if (rate <= 0) fieldErrors.rate = "Enter a rate above £0.";

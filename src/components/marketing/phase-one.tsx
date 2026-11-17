@@ -89,7 +89,7 @@ function ProposalIllustration() {
 
 function Journey() {
   return (
-    <section id="how-it-works" className={ui.section}>
+    <section id="how-it-works" className={ui.section} data-reveal>
       <div className={ui.sectionIntro}><p className={ui.eyebrow}>One connected journey</p><h2>Less starting again.<br />More moving forward.</h2><p>From who you are to what you will deliver. Keep the company story, the job and the proposal connected.</p></div>
       <ol className={ui.journey}>
         {stages.map(stage => <li key={stage.number}>
@@ -103,7 +103,7 @@ function Journey() {
 
 function Scope({ showAccessLink = true }: { showAccessLink?: boolean }) {
   return (
-    <section id="phase-one" className={`${ui.section} ${ui.scope}`}>
+    <section id="phase-one" className={`${ui.section} ${ui.scope}`} data-reveal>
       <div><p className={ui.eyebrow}>A focused first release</p><h2>The work-winning essentials.<br />Not a catalogue of add-ons.</h2><p>This phase-one preview brings together company profiles, estimating, programmes and proposals — the essentials for winning work, in one connected flow. It is a working review, not a claim that every part is ready for release.</p></div>
       <div className={ui.scopeList}>
         {['Company profile and past work', 'Job brief and estimating', 'Programme and proposal preparation'].map(item => <p key={item}><Check size={18} aria-hidden="true" />{item}</p>)}
@@ -122,12 +122,12 @@ function Questions() {
     ['Can I buy the later-phase tools here?', 'No. This preview focuses on the work-winning journey. Later-phase workflows and commercial plans are not being offered for purchase here.'],
     ['Is this ready for live customer work?', 'This is a pre-release review. Authentication, data handling, commercial terms and the complete proposal journey are being verified before live customer use.'],
   ];
-  return <section id="questions" className={`${ui.section} ${ui.questions}`}><div><p className={ui.eyebrow}>A few useful answers</p><h2>Before you<br />get started.</h2></div><div>{questions.map(([question, answer]) => <details key={question}><summary>{question}<Plus size={18} aria-hidden="true" /></summary><p>{answer}</p></details>)}</div></section>;
+  return <section id="questions" className={`${ui.section} ${ui.questions}`} data-reveal><div><p className={ui.eyebrow}>A few useful answers</p><h2>Before you<br />get started.</h2></div><div>{questions.map(([question, answer]) => <details key={question}><summary>{question}<Plus size={18} aria-hidden="true" /></summary><p>{answer}</p></details>)}</div></section>;
 }
 
 function Invitation() {
   return (
-    <section className={ui.invitation}>
+    <section className={ui.invitation} data-reveal>
       <p className={ui.eyebrow}>Your next chapter</p>
       <h2>Good work deserves<br />a good introduction.</h2>
       <p>Start with your business. Bring the next job into focus.</p>
@@ -160,7 +160,7 @@ export function PhaseOneHome() {
       <div className={ui.chapterLine}><span>Built around your business</span><span>Company <i /> Price <i /> Programme <i /> Proposal</span></div>
       <Journey />
       <HomeReviewCaptures />
-      <section className={`${ui.section} ${ui.story}`}>
+      <section className={`${ui.section} ${ui.story}`} data-reveal>
         <div className={ui.photo}><HomeBusinessVisual /><span>Construction is a people business.</span></div>
         <div><p className={ui.eyebrow}>The experience behind the estimate</p><h2>Your business.<br />Not another<br />blank template.</h2><p>Your experience, the challenges you have solved and the quality of your work belong alongside the numbers. Put them in a company profile and reuse the right examples when you prepare a proposal.</p><p>Whether you fit kitchens, refurbish workplaces or run a multi-trade team, the story should be yours.</p><FoundingCohortApplyLink>Apply for the founding cohort</FoundingCohortApplyLink></div>
       </section>
@@ -172,7 +172,7 @@ export function PhaseOneHome() {
 export function PhaseOneFeatures() {
   return (
     <div className={`${ui.theme} ${ui.root}`}>
-      <section className={ui.pageIntro}>
+      <section className={ui.pageIntro} data-reveal>
         <p className={ui.eyebrow}>The phase-one product</p>
         <h1>From first hello.<br /><em>To a considered proposal.</em></h1>
         <p>One connected work-winning journey. Company profile, brief, price, programme and proposal, with room for your own experience and judgement.</p>
@@ -191,7 +191,7 @@ export function PhaseOneFeatures() {
 export function PhaseOnePricing() {
   return (
     <div className={`${ui.theme} ${ui.root}`}>
-      <section className={ui.pageIntro}>
+      <section className={ui.pageIntro} data-reveal>
         <p className={ui.eyebrow}>Preview access</p>
         <h1>A focused first phase.<br /><em>No add-on checkout.</em></h1>
         <p>We are reviewing the complete work-winning journey before release. Preview access is part of the founding-cohort review — no subscription, free trial or payment is offered here.</p>

@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { getLaunchProfile } from '@/lib/launch-profile';
 import Header from './Header';
@@ -16,6 +17,39 @@ export default function PublicChrome({ children }: { children: ReactNode }) {
   const showMarketing = !isApplication && !isPublicProposal;
   const landingHasOwnFooter = pathname === '/landing' && getLaunchProfile() === 'full';
   const marketingBypass = showMarketing && getLaunchProfile() !== 'full';
+
+  // Restrained section-entry motion for marketing pages: sections opt in with
+  // data-reveal. Hidden states only apply once this effect arms the document,
+  // so content stays fully visible without JavaScript. Reduced-motion users
+  // get every section immediately, with no transition.
+  useEffect(() => {
+    const targets = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'));
+    if (targets.length === 0) return;
+    const root = document.documentElement;
+    root.classList.add('reveal-armed');
+    const revealAll = () => targets.forEach(el => el.classList.add('reveal-in'));
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      revealAll();
+      return () => { root.classList.remove('reveal-armed'); };
+    }
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('reveal-in');
+          observer.unobserve(entry.target);
+        }
+      }
+    }, { threshold: 0.1, rootMargin: '0px 0px -6% 0px' });
+    for (const el of targets) {
+      const box = el.getBoundingClientRect();
+      if (box.top < window.innerHeight && box.bottom > 0) el.classList.add('reveal-in');
+      else observer.observe(el);
+    }
+    return () => {
+      observer.disconnect();
+      root.classList.remove('reveal-armed');
+    };
+  }, [pathname]);
 
   return <>
     {marketingBypass && <a href="#public-marketing-content" className={`${ui.theme} ${ui.skip}`}>Skip to content</a>}

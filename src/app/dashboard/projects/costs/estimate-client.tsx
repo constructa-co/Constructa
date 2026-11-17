@@ -1445,7 +1445,10 @@ function TotalCard({
                 </div>
                 {summary.adjustments.map((a) => (
                     <div key={a.key} className={row}>
-                        <dt className={`text-base ${s.muted}`}>{a.label} ({a.pct}%)</dt>
+                        <dt className={`text-base ${s.muted}`}>
+                            {a.label} ({a.pct}%)
+                            {a.note && <span className={`mt-0.5 block text-sm ${s.muted}`}>{a.note}</span>}
+                        </dt>
                         <dd className={`text-base ${s.body}`}>{formatGBP(a.amount)}</dd>
                     </div>
                 ))}
@@ -1472,7 +1475,7 @@ function TotalCard({
                 </div>
             </dl>
 
-            {estimate && summary.adjustments.length === 0 && (
+            {estimate && !summary.adjustments.some((a) => a.amount !== 0) && (
                 <p className={`mt-3 text-sm ${s.muted}`}>
                     Nothing has been added on top of your lines for overhead, risk or profit. If your prices already allow for them, leave it as it is.
                 </p>

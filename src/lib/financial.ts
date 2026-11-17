@@ -92,6 +92,10 @@ export interface ContractSumBreakdown {
     ohRiskProfitMultiplier: number;
 }
 
+export function isPricedPreliminariesLine(line: EstimateLineInput): boolean {
+    return line.trade_section === "Preliminaries" && toNumber(line.line_total) !== 0;
+}
+
 /**
  * Canonical QS contract sum. Mirrors computeEstimateContractSum() in the
  * proposal editor exactly, but now lives in one place.
@@ -118,11 +122,7 @@ export function computeContractSum(
     // Preliminaries placeholder (e.g. an auto-scaffolded row) must not
     // suppress the percentage allowance. Negative prelims lines count as
     // explicit values, symmetric with positive ones.
-    const explicitPrelimsLines = lines.filter(
-        (l) =>
-            (l.trade_section ?? "") === "Preliminaries" &&
-            toNumber(l.line_total) !== 0
-    );
+    const explicitPrelimsLines = lines.filter(isPricedPreliminariesLine);
     const explicitPrelimsTotal = explicitPrelimsLines.reduce(
         (sum, l) => sum + toNumber(l.line_total),
         0

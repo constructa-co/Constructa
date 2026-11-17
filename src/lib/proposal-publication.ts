@@ -319,7 +319,12 @@ function buildFeeItems(
     const breakdown = computeContractSum(estimate, estimate.estimate_lines);
     const multiplier = breakdown.ohRiskProfitMultiplier;
     const sourceItems = estimate.estimate_lines
-        .filter((line) => toNumber(line.line_total) > 0 || isFaceValueLineType(line.line_type))
+        // A zero-value placeholder is never published — not even a typed
+        // allowance, which computeContractSum also leaves out of the price.
+        .filter((line) =>
+            isFaceValueLineType(line.line_type)
+                ? toNumber(line.line_total) !== 0
+                : toNumber(line.line_total) > 0)
         .map((line) => {
             // Prime-cost and provisional sums go to the client at exactly the
             // typed figure — never multiplied by the mark-up.

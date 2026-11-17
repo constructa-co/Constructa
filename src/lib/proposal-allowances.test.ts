@@ -87,6 +87,23 @@ describe("proposal snapshot — typed PC and provisional sums", () => {
     it("stamps presentation version 6 on new snapshots", () => {
         expect(buildProposalPublicationSnapshot(allowanceInput()).document_presentation_version).toBe(6);
     });
+
+    it("never publishes a zero-value allowance placeholder", () => {
+        const input = allowanceInput();
+        input.estimate.estimate_lines = [
+            { id: "m1", trade_section: "General", description: "Strip out", quantity: 1, unit: "item", line_total: 1010.1 },
+            { id: "pc0", trade_section: "Kitchen", description: "PC sum: kitchen units (allowance not yet set)", quantity: 1, unit: "item", line_total: 0, line_type: "pc_sum" },
+        ];
+        const snapshot = buildProposalPublicationSnapshot(input);
+        // The £0 line is not in the price, so it must not appear as a fee
+        // item either — no £0.00 row in a "Prime cost sums" block.
+        expect(snapshot.commercial.fee_items.some((item) => item.id === "pc0")).toBe(false);
+        const section = priceSection(input);
+        const block = priceBlock(section);
+        expect(block.groups.map((group) => group.title)).not.toContain("Prime cost sums");
+        expect(section.blocks.some((candidate) => candidate.type === "paragraphs" &&
+            candidate.paragraphs.some((paragraph) => paragraph.includes("face value")))).toBe(false);
+    });
 });
 
 describe("proposal document — separate allowance blocks (presentation 6)", () => {
@@ -120,6 +137,39 @@ describe("proposal document — separate allowance blocks (presentation 6)", () 
         expect(block.groups.map((group) => group.title)).toEqual([null, "Prime cost sums", "Preliminaries"]);
     });
 
+    it("titles a lone section the same whether or not an allowance exists", () => {
+        const withoutPc = (): BuildProposalPublicationInput => {
+            const base = representativeInput();
+            return {
+                ...base,
+                estimate: {
+                    ...base.estimate,
+                    estimate_lines: [
+                        { id: "m1", trade_section: "Other work", description: "Strip out", quantity: 1, unit: "item", line_total: 1010.1 },
+                    ],
+                },
+            };
+        };
+        const withPc = (): BuildProposalPublicationInput => {
+            const base = withoutPc();
+            return {
+                ...base,
+                estimate: {
+                    ...base.estimate,
+                    estimate_lines: [
+                        ...base.estimate.estimate_lines,
+                        { id: "pc1", trade_section: "Kitchen", description: "PC sum: kitchen", quantity: 1, unit: "item", line_total: 7500, line_type: "pc_sum" },
+                    ],
+                },
+            };
+        };
+        // "Other work" is a generic bucket the client never reads as a
+        // heading: suppressed for a lone section on its own, and still
+        // suppressed when a PC sum shares the price section.
+        expect(priceBlock(priceSection(withoutPc())).groups.map((group) => group.title)).toEqual([null]);
+        expect(priceBlock(priceSection(withPc())).groups.map((group) => group.title)).toEqual([null, "Prime cost sums"]);
+    });
+
     it("states that no adjustment is applied to the allowances", () => {
         const section = priceSection(allowanceInput());
         const statement = section.blocks.find((candidate) =>
@@ -146,6 +196,24 @@ describe("issued legacy snapshots keep their rendering", () => {
         expect(block.groups.map((group) => group.title)).not.toContain("Prime cost sums");
         expect(block.groups.map((group) => group.title)).not.toContain("Provisional sums");
         // The amounts on the snapshot are what the client was sent.
+        const amounts = block.groups.flatMap((group) => group.items.map((item) => item.amount));
+        expect(amounts).toContain("£7,500.00");
+        expect(amounts).toContain("£850.00");
+    });
+
+    it("renders a version 5 snapshot whose fee items carry no line_type at all", () => {
+        // A real issued presentation 1–5 snapshot predates line_type: the
+        // field is absent, not merely unset. Strip it the way an issued row
+        // actually looks, then check the drawing is unchanged.
+        const snapshot = buildProposalPublicationSnapshot(allowanceInput());
+        snapshot.document_presentation_version = 5;
+        for (const item of snapshot.commercial.fee_items) {
+            delete item.line_type;
+        }
+        const doc = buildProposalDocument(snapshot);
+        const block = priceBlock(doc.sections.find((candidate) => candidate.id === "price")!);
+        // Typed lines stay inside their sections; nothing is lifted out.
+        expect(block.groups.map((group) => group.title)).toEqual([null, "Kitchen", "Drainage"]);
         const amounts = block.groups.flatMap((group) => group.items.map((item) => item.amount));
         expect(amounts).toContain("£7,500.00");
         expect(amounts).toContain("£850.00");

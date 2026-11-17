@@ -514,8 +514,12 @@ function priceGroups(snapshot: ProposalPublicationSnapshot): DocPriceGroup[] {
             amount: formatGbp(item.amount_ex_vat),
         });
     }
-    if (allowanceGroups.length === 0 && groups.length === 1 && groups[0].title) {
+    // The lone named group is titled the same whether or not allowances are
+    // present; only the early return waits on there being no allowance blocks.
+    if (groups.length === 1 && groups[0].title) {
         groups[0].title = snapshotFeeSectionTitle(snapshot, groups[0].title);
+    }
+    if (allowanceGroups.length === 0 && groups.length === 1) {
         return groups;
     }
     if (!regroup) return groups;

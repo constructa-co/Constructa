@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import ClientPLDashboard from "./client-pl-dashboard";
 import GlobalPLDashboard from "./global-pl-client";
 import { computeContractSum } from "@/lib/financial";
+import { isFaceValueLineType } from "@/lib/estimate-line-type";
 
 export const dynamic = "force-dynamic";
 
@@ -82,13 +83,18 @@ export default async function PLPage(props: { searchParams: Promise<{ projectId?
             const budgetCost = activeEst
                 ? (() => {
                     const lines = activeEst.estimate_lines ?? [];
-                    const np = lines.filter((l: any) => l.trade_section !== "Preliminaries");
+                    // Allowances are cost, not margin: kept out of the direct
+                    // base (no prelims percentage on them) and added back at
+                    // face value, matching the project P&L and overview.
+                    const measured = lines.filter((l: any) => l.trade_section !== "Preliminaries" && !isFaceValueLineType(l.line_type));
+                    const allowances = lines.filter((l: any) => isFaceValueLineType(l.line_type));
                     const pl = lines.filter((l: any) => l.trade_section === "Preliminaries");
-                    const dc = np.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0);
+                    const dc = measured.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0);
+                    const faceValue = allowances.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0);
                     const prelims = pl.length > 0
                         ? pl.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0)
                         : dc * ((Number(activeEst.prelims_pct) || 0) / 100);
-                    return dc + prelims;
+                    return dc + prelims + faceValue;
                 })()
                 : contractValue * 0.7; // rough 30% margin assumption if no estimate
             const expenses = (allExpenses ?? []).filter(e => e.project_id === proj.id);
@@ -184,12 +190,16 @@ export default async function PLPage(props: { searchParams: Promise<{ projectId?
             riskAmount:            0,
             profitAmount:          0,
             discountAmount:        0,
+            faceValueTotal:        0,
             contractSum:           0,
             ohRiskProfitMultiplier: 1,
         };
     const directCost      = breakdown.directCost;
     const prelimsTotal    = breakdown.prelimsTotal;
-    const totalBudgetCost = breakdown.totalConstructionCost;
+    // Face-value sums are real cost, not margin: the estimated margin is
+    // contract value minus budget cost, so an allowance excluded here would
+    // read as pure profit.
+    const totalBudgetCost = breakdown.totalConstructionCost + breakdown.faceValueTotal;
     const overheadPct     = Number(activeEstimate?.overhead_pct) || 0;
     const riskPct         = Number(activeEstimate?.risk_pct)     || 0;
     const profitPct       = Number(activeEstimate?.profit_pct)   || 0;

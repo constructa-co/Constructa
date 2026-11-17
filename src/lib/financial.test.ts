@@ -308,6 +308,19 @@ describe("computeBudgetCost", () => {
         );
         expect(cost).toBe(1000);
     });
+
+    it("counts prime-cost and provisional sums as budget cost, not margin (CON-016)", () => {
+        const cost = computeBudgetCost(
+            { prelims_pct: 10, overhead_pct: 10, risk_pct: 5, profit_pct: 15 },
+            [
+                { trade_section: "Kitchen", line_total: 10000 },
+                { trade_section: "Kitchen", line_total: 7500, line_type: "pc_sum" },
+            ],
+        );
+        // Construction cost 11000, plus the £7,500 the contractor will spend.
+        // Excluding it would report the allowance as pure margin on the P&L.
+        expect(cost).toBe(18500);
+    });
 });
 
 describe("computeAfp", () => {

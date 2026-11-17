@@ -217,15 +217,18 @@ export function computeContractSumValue(
 // ── Budget cost (no margins) ────────────────────────────────────────────────
 
 /**
- * Total budget cost = direct + prelims, no uplifts. This is what shows in
- * the P&L "Budget Cost" KPI and drives the burn bar.
+ * Total budget cost = direct + prelims + prime-cost / provisional sums, no
+ * uplifts. The face-value sums are money the contractor will spend (never
+ * margin), so a margin computed as contract sum minus budget cost must count
+ * them as cost. This is what shows in the P&L "Budget Cost" KPI and drives
+ * the burn bar.
  */
 export function computeBudgetCost(
     estimate: EstimateInput,
     lines: EstimateLineInput[]
 ): number {
-    const { totalConstructionCost } = computeContractSum(estimate, lines);
-    return totalConstructionCost;
+    const { totalConstructionCost, faceValueTotal } = computeContractSum(estimate, lines);
+    return totalConstructionCost + faceValueTotal;
 }
 
 // ── AfP netting (Billing) ────────────────────────────────────────────────────

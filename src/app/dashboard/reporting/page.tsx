@@ -76,7 +76,7 @@ export default async function ReportingPage(
     projectIds.length > 0
       ? supabase
           .from("estimates")
-          .select("id, project_id, total_cost, is_active, prelims_pct, overhead_pct, risk_pct, profit_pct, discount_pct, estimate_lines(trade_section, line_total)")
+          .select("id, project_id, total_cost, is_active, prelims_pct, overhead_pct, risk_pct, profit_pct, discount_pct, estimate_lines(trade_section, line_total, line_type)")
           .in("project_id", projectIds)
       : { data: [] },
 

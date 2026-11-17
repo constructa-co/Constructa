@@ -67,7 +67,7 @@ describe("CON-055 suppression applies from presentation version 3 only", () => {
     };
 
     it("stamps every newly built snapshot, draft preview or sent, with the current version", () => {
-        expect(buildProposalPublicationSnapshot(representativeInput()).document_presentation_version).toBe(5);
+        expect(buildProposalPublicationSnapshot(representativeInput()).document_presentation_version).toBe(6);
     });
 
     it.each<[Issued, string, string]>([

@@ -163,6 +163,24 @@ describe("line calculations", () => {
     });
 });
 
+describe("summarisePrice — face-value reconciliation (CON-016)", () => {
+    it("keeps lines, face-value sums and adjustments reconciling to the contract sum", () => {
+        const summary = summarisePrice(
+            estimate({ prelims_pct: 10, overhead_pct: 10, profit_pct: 15 }),
+            [
+                line({ id: "m1", trade_section: "Kitchen", line_total: 10000, line_type: "material" }),
+                line({ id: "pc1", trade_section: "Kitchen", line_total: 7500, line_type: "pc_sum" }),
+            ],
+        );
+        // Measured 10000 + 10% prelims = 11000 construction; marked up
+        // × 1.10 × 1.15 = 13915; the £7,500 PC sum rides on top untouched.
+        expect(summary.linesTotal).toBe(10000);
+        expect(summary.faceValueTotal).toBe(7500);
+        expect(summary.contractSum).toBe(13915 + 7500);
+        expect(summary.linesTotal + summary.faceValueTotal + summary.adjustmentsTotal).toBe(summary.contractSum);
+    });
+});
+
 describe("canonical totals", () => {
     const lines = [line({ line_total: 2500 }), line({ id: "line-2", line_total: 1500 })];
 

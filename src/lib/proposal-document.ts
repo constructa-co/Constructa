@@ -17,6 +17,7 @@ import { formatGbp } from "@/lib/pdf/pdf-money";
 import { formatPlanDate } from "@/lib/programme-plan";
 import { programmeFacts, type DisplayProgrammePlan } from "@/lib/relative-programme";
 import type { ProposalCoverPhoto } from "@/lib/proposal-cover-photo";
+import { isFaceValueLineType, type FaceValueLineType } from "@/lib/estimate-line-type";
 import { safeImageUrl, type ProposalPublicationSnapshot } from "@/lib/proposal-publication";
 import { contractValueVatBasis, formatContractValue, typedValueAmount } from "@/lib/case-study-value";
 import {
@@ -465,16 +466,43 @@ const PRELIMINARIES_SECTION = "Preliminaries";
  * under "General" lead the list with no heading, whatever else is priced;
  * and preliminaries close it, whether they were priced as lines or as a
  * percentage.
+ *
+ * From 6: prime-cost and provisional sum lines are lifted out of the section
+ * groups into their own blocks, "Prime cost sums" and "Provisional sums",
+ * shown between the named work and the preliminaries at the face value the
+ * snapshot carries. Snapshots issued at 5 or earlier never carry the type,
+ * so they keep rendering exactly as issued.
  */
+const FACE_VALUE_GROUP_TITLES: Record<FaceValueLineType, string> = {
+    pc_sum: "Prime cost sums",
+    provisional_sum: "Provisional sums",
+};
+
 function priceGroups(snapshot: ProposalPublicationSnapshot): DocPriceGroup[] {
     const commercial = snapshot.commercial;
     const presentation = documentPresentationVersion(snapshot);
     const regroup = presentation >= 5;
+    const separateAllowances = presentation >= 6;
     const sameSection = (title: string | null, section: string) =>
         regroup ? title?.trim().toLowerCase() === section.trim().toLowerCase() : title === section;
 
     const groups: DocPriceGroup[] = [];
+    const allowanceGroups: DocPriceGroup[] = [];
     for (const item of commercial.fee_items) {
+        if (separateAllowances && isFaceValueLineType(item.line_type)) {
+            const title = FACE_VALUE_GROUP_TITLES[item.line_type];
+            let group = allowanceGroups.find((candidate) => candidate.title === title);
+            if (!group) {
+                group = { title, items: [] };
+                allowanceGroups.push(group);
+            }
+            group.items.push({
+                description: item.description,
+                quantity: quantityLabel(item.quantity, item.unit, presentation),
+                amount: formatGbp(item.amount_ex_vat),
+            });
+            continue;
+        }
         let group = groups.find((candidate) => sameSection(candidate.title, item.trade_section));
         if (!group) {
             group = { title: item.trade_section, items: [] };
@@ -486,8 +514,12 @@ function priceGroups(snapshot: ProposalPublicationSnapshot): DocPriceGroup[] {
             amount: formatGbp(item.amount_ex_vat),
         });
     }
+    // The lone named group is titled the same whether or not allowances are
+    // present; only the early return waits on there being no allowance blocks.
     if (groups.length === 1 && groups[0].title) {
         groups[0].title = snapshotFeeSectionTitle(snapshot, groups[0].title);
+    }
+    if (allowanceGroups.length === 0 && groups.length === 1) {
         return groups;
     }
     if (!regroup) return groups;
@@ -496,7 +528,7 @@ function priceGroups(snapshot: ProposalPublicationSnapshot): DocPriceGroup[] {
     const preliminaries = groups.filter((group) => sameSection(group.title, PRELIMINARIES_SECTION));
     const named = groups.filter((group) => !general.includes(group) && !preliminaries.includes(group));
     general.forEach((group) => { group.title = null; });
-    return [...general, ...named, ...preliminaries];
+    return [...general, ...named, ...allowanceGroups, ...preliminaries];
 }
 
 function priceSection(snapshot: ProposalPublicationSnapshot): DocSection | null {
@@ -511,6 +543,16 @@ function priceSection(snapshot: ProposalPublicationSnapshot): DocSection | null 
         totals: priceBlockTotals(commercial, presentation),
         note: vatNote(commercial),
     }];
+
+    // From presentation 6, typed prime-cost / provisional sums are drawn in
+    // their own blocks; the statement tells the client they are allowances
+    // carried at face value, not marked-up prices.
+    if (presentation >= 6 && commercial.fee_items.some((item) => isFaceValueLineType(item.line_type))) {
+        blocks.push({
+            type: "paragraphs",
+            paragraphs: ["Prime cost and provisional sum allowances are included at face value. No overhead, risk, profit or discount adjustment is applied to them."],
+        });
+    }
 
     const payments = paymentRows(commercial);
     if (payments.length > 0) {

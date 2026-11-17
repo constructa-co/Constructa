@@ -148,6 +148,9 @@ describe("line calculations", () => {
     it("accepts a decimal comma and rejects malformed grouping", () => {
         const draft = { ...EMPTY_PRICE_LINE_DRAFT, mode: "rate" as const, description: "Work", unit: "hr", rate: "20" };
         expect(buildPriceLine({ ...draft, quantity: "1,5" })).toMatchObject({ ok: true, line: { quantity: 1.5 } });
+        expect(buildPriceLine({ ...draft, quantity: "0,125" })).toMatchObject({ ok: true, line: { quantity: 0.125 } });
+        expect(buildPriceLine({ ...draft, quantity: "01,500" })).toMatchObject({ ok: false });
+        expect(buildPriceLine({ ...draft, rate: "0,500" })).toMatchObject({ ok: false });
         expect(buildPriceLine({ ...draft, quantity: "1,500" })).toMatchObject({ ok: true, line: { quantity: 1500 } });
         expect(buildPriceLine({ ...draft, quantity: "1,2,3" })).toMatchObject({ ok: false });
         expect(buildPriceLine({ ...draft, quantity: "-5" })).toMatchObject({

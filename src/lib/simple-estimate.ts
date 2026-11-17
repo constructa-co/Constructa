@@ -80,7 +80,8 @@ export function parseAdvancedQuantityDraft(raw: string): number | null {
 /**
  * Plain digits with optional decimals. No sign, exponent or hex forms. A
  * single comma with one or two digits after it and no dot is an en-GB decimal
- * comma ("1,5" → 1.5). Any other comma must be valid thousands grouping in
+ * comma ("1,5" → 1.5). A leading zero also allows three decimal digits
+ * for quantities. Any other comma must be valid thousands grouping in
  * threes ("1,500", "1,234.5"); malformed commas such as "1,2,3" or "1,2345"
  * are rejected instead of being silently stripped into a different number.
  */
@@ -88,10 +89,10 @@ function parseDecimal(raw: string, maxDecimals: number): number | null {
     const cleaned = raw.trim().replace(/[£\s]/g, "");
     if (!cleaned) return null;
     let normalised = cleaned;
-    if (!/\./.test(cleaned) && /^\d+,\d{1,2}$/.test(cleaned)) {
+    if (/^\d+,\d{1,2}$/.test(cleaned) || /^0,\d{3}$/.test(cleaned)) {
         normalised = cleaned.replace(",", ".");
     } else if (cleaned.includes(",")) {
-        if (!/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(cleaned)) return null;
+        if (!/^[1-9]\d{0,2}(,\d{3})+(\.\d+)?$/.test(cleaned)) return null;
         normalised = cleaned.replace(/,/g, "");
     }
     if (!new RegExp(`^\\d+(\\.\\d{1,${maxDecimals}})?$`).test(normalised)) return null;

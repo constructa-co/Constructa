@@ -195,6 +195,9 @@ describe("canonical totals", () => {
 
     it("uses the contractor's own preliminaries lines instead of the percentage", () => {
         const withPrelims = [...lines, line({ id: "p", trade_section: "Preliminaries", line_total: 600 })];
+        const withoutAllowance = summarisePrice(estimate({ prelims_pct: 0 }), withPrelims);
+        expect(withoutAllowance.adjustments[0]).toMatchObject({ key: "prelims", pct: 0, amount: 0 });
+        expect(withoutAllowance.adjustments[0].note).toBeUndefined();
         const summary = summarisePrice(estimate({ prelims_pct: 10 }), withPrelims);
         expect(summary.prelimsFromLines).toBe(true);
         expect(summary.linesTotal).toBe(4600);

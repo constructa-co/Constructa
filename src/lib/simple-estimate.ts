@@ -210,7 +210,7 @@ export function summarisePrice(
         label: "Preliminaries",
         pct: prelimsPct,
         amount: prelimsFromLines ? 0 : roundMoney(sum.prelimsTotal),
-        note: prelimsFromLines
+        note: prelimsFromLines && prelimsPct > 0
             ? `You have ${formatGBP(sum.prelimsTotal)} of prelims lines and a ${prelimsPct}% prelims allowance. Priced lines take precedence, so the allowance is not charged — check you are not double counting.`
             : undefined,
     });

@@ -2,7 +2,7 @@
 
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
-Current count: 49 merged, 24 in progress, 0 in review, 12 Rob-gated, 0 not started.
+Current count: 50 merged, 23 in progress, 0 in review, 12 Rob-gated, 0 not started.
 
 | --- | --- | --- | --- | --- | --- |
 | CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
@@ -20,7 +20,7 @@ Current count: 49 merged, 24 in progress, 0 in review, 12 Rob-gated, 0 not start
 | CON-013 | P0 | Rob / Kimi | — | Rob-gated | Choose the application destination and data handling. |
 | CON-014 | P0 | Cursor / Claude | [#178](https://github.com/constructa-co/Constructa/pull/178) | merged | — |
 | CON-015 | P1 | Rob / Cursor | [#176](https://github.com/constructa-co/Constructa/pull/176) | Rob-gated | Confirm additive production migration and schema readback. |
-| CON-016 | P1 | Claude | — | in progress | D51 batch 02 — Estimate pricing |
+| CON-016 | P1 | Kimi / Codex | [#198](https://github.com/constructa-co/Constructa/pull/198) | merged | Main CI, secret scan and production passed at 7f337fb. |
 | CON-017 | P1 | Cursor | [#184](https://github.com/constructa-co/Constructa/pull/184) | merged | Kimi PASS and GitHub CI green. |
 | CON-018 | P1 | Cursor | [#185](https://github.com/constructa-co/Constructa/pull/185) | in progress | — |
 | CON-019 | P1 | Claude | [#193](https://github.com/constructa-co/Constructa/pull/193) | merged | D51 batch 03 — Proposal PDF pricing |

@@ -47,7 +47,7 @@ Current count: 54 merged, 19 in progress, 0 in review, 12 Rob-gated, 0 not start
 | CON-040 | P1 | Cursor / Grok | [#182](https://github.com/constructa-co/Constructa/pull/182) | merged | — |
 | CON-041 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | merged | Independent PASS and GitHub browser green. |
 | CON-042 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | merged | Independent PASS and GitHub browser green. |
-| CON-043 | P1 | Claude | — | in progress | D51 batch 05 — Phone layout and theme |
+| CON-043 | P1 | Claude / Codex | [#205](https://github.com/constructa-co/Constructa/pull/205) | in progress | Planner controls shipped at 0eac746. Main CI and production green. [360/390/430 headless planner evidence](evidence/con-043/). Estimate and proposal phone work remains open. |
 | CON-044 | P1 | Claude / Codex | [#202](https://github.com/constructa-co/Constructa/pull/202) | in progress | Save timestamp shipped at f88f6f6. Main CI, secret scan and production passed. Separate proposal publication remains open. |
 | CON-045 | P1 | Claude / Codex | [#201](https://github.com/constructa-co/Constructa/pull/201) | merged | Main CI, secret scan and production passed at 610e9b5. |
 | CON-046 | P1 | Kimi | [#191](https://github.com/constructa-co/Constructa/pull/191) | merged | #191 merged at 34c7e85. Main CI, secret scan and production passed. |

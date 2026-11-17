@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo, useEffect, useRef } from "react";
+import { MAX_WORKING_DAYS } from "@/lib/simple-programme";
 import { updatePhasesAction, getEstimatePhasesAction, saveProgrammePhasesAction } from "./actions";
 import ProgrammeAiUpdate from "./programme-ai-update";
 import { toast } from "sonner";
@@ -533,9 +534,19 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     const updatePhaseName = (idx: number, name: string) =>
         setPhases((prev) => { const u = [...prev]; u[idx] = { ...u[idx], name }; return u; });
 
-    const handleManualDuration = (idx: number, val: string) => {
-        const days = val === "" ? null : parseInt(val, 10);
-        if (days !== null && (isNaN(days) || days < 1)) return;
+    const [durationError, setDurationError] = useState<{ phase: Phase; message: string } | null>(null);
+
+    const handleManualDuration = (idx: number, input: HTMLInputElement) => {
+        const days = input.validity.badInput ? NaN : input.value === "" ? null : input.valueAsNumber;
+        if (days !== null && (!Number.isInteger(days) || days < 1)) {
+            setDurationError({ phase: phases[idx], message: "Whole days ≥1" });
+            return;
+        }
+        if (days !== null && days > MAX_WORKING_DAYS) {
+            setDurationError({ phase: phases[idx], message: `Max ${MAX_WORKING_DAYS} days` });
+            return;
+        }
+        setDurationError(null);
         setPhases((prev) => { const u = [...prev]; u[idx] = { ...u[idx], manualDays: days }; return u; });
     };
 
@@ -887,6 +898,8 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                         <div className="shrink-0 border-r border-slate-700/50 lg:sticky lg:left-0 lg:z-30 lg:bg-slate-900">
                             {phases.map((phase, idx) => {
                                 const workingDur = phase.manualDays ?? phase.calculatedDays;
+                                const calculatedDays = phase.manhours > 0 ? phase.calculatedDays : null;
+                                const showDurationWarning = workingDur > 120;
                                 const calDur     = toCalendarDays(workingDur, daysPerWeek);
                                 const displayStage = displayPlan?.stages[idx];
                                 const phaseStart = displayStage ? new Date(displayStage.start_date + "T00:00:00") : addDays(programmeStart, phase.startOffset);
@@ -920,21 +933,38 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                             </div>
                                         </div>
 
-                                        {/* Calc days (working) */}
-                                        <div className="w-14 flex items-center justify-center border-r border-slate-700/30 text-xs text-slate-400">
-                                            {phase.calculatedDays}d
+                                        {/* Calc days (working): only a length worked out from the stage's own labour hours is a calculation */}
+                                        <div data-planner-calculated={idx} className="w-14 flex items-center justify-center border-r border-slate-700/30 text-xs text-slate-400"
+                                            title={calculatedDays === null ? "No recorded labour hours for a calculation" : undefined}>
+                                            {calculatedDays === null ? "—" : `${calculatedDays}d`}
                                         </div>
 
                                         {/* Manual override (working days) */}
-                                        <div className="w-16 flex items-center justify-center border-r border-slate-700/30">
+                                        <div className="w-16 flex flex-col items-center justify-center border-r border-slate-700/30">
                                             <input
                                                 type="number"
                                                 min={1}
+                                                max={MAX_WORKING_DAYS}
+                                                aria-invalid={durationError?.phase === phase || undefined}
+                                                aria-describedby={durationError?.phase === phase || showDurationWarning
+                                                    ? `phase-duration-feedback-${idx}` : undefined}
                                                 className="w-12 h-7 px-1 text-center text-xs border border-slate-700 rounded bg-slate-900/50 text-slate-100 focus:outline-none focus:border-emerald-500/50"
                                                 value={phase.manualDays ?? ""}
-                                                onChange={(e) => handleManualDuration(idx, e.target.value)}
-                                                placeholder="—"
+                                                onChange={(e) => handleManualDuration(idx, e.currentTarget)}
+                                                onBlur={() => setDurationError(null)}
+                                                placeholder={workingDur > 0 ? String(workingDur) : "—"}
+                                                title={calculatedDays === null && phase.manualDays == null && workingDur > 0
+                                                    ? "Duration from the saved programme" : undefined}
                                             />
+                                            {durationError?.phase === phase ? (
+                                                <span id={`phase-duration-feedback-${idx}`} role="alert" className="whitespace-nowrap text-[9px] text-red-300">
+                                                    {durationError.message}
+                                                </span>
+                                            ) : showDurationWarning && (
+                                                <span id={`phase-duration-feedback-${idx}`} className="whitespace-nowrap text-[9px] text-amber-300">
+                                                    Over 120 days
+                                                </span>
+                                            )}
                                         </div>
 
                                         {/* Starts After */}

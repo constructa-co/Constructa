@@ -40,6 +40,7 @@ type ProgrammeWrite = {
 };
 type ProgrammeSaveStatus = {
     state: "idle" | "saving" | "saved" | "error" | "uncertain";
+    savedAt?: string;
     kind: ProgrammeWrite["kind"];
     operation: symbol | null;
     context: string;
@@ -270,13 +271,9 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 toast.error(receipt.result.error);
                 return;
             }
-            setSaveStatus({ ...input, state: "saved" });
+            const savedAt = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            setSaveStatus({ ...input, state: "saved", savedAt });
             if (kind === "manual") toast.success("Programme saved to proposal");
-            setTimeout(() => {
-                if (!isCurrent()) return;
-                setSaveStatus(previous => previous.operation === input.operation && previous.state === "saved"
-                    ? { ...previous, state: "idle" } : previous);
-            }, kind === "manual" ? 2500 : 2000);
         } catch {
             if (!isCurrent()) return;
             setSaveStatus({ ...input, state: "uncertain" });
@@ -287,7 +284,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     const saveMessage = currentSaveState === "saving"
         ? (saveStatus.kind === "manual" ? "Saving programme to proposal..." : "Auto-saving changes...")
         : currentSaveState === "saved"
-            ? (saveStatus.kind === "manual" ? "Programme saved to proposal" : "Changes auto-saved")
+            ? (saveStatus.kind === "manual" ? `Programme saved to proposal at ${saveStatus.savedAt}` : `Saved ${saveStatus.savedAt}`)
             : currentSaveState === "error" ? "Save not confirmed. Current stages remain on screen."
                 : currentSaveState === "uncertain" ? "Save uncertain: it may already have completed. Review before retrying."
                     : currentSaveState === "changed" ? "Current changes are not yet confirmed saved." : "";

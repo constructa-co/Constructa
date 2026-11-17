@@ -454,7 +454,7 @@ describe("programme Save and autosave operation-scoped status", () => {
         const view = open(); view.save();
         expect(view.saveStatus()).toMatchObject({ "data-programme-save-state": "saving", children: "Saving programme to proposal...", "aria-live": "polite" });
         saved.resolve({ success: true }); await settle(view);
-        expect(view.saveStatus()).toMatchObject({ "data-programme-save-state": "saved", children: "Programme saved to proposal" });
+        expect(view.saveStatus()).toMatchObject({ "data-programme-save-state": "saved", children: expect.stringMatching(/^Programme saved to proposal at \d{1,2}:\d{2}/) });
         expect(lifecycle.success).toHaveBeenCalledExactlyOnceWith("Programme saved to proposal");
         await vi.advanceTimersByTimeAsync(1000); view.unmount();
         expect(lifecycle.write).toHaveBeenCalledExactlyOnceWith("opening-check", stages, "2026-10-19");
@@ -467,7 +467,7 @@ describe("programme Save and autosave operation-scoped status", () => {
         await vi.advanceTimersByTimeAsync(1); view.flush();
         expect(view.saveStatus()).toMatchObject({ children: "Auto-saving changes..." });
         saved.resolve({ success: true }); await settle(view);
-        expect(view.saveStatus()).toMatchObject({ children: "Changes auto-saved" });
+        expect(view.saveStatus()).toMatchObject({ children: expect.stringMatching(/^Saved \d{1,2}:\d{2}/) });
         expect(lifecycle.success).not.toHaveBeenCalled();
     });
 
@@ -502,13 +502,13 @@ describe("programme Save and autosave operation-scoped status", () => {
         expect(view.saveStatus()).toMatchObject({ "data-programme-save-state": "changed" });
         expect(lifecycle.success).not.toHaveBeenCalled(); expect(view.names()).toContain("Newer unsent");
         await vi.advanceTimersByTimeAsync(500); await settle(view);
-        expect(view.saveStatus()).toMatchObject({ children: "Changes auto-saved" });
+        expect(view.saveStatus()).toMatchObject({ children: expect.stringMatching(/^Saved \d{1,2}:\d{2}/) });
         expect(lifecycle.write).toHaveBeenCalledTimes(2);
     });
 
     it("a saved label disappears immediately on a new edit rather than waiting for the debounce", async () => {
         const view = open(); view.save(); await settle(view);
-        expect(view.saveStatus()).toMatchObject({ children: "Programme saved to proposal" });
+        expect(view.saveStatus()).toMatchObject({ children: expect.stringMatching(/^Programme saved to proposal at \d{1,2}:\d{2}/) });
         view.change(nameInput("Demo"), "Not yet sent");
         expect(view.saveStatus()).toMatchObject({ children: "Current changes are not yet confirmed saved." });
         expect(lifecycle.write).toHaveBeenCalledTimes(1);
@@ -526,7 +526,7 @@ describe("programme Save and autosave operation-scoped status", () => {
         expect(view.saveStatus()).toMatchObject({ children: "Auto-saving changes..." });
         expect(lifecycle.error).not.toHaveBeenCalled(); expect(lifecycle.success).not.toHaveBeenCalled();
         newer.resolve({ success: true }); await settle(view);
-        expect(view.saveStatus()).toMatchObject({ children: "Changes auto-saved" });
+        expect(view.saveStatus()).toMatchObject({ children: expect.stringMatching(/^Saved \d{1,2}:\d{2}/) });
         expect(lifecycle.write).toHaveBeenCalledTimes(2); expect(lifecycle.write.mock.calls[1][1][0].name).toBe("Second");
     });
 
@@ -534,11 +534,11 @@ describe("programme Save and autosave operation-scoped status", () => {
         const older = deferred<{ success: true }>(); lifecycle.write.mockReturnValueOnce(older.promise);
         const view = open(); view.save(); view.change(nameInput("Demo"), "Newest automatic");
         await vi.advanceTimersByTimeAsync(500); older.resolve({ success: true }); await settle(view);
-        expect(view.saveStatus()).toMatchObject({ children: "Changes auto-saved" });
+        expect(view.saveStatus()).toMatchObject({ children: expect.stringMatching(/^Saved \d{1,2}:\d{2}/) });
         expect(lifecycle.success).not.toHaveBeenCalled(); expect(lifecycle.write).toHaveBeenCalledTimes(2);
     });
 
-    it("an older saved-label timeout cannot clear a newer saving operation", async () => {
+    it("keeps a confirmed save time visible and tracks the next save", async () => {
         const newer = deferred<{ success: true }>(); lifecycle.write.mockResolvedValueOnce({ success: true }).mockReturnValueOnce(newer.promise);
         const view = open(); view.save(); await settle(view);
         await vi.advanceTimersByTimeAsync(1000); view.change(nameInput("Demo"), "Later edit");
@@ -547,7 +547,10 @@ describe("programme Save and autosave operation-scoped status", () => {
         await vi.advanceTimersByTimeAsync(1000); view.flush();
         expect(view.saveStatus()).toMatchObject({ children: "Auto-saving changes..." });
         newer.resolve({ success: true }); await settle(view);
-        expect(view.saveStatus()).toMatchObject({ children: "Changes auto-saved" });
+        expect(view.saveStatus()).toMatchObject({ children: expect.stringMatching(/^Saved \d{1,2}:\d{2}/) });
+        const savedStatus = view.saveStatus();
+        await vi.advanceTimersByTimeAsync(3000);
+        expect(view.saveStatus()).toEqual(savedStatus);
     });
 
     it("a changed start date is not confirmed saved by an older response", async () => {

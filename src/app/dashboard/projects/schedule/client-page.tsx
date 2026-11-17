@@ -898,8 +898,8 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                         <div className="shrink-0 border-r border-slate-700/50 lg:sticky lg:left-0 lg:z-30 lg:bg-slate-900">
                             {phases.map((phase, idx) => {
                                 const workingDur = phase.manualDays ?? phase.calculatedDays;
-                                const calculatedDays = phase.manhours === 0 ? null : phase.calculatedDays;
-                                const showDurationWarning = (phase.manualDays ?? calculatedDays ?? 0) > 120;
+                                const calculatedDays = phase.manhours > 0 ? phase.calculatedDays : null;
+                                const showDurationWarning = workingDur > 120;
                                 const calDur     = toCalendarDays(workingDur, daysPerWeek);
                                 const displayStage = displayPlan?.stages[idx];
                                 const phaseStart = displayStage ? new Date(displayStage.start_date + "T00:00:00") : addDays(programmeStart, phase.startOffset);
@@ -935,7 +935,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
                                         {/* Calc days (working): only a length worked out from the stage's own labour hours is a calculation */}
                                         <div data-planner-calculated={idx} className="w-14 flex items-center justify-center border-r border-slate-700/30 text-xs text-slate-400"
-                                            title={calculatedDays === null ? "No labour hours on this stage" : undefined}>
+                                            title={calculatedDays === null ? "No recorded labour hours for a calculation" : undefined}>
                                             {calculatedDays === null ? "—" : `${calculatedDays}d`}
                                         </div>
 
@@ -952,7 +952,9 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                                 value={phase.manualDays ?? ""}
                                                 onChange={(e) => handleManualDuration(idx, e.currentTarget)}
                                                 onBlur={() => setDurationError(null)}
-                                                placeholder={calculatedDays === null ? "—" : String(calculatedDays)}
+                                                placeholder={workingDur > 0 ? String(workingDur) : "—"}
+                                                title={calculatedDays === null && phase.manualDays == null && workingDur > 0
+                                                    ? "Duration from the saved programme" : undefined}
                                             />
                                             {durationError?.phase === phase ? (
                                                 <span id={`phase-duration-feedback-${idx}`} role="alert" className="whitespace-nowrap text-[9px] text-red-300">

@@ -2,7 +2,7 @@
 
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
-Current count: 45 merged, 25 in progress, 3 in review, 12 Rob-gated, 0 not started.
+Current count: 48 merged, 25 in progress, 0 in review, 12 Rob-gated, 0 not started.
 
 | --- | --- | --- | --- | --- | --- |
 | CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
@@ -86,7 +86,7 @@ Current count: 45 merged, 25 in progress, 3 in review, 12 Rob-gated, 0 not start
 | CON-079 | P2 | Kimi | [#190](https://github.com/constructa-co/Constructa/pull/190) | merged | D51 batch 10 — Marketing navigation and copy |
 | CON-080 | P2 | Kimi | [#190](https://github.com/constructa-co/Constructa/pull/190) | merged | D51 batch 10 — Marketing navigation and copy |
 | CON-081 | P2 | Kimi | [#190](https://github.com/constructa-co/Constructa/pull/190) | merged | D51 batch 10 — Marketing navigation and copy |
-| CON-082 | P2 | Kimi | [#192](https://github.com/constructa-co/Constructa/pull/192) | in review | D51 batch 11 — Product presentation |
+| CON-082 | P2 | Kimi | [#192](https://github.com/constructa-co/Constructa/pull/192) | merged | #192 merged at 2077384. Main CI, secret scan and production deployment passed. |
 | CON-083 | P2 | Claude | — | in progress | D51 batch 01 — Profile, save and sign-in |
-| CON-084 | P2 | Kimi | [#192](https://github.com/constructa-co/Constructa/pull/192) | in review | D51 batch 11 — Product presentation |
-| CON-085 | P2 | Kimi | [#192](https://github.com/constructa-co/Constructa/pull/192) | in review | D51 batch 11 — Product presentation |
+| CON-084 | P2 | Kimi | [#192](https://github.com/constructa-co/Constructa/pull/192) | merged | #192 merged at 2077384. Main CI, secret scan and production deployment passed. |
+| CON-085 | P2 | Kimi | [#192](https://github.com/constructa-co/Constructa/pull/192) | merged | #192 merged at 2077384. Main CI, secret scan and production deployment passed. |

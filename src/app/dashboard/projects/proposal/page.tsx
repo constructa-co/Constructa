@@ -102,6 +102,7 @@ export default async function ProposalPage(props: { searchParams: Promise<{ proj
     return (
         <DashboardRouteShell header={<ProjectNavBar projectId={projectId} projectName={project.name || ""} activeTab="proposal" />}>
             <ReviewSendClient
+                now={new Date().toISOString()}
                 key={project.id}
                 context={{
                     project,

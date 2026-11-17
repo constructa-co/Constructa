@@ -17,6 +17,7 @@ import {
     saveProgramme,
     stageDurationField,
     stageNameField,
+    startDateInPastWarning,
     viewForProject,
     type ProgrammeAction,
     type ProgrammeDraft,
@@ -90,6 +91,16 @@ describe("minimum programme", () => {
     it("rejects a job longer than ten years", () => {
         expect(buildSimpleProgramme({ ...whole, duration: "521" }).ok).toBe(false);
         expect(buildSimpleProgramme({ ...whole, duration: "520" }).ok).toBe(true);
+    });
+
+    it("notes a start date before today without refusing it", () => {
+        expect(startDateInPastWarning("2026-10-09", MONDAY)).toContain("in the past");
+        expect(startDateInPastWarning(MONDAY, MONDAY)).toBeNull();
+        expect(startDateInPastWarning("2026-10-13", MONDAY)).toBeNull();
+        expect(startDateInPastWarning("", MONDAY)).toBeNull();
+        expect(startDateInPastWarning("2026-10-09", null)).toBeNull();
+        // Friday 9 October 2026: in the past on the 12th, and still a programme that builds.
+        expect(buildSimpleProgramme({ ...whole, startDate: "2026-10-09" }).ok).toBe(true);
     });
 });
 

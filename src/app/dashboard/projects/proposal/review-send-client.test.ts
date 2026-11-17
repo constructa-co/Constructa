@@ -210,6 +210,13 @@ describe("Review and Send", () => {
         expect(html).toContain("I have read the preview and it is right. Send version 1 to Alex Client.");
     });
 
+    it("warns about a past programme start without blocking proposal readiness", () => {
+        const past = review({ context: context({ start_date: "2026-09-28" }) });
+        expect(past).toContain("data-proposal-past-start");
+        expect(past).toContain('data-readiness="ready"');
+        expect(html).not.toContain("data-proposal-past-start");
+    });
+
     it("separates what is needed from what would improve it", () => {
         const gaps = review({ context: context({ programme_phases: [], scope_text: "", proposal_introduction: "", closing_statement: "" }) });
         expect(gaps).toContain('data-readiness="not-ready"');

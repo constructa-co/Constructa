@@ -297,6 +297,20 @@ export function validateStartDate(startDate: string, workingPattern?: unknown): 
     return null;
 }
 
+export const PROGRAMME_PAST_START_WARNING =
+    "This start date is in the past. That is fine for a job already under way. Otherwise, check the date.";
+
+/**
+ * A note, never an error: a job that has already started is a valid programme
+ * and still saves. Null for today, a later date, or a date that cannot be read.
+ * `today` is the reader's own calendar day, as YYYY-MM-DD.
+ */
+export function startDateInPastWarning(startDate: string | null | undefined, today: string | null | undefined): string | null {
+    const start = parseIsoDate(startDate);
+    const now = parseIsoDate(today);
+    return start !== null && now !== null && start < now ? PROGRAMME_PAST_START_WARNING : null;
+}
+
 function programmeDaysUpperBound(draft: ProgrammeDraft): number {
     if (draft.stages.length === 0) {
         const parsed = /^\d{1,4}$/.test(draft.duration.trim()) ? Number(draft.duration.trim()) : 60;

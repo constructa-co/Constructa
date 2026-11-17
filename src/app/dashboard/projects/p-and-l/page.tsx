@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ClientPLDashboard from "./client-pl-dashboard";
 import GlobalPLDashboard from "./global-pl-client";
-import { computeContractSum } from "@/lib/financial";
+import { computeBudgetCost, computeContractSum } from "@/lib/financial";
 import { isFaceValueLineType } from "@/lib/estimate-line-type";
 
 export const dynamic = "force-dynamic";
@@ -83,18 +83,16 @@ export default async function PLPage(props: { searchParams: Promise<{ projectId?
             const budgetCost = activeEst
                 ? (() => {
                     const lines = activeEst.estimate_lines ?? [];
-                    // Allowances are cost, not margin: kept out of the direct
-                    // base (no prelims percentage on them) and added back at
-                    // face value, matching the project P&L and overview.
-                    const measured = lines.filter((l: any) => l.trade_section !== "Preliminaries" && !isFaceValueLineType(l.line_type));
-                    const allowances = lines.filter((l: any) => isFaceValueLineType(l.line_type));
+                    if (lines.some((line) => isFaceValueLineType(line.line_type))) {
+                        return computeBudgetCost(activeEst, lines);
+                    }
+                    const np = lines.filter((l: any) => l.trade_section !== "Preliminaries");
                     const pl = lines.filter((l: any) => l.trade_section === "Preliminaries");
-                    const dc = measured.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0);
-                    const faceValue = allowances.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0);
+                    const dc = np.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0);
                     const prelims = pl.length > 0
                         ? pl.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0)
                         : dc * ((Number(activeEst.prelims_pct) || 0) / 100);
-                    return dc + prelims + faceValue;
+                    return dc + prelims;
                 })()
                 : contractValue * 0.7; // rough 30% margin assumption if no estimate
             const expenses = (allExpenses ?? []).filter(e => e.project_id === proj.id);

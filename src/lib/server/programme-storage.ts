@@ -5,7 +5,7 @@ import { workingPatternsEquivalent } from "@/lib/working-pattern-canonical";
 import { readProgrammeInclusion, withProgrammeInclusion } from "@/lib/programme-inclusion";
 import { draftPlanCoversEveryPhase } from "@/lib/programme-plan";
 import { computeDisplayProgramme } from "@/lib/relative-programme";
-import { PROGRAMME_PLANNER_DRAFT_UNAVAILABLE } from "@/lib/programme-planner-draft";
+import { programmePlanningChanged, parseProgrammePlannerDraft, PROGRAMME_PLANNER_DRAFT_UNAVAILABLE } from "@/lib/programme-planner-draft";
 
 export const PROGRAMME_CHOICE_UNCONFIRMED = "The programme choice wasn't confirmed and may already have saved. Reload Programme before retrying.";
 
@@ -127,11 +127,15 @@ export async function writeProgrammePlannerDraft(
 
 export async function clearProgrammePlannerDraft(
     supabase: SupabaseClient, userId: string, projectId: string,
+    publishedPhases: unknown[], publishedStartDate?: string,
 ): Promise<void> {
     const { data: project, error: readError } = await supabase.from("projects")
         .select("programme_planner_draft").eq("id", projectId).eq("user_id", userId).single();
     if (readError || !project) throw new Error(PROGRAMME_CHOICE_UNCONFIRMED);
     if (!Object.hasOwn(project, "programme_planner_draft") || project.programme_planner_draft == null) return;
+    const draft = parseProgrammePlannerDraft(project.programme_planner_draft);
+    if (!draft || publishedStartDate === undefined
+        || programmePlanningChanged(draft.phases, publishedPhases, draft.start_date, publishedStartDate)) return;
     let query = supabase.from("projects").update({ programme_planner_draft: null })
         .eq("id", projectId).eq("user_id", userId)
         .eq("programme_planner_draft", JSON.stringify(project.programme_planner_draft));

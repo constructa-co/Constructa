@@ -251,7 +251,7 @@ export async function saveProgrammePhasesAction(
         ...(startDate !== undefined ? { startDate: parseInput(IsoDate, startDate, "programme start date") } : {}),
     });
     try {
-        await clearProgrammePlannerDraft(supabase, user.id, projectId);
+        await clearProgrammePlannerDraft(supabase, user.id, projectId, phases, startDate);
     } catch {
         // Published programme is saved; draft clear is best-effort when the column exists.
     }

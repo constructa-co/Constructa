@@ -1,5 +1,14 @@
 # Cursor change log
 
+## 2026-11-18 — CON-044 client/server boundary repair (cursor/con-044-publication)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/plain-deep-equal.ts` | all | JSON-like `plainDeepEqual` | Remove `node:util` from client-imported draft helpers |
+| `src/lib/programme-planner-draft.ts` | compare + sessionStorage | `plainDeepEqual`; scoped keys; write success boolean | Preserve order-independent planning compare in the browser |
+| `src/lib/programme-planner-draft.test.ts` | new cases | Property order + scoped sessionStorage | Regression |
+| `src/app/dashboard/projects/schedule/client-page.tsx` | draft fallback | `user_id` storage scope; failed local write surfaces error | Tab/account isolation + quota/privacy write failures |
+
 ## 2026-11-16 — D54 document repair of #186 at 69d10b6 (CON-055 suppression gated by presentation version)
 
 | File | Lines (approx.) | Change | Intent |

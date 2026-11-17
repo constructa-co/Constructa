@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Check, ChevronDown, Circle, FileDown, Loader2, Plus, Send, Sparkles, Trash2 } from "lucide-react";
 import { localIsoDateFromUtc } from "@/lib/job-working-local";
+import { hasRelativeProgramme } from "@/lib/relative-programme";
 import { startDateInPastWarning } from "@/lib/simple-programme";
 import ProgrammeTimeline from "@/components/programme-timeline";
 import ProposalDocumentView from "@/components/proposal/proposal-document-view";
@@ -220,7 +221,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
     const readiness = useMemo(() => reviewReadiness(context, draft), [context, draft]);
     const plan = useMemo(() => programmePlanForProject(project), [project]);
     const programmeTimeZone = plan?.working_pattern?.version === 2 ? plan.working_pattern.timezone : "Europe/London";
-    const programmeStartWarning = startDateInPastWarning(
+    const programmeStartWarning = hasRelativeProgramme(project.programme_phases) ? null : startDateInPastWarning(
         plan?.start_date ?? project.start_date,
         localIsoDateFromUtc(Date.parse(previewTime), programmeTimeZone),
     );

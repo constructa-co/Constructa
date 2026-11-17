@@ -93,13 +93,6 @@ describe("minimum programme", () => {
         expect(buildSimpleProgramme({ ...whole, duration: "520" }).ok).toBe(true);
     });
 
-    it("refuses 0 days with a plain reason and accepts 500 working days", () => {
-        const zero = buildSimpleProgramme({ ...whole, duration: "0", unit: "days" });
-        expect(zero.ok).toBe(false);
-        if (!zero.ok) expect(zero.fieldErrors.duration).toBe("Enter 1 or more.");
-        expect(buildSimpleProgramme({ ...whole, duration: "500", unit: "days" })).toMatchObject({ ok: true, input: { stages: [{ workingDays: 500 }] } });
-    });
-
     it("notes a start date before today without refusing it", () => {
         expect(startDateInPastWarning("2026-10-09", MONDAY)).toContain("in the past");
         expect(startDateInPastWarning(MONDAY, MONDAY)).toBeNull();

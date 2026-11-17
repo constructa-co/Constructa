@@ -83,7 +83,7 @@ export default async function PLPage(props: { searchParams: Promise<{ projectId?
             const budgetCost = activeEst
                 ? (() => {
                     const lines = activeEst.estimate_lines ?? [];
-                    if (lines.some((line) => isFaceValueLineType(line.line_type))) {
+                    if (lines.some((line: { line_type?: string | null }) => isFaceValueLineType(line.line_type))) {
                         return computeBudgetCost(activeEst, lines);
                     }
                     const np = lines.filter((l: any) => l.trade_section !== "Preliminaries");

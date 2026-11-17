@@ -72,7 +72,7 @@ Current count: 50 merged, 23 in progress, 0 in review, 12 Rob-gated, 0 not start
 | CON-065 | P2 | Claude | [#195](https://github.com/constructa-co/Constructa/pull/195) | merged | #195 merged at 02cdeb0. Main CI, secret scan and production deployment passed. |
 | CON-066 | P2 | Claude | — | in progress | D51 batch 05 — Phone layout and theme |
 | CON-067 | P2 | Claude | — | in progress | D51 batch 05 — Phone layout and theme |
-| CON-068 | P2 | Claude | — | in progress | D51 batch 02 — Estimate pricing |
+| CON-068 | P2 | Kimi / Codex | [#199](https://github.com/constructa-co/Constructa/pull/199) | in progress | Number validation shipped at 93ba54f. Main CI, secret scan and production passed. Persistent Included flag awaits schema approval. |
 | CON-069 | P2 | Claude | — | in progress | D51 batch 02 — Estimate pricing |
 | CON-070 | P2 | Claude | — | in progress | D51 batch 02 — Estimate pricing |
 | CON-071 | P2 | Claude | — | in progress | D51 batch 06 — Programme interactions |

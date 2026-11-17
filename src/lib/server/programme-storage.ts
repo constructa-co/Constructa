@@ -5,6 +5,7 @@ import { workingPatternsEquivalent } from "@/lib/working-pattern-canonical";
 import { readProgrammeInclusion, withProgrammeInclusion } from "@/lib/programme-inclusion";
 import { draftPlanCoversEveryPhase } from "@/lib/programme-plan";
 import { computeDisplayProgramme } from "@/lib/relative-programme";
+import { PROGRAMME_PLANNER_DRAFT_UNAVAILABLE } from "@/lib/programme-planner-draft";
 
 export const PROGRAMME_CHOICE_UNCONFIRMED = "The programme choice wasn't confirmed and may already have saved. Reload Programme before retrying.";
 
@@ -80,4 +81,62 @@ export async function writeProgrammeStorage(
         throw new Error(PROGRAMME_CHOICE_UNCONFIRMED);
     }
     return saved.programme_phases;
+}
+
+/** Persist unpublished planner edits without touching programme_phases (proposal baseline). */
+export async function writeProgrammePlannerDraft(
+    supabase: SupabaseClient, userId: string, projectId: string,
+    input: { phases: unknown[]; startDate: string; expectedWorkingPattern?: unknown },
+): Promise<void> {
+    const { data: project, error: readError } = await supabase.from("projects")
+        .select("*").eq("id", projectId).eq("user_id", userId).single();
+    if (readError || !project) throw new Error(PROGRAMME_CHOICE_UNCONFIRMED);
+    if (!Object.hasOwn(project, "programme_planner_draft")) {
+        throw new Error(PROGRAMME_PLANNER_DRAFT_UNAVAILABLE);
+    }
+    if (readProgrammeInclusion(input.phases).intent !== "include") {
+        throw new Error("Use the explicit programme inclusion choice.");
+    }
+    const storedPattern = resolveJobWorkingPattern(project.programme_working_pattern);
+    if (!storedPattern) throw new Error(CALENDAR_CHANGED);
+    if (input.expectedWorkingPattern !== undefined) {
+        if (!workingPatternsEquivalent(input.expectedWorkingPattern, storedPattern)) throw new Error(CALENDAR_CHANGED);
+        if (input.phases.length > 200 || !draftPlanCoversEveryPhase(
+            computeDisplayProgramme(input.startDate, input.phases, storedPattern), input.phases,
+        )) throw new Error("Check every programme phase's start and duration before saving.");
+    }
+    const decision = readProgrammeInclusion(project.programme_phases);
+    if (decision.intent === "invalid") throw new Error("Check the saved programme choice before changing it.");
+    const draftPayload = {
+        phases: withProgrammeInclusion(input.phases, decision.intent === "include"),
+        start_date: input.startDate,
+        saved_at: new Date().toISOString(),
+    };
+    const expectedDraft = JSON.parse(JSON.stringify(draftPayload));
+    let query = supabase.from("projects").update({
+        programme_planner_draft: expectedDraft,
+    }).eq("id", projectId).eq("user_id", userId);
+    query = project.programme_planner_draft == null
+        ? query.is("programme_planner_draft", null)
+        : query.eq("programme_planner_draft", JSON.stringify(project.programme_planner_draft));
+    const { data: returnedRow, error } = await query.select("programme_planner_draft").single();
+    if (error || !returnedRow || !isDeepStrictEqual(returnedRow.programme_planner_draft, expectedDraft)) {
+        throw new Error(PROGRAMME_CHOICE_UNCONFIRMED);
+    }
+}
+
+export async function clearProgrammePlannerDraft(
+    supabase: SupabaseClient, userId: string, projectId: string,
+): Promise<void> {
+    const { data: project, error: readError } = await supabase.from("projects")
+        .select("programme_planner_draft").eq("id", projectId).eq("user_id", userId).single();
+    if (readError || !project) throw new Error(PROGRAMME_CHOICE_UNCONFIRMED);
+    if (!Object.hasOwn(project, "programme_planner_draft") || project.programme_planner_draft == null) return;
+    let query = supabase.from("projects").update({ programme_planner_draft: null })
+        .eq("id", projectId).eq("user_id", userId)
+        .eq("programme_planner_draft", JSON.stringify(project.programme_planner_draft));
+    const { data: returnedRow, error } = await query.select("programme_planner_draft").single();
+    if (error || returnedRow?.programme_planner_draft != null) {
+        throw new Error(PROGRAMME_CHOICE_UNCONFIRMED);
+    }
 }

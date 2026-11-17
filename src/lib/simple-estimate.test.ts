@@ -132,7 +132,7 @@ describe("line calculations", () => {
         expect(amount).toEqual({ ok: false, fieldErrors: { description: "Say what this price is for.", amount: "Enter the price as a number, for example 2500." } });
 
         const rate = buildPriceLine({ ...EMPTY_PRICE_LINE_DRAFT, description: "Tiling", mode: "rate", quantity: "0", rate: "x" });
-        expect(rate).toEqual({ ok: false, fieldErrors: { quantity: "Enter a quantity above 0.", rate: "Enter the rate as a number." } });
+        expect(rate).toEqual({ ok: false, fieldErrors: { quantity: "Quantity must be more than 0.", rate: "Enter the rate as a number." } });
         expect(draftLineTotal({ ...EMPTY_PRICE_LINE_DRAFT, mode: "amount", amount: "" })).toBeNull();
     });
 
@@ -143,6 +143,19 @@ describe("line calculations", () => {
         expect(unitOptions("hr")).toContain("hr");
         expect(unitOptions("m2")).not.toContain("hr");
         expect(buildPriceLine(draft)).toEqual({ ok: true, line: { description: "Labour", quantity: 16, unit: "hr", unit_rate: 35 } });
+    });
+
+    it("accepts a decimal comma and rejects malformed grouping", () => {
+        const draft = { ...EMPTY_PRICE_LINE_DRAFT, mode: "rate" as const, description: "Work", unit: "hr", rate: "20" };
+        expect(buildPriceLine({ ...draft, quantity: "1,5" })).toMatchObject({ ok: true, line: { quantity: 1.5 } });
+        expect(buildPriceLine({ ...draft, quantity: "0,125" })).toMatchObject({ ok: true, line: { quantity: 0.125 } });
+        expect(buildPriceLine({ ...draft, quantity: "01,500" })).toMatchObject({ ok: false });
+        expect(buildPriceLine({ ...draft, rate: "0,500" })).toMatchObject({ ok: false });
+        expect(buildPriceLine({ ...draft, quantity: "1,500" })).toMatchObject({ ok: true, line: { quantity: 1500 } });
+        expect(buildPriceLine({ ...draft, quantity: "1,2,3" })).toMatchObject({ ok: false });
+        expect(buildPriceLine({ ...draft, quantity: "-5" })).toMatchObject({
+            ok: false, fieldErrors: { quantity: "Quantity must be more than 0." },
+        });
     });
 
     it("rejects zero, negative, exponent and hex prices", () => {

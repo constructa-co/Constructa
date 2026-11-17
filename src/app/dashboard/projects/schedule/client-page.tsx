@@ -534,16 +534,16 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     const updatePhaseName = (idx: number, name: string) =>
         setPhases((prev) => { const u = [...prev]; u[idx] = { ...u[idx], name }; return u; });
 
-    const [durationError, setDurationError] = useState<{ index: number; message: string } | null>(null);
+    const [durationError, setDurationError] = useState<{ phase: Phase; message: string } | null>(null);
 
-    const handleManualDuration = (idx: number, val: string) => {
-        const days = val === "" ? null : Number(val);
+    const handleManualDuration = (idx: number, input: HTMLInputElement) => {
+        const days = input.validity.badInput ? NaN : input.value === "" ? null : input.valueAsNumber;
         if (days !== null && (!Number.isInteger(days) || days < 1)) {
-            setDurationError({ index: idx, message: "Enter a whole number of 1 or more working days." });
+            setDurationError({ phase: phases[idx], message: "Whole days ≥1" });
             return;
         }
         if (days !== null && days > MAX_WORKING_DAYS) {
-            setDurationError({ index: idx, message: `Enter ${MAX_WORKING_DAYS} working days or fewer.` });
+            setDurationError({ phase: phases[idx], message: `Max ${MAX_WORKING_DAYS} days` });
             return;
         }
         setDurationError(null);
@@ -898,6 +898,8 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                         <div className="shrink-0 border-r border-slate-700/50 lg:sticky lg:left-0 lg:z-30 lg:bg-slate-900">
                             {phases.map((phase, idx) => {
                                 const workingDur = phase.manualDays ?? phase.calculatedDays;
+                                const calculatedDays = phase.manhours === 0 ? null : phase.calculatedDays;
+                                const showDurationWarning = (phase.manualDays ?? calculatedDays ?? 0) > 120;
                                 const calDur     = toCalendarDays(workingDur, daysPerWeek);
                                 const displayStage = displayPlan?.stages[idx];
                                 const phaseStart = displayStage ? new Date(displayStage.start_date + "T00:00:00") : addDays(programmeStart, phase.startOffset);
@@ -933,8 +935,8 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
                                         {/* Calc days (working): only a length worked out from the stage's own labour hours is a calculation */}
                                         <div data-planner-calculated={idx} className="w-14 flex items-center justify-center border-r border-slate-700/30 text-xs text-slate-400"
-                                            title={phase.manhours > 0 ? `Worked out from ${Math.round(phase.manhours)} labour hours` : "No labour hours on this stage, so no length was calculated"}>
-                                            {phase.manhours > 0 ? `${phase.calculatedDays}d` : "—"}
+                                            title={calculatedDays === null ? "No labour hours on this stage" : undefined}>
+                                            {calculatedDays === null ? "—" : `${calculatedDays}d`}
                                         </div>
 
                                         {/* Manual override (working days) */}
@@ -943,22 +945,22 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                                 type="number"
                                                 min={1}
                                                 max={MAX_WORKING_DAYS}
-                                                aria-invalid={durationError?.index === idx || undefined}
-                                                aria-describedby={durationError?.index === idx || (phase.manualDays ?? phase.calculatedDays) > 120
+                                                aria-invalid={durationError?.phase === phase || undefined}
+                                                aria-describedby={durationError?.phase === phase || showDurationWarning
                                                     ? `phase-duration-feedback-${idx}` : undefined}
                                                 className="w-12 h-7 px-1 text-center text-xs border border-slate-700 rounded bg-slate-900/50 text-slate-100 focus:outline-none focus:border-emerald-500/50"
                                                 value={phase.manualDays ?? ""}
-                                                onChange={(e) => handleManualDuration(idx, e.target.value)}
+                                                onChange={(e) => handleManualDuration(idx, e.currentTarget)}
                                                 onBlur={() => setDurationError(null)}
-                                                placeholder={phase.calculatedDays > 0 ? String(phase.calculatedDays) : "—"}
+                                                placeholder={calculatedDays === null ? "—" : String(calculatedDays)}
                                             />
-                                            {durationError?.index === idx ? (
-                                                <span id={`phase-duration-feedback-${idx}`} role="alert" className="px-1 text-center text-xs text-red-300">
+                                            {durationError?.phase === phase ? (
+                                                <span id={`phase-duration-feedback-${idx}`} role="alert" className="whitespace-nowrap text-[9px] text-red-300">
                                                     {durationError.message}
                                                 </span>
-                                            ) : (phase.manualDays ?? phase.calculatedDays) > 120 && (
-                                                <span id={`phase-duration-feedback-${idx}`} className="px-1 text-center text-xs text-amber-300">
-                                                    Over 120 working days
+                                            ) : showDurationWarning && (
+                                                <span id={`phase-duration-feedback-${idx}`} className="whitespace-nowrap text-[9px] text-amber-300">
+                                                    Over 120 days
                                                 </span>
                                             )}
                                         </div>

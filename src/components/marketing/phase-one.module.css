@@ -15,7 +15,8 @@
 .header { position: relative; z-index: 20; background: var(--base); border-bottom: 1px solid var(--line); }
 .headerInner { max-width: 1600px; margin: auto; padding: 22px 4.5%; display: flex; align-items: center; gap: 40px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); font-size: 25px; font-weight: 650; letter-spacing: -1.2px; text-decoration: none; }
-.brand > span { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--accent); border-radius: 6px; color: var(--accent); font-size: 20px; }
+.brand > span { display: inline-flex; align-items: center; color: var(--accent); }
+.brand > span svg { width: 26px; height: 26px; display: block; }
 .nav { display: flex; flex: 1; justify-content: center; gap: 36px; font-size: 14px; color: var(--muted); }
 .nav a, .footer a { text-decoration: none; }
 .nav a { white-space: nowrap; }

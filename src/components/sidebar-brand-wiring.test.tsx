@@ -56,7 +56,7 @@ function text(value: unknown): string {
 }
 function view() { current.cursor = 0; return SidebarNav({ user: {}, projects: [] }); }
 const wordmark = (root: Element) => nodes(root).some(e => e.type === "span" && e.props.children === "constructa");
-const decorativeMark = (root: Element) => nodes(root).some(e => e.type === "span" && e.props.children === "C" && e.props["aria-hidden"] === "true");
+const decorativeMark = (root: Element) => nodes(root).some(e => e.type === "span" && e.props["aria-hidden"] === "true" && Boolean(e.props.className));
 
 beforeEach(() => {
     vi.stubEnv("NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE", "cohort");
@@ -72,7 +72,7 @@ describe("A002 SidebarBrand wiring inside the actual SidebarNav", () => {
 
         // Desktop aside: the /dashboard brand link carries the full lowercase
         // wordmark (no capital C wordmark, no trailing period) and the
-        // aria-hidden decorative C mark.
+        // aria-hidden decorative brand mark.
         const desktopLink = closed
             .filter(e => e.props.href === "/dashboard" && !e.props["aria-label"])
             .find(e => wordmark(e))!;

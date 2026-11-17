@@ -7,7 +7,7 @@ import programmePhoneCapture from '../../../docs/evidence/marketing-product-scre
 import ui from './phase-one.module.css';
 import shots from './product-screenshots.module.css';
 
-const captures = [
+export const captures = [
   {
     src: estimateCapture,
     phoneSrc: estimatePhoneCapture,
@@ -16,7 +16,7 @@ const captures = [
     description: 'Adjust overhead, risk, profit and discount on a priced estimate. The control stays inactive while nothing has changed.',
     sample: 'All figures are sample data from a demo roof repair job. They are not prices, typical margins or a quote.',
     zoomClass: 'zoomEstimate',
-    zoomNote: 'Shown zoomed to the running total and price adjustments on larger screens; smaller screens show the full-length capture instead.',
+    zoomNote: 'Larger screens show the running total, price adjustments and save control. Smaller screens show the full capture.',
     capturedOn: '2026-11-15',
     capturedLabel: '15 November 2026',
   },
@@ -34,7 +34,7 @@ const captures = [
   },
 ] as const;
 
-function CapturePicture({ capture }: { capture: (typeof captures)[number] }) {
+export function CapturePicture({ capture }: { capture: (typeof captures)[number] }) {
   const { alt, src, phoneSrc } = capture;
   const { props: { srcSet: phoneSrcSet } } = getImageProps({ src: phoneSrc, alt, width: 390, height: 844, sizes: '88vw' });
   const { props: desktop } = getImageProps({ src, alt, width: 1440, height: 900, sizes: '(max-width: 1422px) 100vw, 1440px' });

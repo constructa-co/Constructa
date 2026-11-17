@@ -7,17 +7,16 @@
 }
 
 .brandMark {
-    display: grid;
-    place-items: center;
-    width: 32px;
-    height: 32px;
+    display: inline-flex;
+    align-items: center;
     flex-shrink: 0;
-    border: 1px solid #c9efcf;
-    border-radius: 8px;
     color: #c9efcf;
-    font-size: 18px;
-    font-weight: 700;
-    line-height: 1;
+}
+
+.brandMark svg {
+    width: 26px;
+    height: 26px;
+    display: block;
 }
 
 .wordmark {
@@ -32,6 +31,5 @@
 }
 
 :global(.group:hover) .brandMark {
-    border-color: #e0f9e3;
     color: #e0f9e3;
 }

@@ -1,7 +1,9 @@
 import { NewsletterSignup } from './newsletter-signup';
 import Link from 'next/link';
 import { ArrowDown, ArrowRight, Check, Plus } from 'lucide-react';
+import { BrandMark } from '../brand-mark';
 import { HomeBusinessVisual } from './home-business-visual';
+import { HomeReviewCaptures } from './home-review-captures';
 import { MarketingMobileMenu } from './marketing-mobile-menu';
 import { ProductReviewGuide } from './product-review-guide';
 import { ProductScreenshots } from './product-screenshots';
@@ -18,7 +20,7 @@ export function MarketingHeader() {
   return (
     <header className={`${ui.theme} ${ui.header}`}>
       <div className={ui.headerInner}>
-        <Link className={ui.brand} href="/" aria-label="Constructa home"><span aria-hidden="true">C</span>constructa</Link>
+        <Link className={ui.brand} href="/" aria-label="Constructa home"><span aria-hidden="true"><BrandMark /></span>constructa</Link>
         <nav aria-label="Main navigation" className={ui.nav}>
           <Link href="/features">Product</Link>
           <Link href="/pricing">Preview access</Link>
@@ -39,7 +41,7 @@ export function MarketingFooter() {
   return (
     <footer className={`${ui.theme} ${ui.footer}`}>
       <div className={ui.footerTop}>
-        <Link className={ui.brand} href="/" aria-label="Constructa home"><span aria-hidden="true">C</span>constructa</Link>
+        <Link className={ui.brand} href="/" aria-label="Constructa home"><span aria-hidden="true"><BrandMark /></span>constructa</Link>
         <p>Built around your business.<br />Not the other way around.</p>
         <nav aria-label="Footer navigation">
           <Link href="/features">The product</Link><Link href="/guides">Guides</Link>
@@ -157,6 +159,7 @@ export function PhaseOneHome() {
       </section>
       <div className={ui.chapterLine}><span>Built around your business</span><span>Company <i /> Price <i /> Programme <i /> Proposal</span></div>
       <Journey />
+      <HomeReviewCaptures />
       <section className={`${ui.section} ${ui.story}`} data-reveal>
         <div className={ui.photo}><HomeBusinessVisual /><span>Construction is a people business.</span></div>
         <div><p className={ui.eyebrow}>The experience behind the estimate</p><h2>Your business.<br />Not another<br />blank template.</h2><p>Your experience, the challenges you have solved and the quality of your work belong alongside the numbers. Put them in a company profile and reuse the right examples when you prepare a proposal.</p><p>Whether you fit kitchens, refurbish workplaces or run a multi-trade team, the story should be yours.</p><FoundingCohortApplyLink>Apply for the founding cohort</FoundingCohortApplyLink></div>

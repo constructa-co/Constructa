@@ -19,7 +19,8 @@ section.screenshots { padding-top: 0; }
 @media (min-width: 601px) {
   .viewport { height: 0; padding-top: 62.5%; }
   .viewport img { position: absolute; top: 0; left: 0; transform-origin: left top; }
-  .zoomEstimate img { transform: translateY(-91%) scale(1.8); }
+  .zoomEstimate { padding-top: 70%; }
+  .zoomEstimate img { transform: translateY(-40%); }
   .zoomProgramme img { transform: translateY(-29%) scale(1.6); }
 }
 @media (max-width: 800px) { .qualification { padding: 18px 16px; margin-bottom: 24px; }.figures { gap: 36px; }.figure figcaption { grid-template-columns: 1fr; gap: 14px; padding-top: 16px; } }

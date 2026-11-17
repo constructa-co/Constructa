@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo, useEffect, useRef } from "react";
+import { MAX_WORKING_DAYS } from "@/lib/simple-programme";
 import { updatePhasesAction, getEstimatePhasesAction, saveProgrammePhasesAction } from "./actions";
 import ProgrammeAiUpdate from "./programme-ai-update";
 import { toast } from "sonner";
@@ -533,9 +534,19 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     const updatePhaseName = (idx: number, name: string) =>
         setPhases((prev) => { const u = [...prev]; u[idx] = { ...u[idx], name }; return u; });
 
+    const [durationError, setDurationError] = useState<{ index: number; message: string } | null>(null);
+
     const handleManualDuration = (idx: number, val: string) => {
-        const days = val === "" ? null : parseInt(val, 10);
-        if (days !== null && (isNaN(days) || days < 1)) return;
+        const days = val === "" ? null : Number(val);
+        if (days !== null && (!Number.isInteger(days) || days < 1)) {
+            setDurationError({ index: idx, message: "Enter a whole number of 1 or more working days." });
+            return;
+        }
+        if (days !== null && days > MAX_WORKING_DAYS) {
+            setDurationError({ index: idx, message: `Enter ${MAX_WORKING_DAYS} working days or fewer.` });
+            return;
+        }
+        setDurationError(null);
         setPhases((prev) => { const u = [...prev]; u[idx] = { ...u[idx], manualDays: days }; return u; });
     };
 
@@ -920,21 +931,36 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                             </div>
                                         </div>
 
-                                        {/* Calc days (working) */}
-                                        <div className="w-14 flex items-center justify-center border-r border-slate-700/30 text-xs text-slate-400">
-                                            {phase.calculatedDays}d
+                                        {/* Calc days (working): only a length worked out from the stage's own labour hours is a calculation */}
+                                        <div data-planner-calculated={idx} className="w-14 flex items-center justify-center border-r border-slate-700/30 text-xs text-slate-400"
+                                            title={phase.manhours > 0 ? `Worked out from ${Math.round(phase.manhours)} labour hours` : "No labour hours on this stage, so no length was calculated"}>
+                                            {phase.manhours > 0 ? `${phase.calculatedDays}d` : "—"}
                                         </div>
 
                                         {/* Manual override (working days) */}
-                                        <div className="w-16 flex items-center justify-center border-r border-slate-700/30">
+                                        <div className="w-16 flex flex-col items-center justify-center border-r border-slate-700/30">
                                             <input
                                                 type="number"
                                                 min={1}
+                                                max={MAX_WORKING_DAYS}
+                                                aria-invalid={durationError?.index === idx || undefined}
+                                                aria-describedby={durationError?.index === idx || (phase.manualDays ?? phase.calculatedDays) > 120
+                                                    ? `phase-duration-feedback-${idx}` : undefined}
                                                 className="w-12 h-7 px-1 text-center text-xs border border-slate-700 rounded bg-slate-900/50 text-slate-100 focus:outline-none focus:border-emerald-500/50"
                                                 value={phase.manualDays ?? ""}
                                                 onChange={(e) => handleManualDuration(idx, e.target.value)}
-                                                placeholder="—"
+                                                onBlur={() => setDurationError(null)}
+                                                placeholder={phase.calculatedDays > 0 ? String(phase.calculatedDays) : "—"}
                                             />
+                                            {durationError?.index === idx ? (
+                                                <span id={`phase-duration-feedback-${idx}`} role="alert" className="px-1 text-center text-xs text-red-300">
+                                                    {durationError.message}
+                                                </span>
+                                            ) : (phase.manualDays ?? phase.calculatedDays) > 120 && (
+                                                <span id={`phase-duration-feedback-${idx}`} className="px-1 text-center text-xs text-amber-300">
+                                                    Over 120 working days
+                                                </span>
+                                            )}
                                         </div>
 
                                         {/* Starts After */}

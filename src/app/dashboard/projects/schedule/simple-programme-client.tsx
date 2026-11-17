@@ -46,6 +46,7 @@ import {
     saveProgramme,
     stageDurationField,
     stageNameField,
+    startDateInPastWarning,
     viewForProject,
     type DurationUnit,
     type ExpectedProgramme,
@@ -464,7 +465,15 @@ function ProgrammeEditor({
     const [state, store] = useReducerStore(programmeReducer, () => initialProgrammeState(initial.draft, initial.hasSaved, opened));
     const [leaving, setLeaving] = useState(false);
     const [leaveError, setLeaveError] = useState<string | null>(null);
+    // The reader's own calendar day, read after mount so the server and first browser render agree.
+    const [today, setToday] = useState<string | null>(null);
+    useEffect(() => {
+        const now = new Date();
+        setToday(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`);
+    }, []);
     const { draft, fieldErrors } = state;
+    // A note only: a past start still saves. Not shown over a start-date error.
+    const pastStart = draft.timeBasis === "relative" || fieldErrors.startDate ? null : startDateInPastWarning(draft.startDate, today);
     const estimateActivities = programmeEstimateActivities(project.id, estimate);
     const status = programmeSaveStatus(state);
     useEffect(() => {
@@ -734,11 +743,12 @@ function ProgrammeEditor({
                                 value={draft.startDate}
                                 disabled={saving}
                                 aria-invalid={fieldErrors.startDate ? true : undefined}
-                                aria-describedby={fieldErrors.startDate ? "programme-start-error" : undefined}
+                                aria-describedby={fieldErrors.startDate ? "programme-start-error" : pastStart ? "programme-start-past" : undefined}
                                 onChange={(e) => store.dispatch({ type: "field/change", patch: { startDate: e.target.value } })}
                                 className={`${s.input} mt-1.5`}
                             />
                             {errorText("programme-start-error", fieldErrors.startDate)}
+                            {pastStart && <p id="programme-start-past" role="status" className={`mt-2 text-sm ${s.noticeBox}`} data-programme-past-start>{pastStart}</p>}
                         </div>}
 
                         {staged ? (

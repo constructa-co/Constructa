@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Check, ChevronDown, Circle, FileDown, Loader2, Plus, Send, Sparkles, Trash2 } from "lucide-react";
+import { localIsoDateFromUtc } from "@/lib/job-working-local";
+import { startDateInPastWarning } from "@/lib/simple-programme";
 import ProgrammeTimeline from "@/components/programme-timeline";
 import ProposalDocumentView from "@/components/proposal/proposal-document-view";
 import ProposalDocumentDialog from "@/components/proposal/proposal-document-dialog";
@@ -217,6 +219,11 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
 
     const readiness = useMemo(() => reviewReadiness(context, draft), [context, draft]);
     const plan = useMemo(() => programmePlanForProject(project), [project]);
+    const programmeTimeZone = plan?.working_pattern?.version === 2 ? plan.working_pattern.timezone : "Europe/London";
+    const programmeStartWarning = startDateInPastWarning(
+        plan?.start_date ?? project.start_date,
+        localIsoDateFromUtc(Date.parse(previewTime), programmeTimeZone),
+    );
     const preview = useMemo(
         () => buildPreviewSnapshot(context, draft, state.responseKind, previewTime),
         [context, draft, state.responseKind, previewTime],
@@ -627,6 +634,11 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                         {readiness.ready ? "Everything needed is in place" : `${readiness.missing.length} ${readiness.missing.length === 1 ? "thing is" : "things are"} needed before you can send`}
                     </h2>
                     {estimateIssue && <p role="alert" className={`mt-3 ${s.errorBox} text-sm`}>{estimateIssue}</p>}
+                    {programmeStartWarning && (
+                        <p className={`mt-3 text-sm ${s.body}`} data-proposal-past-start>
+                            {programmeStartWarning}
+                        </p>
+                    )}
 
                     {figureWarnings.length > 0 && (
                         <div

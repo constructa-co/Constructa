@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo, useEffect, useRef } from "react";
-import { MAX_WORKING_DAYS } from "@/lib/simple-programme";
+import { MAX_WORKING_DAYS, startDateInPastWarning } from "@/lib/simple-programme";
 import { updatePhasesAction, getEstimatePhasesAction, saveProgrammePhasesAction } from "./actions";
 import ProgrammeAiUpdate from "./programme-ai-update";
 import { toast } from "sonner";
@@ -291,6 +291,8 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
             : currentSaveState === "error" ? "Save not confirmed. Current stages remain on screen."
                 : currentSaveState === "uncertain" ? "Save uncertain: it may already have completed. Review before retrying."
                     : currentSaveState === "changed" ? "Current changes are not yet confirmed saved." : "";
+
+    const pastStartWarning = startDateInPastWarning(toInputDate(programmeStart), toInputDate(new Date()));
 
     // ── Auto-save phases whenever they change (debounced 500ms) ──────────
     // 500ms is fast enough that normal navigation won't lose changes.
@@ -763,6 +765,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 </div>
             </div>
 
+            {pastStartWarning && <p role="note" className="text-xs text-amber-300" data-planner-past-start>{pastStartWarning}</p>}
             {displayPlan && <p className="text-xs text-slate-400" data-planner-calendar-basis>{programmeBasisNote(displayPlan)}</p>}
             {/* ── Summary strip ── */}
             {phases.length > 0 && (

@@ -65,7 +65,7 @@ Current count: 54 merged, 19 in progress, 0 in review, 12 Rob-gated, 0 not start
 | CON-058 | P2 | Claude | — | in progress | D51 batch 06 — Programme interactions |
 | CON-059 | P2 | Claude | [#194](https://github.com/constructa-co/Constructa/pull/194) | merged | D51 batch 04 — Proposal evidence and terms |
 | CON-060 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | merged | Independent PASS and GitHub CI green. |
-| CON-061 | P2 | Claude | — | in progress | D51 batch 08 — Case-study media and selection |
+| CON-061 | P2 | Claude | — | in progress | Existing D51 media upload/selection source reconciled as already on main e6de701 (public-image and photo-slot implementations match); 46 targeted and 307 case-study tests passed. No duplicate code PR. Remaining default selection, duplicate-photo and legacy positional-selection scope needs original snag mapping; hosted storage unverified. |
 | CON-062 | P2 | Claude | [#196](https://github.com/constructa-co/Constructa/pull/196) | merged | #196 merged at 4ec090bc. Main CI, secret scan and production deployment passed. |
 | CON-063 | P2 | Claude | [#196](https://github.com/constructa-co/Constructa/pull/196) | merged | #196 merged at 4ec090bc. Main CI, secret scan and production deployment passed. |
 | CON-064 | P2 | Claude | [#196](https://github.com/constructa-co/Constructa/pull/196) | merged | #196 merged at 4ec090bc. Main CI, secret scan and production deployment passed. |

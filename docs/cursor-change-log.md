@@ -1,5 +1,13 @@
 # Cursor change log
 
+## 2026-11-18 — CON-058 PR210 proposal-wiring content hash pin
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/case-library/proposal-wiring.test.ts` | legacy pin test (~28–40) | Content `e769bc4f…` / publication `3a92756f…`; revert `duration_label` alone restores `2b0185bf…` / `87b47a6d…` | PR210 CI: prove CON-058 delta is only `programme_plan.duration_label`; case-study/regional-calendar wiring pins stand |
+
+**Evidence:** Canonical diff is one path, `programme_plan.duration_label`: `3 weeks` → `15 working days (3 weeks)`; that revert alone restores content `2b0185bf…` and publication `87b47a6d…`. Issued publications read stored `snapshot` JSON (not recomputed) — no frozen-label regression.
+
 ## 2026-11-18 — CON-058 programme duration labels
 
 | File | Lines (approx.) | Change | Intent |

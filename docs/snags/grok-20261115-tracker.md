@@ -78,7 +78,7 @@ Current count: 59 merged, 14 in progress, 0 in review, 12 Rob-gated, 0 not start
 | CON-071 | P2 | Claude / Codex | [#200](https://github.com/constructa-co/Constructa/pull/200) | merged | Main CI, secret scan and production passed at 85c0f08. |
 | CON-072 | P2 | Claude / Codex | [#200](https://github.com/constructa-co/Constructa/pull/200) | merged | Main CI, secret scan and production passed at 85c0f08. |
 | CON-073 | P2 | Cursor / Codex | [#212](https://github.com/constructa-co/Constructa/pull/212) | in progress | Boardstage confirmation shipped d0e9b2d; main CI, secrets and production green. History append is best-effort only when its table exists; durable stagehistory availability remains unverified, no schema applied. |
-| CON-074 | P2 | Claude | — | in progress | D51 batch 05 — Phone layout and theme |
+| CON-074 | P2 | Cursor / Codex | [#213](https://github.com/constructa-co/Constructa/pull/213) | in progress | Theme contrasttokens shippedcc302c0; main CI, secrets and production green. Reviewedtokenpairs AA; browser/axe contrast evidence outstanding. Light-list scrolling preserved. |
 | CON-075 | P2 | Claude | — | in progress | D51 batch 12 — Dashboard and demo state |
 | CON-076 | P2 | Cursor / Codex | [#207](https://github.com/constructa-co/Constructa/pull/207) | merged | Original job-name truncation snag addressed by live countdown/limit feedback; main CI, secrets and production green ate6de701. |
 | CON-077 | P2 | Claude | [#193](https://github.com/constructa-co/Constructa/pull/193) | merged | D51 batch 03 — Proposal PDF pricing |

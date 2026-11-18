@@ -1,5 +1,21 @@
 # Cursor change log
 
+## 2026-11-18 — CON-073 board stage move confirmation (S45)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/dashboard/project-board.tsx` | pending ref, `requestMove` / dialog wiring, all board triggers | Confirm before any operational stage change; A115 `recordWin` allowed at same stage (Active) | Prevent accidental one-click Proposal Sent / Lost moves; keep operational semantics |
+| `src/app/dashboard/pipeline-stage-move-dialog.tsx` | new | From/to summary + Cancel / Confirm move | Bounded confirmation with clear operational vs Mark as Won copy |
+| `src/lib/pipeline-stage-move-copy.ts` | new | Dialog strings + display labels | Shared copy |
+| `src/lib/pipeline-stage-history.ts` | new | `appendPipelineStageHistory` on `project_pipeline_stage_events` | Log transitions when table exists; schema gate otherwise |
+| `src/app/dashboard/board-actions.ts` | `confirmedStageWrite` | Read prior `status`, append history after acknowledged write | Server-side transition log on existing mutation path |
+| `src/app/dashboard/project-board-feedback.test.tsx` | CON-073 block + confirm helpers | Cancel/no write, confirm/single write, failure retains stage, no confirm for unchanged picker | S45 regression |
+| `src/app/dashboard/board-actions.test.ts` | prior-row read mock | History call + missing-prior refusal | Server path |
+| `src/lib/pipeline-stage-history.test.ts` | new | Record + schema gate | History helper |
+| `src/app/dashboard/a115-pipeline-publication-clarity.test.ts` | disclosure line | Expect confirm-before-save copy | A115 alignment |
+
+**Not changed:** KPI/metrics, proposal send/publication, D56 sent-display gating, migrations/SQL.
+
 ## 2026-11-18 — CON-058 PR210 proposal-wiring content hash pin
 
 | File | Lines (approx.) | Change | Intent |

@@ -32,6 +32,7 @@ import ui from "@/components/project-board.module.css";
 import { corePipelineMicroLinkColor, corePipelineMutedIconButton } from "@/lib/core-editing-palette";
 import { PIPELINE_CHANGE_UNCONFIRMED, PIPELINE_REFRESH_UNCONFIRMED } from "@/lib/pipeline-feedback";
 import { pipelineStageDisplayLabel } from "./pipeline-stage-display";
+import { PipelineStageMoveDialog, type PipelineStageMovePrompt } from "./pipeline-stage-move-dialog";
 
 const COLUMNS = [
     { id: "Lead",          label: pipelineStageDisplayLabel("Lead"),          icon: Users,        color: "bg-slate-50",      darkColor: "bg-white/5",        text: "text-slate-600",  darkText: "text-slate-300",  border: "border-slate-200",  darkBorder: "border-[#2a2a2a]" },
@@ -108,7 +109,11 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
     /** Ephemeral: confirmed Mark as Won ACK for this projects snapshot until server props catch up. */
     const [confirmedWins, setConfirmedWins] = useState<Record<string, true>>({});
     const [moveNotice, setMoveNotice] = useState<{ kind: "error" | "warning"; text: string } | null>(null);
+    const pendingMoveRef = useRef<(PipelineStageMovePrompt & { projectId: string }) | null>(null);
+    const [confirmEpoch, setConfirmEpoch] = useState(0);
     const moveInFlight = useRef(false);
+    const pendingMove = pendingMoveRef.current;
+    void confirmEpoch;
 
     useEffect(() => {
         setConfirmedWins(prev => {
@@ -127,6 +132,33 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
 
     const showsRecordedWin = (p: { id: string; proposal_accepted_at?: string | null; proposal_status?: string | null }) =>
         hasRecordedWin(p) || confirmedWins[p.id] === true;
+
+    const requestMove = (
+        projectId: string,
+        fromStatus: string,
+        newStatus: string,
+        projectName: string,
+        intent: "default" | "recordWin" = "default",
+    ) => {
+        if (moveInFlight.current) return;
+        if (fromStatus === newStatus && intent !== "recordWin") return;
+        if (pendingMoveRef.current) return;
+        pendingMoveRef.current = { projectId, fromStatus, toStatus: newStatus, projectName, intent };
+        setConfirmEpoch((epoch) => epoch + 1);
+    };
+
+    const cancelPendingMove = () => {
+        pendingMoveRef.current = null;
+        setConfirmEpoch((epoch) => epoch + 1);
+    };
+
+    const confirmPendingMove = () => {
+        const pending = pendingMoveRef.current;
+        if (!pending) return;
+        pendingMoveRef.current = null;
+        setConfirmEpoch((epoch) => epoch + 1);
+        move(pending.projectId, pending.toStatus, pending.intent);
+    };
 
     const move = (projectId: string, newStatus: string, intent: "default" | "recordWin" = "default") => {
         if (moveInFlight.current) return;
@@ -167,6 +199,13 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
 
     return (
         <>
+        <PipelineStageMoveDialog
+            open={pendingMove !== null}
+            pending={pendingMove}
+            isDark={isDark}
+            onConfirm={confirmPendingMove}
+            onCancel={cancelPendingMove}
+        />
         {moveNotice && <p role={moveNotice.kind === "error" ? "alert" : "status"} className="mb-3 max-w-3xl rounded-lg border border-amber-500/40 bg-amber-950 px-4 py-3 text-sm leading-relaxed text-amber-100">{moveNotice.text}</p>}
         <div className={`${ui.board} grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 h-full items-start md:min-w-[900px]`} data-dark={isDark}>
             {COLUMNS.map(col => {
@@ -270,7 +309,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                     Operational stage
                                                 </label>
                                                 <p className={`text-[9px] leading-snug ${isDark ? "text-[#707070]" : "text-gray-500"}`}>
-                                                    Changes save immediately.
+                                                    You confirm before the board updates.
                                                 </p>
                                                 <p className={`text-[9px] leading-snug ${isDark ? "text-[#707070]" : "text-gray-500"}`}>
                                                     Tracks where you put this job on the board. It does not send, publish, or accept the proposal document.
@@ -284,7 +323,11 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                         No platform send recorded yet — use Send in the proposal editor when ready.
                                                     </p>
                                                 ) : null}
-                                                <Select value={status} onValueChange={(val) => move(p.id, val)} disabled={isPending}>
+                                                <Select
+                                                    value={status}
+                                                    onValueChange={(val) => requestMove(p.id, status, val, p.name ?? "Job")}
+                                                    disabled={isPending}
+                                                >
                                                     <SelectTrigger id={`stage-change-${p.id}`} aria-label={`Stage of ${p.name}`} className={`h-11 lg:h-7 text-[10px] font-bold transition-colors ${
                                                         isDark
                                                             ? "border-[#2a2a2a] bg-[#0d0d0d] text-white hover:bg-[#1a1a1a]"
@@ -306,7 +349,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                             {status === "Proposal Sent" ? (
                                                 // Mark as Won — special emerald treatment
                                                 <button
-                                                    onClick={() => move(p.id, "Active", "recordWin")}
+                                                    onClick={() => requestMove(p.id, status, "Active", p.name ?? "Job", "recordWin")}
                                                     disabled={isPending}
                                                     className={`w-full min-h-11 lg:min-h-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
                                                         isDark
@@ -318,7 +361,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                 </button>
                                             ) : status === "Lead" ? (
                                                 <button
-                                                    onClick={() => move(p.id, "Estimating")}
+                                                    onClick={() => requestMove(p.id, status, "Estimating", p.name ?? "Job")}
                                                     disabled={isPending}
                                                     className={`w-full min-h-11 lg:min-h-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
                                                         isDark
@@ -330,7 +373,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                 </button>
                                             ) : status === "Estimating" ? (
                                                 <button
-                                                    onClick={() => move(p.id, "Proposal Sent")}
+                                                    onClick={() => requestMove(p.id, status, "Proposal Sent", p.name ?? "Job")}
                                                     disabled={isPending}
                                                     className={`w-full min-h-11 lg:min-h-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
                                                         isDark
@@ -345,7 +388,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                     {!showsRecordedWin(p) && (
                                                         <button
                                                             type="button"
-                                                            onClick={() => move(p.id, "Active", "recordWin")}
+                                                            onClick={() => requestMove(p.id, status, "Active", p.name ?? "Job", "recordWin")}
                                                             disabled={isPending}
                                                             className={`w-full min-h-11 lg:min-h-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
                                                                 isDark
@@ -358,7 +401,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                     )}
                                                     <button
                                                         type="button"
-                                                        onClick={() => move(p.id, "Completed")}
+                                                        onClick={() => requestMove(p.id, status, "Completed", p.name ?? "Job")}
                                                         disabled={isPending}
                                                         className={`w-full min-h-11 lg:min-h-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
                                                             isDark
@@ -371,7 +414,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                 </div>
                                             ) : (status === "Completed" || status === "Lost") ? (
                                                 <button
-                                                    onClick={() => move(p.id, status === "Lost" ? "Proposal Sent" : "Active")}
+                                                    onClick={() => requestMove(p.id, status, status === "Lost" ? "Proposal Sent" : "Active", p.name ?? "Job")}
                                                     disabled={isPending}
                                                     className={`w-full min-h-11 lg:min-h-0 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors border disabled:opacity-50 ${
                                                         isDark
@@ -388,7 +431,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                 <div data-board-secondary className="flex items-center justify-between pt-0.5">
                                                     {prevStage ? (
                                                         <button
-                                                            onClick={() => move(p.id, prevStage)}
+                                                            onClick={() => requestMove(p.id, status, prevStage, p.name ?? "Job")}
                                                             disabled={isPending}
                                                             className={`min-h-11 lg:min-h-0 px-2 lg:px-0 text-[9px] font-semibold transition-colors disabled:opacity-40 flex items-center gap-0.5 ${
                                                                 isDark ? "text-slate-400 hover:text-slate-200" : "text-gray-600 hover:text-gray-900"
@@ -399,7 +442,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                     ) : <span />}
                                                     {showLost && (
                                                         <button
-                                                            onClick={() => move(p.id, "Lost")}
+                                                            onClick={() => requestMove(p.id, status, "Lost", p.name ?? "Job")}
                                                             disabled={isPending}
                                                             className={`min-h-11 lg:min-h-0 px-2 lg:px-0 text-[9px] font-semibold transition-colors disabled:opacity-40 ${
                                                                 isDark ? "text-red-400 hover:text-red-300" : "text-red-700 hover:text-red-900"

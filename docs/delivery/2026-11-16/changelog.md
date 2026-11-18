@@ -1,3 +1,13 @@
+## CON-073 — Board stage move confirmation (S45) — 18 November 2026
+
+Checks: focused Vitest on board feedback, board-actions, stage history, A115 source guard (no full build in this session).
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/app/dashboard/project-board.tsx` | Confirm gate before moves; operational copy | Stop accidental Proposal Sent one-clicks |
+| `src/app/dashboard/pipeline-stage-move-dialog.tsx`, `src/lib/pipeline-stage-move-copy.ts` | Dialog UI + strings | Clear from/to + cancel |
+| `src/lib/pipeline-stage-history.ts`, `src/app/dashboard/board-actions.ts` | Post-write append | History via `project_pipeline_stage_events` when present (schema gate if absent) |
+
 ## D51 snags 054 / 061 / 065 — Case-study media: limits, upload feedback — 16 November 2026
 
 Checks: **NOT RUN** in the authoring session (no shell). Evidence, commands to run and the open owner decision are in `d51-case-study-media-evidence.md`.

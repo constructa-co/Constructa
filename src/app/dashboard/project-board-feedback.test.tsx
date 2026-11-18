@@ -49,6 +49,19 @@ function chooseStage(next: string) {
     expect(select).toBeDefined();
     (select!.props.onValueChange as (stage: string) => void)(next);
 }
+function stageDialogNode() {
+    return nodes(view()).find(e => e.props?.open === true && typeof e.props?.onConfirm === "function" && typeof e.props?.onCancel === "function");
+}
+function confirmStageDialog() {
+    const dialog = stageDialogNode();
+    expect(dialog).toBeDefined();
+    (dialog!.props.onConfirm as () => void)();
+}
+function cancelStageDialog() {
+    const dialog = stageDialogNode();
+    expect(dialog).toBeDefined();
+    (dialog!.props.onCancel as () => void)();
+}
 const settle = async () => { await Promise.all(current.tasks); };
 function held() { let resolve!: (value: unknown) => void; const promise = new Promise(r => { resolve = r; }); return { resolve, promise }; }
 beforeEach(() => {
@@ -60,7 +73,7 @@ describe("actual pipeline move handler", () => {
     it.each(["returned failure", "thrown reply"])("restores server-provided status and displays uncertainty after %s", async kind => {
         if (kind === "returned failure") current.ordinary.mockResolvedValue({ success: false, error: "The change could not be confirmed. It may have saved." });
         else current.ordinary.mockRejectedValue(new Error("private transport detail"));
-        click("Start Estimating")(); await settle();
+        click("Start Estimating")(); confirmStageDialog(); await settle();
         expect(text(column("Lead"))).toContain("QA Example"); expect(text(column("Estimating"))).not.toContain("QA Example");
         const alert = nodes(view()).find(e => e.props.role === "alert"); expect(alert).toBeDefined();
         expect(text(alert)).toMatch(/confirm|saved|reload/i); expect(text(alert)).not.toContain("private transport detail");
@@ -68,30 +81,33 @@ describe("actual pipeline move handler", () => {
     it("fences immediate duplicate clicks before React has rerendered the disabled controls", async () => {
         const wait = held(); current.ordinary.mockReturnValue(wait.promise);
         const move = click("Start Estimating"); move(); move();
+        expect(current.ordinary).toHaveBeenCalledTimes(0);
+        confirmStageDialog();
         expect(current.ordinary).toHaveBeenCalledTimes(1);
         wait.resolve({ success: true }); await settle();
     });
     it("keeps confirmed optimistic movement until fresh server props arrive", async () => {
-        click("Start Estimating")(); await settle(); expect(text(column("Estimating"))).toContain("QA Example");
+        click("Start Estimating")(); confirmStageDialog(); await settle(); expect(text(column("Estimating"))).toContain("QA Example");
         expect(current.refresh).toHaveBeenCalledOnce();
         projects = [{ ...project, status: "Lost" }];
         expect(text(column("Lost"))).toContain("QA Example"); expect(text(column("Estimating"))).not.toContain("QA Example");
     });
     it("calls the existing Won action only on the explicit existing Won control and rolls back rejection", async () => {
         projects = [{ ...project, status: "Proposal Sent" }]; current.won.mockResolvedValue({ success: false, error: "Could not confirm." });
-        click("Mark as Won")(); await settle();
+        click("Mark as Won")(); confirmStageDialog(); await settle();
         expect(current.won).toHaveBeenCalledExactlyOnceWith("job"); expect(current.ordinary).not.toHaveBeenCalled();
         expect(text(column("Proposal Sent"))).toContain("QA Example"); expect(text(column("Active"))).not.toContain("QA Example");
     });
     it("uses an ordinary stage write when reopening Completed to Active so acceptance fields are not rewritten", async () => {
         projects = [{ ...project, status: "Completed" }];
-        click("Reopen")(); await settle();
+        click("Reopen")(); confirmStageDialog(); await settle();
         expect(current.ordinary).toHaveBeenCalledExactlyOnceWith("job", "Active");
         expect(current.won).not.toHaveBeenCalled();
     });
     it("A115: stage picker Active is operational only and does not record a win", async () => {
         projects = [{ ...project, status: "Estimating" }];
         chooseStage("Active");
+        confirmStageDialog();
         await settle();
         expect(current.ordinary).toHaveBeenCalledExactlyOnceWith("job", "Active");
         expect(current.won).not.toHaveBeenCalled();
@@ -99,6 +115,7 @@ describe("actual pipeline move handler", () => {
     it("A115: Proposal Sent dropdown to Active is operational only, not Mark as Won", async () => {
         projects = [{ ...project, status: "Proposal Sent" }];
         chooseStage("Active");
+        confirmStageDialog();
         await settle();
         expect(current.ordinary).toHaveBeenCalledExactlyOnceWith("job", "Active");
         expect(current.won).not.toHaveBeenCalled();
@@ -111,6 +128,7 @@ describe("actual pipeline move handler", () => {
     it("A115 P2: after picker move to Active, Mark as Won remains available until win is recorded", async () => {
         projects = [{ ...project, status: "Estimating", proposal_status: "sent", proposal_accepted_at: null }];
         chooseStage("Active");
+        confirmStageDialog();
         await settle();
         expect(current.won).not.toHaveBeenCalled();
         const wonButton = nodes(view()).find(e => e.type === "button" && text(e.props.children).includes("Mark as Won"));
@@ -118,7 +136,7 @@ describe("actual pipeline move handler", () => {
     });
     it("A115 P2: deliberate Mark as Won on Active unwon calls won action only", async () => {
         projects = [{ ...project, status: "Active", proposal_status: "sent", proposal_accepted_at: null }];
-        click("Mark as Won")(); await settle();
+        click("Mark as Won")(); confirmStageDialog(); await settle();
         expect(current.won).toHaveBeenCalledExactlyOnceWith("job");
         expect(current.ordinary).not.toHaveBeenCalled();
     });
@@ -130,25 +148,25 @@ describe("actual pipeline move handler", () => {
     it("A115: after confirmed Mark as Won, refresh failure must not offer Trophy again on stale props", async () => {
         projects = [{ ...project, status: "Active", proposal_status: "sent", proposal_accepted_at: null }];
         current.refresh.mockImplementation(() => { throw new Error("refresh failure"); });
-        click("Mark as Won")(); await settle();
+        click("Mark as Won")(); confirmStageDialog(); await settle();
         expect(current.won).toHaveBeenCalledExactlyOnceWith("job");
         expect(nodes(view()).some(e => e.type === "button" && text(e.props.children).includes("Mark as Won"))).toBe(false);
         expect(text(view())).toMatch(/saved.*refresh|saved.*reload/i);
     });
     it("preserves a confirmed move but gives a warning if refresh fails", async () => {
         current.refresh.mockImplementation(() => { throw Error("refresh failure"); });
-        click("Start Estimating")(); await settle();
+        click("Start Estimating")(); confirmStageDialog(); await settle();
         expect(text(column("Estimating"))).toContain("QA Example"); expect(text(view())).toMatch(/saved.*refresh|saved.*reload/i);
     });
     it("preserves server-confirmed success when the action reports cache refresh failure", async () => {
         current.ordinary.mockResolvedValue({ success: true, warning: "The stage was saved, but the view could not refresh. Reload the pipeline." });
-        click("Start Estimating")(); await settle();
+        click("Start Estimating")(); confirmStageDialog(); await settle();
         expect(text(column("Estimating"))).toContain("QA Example"); expect(text(view())).toContain("stage was saved");
     });
     it("releases the fence for a deliberate retry, without automatic resubmission", async () => {
         current.ordinary.mockResolvedValueOnce({ success: false, error: "Could not confirm. It may have saved." });
-        click("Start Estimating")(); await settle(); expect(current.ordinary).toHaveBeenCalledTimes(1);
-        click("Start Estimating")(); await settle(); expect(current.ordinary).toHaveBeenCalledTimes(2);
+        click("Start Estimating")(); confirmStageDialog(); await settle(); expect(current.ordinary).toHaveBeenCalledTimes(1);
+        click("Start Estimating")(); confirmStageDialog(); await settle(); expect(current.ordinary).toHaveBeenCalledTimes(2);
         expect(text(column("Estimating"))).toContain("QA Example");
     });
 });
@@ -160,6 +178,7 @@ describe("card stage Select onValueChange (A017 selector)", () => {
             error: "The stage change could not be confirmed. It may have saved. Reload the pipeline to check before trying again.",
         });
         chooseStage("Estimating");
+        confirmStageDialog();
         await settle();
         expect(current.ordinary).toHaveBeenCalledExactlyOnceWith("job", "Estimating");
         expect(current.won).not.toHaveBeenCalled();
@@ -170,6 +189,7 @@ describe("card stage Select onValueChange (A017 selector)", () => {
         expect(text(alert)).toMatch(/confirm|saved|reload/i);
         current.ordinary.mockResolvedValueOnce({ success: true });
         chooseStage("Estimating");
+        confirmStageDialog();
         await settle();
         expect(current.ordinary).toHaveBeenCalledTimes(2);
         expect(text(column("Estimating"))).toContain("QA Example");
@@ -197,8 +217,45 @@ describe("pipeline card stage labels (A017)", () => {
         expect(advance).toBeDefined();
         expect(nodes(view()).some(e => e.type === "button" && text(e.props.children).trim() === "Proposal Sent")).toBe(false);
         (advance!.props.onClick as () => void)();
+        confirmStageDialog();
         await settle();
         expect(current.ordinary).toHaveBeenCalledExactlyOnceWith("job", "Proposal Sent");
         expect(current.won).not.toHaveBeenCalled();
+    });
+});
+
+describe("CON-073 board stage confirmation", () => {
+    it("cancel leaves the card in place with no server write", async () => {
+        click("Start Estimating")();
+        cancelStageDialog();
+        await settle();
+        expect(current.ordinary).not.toHaveBeenCalled();
+        expect(text(column("Lead"))).toContain("QA Example");
+        expect(stageDialogNode()).toBeUndefined();
+    });
+
+    it("confirm issues a single stage write with a clear from/to prompt", async () => {
+        click("Start Estimating")();
+        expect(text(view())).toMatch(/Lead.*Estimating|Enquiries.*Preparing estimate/i);
+        confirmStageDialog();
+        await settle();
+        expect(current.ordinary).toHaveBeenCalledExactlyOnceWith("job", "Estimating");
+    });
+
+    it("does not open confirmation when the picker value is unchanged", async () => {
+        projects = [{ ...project, status: "Estimating" }];
+        chooseStage("Estimating");
+        await settle();
+        expect(current.ordinary).not.toHaveBeenCalled();
+        expect(stageDialogNode()).toBeUndefined();
+    });
+
+    it("retains the prior column when the server refuses the write", async () => {
+        current.ordinary.mockResolvedValue({ success: false, error: "Could not confirm." });
+        click("Start Estimating")();
+        confirmStageDialog();
+        await settle();
+        expect(text(column("Lead"))).toContain("QA Example");
+        expect(text(column("Estimating"))).not.toContain("QA Example");
     });
 });

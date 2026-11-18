@@ -2,6 +2,7 @@
 import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
 import { PIPELINE_CHANGE_UNCONFIRMED, PIPELINE_REFRESH_UNCONFIRMED, type PipelineMutationResult } from "@/lib/pipeline-feedback";
+import { appendPipelineStageHistory } from "@/lib/pipeline-stage-history";
 
 const VALID_STATUSES = ["Lead", "Estimating", "Proposal Sent", "Active", "Won", "Completed", "Lost"];
 
@@ -12,6 +13,16 @@ async function confirmedStageWrite(
 ): Promise<PipelineMutationResult> {
     try {
         const { user, supabase } = await requireAuth();
+        const { data: prior, error: priorError } = await supabase
+            .from("projects")
+            .select("status")
+            .eq("id", projectId)
+            .eq("user_id", user.id)
+            .single();
+        if (priorError || !prior?.status) {
+            return { success: false, error: PIPELINE_CHANGE_UNCONFIRMED };
+        }
+        const fromStatus = prior.status as string;
         const { data, error } = await supabase
             .from("projects")
             .update(update)
@@ -24,6 +35,12 @@ async function confirmedStageWrite(
             (update.proposal_accepted_at !== undefined && Date.parse(data.proposal_accepted_at ?? "") !== Date.parse(update.proposal_accepted_at))) {
             return { success: false, error: PIPELINE_CHANGE_UNCONFIRMED };
         }
+        await appendPipelineStageHistory(supabase, {
+            projectId,
+            userId: user.id,
+            fromStatus,
+            toStatus: update.status,
+        });
     } catch {
         return { success: false, error: PIPELINE_CHANGE_UNCONFIRMED };
     }

@@ -1,5 +1,13 @@
 # Cursor change log
 
+## 2026-11-18 — CON-044 #206 f2d35dc published start ref + association autosave receipt
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/dashboard/projects/schedule/client-page.tsx` | `proposalStartRef` effect | Set ref from `project.start_date` only (empty when null); drop `programmeStart` dependency | Tracking writes must not publish editable calendar |
+| `src/app/dashboard/projects/schedule/client-page.tsx` | tracking autosave | `publishedStartForWrite` → `updatePhasesAction`; association + planning saves draft then returns error | Durable planning without false auto-saved tracking |
+| `src/app/dashboard/projects/schedule/planner-opening.test.tsx` | CON-044 describe | Null published start tracking arg; simultaneous plan+tracking refusal shows error | Regression for Codex f2d35dc blockers 1–2 |
+
 ## 2026-11-18 — CON-044 #206 fbec22b Sonnet review blockers (tracking start date, draft on refusal, duplicate publish)
 
 | File | Lines (approx.) | Change | Intent |

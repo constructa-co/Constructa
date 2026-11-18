@@ -62,6 +62,7 @@ vi.mock("./actions", () => ({
 vi.mock("./programme-ai-update", () => ({ default: () => null }));
 vi.mock("sonner", () => ({ toast: { success: lifecycle.success, error: lifecycle.error } }));
 
+import { PROGRAMME_TRACKING_ASSOCIATION_ERROR } from "@/lib/programme-planner-draft";
 import ClientSchedulePage from "./client-page";
 
 const stages: PlannerPhase[] = [{ name: "Demo", startOffset: 0, calculatedDays: 5, manualDays: 5, manhours: 0 }];
@@ -81,7 +82,7 @@ function open(
     phases = stages,
     startingEstimate: Props["estimate"] = null,
     replay = true,
-    startDate = "2026-10-19",
+    startDate: string | null = "2026-10-19",
     workingPattern?: unknown,
     projectExtra: Partial<Props["project"]> = {},
 ) {
@@ -736,8 +737,53 @@ describe("programme Save and autosave operation-scoped status", () => {
             expect(lifecycle.trackingWrite).not.toHaveBeenCalled();
             expect(lifecycle.draftWrite).toHaveBeenCalledTimes(1);
             expect(lifecycle.draftWrite.mock.calls[0][1][0]).toMatchObject({ name: "Renamed demo" });
-            expect(lifecycle.error).not.toHaveBeenCalled();
+            expect(lifecycle.error).toHaveBeenCalledWith(PROGRAMME_TRACKING_ASSOCIATION_ERROR);
+            expect(view.saveStatus()?.["data-programme-save-state"]).toBe("error");
             expect(view.names()).toContain("Renamed demo");
+        });
+
+        it("does not write an editable draft start into published tracking when the job has no saved start_date", async () => {
+            const pattern = { version: 1, weekdays: [1, 2, 3, 4, 5] };
+            const published = [{ ...stages[0], pct_complete: 0 }];
+            const pending = {
+                phases: [{ ...stages[0] }],
+                start_date: "2026-12-07",
+                saved_at: "2026-10-18T08:00:00.000Z",
+            };
+            const view = open(published, null, true, null, pattern, { programme_planner_draft: pending });
+            await settle(view);
+            const range = openLiveTracking(view).find(node => node.type === "input" && node.props.type === "range")!;
+            (range.props.onChange as (event: { target: { value: string } }) => void)({ target: { value: "35" } });
+            view.flush();
+            lifecycle.trackingWrite.mockClear();
+            lifecycle.draftWrite.mockClear();
+            await vi.advanceTimersByTimeAsync(500);
+            await settle(view);
+            expect(lifecycle.trackingWrite).toHaveBeenCalledTimes(1);
+            expect(lifecycle.trackingWrite.mock.calls[0][2]).toBeUndefined();
+            expect(lifecycle.trackingWrite.mock.calls[0][1][0].pct_complete).toBe(35);
+        });
+
+        it("autosaves planning together with a visible tracking refusal when progress and planning both change under ambiguous identity", async () => {
+            const pattern = { version: 1, weekdays: [1, 2, 3, 4, 5] };
+            const snagging = { ...stages[0], name: "Snagging", pct_complete: 10 };
+            const published = [snagging, { ...snagging, startOffset: 7, pct_complete: 0 }];
+            const view = open(published, null, true, "2026-10-19", pattern);
+            await settle(view);
+            view.change(nameInput("Snagging"), "Snagging west");
+            const range = openLiveTracking(view).find(node => node.type === "input" && node.props.type === "range")!;
+            (range.props.onChange as (event: { target: { value: string } }) => void)({ target: { value: "40" } });
+            view.flush();
+            lifecycle.trackingWrite.mockClear();
+            lifecycle.draftWrite.mockClear();
+            lifecycle.error.mockClear();
+            await vi.advanceTimersByTimeAsync(500);
+            await settle(view);
+            expect(lifecycle.trackingWrite).not.toHaveBeenCalled();
+            expect(lifecycle.draftWrite).toHaveBeenCalledTimes(1);
+            expect(lifecycle.draftWrite.mock.calls[0][1][0]).toMatchObject({ name: "Snagging west" });
+            expect(lifecycle.error).toHaveBeenCalledWith(PROGRAMME_TRACKING_ASSOCIATION_ERROR);
+            expect(view.saveStatus()?.["data-programme-save-state"]).toBe("error");
         });
     });
 

@@ -226,6 +226,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
             }
             const published = proposalPhasesRef.current;
             const publishedStart = proposalStartRef.current;
+            const publishedStartForWrite = publishedStart || undefined;
             const planningDelta = programmePlanningChanged(
                 published, input.phases, publishedStart, input.startDate,
             );
@@ -254,7 +255,11 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                 const associationError = programmeTrackingAssociationError(published, input.phases);
                 if (associationError) {
                     if (planningDelta) {
-                        return { input, result: await savePlannerDraft() };
+                        const draftResult = await savePlannerDraft();
+                        if (!draftResult.success) {
+                            return { input, result: draftResult };
+                        }
+                        return { input, result: { success: false, error: associationError } };
                     }
                     return { input, result: { success: false, error: associationError } };
                 }
@@ -262,7 +267,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                     published, input.phases,
                 ) as Phase[];
                 const trackResult = await updatePhasesAction(
-                    project.id, phasesForPublished, publishedStart,
+                    project.id, phasesForPublished, publishedStartForWrite,
                     ...(input.workingPattern === undefined ? [] : [input.workingPattern]),
                 );
                 if (!trackResult.success) return { input, result: trackResult };
@@ -323,8 +328,8 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
         proposalPhasesRef.current = savedPlannerPhases(
             (project.programme_phases ?? project.timeline_phases) as unknown,
         );
-        proposalStartRef.current = project.start_date ?? toInputDate(programmeStart);
-    }, [publishedProgrammeFingerprint, project.programme_phases, project.timeline_phases, project.start_date, programmeStart]);
+        proposalStartRef.current = project.start_date ?? "";
+    }, [publishedProgrammeFingerprint, project.programme_phases, project.timeline_phases, project.start_date]);
 
     const rawDraftPhases = storedPlannerDraft ? savedPlannerPhases(storedPlannerDraft.phases) : null;
     const trackingOverlayError = rawDraftPhases?.length

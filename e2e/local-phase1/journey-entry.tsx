@@ -388,6 +388,7 @@ function renderProgramme(id: string) {
         estimate={null}
         save={saveProgramme}
         saveInclusion={saveInclusion}
+        plannerDraftViewerScope="e2e-local-viewer"
     />);
 }
 

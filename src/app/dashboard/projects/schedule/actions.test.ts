@@ -215,14 +215,18 @@ describe("detailed programme calendar storage", () => {
         const result = saveProgrammePhasesAction(PROJECT_ID, phases, SIX_DAYS, startDate);
         if (readback === "matching") await expect(result).resolves.toBeUndefined();
         else await expect(result).rejects.toThrow(programmeStorage.PROGRAMME_CHOICE_UNCONFIRMED);
-        expect(db.log).toEqual(["select:projects", "update:projects"]);
+        expect(db.log).toEqual(readback === "matching"
+            ? ["select:projects", "update:projects", "select:projects"]
+            : ["select:projects", "update:projects"]);
         expect(db.updates).toEqual([{ table: "projects", values: { programme_phases: phases, start_date: startDate }, filters: {
             id: PROJECT_ID, user_id: USER_ID, programme_phases: JSON.stringify(DETAILED_PHASES),
             programme_working_pattern: JSON.stringify(SIX_DAYS),
         } }]);
-        expect(selections).toEqual(["*", "programme_phases,programme_working_pattern,start_date"]);
+        expect(selections).toEqual(readback === "matching"
+            ? ["*", "programme_phases,programme_working_pattern,start_date", "programme_planner_draft"]
+            : ["*", "programme_phases,programme_working_pattern,start_date"]);
         expect(db.tables.projects[0]).toMatchObject({ programme_phases: phases, start_date: startDate, programme_working_pattern: SIX_DAYS });
-        expect(mocks.revalidatePath).toHaveBeenCalledTimes(readback === "matching" ? 1 : 0);
+        expect(mocks.revalidatePath).toHaveBeenCalledTimes(readback === "matching" ? 3 : 0);
     });
 
     it.each(["", "19/10/2026"])("refuses a malformed supplied regeneration date %j before storage", async startDate => {

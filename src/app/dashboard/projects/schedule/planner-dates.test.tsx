@@ -24,7 +24,7 @@ function render(stages = phases, start = "2026-10-19", daysPerWeek = 5) {
     const before = JSON.stringify(stages);
     const html = renderToStaticMarkup(<ClientSchedulePage
         project={{ id: "date-check", name: "Example", start_date: start, programme_phases: stages }}
-        projectId="date-check" estimate={null}
+        projectId="date-check" estimate={null} plannerDraftViewerScope="viewer-test"
     />);
     expect(JSON.stringify(stages)).toBe(before);
     return html;
@@ -96,7 +96,7 @@ describe("five-day detailed planner date presentation", () => {
 
     it.each([[1, 2, 3, 4, 5, 6], [0, 1, 2, 3, 4, 5, 6]].map(weekdays => ({ weekdays })))("uses the saved weekend pattern $weekdays and shows all seven calendar days without writes", ({ weekdays }) => {
         const html = renderToStaticMarkup(<ClientSchedulePage project={{ id: "weekend", name: "Example", start_date: "2026-10-16",
-            programme_phases: [phase("Works", 0, 2)], programme_working_pattern: { version: 1, weekdays } }} projectId="weekend" estimate={null} />);
+            programme_phases: [phase("Works", 0, 2)], programme_working_pattern: { version: 1, weekdays } }} projectId="weekend" estimate={null} plannerDraftViewerScope="viewer-test" />);
         expect(html).toContain('value="2026-10-16"');
         expect(html).toContain("16 Oct – 17 Oct");
         expect(html).toContain("2 working days / 2 calendar days");
@@ -108,7 +108,7 @@ describe("five-day detailed planner date presentation", () => {
 
     it("keeps a saved Wednesday start instead of moving it to the next Monday", () => {
         const html = renderToStaticMarkup(<ClientSchedulePage project={{ id: "midweek", name: "Example", start_date: "2026-10-21",
-            programme_phases: [phase("Works", 0, 1)], programme_working_pattern: { version: 1, weekdays: [1, 2, 3, 4, 5] } }} projectId="midweek" estimate={null} />);
+            programme_phases: [phase("Works", 0, 1)], programme_working_pattern: { version: 1, weekdays: [1, 2, 3, 4, 5] } }} projectId="midweek" estimate={null} plannerDraftViewerScope="viewer-test" />);
         expect(html).toContain('value="2026-10-21"');
         expect(html).toContain("21 Oct – 21 Oct");
         expect(html).toContain('aria-label="W1: 2026-10-19 to 2026-10-25"');
@@ -117,7 +117,7 @@ describe("five-day detailed planner date presentation", () => {
     it("does not add the Friday axis lead twice when an explicit-calendar plan is incomplete", () => {
         const html = renderToStaticMarkup(<ClientSchedulePage project={{ id: "partial", name: "Example", start_date: "2026-10-16",
             programme_phases: [phase("Works", 0, 2), phase("Needs duration", 0, 0)],
-            programme_working_pattern: { version: 1, weekdays: [1, 2, 3, 4, 5, 6] } }} projectId="partial" estimate={null} />);
+            programme_working_pattern: { version: 1, weekdays: [1, 2, 3, 4, 5, 6] } }} projectId="partial" estimate={null} plannerDraftViewerScope="viewer-test" />);
         expect(html).toContain("19 Oct 26");
         expect(html).not.toContain("23 Oct 26");
         expect(html).toContain('value="Needs duration"');
@@ -134,7 +134,7 @@ describe("five-day detailed planner date presentation", () => {
         vi.stubGlobal("localStorage", { getItem: () => "6" });
         const saved = [phase("Works", 0, 2)], before = JSON.stringify(saved);
         const html = renderToStaticMarkup(<ClientSchedulePage project={{ id: "sunday-only", name: "Example", start_date: "2026-10-16",
-            programme_phases: saved, programme_working_pattern: { version: 1, weekdays: [0] } }} projectId="sunday-only" estimate={null} />);
+            programme_phases: saved, programme_working_pattern: { version: 1, weekdays: [0] } }} projectId="sunday-only" estimate={null} plannerDraftViewerScope="viewer-test" />);
         expect(JSON.stringify(saved)).toBe(before);
         expect(html).toContain('value="2026-10-16"');
         expect(html).toContain("18 Oct – 25 Oct");

@@ -75,7 +75,7 @@ const stages = [phase(0), phase(7), phase(14)];
 function render(phases = stages) {
     return renderToStaticMarkup(<ClientSchedulePage
         project={{ id: "axis-check", name: "Example", start_date: "2026-10-19", programme_phases: phases }}
-        projectId="axis-check" estimate={null}
+        projectId="axis-check" estimate={null} plannerDraftViewerScope="viewer-test"
     />);
 }
 function barStyles(html: string) {
@@ -104,7 +104,7 @@ describe("detailed planner calendar-axis geometry", () => {
             const saved = [{ ...phase(0, 1), start_date: "2027-10-19", color: "teal", dependsOn: [], pct_complete: 25 }];
             const before = JSON.stringify(saved);
             renderToStaticMarkup(<ClientSchedulePage project={{ id: "own-date", name: "Example", start_date: "2026-10-19",
-                programme_phases: saved, programme_working_pattern: { version: 1, weekdays: [1, 2, 3, 4, 5] } }} projectId="own-date" estimate={null} />);
+                programme_phases: saved, programme_working_pattern: { version: 1, weekdays: [1, 2, 3, 4, 5] } }} projectId="own-date" estimate={null} plannerDraftViewerScope="viewer-test" />);
             const listeners = new Map<string, (event: { clientX: number }) => void>();
             vi.stubGlobal("document", {
                 addEventListener: (name: string, callback: (event: { clientX: number }) => void) => listeners.set(name, callback),
@@ -494,7 +494,7 @@ describe("dependency connectors use actual displayed bar endpoints", () => {
             const cleanup = effect();
             if (cleanup) cleanups.push(cleanup);
         }
-        const phasesRef = hooks.refs[6] as { current: PlannerPhase[] };
+        const phasesRef = hooks.refs[8] as { current: PlannerPhase[] };
         hooks.refs[0].current = { getBoundingClientRect: () => ({ width: 280 }) };
         mouseDown({ preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: 100 } as unknown as MouseEvent, 0, "move");
         listeners.get("mousemove")!({ clientX: 180 });

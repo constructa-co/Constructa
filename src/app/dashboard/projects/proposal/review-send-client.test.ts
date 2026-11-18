@@ -443,7 +443,9 @@ describe("CON-040 draft versus issued reference", () => {
 describe("programme step", () => {
     const project = { id: "p", name: "14 Example Road bathroom refit", client_name: "Alex Client", start_date: null, programme_phases: [] };
     const render = (props: Partial<Parameters<typeof SimpleProgrammeClient>[0]> = {}) =>
-        renderToStaticMarkup(createElement(SimpleProgrammeClient, { project, lockReason: null, estimate: null, ...props }));
+        renderToStaticMarkup(createElement(SimpleProgrammeClient, {
+            project, lockReason: null, estimate: null, plannerDraftViewerScope: "review-test-viewer", ...props,
+        }));
 
     it("opens on the simple editor: start date, duration, optional stages", () => {
         const html = render();

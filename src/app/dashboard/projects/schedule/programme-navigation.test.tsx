@@ -31,7 +31,7 @@ function mountEffects(state: ProgrammeState, confirm: boolean) {
     hooks.state = state;
     hooks.effects = [];
     hooks.guard.mockClear();
-    renderToStaticMarkup(<SimpleProgrammeClient project={{ id: "job-a", name: "Example job" }} lockReason={null} estimate={null} />);
+    renderToStaticMarkup(<SimpleProgrammeClient project={{ id: "job-a", name: "Example job" }} lockReason={null} estimate={null} plannerDraftViewerScope="viewer-test" />);
     for (const effect of hooks.effects) {
         const cleanup = effect();
         if (cleanup) cleanups.push(cleanup);

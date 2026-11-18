@@ -1,5 +1,54 @@
 # Cursor change log
 
+## 2026-11-18 — CON-044 #206 f2d35dc published start ref + association autosave receipt
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/dashboard/projects/schedule/client-page.tsx` | `proposalStartRef` effect | Set ref from `project.start_date` only (empty when null); drop `programmeStart` dependency | Tracking writes must not publish editable calendar |
+| `src/app/dashboard/projects/schedule/client-page.tsx` | tracking autosave | `publishedStartForWrite` → `updatePhasesAction`; association + planning saves draft then returns error | Durable planning without false auto-saved tracking |
+| `src/app/dashboard/projects/schedule/planner-opening.test.tsx` | CON-044 describe | Null published start tracking arg; simultaneous plan+tracking refusal shows error | Regression for Codex f2d35dc blockers 1–2 |
+
+## 2026-11-18 — CON-044 #206 fbec22b Sonnet review blockers (tracking start date, draft on refusal, duplicate publish)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/programme-planner-draft.ts` | `programmeIdentityCollisionsInvolvingTracking` | Duplicate identity refuses tracking only when colliding stages carry tracking data | Untracked duplicate stages remain publishable |
+| `src/app/dashboard/projects/schedule/client-page.tsx` | tracking autosave branch | `updatePhasesAction` / draft clear use `publishedStart`; on association failure with planning delta, draft autosave still runs | Published calendar stays on programme_phases; planning edits durable when tracking cannot merge |
+| `src/lib/programme-planner-draft.test.ts` | duplicate cases | Split no-tracking vs tracked duplicate | Regression for blocker 3 |
+| `src/app/dashboard/projects/schedule/planner-opening.test.tsx` | CON-044 describe | Assert tracking write start arg; manual save duplicates; rename keeps draft without tracking write | Regression for blockers 1–3 |
+
+## 2026-11-18 — CON-044 #206 679bccc B1–B4 tracking association repair (codex/con-044-publication-review)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/programme-planner-draft.ts` | `programmeTrackingFieldsChanged`, new helpers | Drop start-date gate on tracking diff; `programmeTrackingAssociationError` / collision checks | B1/B2/B3: no silent tracking loss; refuse ambiguous identity |
+| `src/lib/programme-planner-draft.test.ts` | new cases | Rename, duplicate identity, changed start | B1–B3 unit regression |
+| `src/app/dashboard/projects/schedule/client-page.tsx` | persist + open + manual save | Association guard before tracking merge/manual publish; overlay notice; always pass `workingPattern` (incl. `undefined`) before `startDate` | B4 signature fix + visible refusal |
+| `src/app/dashboard/projects/schedule/planner-opening.test.tsx` | CON-044 describe | Legacy no-pattern manual save args; changed-start tracking publish; rename refusal | B1–B4 integration regression |
+
+## 2026-11-18 — CON-044 BLOCK-1 tracking/draft split repair (codex/con-044-publication-review)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/programme-planner-draft.ts` | identity, overlay, merge | Stable phase keys; overlay published tracking on draft reopen; merge tracking onto `programme_phases` without adopting draft planning; strip tracking from draft payloads | Fix BLOCK-1 dual-write and stale draft tracking |
+| `src/lib/programme-planner-draft.test.ts` | new cases | Reorder overlay, merge, strip | Regression |
+| `src/lib/server/programme-storage.ts` | `writeProgrammePlannerDraft` | Persist planning-only draft phases | Server-side tracking strip |
+| `src/app/dashboard/projects/schedule/actions.ts` | draft autosave, new action | Strip tracking on draft write; `clearProgrammePlannerDraftAction` after tracking-only saves | Rebase/clear stale server drafts |
+| `src/app/dashboard/projects/schedule/client-page.tsx` | persist + open | Split tracking vs planning autosave; overlay on open; `proposalPhasesRef` sync via effect; `plannerDraftViewerScope` prop | BLOCK-1 client path |
+| `src/app/dashboard/projects/schedule/page.tsx` | mount | Pass `plannerDraftViewerScope={user.id}` | Authenticated viewer scope for session fallback |
+| `src/app/dashboard/projects/schedule/simple-programme-client.tsx` | DetailedPlanner | Thread viewer scope into detailed planner | Scope propagation |
+| `src/app/dashboard/projects/schedule/planner-opening.test.tsx` | CON-044 describe | Pending-draft reopen + split autosave regression | Integration coverage |
+| `src/app/dashboard/projects/schedule/*.test.tsx` | props | `plannerDraftViewerScope` on test mounts | Type/test alignment |
+
+## 2026-11-18 — CON-044 client/server boundary repair (cursor/con-044-publication)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/plain-deep-equal.ts` | all | JSON-like `plainDeepEqual` | Remove `node:util` from client-imported draft helpers |
+| `src/lib/programme-planner-draft.ts` | compare + sessionStorage | `plainDeepEqual`; scoped keys; write success boolean | Preserve order-independent planning compare in the browser |
+| `src/lib/programme-planner-draft.test.ts` | new cases | Property order + scoped sessionStorage | Regression |
+| `src/app/dashboard/projects/schedule/client-page.tsx` | draft fallback | `user_id` storage scope; failed local write surfaces error | Tab/account isolation + quota/privacy write failures |
+
 ## 2026-11-16 — D54 document repair of #186 at 69d10b6 (CON-055 suppression gated by presentation version)
 
 | File | Lines (approx.) | Change | Intent |

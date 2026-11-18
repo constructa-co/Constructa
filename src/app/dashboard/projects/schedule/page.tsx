@@ -71,6 +71,7 @@ export default async function SchedulePage(props: { searchParams: Promise<{ proj
                 planningAssistantEnabled={assistant.available}
                 planningAssistantOffReason={assistant.offReason}
                 estimate={activeEstimate}
+                plannerDraftViewerScope={user.id}
             />
         </DashboardRouteShell>
     );

@@ -2,7 +2,26 @@
 
 import { useState, useTransition, useMemo, useEffect, useRef } from "react";
 import { MAX_WORKING_DAYS, startDateInPastWarning } from "@/lib/simple-programme";
-import { updatePhasesAction, getEstimatePhasesAction, saveProgrammePhasesAction } from "./actions";
+import {
+    autosaveProgrammePlannerDraftAction,
+    clearProgrammePlannerDraftAction,
+    getEstimatePhasesAction,
+    saveProgrammePhasesAction,
+    updatePhasesAction,
+} from "./actions";
+import {
+    clearLocalPlannerDraft,
+    mergeTrackingOntoPublishedPlanning,
+    overlayPublishedTrackingOnDraftPhases,
+    parseProgrammePlannerDraft,
+    phasesWithoutTrackingFields,
+    programmePlanningChanged,
+    programmeTrackingAssociationError,
+    programmeTrackingFieldsChanged,
+    PROGRAMME_PLANNER_DRAFT_UNAVAILABLE,
+    readLocalPlannerDraft,
+    writeLocalPlannerDraft,
+} from "@/lib/programme-planner-draft";
 import ProgrammeAiUpdate from "./programme-ai-update";
 import { toast } from "sonner";
 import { createLatestWriteQueue } from "@/lib/latest-write-queue";
@@ -66,15 +85,19 @@ interface Estimate {
 interface Props {
     project: {
         id: string;
+        user_id?: string;
         name: string;
         start_date?: string;
         region?: string | null;
         timeline_phases?: Phase[];
         programme_phases?: Phase[];
+        programme_planner_draft?: unknown;
         programme_working_pattern?: unknown;
     };
     estimate: Estimate | null;
     projectId: string;
+    /** Authenticated viewer id — scopes browser draft fallback per signed-in account. */
+    plannerDraftViewerScope: string;
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -149,13 +172,14 @@ interface DragState {
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
-export default function ClientSchedulePage({ project, estimate, projectId }: Props) {
+export default function ClientSchedulePage({ project, estimate, projectId, plannerDraftViewerScope }: Props) {
     const workingPattern = resolveJobWorkingPattern(project.programme_working_pattern);
     const bankHolidayDivision = resolveUkBankHolidayDivision(project.region);
     const programmeCalendar = resolveProgrammeCalendar(project.programme_working_pattern, bankHolidayDivision);
     const usesSavedCalendar = project.programme_working_pattern != null;
     const daysPerWeek = workingPattern?.weekdays.length ?? 5;
     const expectedWorkingPattern = project.programme_working_pattern == null ? undefined : workingPattern;
+    const plannerDraftStorageScope = plannerDraftViewerScope;
     const [isPending, startTransition] = useTransition();
     const [isDragging, setIsDragging] = useState(false);
     const [showLiveTracking, setShowLiveTracking] = useState(false);
@@ -178,16 +202,103 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
             return result;
         };
     });
-    const [persistPhases] = useState(() => createLatestWriteQueue(
-        (input: ProgrammeWrite) => serializeProgrammeWrite(async () => ({
-            input,
-            result: await updatePhasesAction(project.id, input.phases, input.startDate, ...(input.workingPattern === undefined ? [] : [input.workingPattern])),
-        })),
+    const proposalPhasesRef = useRef<Phase[]>([]);
+    const proposalStartRef = useRef<string>("");
+    const [persistProgrammeWrite] = useState(() => createLatestWriteQueue(
+        (input: ProgrammeWrite) => serializeProgrammeWrite(async () => {
+            if (input.kind === "manual") {
+                const associationError = programmeTrackingAssociationError(
+                    proposalPhasesRef.current, input.phases,
+                );
+                if (associationError) {
+                    return { input, result: { success: false, error: associationError } };
+                }
+                await saveProgrammePhasesAction(
+                    project.id,
+                    input.phases,
+                    input.workingPattern,
+                    input.startDate,
+                );
+                clearLocalPlannerDraft(project.id, plannerDraftStorageScope);
+                proposalPhasesRef.current = input.phases;
+                proposalStartRef.current = input.startDate;
+                return { input, result: { success: true as const } };
+            }
+            const published = proposalPhasesRef.current;
+            const publishedStart = proposalStartRef.current;
+            const publishedStartForWrite = publishedStart || undefined;
+            const planningDelta = programmePlanningChanged(
+                published, input.phases, publishedStart, input.startDate,
+            );
+            const trackingDelta = programmeTrackingFieldsChanged(
+                published, input.phases, publishedStart, input.startDate,
+            );
+            const draftPlanning = phasesWithoutTrackingFields(input.phases);
+
+            async function savePlannerDraft() {
+                const draftResult = await autosaveProgrammePlannerDraftAction(
+                    project.id, draftPlanning as Phase[], input.startDate,
+                    ...(input.workingPattern === undefined ? [] : [input.workingPattern]),
+                );
+                if (!draftResult.success && draftResult.error === PROGRAMME_PLANNER_DRAFT_UNAVAILABLE) {
+                    const stored = writeLocalPlannerDraft(
+                        project.id, draftPlanning, input.startDate, plannerDraftStorageScope,
+                    );
+                    return stored
+                        ? { success: true as const }
+                        : { success: false as const, error: "Planner draft could not be stored in this browser session." };
+                }
+                return draftResult;
+            }
+
+            if (trackingDelta) {
+                const associationError = programmeTrackingAssociationError(published, input.phases);
+                if (associationError) {
+                    if (planningDelta) {
+                        const draftResult = await savePlannerDraft();
+                        if (!draftResult.success) {
+                            return { input, result: draftResult };
+                        }
+                        return { input, result: { success: false, error: associationError } };
+                    }
+                    return { input, result: { success: false, error: associationError } };
+                }
+                const phasesForPublished = mergeTrackingOntoPublishedPlanning(
+                    published, input.phases,
+                ) as Phase[];
+                const trackResult = await updatePhasesAction(
+                    project.id, phasesForPublished, publishedStartForWrite,
+                    ...(input.workingPattern === undefined ? [] : [input.workingPattern]),
+                );
+                if (!trackResult.success) return { input, result: trackResult };
+                proposalPhasesRef.current = phasesForPublished;
+
+                if (planningDelta) {
+                    return { input, result: await savePlannerDraft() };
+                }
+                clearLocalPlannerDraft(project.id, plannerDraftStorageScope);
+                const cleared = await clearProgrammePlannerDraftAction(
+                    project.id, phasesForPublished, publishedStart,
+                );
+                return { input, result: cleared.success ? trackResult : cleared };
+            }
+
+            if (!planningDelta) {
+                return { input, result: { success: true as const } };
+            }
+            return { input, result: await savePlannerDraft() };
+        }),
     ));
+
+    const storedPlannerDraft = useMemo(() => {
+        const fromServer = parseProgrammePlannerDraft(project.programme_planner_draft);
+        return fromServer ?? readLocalPlannerDraft(project.id, plannerDraftStorageScope);
+    }, [project.id, project.programme_planner_draft, plannerDraftStorageScope]);
 
     // Working days come from the saved job, never a browser-only override.
     const [programmeStart, setProgrammeStart] = useState<Date>(() => {
-        const base = project.start_date ? new Date(project.start_date + "T00:00:00") : new Date();
+        const draftStart = storedPlannerDraft?.start_date ?? project.start_date;
+        const base = draftStart ? new Date(draftStart + "T00:00:00") : new Date();
         // Retain the legacy opening convention until a job explicitly saves its calendar.
         return usesSavedCalendar ? base : addDays(axisMonday(base), base.getDay() === 1 ? 0 : 7);
     });
@@ -209,14 +320,37 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     // column exists on projects. Kept in the fallback chain so legacy
     // selects elsewhere don't regress silently.)
     const existingPhases = savedPlannerPhases((project.programme_phases ?? project.timeline_phases) as unknown);
+    const publishedProgrammeFingerprint = useMemo(
+        () => JSON.stringify({ phases: existingPhases, start: project.start_date ?? "" }),
+        [existingPhases, project.start_date],
+    );
+    useEffect(() => {
+        proposalPhasesRef.current = savedPlannerPhases(
+            (project.programme_phases ?? project.timeline_phases) as unknown,
+        );
+        proposalStartRef.current = project.start_date ?? "";
+    }, [publishedProgrammeFingerprint, project.programme_phases, project.timeline_phases, project.start_date]);
+
+    const rawDraftPhases = storedPlannerDraft ? savedPlannerPhases(storedPlannerDraft.phases) : null;
+    const trackingOverlayError = rawDraftPhases?.length
+        ? programmeTrackingAssociationError(existingPhases, rawDraftPhases)
+        : null;
+    const draftPhases = rawDraftPhases?.length
+        ? savedPlannerPhases(trackingOverlayError
+            ? rawDraftPhases
+            : overlayPublishedTrackingOnDraftPhases(existingPhases, rawDraftPhases))
+        : null;
 
     // The saved programme opens exactly as it was saved. Stages worked out
     // from the estimate are only ever a starting point for a job that has
     // no programme, and are not saved by being shown.
     const opening = useMemo(
-        () => plannerPhasesOnOpen(existingPhases, estimate, daysPerWeek, toInputDate(programmeStart), workingPattern),
+        () => {
+            if (draftPhases?.length) return { phases: draftPhases, origin: "saved" as const };
+            return plannerPhasesOnOpen(existingPhases, estimate, daysPerWeek, toInputDate(programmeStart), workingPattern);
+        },
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        []
+        [],
     );
     const [phases, setPhases] = useState<Phase[]>(opening.phases);
     const [isSuggestion, setIsSuggestion] = useState(opening.origin === "suggested");
@@ -263,7 +397,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
         const isCurrent = () => regenerationMounted.current && regenerationProject.current === projectId &&
             latestSaveOperation.current === input.operation && saveContextRef.current === input.context;
         try {
-            const receipt = await persistPhases(input);
+            const receipt = await persistProgrammeWrite(input);
             // Coalesced callers receive the last attempted write, not necessarily their own.
             if (!isCurrent() || receipt.input.operation !== input.operation) return;
             if (!receipt.result.success) {
@@ -284,7 +418,9 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     const saveMessage = currentSaveState === "saving"
         ? (saveStatus.kind === "manual" ? "Saving programme to proposal..." : "Auto-saving changes...")
         : currentSaveState === "saved"
-            ? (saveStatus.kind === "manual" ? `Programme saved to proposal at ${saveStatus.savedAt}` : `Saved ${saveStatus.savedAt}`)
+            ? (saveStatus.kind === "manual"
+                ? `Programme saved to proposal at ${saveStatus.savedAt}`
+                : `Changes auto-saved at ${saveStatus.savedAt}`)
             : currentSaveState === "error" ? "Save not confirmed. Current stages remain on screen."
                 : currentSaveState === "uncertain" ? "Save uncertain: it may already have completed. Review before retrying."
                     : currentSaveState === "changed" ? "Current changes are not yet confirmed saved." : "";
@@ -329,7 +465,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 autoSaveTimer.current = null;
                 const startDateStr = toInputDate(programmeStartRef.current || new Date());
                 // Fire-and-forget — best-effort save on unmount
-                persistPhases({
+                persistProgrammeWrite({
                     phases: phasesRef.current, startDate: startDateStr, kind: "auto",
                     operation: Symbol("unmount"), context: "unmount",
                     workingPattern: expectedWorkingPattern,
@@ -723,7 +859,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                         Regenerate from estimate
                     </button>
                     <button type="button" onClick={handleSave} disabled={isPending} aria-label="Save programme to proposal"
-                        title="Save this programme to the proposal. Edited stages also use the existing automatic save."
+                        title="Copy this programme into the proposal. Edits are auto-saved as a draft until you press this."
                         className="px-4 py-2 rounded-lg text-sm font-semibold bg-[#a5e8b8] text-[#10291b] disabled:opacity-50 transition-colors">
                         Save to Proposal
                     </button>
@@ -731,6 +867,9 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
             </div>
 
             {regenerationNotice && <p role="status" className="text-sm text-amber-400">{regenerationNotice}</p>}
+            {trackingOverlayError && (
+                <p role="status" className="text-sm text-amber-400">{trackingOverlayError}</p>
+            )}
 
             {/* ── Programme settings (start date + working week) ── */}
             <div className="flex items-center gap-4 flex-wrap bg-slate-800/40 border border-slate-700/50 rounded-xl px-4 py-3">

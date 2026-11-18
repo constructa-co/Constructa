@@ -319,7 +319,7 @@ describe("publishProposalAction", () => {
         const snapshot = publishedSnapshot(db);
         expect(snapshot.publication.response_mode).toBe("acknowledgement");
         expect(snapshot.response).toEqual({ kind: "acknowledgement", notice: responseWording("acknowledgement").notice });
-        expect(snapshot.programme_plan).toMatchObject({ start_date: "2026-11-02", end_date: "2026-11-20", duration_label: "3 weeks" });
+        expect(snapshot.programme_plan).toMatchObject({ start_date: "2026-11-02", end_date: "2026-11-20", duration_label: "15 working days (3 weeks)" });
         expect(snapshot.commercial).toMatchObject({ contract_sum_ex_vat: 7552.05, vat_rate: 20, vat_treatment: "standard", contract_sum_inc_vat: 9062.46 });
         expect(snapshot.case_studies?.map((study) => study.title)).toEqual(["Shower room, 3 Sample Street"]);
         expect(snapshot.photos).toHaveLength(2);

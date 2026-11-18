@@ -89,17 +89,18 @@ export function countWorkingDays(startIso: string, endIso: string, calendar?: Pr
 
 // ── Wording ──────────────────────────────────────────────────────────────────
 
-/** "3 weeks" for whole working weeks, otherwise "8 working days". */
+/** "15 working days (3 weeks)" when whole weeks; otherwise "8 working days". */
 export function formatWorkingDuration(workingDays: number, rawPattern?: unknown): string {
     const pattern = resolveJobWorkingPattern(rawPattern);
     if (!pattern || !Number.isFinite(workingDays) || !Number.isSafeInteger(Math.round(workingDays))) return "";
     const days = Math.max(0, Math.round(workingDays));
+    const dayLabel = `${days} working ${days === 1 ? "day" : "days"}`;
     const weekUnits = programmeWeekUnitCount(pattern);
     if (days > 0 && days % weekUnits === 0) {
         const weeks = days / weekUnits;
-        return `${weeks} ${weeks === 1 ? "week" : "weeks"}`;
+        return `${dayLabel} (${weeks} ${weeks === 1 ? "week" : "weeks"})`;
     }
-    return `${days} working ${days === 1 ? "day" : "days"}`;
+    return dayLabel;
 }
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];

@@ -1,5 +1,16 @@
 # Cursor change log
 
+## 2026-11-18 — CON-058 programme duration labels
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/programme-plan.ts` | `formatWorkingDuration` (~92–103) | Primary label is always N working day(s); whole job weeks append `(N weeks)` using `programmeWeekUnitCount` | CON-058: stop mixing bare “3 weeks” with “8 working days” on simple, detailed and proposal surfaces |
+| `src/lib/programme-plan.test.ts` | wording + `computeProgrammePlan` | Expect `15 working days (3 weeks)` | Lock label contract |
+| `src/lib/programme-working-pattern-integration.test.tsx` | format + PDF checks | Same expectations; PDF uses regex for escaped parentheses | Six-day and Mon–Fri patterns |
+| `src/lib/simple-programme.test.ts`, `simple-programme-working-pattern.test.ts`, `planner-display-plan.test.ts`, `job-working-pattern-rob0942.test.ts`, `simple-actions.test.ts`, `actions.test.ts`, `proposal-document.test.ts`, `proposal-parity.test.ts`, `planner-dates.test.tsx` | `duration_label` / HTML asserts | Updated expected strings only | Tests follow shared formatter |
+
+**Collection note:** Sibling `.cq-wt/claude-d56-programme` return (see `cos-inbox/constructa-runs/d56-programme.log`) did not implement CON-058 copy; only planner tooltips / 071 / 072 / 044 / 045 — not integrated here.
+
 ## 2026-11-18 — CON-070 PR209 inline save-and-next await repair
 
 | File | Lines (approx.) | Change | Intent |

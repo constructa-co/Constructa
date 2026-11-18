@@ -49,7 +49,7 @@ describe("five-day detailed planner date presentation", () => {
         const html = render();
         expect(html).toContain("6 Nov 26");
         expect(html).not.toContain("9 Nov 26");
-        expect(html).toContain("3 weeks");
+        expect(html).toContain("15 working days (3 weeks)");
         expect(html).toContain("15 working days / 19 calendar days");
         expect(html).not.toContain("4 calendar weeks");
     });
@@ -65,7 +65,7 @@ describe("five-day detailed planner date presentation", () => {
     it("does not call the four-column minimum viewport the length of a one-week job", () => {
         const html = render([phase("Works", 0)]);
         expect(html).toContain("23 Oct 26");
-        expect(html).toContain("1 week");
+        expect(html).toContain("5 working days (1 week)");
         expect(html).toContain("5 working days / 5 calendar days");
         expect(html).not.toContain("4 calendar weeks");
     });

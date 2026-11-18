@@ -72,9 +72,9 @@ describe("working days", () => {
 });
 
 describe("wording", () => {
-    it("states whole weeks as weeks and anything else as working days", () => {
-        expect(formatWorkingDuration(5)).toBe("1 week");
-        expect(formatWorkingDuration(15)).toBe("3 weeks");
+    it("states working days first and adds whole weeks in brackets", () => {
+        expect(formatWorkingDuration(5)).toBe("5 working days (1 week)");
+        expect(formatWorkingDuration(15)).toBe("15 working days (3 weeks)");
         expect(formatWorkingDuration(8)).toBe("8 working days");
         expect(formatWorkingDuration(1)).toBe("1 working day");
     });
@@ -97,7 +97,7 @@ describe("computeProgrammePlan", () => {
             end_date: "2026-10-30",
             working_days: 15,
             calendar_days: 19,
-            duration_label: "3 weeks",
+            duration_label: "15 working days (3 weeks)",
         });
         expect(plan?.stages).toHaveLength(1);
     });

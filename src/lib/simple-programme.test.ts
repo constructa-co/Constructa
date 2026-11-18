@@ -62,7 +62,7 @@ describe("minimum programme", () => {
     });
 
     it("gives one end date for the start and duration, in days or weeks", () => {
-        expect(draftPlan(whole)).toMatchObject({ start_date: MONDAY, end_date: "2026-10-30", duration_label: "3 weeks" });
+        expect(draftPlan(whole)).toMatchObject({ start_date: MONDAY, end_date: "2026-10-30", duration_label: "15 working days (3 weeks)" });
         expect(draftPlan({ ...whole, duration: "15", unit: "days" })?.end_date).toBe("2026-10-30");
         expect(draftPlan({ ...whole, duration: "8", unit: "days" })).toMatchObject({ end_date: "2026-10-21", duration_label: "8 working days" });
     });
@@ -163,7 +163,7 @@ describe("stages", () => {
         store.dispatch({ type: "stage/remove", key: "c" });
         expect(store.getState().draft.stages.map((s) => s.key)).toEqual(["a", "b"]);
         store.dispatch({ type: "stages/disable" });
-        expect(draftPlan(store.getState().draft)?.duration_label).toBe("4 weeks");
+        expect(draftPlan(store.getState().draft)?.duration_label).toBe("20 working days (4 weeks)");
     });
 });
 

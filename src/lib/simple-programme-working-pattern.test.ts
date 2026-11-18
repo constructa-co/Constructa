@@ -99,7 +99,7 @@ describe("explicit per-job working days in the simple editor", () => {
         expect(buildSimpleProgramme({ ...whole(), workingPattern: invalid as never }).ok).toBe(false);
         expect(draftPlan({ ...whole(), workingPattern: invalid as never })).toBeNull();
         const relative = { ...whole(), timeBasis: "relative" as const, startDate: "", duration: "1", unit: "weeks" as const, workingPattern: all };
-        expect(draftPlan(relative)).toMatchObject({ working_days: 7, duration_label: "1 week" });
+        expect(draftPlan(relative)).toMatchObject({ working_days: 7, duration_label: "7 working days (1 week)" });
         expect(draftPlan(relative)).not.toHaveProperty("start_date");
     });
 });

@@ -185,6 +185,16 @@
 .priceLineNumber, .priceLineAmount { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .priceLineAmount { font-weight: 700; }
 .priceOneAmount { color: var(--price-muted); text-align: center; white-space: nowrap; }
+.priceLineTypeBadge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--price-muted);
+    border: 1px solid var(--price-line);
+    border-radius: 6px;
+    padding: 2px 8px;
+    white-space: nowrap;
+}
 .priceLineUnit { overflow-wrap: anywhere; }
 .priceLineActions { min-width: 220px; }
 .priceLinesTable .priceFormRow td { padding: 16px 0; }

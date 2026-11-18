@@ -74,8 +74,11 @@ describe("simple-first estimating table", () => {
         toggle();
         expect(table().match(/<th scope="col"/g)).toHaveLength(6);
         expect(html()).toContain('aria-pressed="true"');
-        expect(table()).toContain('colSpan="3"');
-        expect(table()).toContain("One price");
+        expect(table()).toMatch(/data-label="Quantity"[^>]*>1</);
+        expect(table()).toMatch(/data-label="Unit"[^>]*>item</);
+        expect(table()).toMatch(/data-label="Rate"[^>]*>£1,100.00</);
+        expect(table()).toContain('data-line-type="one-price"');
+        expect(table()).not.toContain('colSpan="3"');
         toggle();
         expect(table().match(/<th scope="col"/g)).toHaveLength(3);
         expect(JSON.stringify(current.state)).toBe(state);
@@ -92,6 +95,7 @@ describe("simple-first estimating table", () => {
         expect(markup).toMatch(/data-label="Unit"[^>]*>crate</);
         expect(markup).toMatch(/data-label="Rate"[^>]*>£20.00</);
         expect(markup).toContain("£49.99");
+        expect(markup).not.toContain('data-line-type="one-price"');
         expect(line.line_total).toBe(49.99);
     });
 

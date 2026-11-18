@@ -23,6 +23,10 @@ import {
     formatGBP,
     initialEstimatingState,
     isSimpleEditable,
+    isStoredOnePriceLine,
+    storedLineQuantityLabel,
+    storedLineRateLabel,
+    storedLineUnitLabel,
     removePriceLine,
     submitAdjustments,
     submitPriceLine,
@@ -1047,6 +1051,26 @@ export default function EstimateClient({
 
 // ─── One price line ──────────────────────────────────────
 
+function OnePriceTypeBadge() {
+    return <span className={ui.priceLineTypeBadge} data-line-type="one-price">One price</span>;
+}
+
+function storedDetailCells(line: EstimateLine) {
+    return [
+        <td key="quantity" data-label="Quantity" className={ui.priceLineNumber}>{storedLineQuantityLabel(line)}</td>,
+        <td key="unit" data-label="Unit" className={ui.priceLineUnit}>{storedLineUnitLabel(line)}</td>,
+        <td key="rate" data-label="Rate" className={ui.priceLineNumber}>{storedLineRateLabel(line)}</td>,
+    ];
+}
+
+function missingDetailCells() {
+    return [
+        <td key="quantity" data-label="Quantity" className={ui.priceLineNumber}>—</td>,
+        <td key="unit" data-label="Unit" className={ui.priceLineUnit}>—</td>,
+        <td key="rate" data-label="Rate" className={ui.priceLineNumber}>—</td>,
+    ];
+}
+
 function PriceLineRow({
     line, editable, isClientBoQ, op, s, isDark, showDetails, onEdit, onDelete, onChange, onUseArea, onCancel, onSave, onFullForm, onInlineForm, fullAmountForm = false, onConfirmDelete, nextLine, nextBlocked = false, onSaveNext, focusDescription = false, activityControl, priceBlocked = false, finderMatch = false, finderCurrent = false,
 }: {
@@ -1077,7 +1101,7 @@ function PriceLineRow({
     finderCurrent?: boolean;
 }) {
     const name = line.description?.trim() || "No description yet";
-    const isAmount = Number(line.quantity) === 1 && (line.unit === "item" || !line.unit);
+    const isAmount = isStoredOnePriceLine(line);
     const section = line.trade_section && line.trade_section !== "General" ? line.trade_section : "";
 
     if (op && op.kind === "edit") {
@@ -1110,26 +1134,21 @@ function PriceLineRow({
         <tr data-price-line={line.id} tabIndex={-1} data-price-find-match={finderMatch || undefined} data-price-find-current={finderCurrent || undefined}>
                 <td className={ui.priceLineDescription}>
                     <p className={`text-base font-semibold break-words ${line.description?.trim() ? s.body : s.muted}`}>{name}</p>
-                    <p className={`text-sm ${s.muted}`}>
-                        {[
-                            section,
-                            isAmount || showDetails ? "" : `${Number(line.quantity)} ${line.unit} × ${formatGBP(Number(line.unit_rate) || 0)}`,
-                            line.pricing_mode === "buildup" ? "Rate build-up" : "",
-                            isClientBoQ ? "Client BoQ" : "",
-                        ].filter(Boolean).join(" · ")}
+                    <p className={`text-sm ${s.muted} flex flex-wrap items-center gap-x-2 gap-y-1`}>
+                        {section ? <span>{section}</span> : null}
+                        {isAmount ? <OnePriceTypeBadge /> : null}
+                        {!isAmount && !showDetails ? (
+                            <span>{`${Number(line.quantity)} ${line.unit} × ${formatGBP(Number(line.unit_rate) || 0)}`}</span>
+                        ) : null}
+                        {line.pricing_mode === "buildup" ? <span>Rate build-up</span> : null}
+                        {isClientBoQ ? <span>Client BoQ</span> : null}
                     </p>
                     {!editable && (
                         <p className={`text-sm ${s.muted}`}>Change this line in Advanced estimating.</p>
                     )}
                     {activityControl}
                 </td>
-                {showDetails && (isAmount
-                    ? <td colSpan={3} className={ui.priceOneAmount}>One price</td>
-                    : <>
-                        <td data-label="Quantity" className={ui.priceLineNumber}>{Number(line.quantity)}</td>
-                        <td data-label="Unit" className={ui.priceLineUnit}>{line.unit}</td>
-                        <td data-label="Rate" className={ui.priceLineNumber}>{formatGBP(Number(line.unit_rate) || 0)}</td>
-                    </>)}
+                {showDetails ? storedDetailCells(line) : null}
                 <td data-label="Price" className={ui.priceLineAmount}>{formatGBP(Number(line.line_total) || 0)}</td>
                 <td className={ui.priceLineActions}>
                     {!(op && op.kind === "delete") && editable && (
@@ -1212,7 +1231,7 @@ function InlineAmountEditor({ line, op, s, showDetails, onChange, onCancel, onSa
             <p className={`mt-2 text-sm ${s.muted}`}>Draft only until Save line. One price for this work.</p>
             {op.status === "failed" && <p role="alert" className={`mt-2 text-sm ${s.errorText}`}>{op.error}</p>}
         </td>
-        {showDetails && <td colSpan={3} className={ui.priceOneAmount}>One price</td>}
+        {showDetails ? storedDetailCells(line) : null}
         <td data-label="Price" className={ui.priceLineAmount}>
             <input {...field("amount", "Price in pounds")} value={draft.amount} inputMode="decimal" autoComplete="off"
                 className={s.input} onChange={event => onChange({ amount: event.target.value })} />
@@ -1364,12 +1383,13 @@ function InlineNewPriceLine({ idPrefix, title, op, s, showDetails, onChange, onU
             <div className={ui.newPriceMethods} role="group" aria-label="How to price the new line">
                 <button type="button" disabled={saving} aria-pressed={draft.mode === "amount"} onClick={() => onChange({ mode: "amount" })}>One price</button>
                 <button type="button" disabled={saving} aria-pressed={draft.mode === "rate"} onClick={() => onChange({ mode: "rate" })}>Quantity and rate</button>
+                {showDetails && draft.mode === "amount" ? <OnePriceTypeBadge /> : null}
             </div>
             <p className={`mt-2 text-sm ${s.muted}`}>Not saved. Tab between fields; save only when ready.</p>
             {draft.mode === "rate" && <AreaQuantityAid key={`${op.lineId}:${draft.unit}`} idPrefix={`${idPrefix}-area`} unit={draft.unit} disabled={saving} onUse={onUseArea} />}
             {op.status === "failed" && <p role="alert" className={`mt-2 text-sm ${s.errorText}`}>{op.error}</p>}
         </td>
-        {showDetails && (draft.mode === "amount" ? <td colSpan={3} className={ui.priceOneAmount}>One price</td> : <>
+        {showDetails && (draft.mode === "amount" ? missingDetailCells() : <>
             <td data-label="Quantity" className={ui.priceLineNumber}>
                 <input {...field("quantity", "New priced quantity")} value={draft.quantity} inputMode="decimal" autoComplete="off"
                     className={s.input} onChange={event => onChange({ quantity: event.target.value })} />

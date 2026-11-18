@@ -141,7 +141,7 @@ export async function clearProgrammePlannerDraft(
     const draft = parseProgrammePlannerDraft(project.programme_planner_draft);
     if (!draft || publishedStartDate === undefined
         || programmePlanningChanged(draft.phases, publishedPhases, draft.start_date, publishedStartDate)) return;
-    let query = supabase.from("projects").update({ programme_planner_draft: null })
+    const query = supabase.from("projects").update({ programme_planner_draft: null })
         .eq("id", projectId).eq("user_id", userId)
         .eq("programme_planner_draft", JSON.stringify(project.programme_planner_draft));
     const { data: returnedRow, error } = await query.select("programme_planner_draft").single();

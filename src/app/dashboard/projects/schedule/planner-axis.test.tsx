@@ -494,7 +494,7 @@ describe("dependency connectors use actual displayed bar endpoints", () => {
             const cleanup = effect();
             if (cleanup) cleanups.push(cleanup);
         }
-        const phasesRef = hooks.refs[6] as { current: PlannerPhase[] };
+        const phasesRef = hooks.refs[8] as { current: PlannerPhase[] };
         hooks.refs[0].current = { getBoundingClientRect: () => ({ width: 280 }) };
         mouseDown({ preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: 100 } as unknown as MouseEvent, 0, "move");
         listeners.get("mousemove")!({ clientX: 180 });

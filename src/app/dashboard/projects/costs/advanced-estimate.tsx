@@ -284,6 +284,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     const deleteReceiptRef = useRef<DeleteLineReceipt | null>(null);
     const [deleteReceipt, setDeleteReceipt] = useState<DeleteLineReceipt | null>(null);
     const percentBaselineRef = useRef<({ id: string; discount_reason: string } & Record<PercentField, number>) | null>(null);
+    const acknowledgedDiscountRef = useRef<{ id: string; discount_pct: number; discount_reason: string } | null>(null);
     const [highDiscountPending, setHighDiscountPending] = useState<{
         discountPct: number;
         reason: string;
@@ -385,28 +386,53 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
         });
     };
 
+    const acknowledgedDiscount = useCallback((est: Estimate) => {
+        const stored = acknowledgedDiscountRef.current;
+        if (stored && stored.id === est.id) return stored;
+        return { discount_pct: est.discount_pct, discount_reason: est.discount_reason || "" };
+    }, []);
+
+    const captureAcknowledgedDiscount = () => {
+        if (!currentEstimate) return;
+        acknowledgedDiscountRef.current = {
+            id: currentEstimate.id,
+            discount_pct: currentEstimate.discount_pct,
+            discount_reason: currentEstimate.discount_reason || "",
+        };
+    };
+
+    useEffect(() => {
+        if (acknowledgedDiscountRef.current?.id === activeTab) return;
+        const est = estimates.find((e) => e.id === activeTab);
+        if (!est) return;
+        acknowledgedDiscountRef.current = {
+            id: est.id,
+            discount_pct: est.discount_pct,
+            discount_reason: est.discount_reason || "",
+        };
+    }, [activeTab, estimates]);
+
     // ─── Margin updates ─────────────────────────────────
     const capturePercentBaseline = () => {
         if (!currentEstimate) return;
-        const { id, overhead_pct, profit_pct, risk_pct, prelims_pct, discount_pct, discount_reason } = currentEstimate;
+        const { id, overhead_pct, profit_pct, risk_pct, prelims_pct } = currentEstimate;
+        const ack = acknowledgedDiscount(currentEstimate);
         percentBaselineRef.current = {
             id,
             overhead_pct,
             profit_pct,
             risk_pct,
             prelims_pct,
-            discount_pct,
-            discount_reason: discount_reason || "",
+            discount_pct: ack.discount_pct,
+            discount_reason: ack.discount_reason,
         };
     };
     const savedPercent = (est: Estimate, field: PercentField): number => {
+        if (field === "discount_pct") return acknowledgedDiscount(est).discount_pct;
         const baseline = percentBaselineRef.current;
         return baseline && baseline.id === est.id ? baseline[field] : est[field];
     };
-    const savedDiscountReason = (est: Estimate): string => {
-        const baseline = percentBaselineRef.current;
-        return baseline && baseline.id === est.id ? baseline.discount_reason : (est.discount_reason || "");
-    };
+    const savedDiscountReason = (est: Estimate): string => acknowledgedDiscount(est).discount_reason;
     const restorePercent = (estimateId: string, field: PercentField, saved: number) =>
         setEstimates((prev) => prev.map((e) => (e.id === estimateId ? { ...e, [field]: saved } : e)));
     const restoreDiscountFields = (estimateId: string, savedDiscount: number, savedReason: string) =>
@@ -452,13 +478,21 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                 if (result && !result.success) {
                     restoreDiscountFields(estimateId, savedDiscount, savedReason);
                     showSaveError(result.error ?? "Failed to save discount");
+                    setHighDiscountPending(null);
                     return;
                 }
+                acknowledgedDiscountRef.current = {
+                    id: estimateId,
+                    discount_pct: value,
+                    discount_reason: reason,
+                };
                 showSaved();
                 setHighDiscountPending(null);
             })
             .catch((err) => {
                 console.error(err);
+                restoreDiscountFields(estimateId, savedDiscount, savedReason);
+                setHighDiscountPending(null);
                 showSaveError("Failed to save discount");
             });
     };
@@ -482,6 +516,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
             return;
         }
         if (!gate.ok && gate.fieldErrors?.discountReason) {
+            restoreDiscountFields(estimateId, savedDiscount, savedReason);
             showSaveError(gate.fieldErrors.discountReason);
             return;
         }
@@ -498,12 +533,19 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
             showSaveError(PERCENTAGE_RANGE_ERROR);
             return;
         }
-        setEstimates((prev) => prev.map((est) => (est.id === estimateId ? { ...est, discount_pct: value } : est)));
         const reason = currentEstimate.discount_reason || "";
         if (!discountNeedsConfirmation(value)) {
+            setEstimates((prev) => prev.map((est) => (est.id === estimateId ? { ...est, discount_pct: value } : est)));
             persistDiscount(estimateId, value, reason, savedDiscount, savedReason);
             return;
         }
+        const gate = evaluateDiscountSubmitGate(value, reason, false);
+        if (!gate.ok && "fieldErrors" in gate && gate.fieldErrors?.discountReason) {
+            restoreDiscountFields(estimateId, savedDiscount, savedReason);
+            showSaveError(gate.fieldErrors.discountReason);
+            return;
+        }
+        setEstimates((prev) => prev.map((est) => (est.id === estimateId ? { ...est, discount_pct: value } : est)));
         beginHighDiscountConfirm(estimateId, value, reason, savedDiscount, savedReason);
     };
 
@@ -513,11 +555,18 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
         const savedDiscount = savedPercent(currentEstimate, "discount_pct");
         const savedReason = savedDiscountReason(currentEstimate);
         const discountPct = currentEstimate.discount_pct;
-        setEstimates((prev) => prev.map((est) => (est.id === estimateId ? { ...est, discount_reason: reason } : est)));
         if (!discountNeedsConfirmation(discountPct)) {
+            setEstimates((prev) => prev.map((est) => (est.id === estimateId ? { ...est, discount_reason: reason } : est)));
             persistDiscount(estimateId, discountPct, reason, savedDiscount, savedReason);
             return;
         }
+        const gate = evaluateDiscountSubmitGate(discountPct, reason, false);
+        if (!gate.ok && "fieldErrors" in gate && gate.fieldErrors?.discountReason) {
+            restoreDiscountFields(estimateId, savedDiscount, savedReason);
+            showSaveError(gate.fieldErrors.discountReason);
+            return;
+        }
+        setEstimates((prev) => prev.map((est) => (est.id === estimateId ? { ...est, discount_reason: reason } : est)));
         beginHighDiscountConfirm(estimateId, discountPct, reason, savedDiscount, savedReason);
     };
 
@@ -1782,7 +1831,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                     min={0}
                                     max={100}
                                     value={currentEstimate.discount_pct}
-                                    onFocus={capturePercentBaseline}
+                                    onFocus={captureAcknowledgedDiscount}
                                     onChange={(e) => {
                                         const val = parseFloat(e.target.value) || 0;
                                         setEstimates((prev) => prev.map((est) => (est.id === currentEstimate.id ? { ...est, discount_pct: val } : est)));
@@ -1800,7 +1849,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                     type="text"
                                     maxLength={500}
                                     value={currentEstimate.discount_reason || ""}
-                                    onFocus={capturePercentBaseline}
+                                    onFocus={captureAcknowledgedDiscount}
                                     onChange={(e) => {
                                         setEstimates((prev) => prev.map((est) => (est.id === currentEstimate.id ? { ...est, discount_reason: e.target.value } : est)));
                                     }}

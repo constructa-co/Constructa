@@ -1,3 +1,7 @@
+## CON-069 repair — 18 November 2026 (post 638e31a review)
+
+Acknowledged-discount baseline, missing-reason rollback, 100% warning, server `>25%` reason guard, interaction regression tests.
+
 ## CON-069 — High discount confirmation — 18 November 2026
 
 | File | Lines (approx.) | Change | Intent |

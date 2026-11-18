@@ -16,9 +16,13 @@ export function discountNeedsConfirmation(discountPct: number): boolean {
     return discountPct > HIGH_DISCOUNT_THRESHOLD_PCT;
 }
 
-/** 100% is allowed without the large-discount warning, but still needs confirm + reason when above the threshold. */
+/** Large discounts above the threshold show an extra warning, including 100%. */
 export function showHighDiscountWarning(discountPct: number): boolean {
-    return discountPct > HIGH_DISCOUNT_THRESHOLD_PCT && discountPct < 100;
+    return discountPct > HIGH_DISCOUNT_THRESHOLD_PCT;
+}
+
+export function highDiscountRequiresReason(discountPct: number, discountReason: string): boolean {
+    return discountNeedsConfirmation(discountPct) && !discountReason.trim();
 }
 
 export type DiscountSubmitGate =

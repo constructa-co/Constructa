@@ -618,7 +618,7 @@ describe("price adjustments", () => {
         expect(server.saveAdjustments).not.toHaveBeenCalled();
     });
 
-    it("accepts 100% with confirm and reason but without the large-discount warning flag", async () => {
+    it("accepts 100% with confirm, reason, and the large-discount warning flag", async () => {
         const store = makeStore(existing());
         const server = fakeServer();
         store.dispatch({ type: "adjustments/change", patch: { discount: "100", discountReason: "Promotional" } });
@@ -626,7 +626,7 @@ describe("price adjustments", () => {
             ok: false,
             needsHighDiscountConfirm: true,
             discountPct: 100,
-            showHighDiscountWarning: false,
+            showHighDiscountWarning: true,
         });
         expect(await submitAdjustments(store, server, { highDiscountConfirmed: true })).toEqual({ ok: true });
     });

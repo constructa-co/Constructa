@@ -1,5 +1,15 @@
 # Cursor change log
 
+## 2026-11-18 — CON-069 repair (Sonnet 638e31a review)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/discount-confirm.ts` | 19–24 | 100% shows large-discount warning; `highDiscountRequiresReason` helper | Match spec; shared server guard |
+| `src/app/dashboard/projects/costs/advanced-estimate.tsx` | 287–548 | `acknowledgedDiscountRef`; rollback on missing reason; persist catch/reject cleanup | Baseline tracks last saved pair only |
+| `src/app/dashboard/projects/costs/simple-actions.ts` | 356+ | Reject `>25%` with blank reason | Server boundary |
+| `src/app/dashboard/projects/costs/actions.ts` | `saveDiscountAction` | Reject `>25%` with blank reason | Server boundary |
+| Tests | discount-confirm, simple-estimate, advanced-discount-confirm, simple-actions | 100% warning; tab/cancel regression; server refusal | CON-069 repair evidence |
+
 ## 2026-11-18 — CON-069 high-discount confirmation (simple + advanced)
 
 | File | Lines (approx.) | Change | Intent |

@@ -11,9 +11,9 @@ describe("CON-069 discount confirmation gate", () => {
         expect(discountNeedsConfirmation(25.01)).toBe(true);
     });
 
-    it("shows the large-discount warning only above 25% and below 100%", () => {
+    it("shows the large-discount warning above 25%, including 100%", () => {
         expect(showHighDiscountWarning(30)).toBe(true);
-        expect(showHighDiscountWarning(100)).toBe(false);
+        expect(showHighDiscountWarning(100)).toBe(true);
         expect(showHighDiscountWarning(25)).toBe(false);
     });
 
@@ -36,12 +36,12 @@ describe("CON-069 discount confirmation gate", () => {
         expect(evaluateDiscountSubmitGate(40, "Returning client", true)).toEqual({ ok: true });
     });
 
-    it("accepts 100% with confirm and reason but no warning", () => {
+    it("accepts 100% with confirm, reason, and the large-discount warning", () => {
         expect(evaluateDiscountSubmitGate(100, "Promotional", false)).toEqual({
             ok: false,
             needsConfirm: true,
             discountPct: 100,
-            showWarning: false,
+            showWarning: true,
         });
         expect(evaluateDiscountSubmitGate(100, "Promotional", true)).toEqual({ ok: true });
     });

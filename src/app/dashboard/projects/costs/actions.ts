@@ -14,6 +14,10 @@ import {
 import { revalidatePath } from "next/cache";
 import { recalcEstimateTotal } from "./estimate-total";
 import type { EstimateLine, EstimateLineComponent } from "./types";
+import {
+    HIGH_DISCOUNT_REASON_REQUIRED,
+    highDiscountRequiresReason,
+} from "@/lib/discount-confirm";
 
 const PERCENTAGE_ERROR = "Enter each percentage as a number between 0 and 100.";
 const DISCOUNT_PERCENTAGE_ERROR = "Enter the discount as a percentage between 0 and 100.";
@@ -542,6 +546,9 @@ export async function saveDiscountAction(
     }
     if (typeof discountReason !== "string" || discountReason.length > MAX_DISCOUNT_REASON_LENGTH) {
         return { success: false, error: "Keep the discount reason to 500 characters." };
+    }
+    if (highDiscountRequiresReason(discountPct, discountReason)) {
+        return { success: false, error: HIGH_DISCOUNT_REASON_REQUIRED };
     }
 
     // P1-3 — discount changes the contract sum, so must be locked after

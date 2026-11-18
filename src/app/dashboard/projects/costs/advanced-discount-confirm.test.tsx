@@ -10,6 +10,8 @@ const replay = vi.hoisted(() => ({
     discount: vi.fn(),
     toastError: vi.fn(),
     estimates: [] as unknown[],
+    confirmDiscount: null as (() => void) | null,
+    cancelDiscount: null as (() => void) | null,
 }));
 vi.mock("react", async (original) => ({
     ...(await original<typeof import("react")>()),
@@ -49,7 +51,16 @@ vi.mock("./boq-excel-export", () => ({ exportBoQToExcel: replay.other }));
 vi.mock("@/app/dashboard/foundations/vision-takeoff", () => ({ default: () => null }));
 vi.mock("@/lib/launch-profile", () => ({ isCapabilityEnabled: () => false }));
 vi.mock("sonner", () => ({ toast: { error: replay.toastError, success: replay.other } }));
-vi.mock("./discount-confirm-dialog", () => ({ HighDiscountConfirmDialog: () => null }));
+vi.mock("./discount-confirm-dialog", () => ({
+    HighDiscountConfirmDialog: (props: { onCancel: () => void; onConfirm: () => void; discountPct: number }) => {
+        replay.cancelDiscount = props.onCancel;
+        replay.confirmDiscount = props.onConfirm;
+        return {
+            type: "high-discount-confirm-dialog",
+            props,
+        };
+    },
+}));
 import AdvancedEstimate from "./advanced-estimate";
 
 type Element = ReactElement<Record<string, unknown>>;
@@ -59,9 +70,10 @@ function nodes(value: unknown): Element[] {
     const element = value as Element;
     return [element, ...nodes(element.props.children)];
 }
+let rendered: Element[] | null = null;
 function view() {
     replay.cursor = 0;
-    return nodes(AdvancedEstimate({
+    rendered = nodes(AdvancedEstimate({
         estimates: replay.estimates as Estimate[],
         setEstimates: (update) => { replay.estimates = update(replay.estimates as Estimate[]); },
         activeTab: "a",
@@ -73,15 +85,19 @@ function view() {
         labourRates: [],
         preferredTrades: [],
     }));
+    return rendered;
 }
 type Handler = (event?: { target: { value: string } }) => void;
-const field = (label: string) => view().find((e) => e.type === "input" && e.props["aria-label"] === label)!;
+const field = (label: string) => rendered!.find((e) => e.type === "input" && e.props["aria-label"] === label)!;
 const fire = (label: string, handler: "onFocus" | "onChange" | "onBlur", value?: string) =>
     (field(label).props[handler] as Handler)(value === undefined ? undefined : { target: { value } });
 const edit = (label: string, value: string) => {
+    view();
     fire(label, "onFocus");
     fire(label, "onChange", value);
+    view();
     fire(label, "onBlur", value);
+    view();
 };
 
 const line: EstimateLine = {
@@ -101,6 +117,9 @@ beforeEach(() => {
     replay.margins.mockReset();
     replay.discount.mockReset().mockResolvedValue({ success: true });
     replay.toastError.mockReset();
+    replay.confirmDiscount = null;
+    replay.cancelDiscount = null;
+    rendered = null;
 });
 
 describe("CON-069 Advanced discount confirm", () => {
@@ -112,5 +131,45 @@ describe("CON-069 Advanced discount confirm", () => {
     it("does not autosave a discount above 25% on blur alone", () => {
         edit("Discount %", "40");
         expect(replay.discount).not.toHaveBeenCalled();
+    });
+
+    it("rolls back an unconfirmed high discount after tabbing to reason with no reason", () => {
+        replay.estimates = [{ ...estimate(), discount_reason: "" }];
+        view();
+        fire("Discount %", "onFocus");
+        fire("Discount %", "onChange", "40");
+        view();
+        fire("Discount %", "onBlur", "40");
+        expect((replay.estimates[0] as Estimate).discount_pct).toBe(4);
+        expect(replay.discount).not.toHaveBeenCalled();
+        view();
+        fire("Discount Reason", "onFocus");
+        expect((replay.estimates[0] as Estimate).discount_pct).toBe(4);
+    });
+
+    it("cancel on high-discount confirm restores acknowledged discount without saving", () => {
+        edit("Discount %", "40");
+        expect(replay.discount).not.toHaveBeenCalled();
+        expect(replay.slots).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ discountPct: 40, savedDiscount: 4, savedReason: "Returning client" }),
+            ]),
+        );
+        const dialog = view().find((e) => e.props?.discountPct === 40);
+        expect(dialog).toBeTruthy();
+        (dialog!.props.onCancel as () => void)();
+        expect((replay.estimates[0] as Estimate).discount_pct).toBe(4);
+        expect((replay.estimates[0] as Estimate).discount_reason).toBe("Returning client");
+        expect(replay.discount).not.toHaveBeenCalled();
+    });
+
+    it("rolls back and clears pending confirm when save rejects", async () => {
+        replay.discount.mockResolvedValueOnce({ success: false, error: "locked" });
+        edit("Discount %", "40");
+        const dialog = view().find((e) => e.props?.discountPct === 40)!;
+        (dialog.props.onConfirm as () => void)();
+        await Promise.resolve();
+        expect((replay.estimates[0] as Estimate).discount_pct).toBe(4);
+        expect(view().find((e) => e.props?.discountPct === 40)).toBeUndefined();
     });
 });

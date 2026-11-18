@@ -6,7 +6,7 @@ type Effect = () => void | (() => void);
 type Slot = { value?: unknown; deps?: unknown[]; effect?: Effect; cleanup?: () => void };
 const lifecycle = vi.hoisted(() => ({
     slots: [] as Slot[], cursor: 0, pending: [] as Slot[], dirty: false,
-    draftWrite: vi.fn(), proposalWrite: vi.fn(), trackingWrite: vi.fn(),
+    draftWrite: vi.fn(), proposalWrite: vi.fn(), trackingWrite: vi.fn(), draftClear: vi.fn(),
     read: vi.fn(), error: vi.fn(), success: vi.fn(),
 }));
 
@@ -55,6 +55,7 @@ vi.mock("react", async importOriginal => {
 vi.mock("./actions", () => ({
     updatePhasesAction: lifecycle.trackingWrite,
     autosaveProgrammePlannerDraftAction: lifecycle.draftWrite,
+    clearProgrammePlannerDraftAction: lifecycle.draftClear,
     saveProgrammePhasesAction: lifecycle.proposalWrite,
     getEstimatePhasesAction: lifecycle.read,
 }));
@@ -76,9 +77,18 @@ function elements(value: unknown): Node[] {
 }
 
 let current: ReturnType<typeof open> | null = null;
-function open(phases = stages, startingEstimate: Props["estimate"] = null, replay = true, startDate = "2026-10-19", workingPattern?: unknown) {
+function open(
+    phases = stages,
+    startingEstimate: Props["estimate"] = null,
+    replay = true,
+    startDate = "2026-10-19",
+    workingPattern?: unknown,
+    projectExtra: Partial<Props["project"]> = {},
+) {
     const props: Props = { project: { id: "opening-check", name: "Example", start_date: startDate, programme_phases: phases,
-        ...(workingPattern === undefined ? {} : { programme_working_pattern: workingPattern }) }, projectId: "opening-check", estimate: startingEstimate };
+        ...projectExtra,
+        ...(workingPattern === undefined ? {} : { programme_working_pattern: workingPattern }) },
+        projectId: "opening-check", estimate: startingEstimate, plannerDraftViewerScope: "viewer-a" };
     let tree: unknown;
     function render() {
         lifecycle.cursor = 0; lifecycle.pending = []; lifecycle.dirty = false;
@@ -124,6 +134,7 @@ function open(phases = stages, startingEstimate: Props["estimate"] = null, repla
             (button!.props.onClick as () => void)(); flush();
         },
         suggestion: () => elements(tree).some(node => "data-planner-suggestion" in node.props),
+        nodes: () => elements(tree),
         unmount() { for (const entry of lifecycle.slots) { entry.cleanup?.(); entry.cleanup = undefined; } },
     };
     current = result;
@@ -134,6 +145,7 @@ const nameInput = (name: string) => (node: Node) => node.type === "input" && nod
 beforeEach(() => {
     lifecycle.slots = []; lifecycle.cursor = 0; lifecycle.pending = []; lifecycle.dirty = false;
     lifecycle.draftWrite.mockReset().mockResolvedValue({ success: true });
+    lifecycle.draftClear.mockReset().mockResolvedValue({ success: true });
     lifecycle.proposalWrite.mockReset().mockResolvedValue(undefined);
     lifecycle.trackingWrite.mockReset().mockResolvedValue({ success: true });
     lifecycle.read.mockReset().mockResolvedValue([]); lifecycle.error.mockClear();
@@ -613,6 +625,56 @@ describe("programme Save and autosave operation-scoped status", () => {
         await settle(view);
         expect(lifecycle.success).not.toHaveBeenCalled(); expect(lifecycle.error).not.toHaveBeenCalled();
         expect(lifecycle.proposalWrite).toHaveBeenCalledTimes(1);
+    });
+
+    describe("CON-044 pending draft vs published tracking", () => {
+        function openLiveTracking(view: ReturnType<typeof open>) {
+            const toggle = view.nodes().find(node => node.type === "button"
+                && typeof node.props.children === "string" && node.props.children.includes("Live Tracking"));
+            expect(toggle).toBeDefined();
+            (toggle!.props.onClick as () => void)();
+            view.flush();
+            const panel = view.nodes().find(node => typeof node.type === "function" && node.props.onPhasesChange);
+            expect(panel).toBeDefined();
+            return elements((panel!.type as (props: unknown) => ReactElement)(panel!.props));
+        }
+
+        it("opens the draft plan with published tracking instead of stale draft pct", async () => {
+            const published = [{ ...stages[0], pct_complete: 60 }];
+            const staleDraft = {
+                phases: [{ ...stages[0], pct_complete: 5 }],
+                start_date: "2026-10-19",
+                saved_at: "2026-10-18T08:00:00.000Z",
+            };
+            const view = open(published, null, true, "2026-10-19", undefined, { programme_planner_draft: staleDraft });
+            await settle(view);
+            const range = openLiveTracking(view).find(node => node.type === "input" && node.props.type === "range");
+            expect(range?.props.value).toBe(60);
+        });
+
+        it("writes tracking to programme_phases and planning to draft when a pending draft exists", async () => {
+            const published = [{ ...stages[0], pct_complete: 0 }];
+            const pending = {
+                phases: [{ ...stages[0], startOffset: 7, pct_complete: 99 }],
+                start_date: "2026-10-19",
+                saved_at: "2026-10-18T08:00:00.000Z",
+            };
+            const view = open(published, null, true, "2026-10-19", undefined, { programme_planner_draft: pending });
+            await settle(view);
+            const range = openLiveTracking(view).find(node => node.type === "input" && node.props.type === "range")!;
+            (range.props.onChange as (event: { target: { value: string } }) => void)({ target: { value: "35" } });
+            view.flush();
+            lifecycle.draftWrite.mockClear();
+            lifecycle.trackingWrite.mockClear();
+            await vi.advanceTimersByTimeAsync(500);
+            await settle(view);
+            expect(lifecycle.trackingWrite).toHaveBeenCalledTimes(1);
+            expect(lifecycle.trackingWrite.mock.calls[0][1][0].pct_complete).toBe(35);
+            expect(lifecycle.trackingWrite.mock.calls[0][1][0].name).toBe("Demo");
+            expect(lifecycle.draftWrite).toHaveBeenCalledTimes(1);
+            expect(lifecycle.draftWrite.mock.calls[0][1][0]).toMatchObject({ name: "Demo", startOffset: 7 });
+            expect(lifecycle.draftWrite.mock.calls[0][1][0]).not.toHaveProperty("pct_complete");
+        });
     });
 
     it("departing project refuses a late success and a stale handler", async () => {

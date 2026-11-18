@@ -1,5 +1,19 @@
 # Cursor change log
 
+## 2026-11-18 — CON-044 BLOCK-1 tracking/draft split repair (codex/con-044-publication-review)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/programme-planner-draft.ts` | identity, overlay, merge | Stable phase keys; overlay published tracking on draft reopen; merge tracking onto `programme_phases` without adopting draft planning; strip tracking from draft payloads | Fix BLOCK-1 dual-write and stale draft tracking |
+| `src/lib/programme-planner-draft.test.ts` | new cases | Reorder overlay, merge, strip | Regression |
+| `src/lib/server/programme-storage.ts` | `writeProgrammePlannerDraft` | Persist planning-only draft phases | Server-side tracking strip |
+| `src/app/dashboard/projects/schedule/actions.ts` | draft autosave, new action | Strip tracking on draft write; `clearProgrammePlannerDraftAction` after tracking-only saves | Rebase/clear stale server drafts |
+| `src/app/dashboard/projects/schedule/client-page.tsx` | persist + open | Split tracking vs planning autosave; overlay on open; `proposalPhasesRef` sync via effect; `plannerDraftViewerScope` prop | BLOCK-1 client path |
+| `src/app/dashboard/projects/schedule/page.tsx` | mount | Pass `plannerDraftViewerScope={user.id}` | Authenticated viewer scope for session fallback |
+| `src/app/dashboard/projects/schedule/simple-programme-client.tsx` | DetailedPlanner | Thread viewer scope into detailed planner | Scope propagation |
+| `src/app/dashboard/projects/schedule/planner-opening.test.tsx` | CON-044 describe | Pending-draft reopen + split autosave regression | Integration coverage |
+| `src/app/dashboard/projects/schedule/*.test.tsx` | props | `plannerDraftViewerScope` on test mounts | Type/test alignment |
+
 ## 2026-11-18 — CON-044 client/server boundary repair (cursor/con-044-publication)
 
 | File | Lines (approx.) | Change | Intent |

@@ -11,7 +11,9 @@
 | Path | Writes | Proposal revalidation |
 |------|--------|---------------------|
 | Autosave (planning edits) | `programme_planner_draft` or browser draft | No |
-| Autosave (tracking-only) | `programme_phases` via existing action | Yes (unchanged) |
+| Autosave (tracking-only) | `programme_phases` via existing action; clears draft when planning matches published | Yes (unchanged) |
+| Autosave (tracking while planning draft pending) | `programme_phases` gets tracking merge; draft gets planning-only strip | Proposal unchanged until Save |
+| Reopen with server draft | Draft planning + published tracking overlay (identity match, not index) | No |
 | Save to proposal | `programme_phases`; clears draft | Yes |
 
 ## Changelog (18 Nov 2026)

@@ -4,14 +4,19 @@ import { useState, useTransition, useMemo, useEffect, useRef } from "react";
 import { MAX_WORKING_DAYS, startDateInPastWarning } from "@/lib/simple-programme";
 import {
     autosaveProgrammePlannerDraftAction,
+    clearProgrammePlannerDraftAction,
     getEstimatePhasesAction,
     saveProgrammePhasesAction,
     updatePhasesAction,
 } from "./actions";
 import {
     clearLocalPlannerDraft,
+    mergeTrackingOntoPublishedPlanning,
+    overlayPublishedTrackingOnDraftPhases,
     parseProgrammePlannerDraft,
-    programmeTrackingOnlyChanged,
+    phasesWithoutTrackingFields,
+    programmePlanningChanged,
+    programmeTrackingFieldsChanged,
     PROGRAMME_PLANNER_DRAFT_UNAVAILABLE,
     readLocalPlannerDraft,
     writeLocalPlannerDraft,
@@ -90,6 +95,8 @@ interface Props {
     };
     estimate: Estimate | null;
     projectId: string;
+    /** Authenticated viewer id — scopes browser draft fallback per signed-in account. */
+    plannerDraftViewerScope: string;
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -164,14 +171,14 @@ interface DragState {
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
-export default function ClientSchedulePage({ project, estimate, projectId }: Props) {
+export default function ClientSchedulePage({ project, estimate, projectId, plannerDraftViewerScope }: Props) {
     const workingPattern = resolveJobWorkingPattern(project.programme_working_pattern);
     const bankHolidayDivision = resolveUkBankHolidayDivision(project.region);
     const programmeCalendar = resolveProgrammeCalendar(project.programme_working_pattern, bankHolidayDivision);
     const usesSavedCalendar = project.programme_working_pattern != null;
     const daysPerWeek = workingPattern?.weekdays.length ?? 5;
     const expectedWorkingPattern = project.programme_working_pattern == null ? undefined : workingPattern;
-    const plannerDraftStorageScope = project.user_id;
+    const plannerDraftStorageScope = plannerDraftViewerScope;
     const [isPending, startTransition] = useTransition();
     const [isDragging, setIsDragging] = useState(false);
     const [showLiveTracking, setShowLiveTracking] = useState(false);
@@ -210,36 +217,58 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 proposalStartRef.current = input.startDate;
                 return { input, result: { success: true as const } };
             }
-            if (programmeTrackingOnlyChanged(
-                proposalPhasesRef.current,
-                input.phases,
-                proposalStartRef.current,
-                input.startDate,
-            )) {
-                return {
-                    input,
-                    result: await updatePhasesAction(
-                        project.id, input.phases, input.startDate,
-                        ...(input.workingPattern === undefined ? [] : [input.workingPattern]),
-                    ),
-                };
-            }
-            const draftResult = await autosaveProgrammePlannerDraftAction(
-                project.id, input.phases, input.startDate,
-                ...(input.workingPattern === undefined ? [] : [input.workingPattern]),
+            const published = proposalPhasesRef.current;
+            const publishedStart = proposalStartRef.current;
+            const planningDelta = programmePlanningChanged(
+                published, input.phases, publishedStart, input.startDate,
             );
-            if (!draftResult.success && draftResult.error === PROGRAMME_PLANNER_DRAFT_UNAVAILABLE) {
-                const stored = writeLocalPlannerDraft(
-                    project.id, input.phases, input.startDate, plannerDraftStorageScope,
+            const trackingDelta = programmeTrackingFieldsChanged(
+                published, input.phases, publishedStart, input.startDate,
+            );
+            const draftPlanning = phasesWithoutTrackingFields(input.phases);
+
+            async function savePlannerDraft() {
+                const draftResult = await autosaveProgrammePlannerDraftAction(
+                    project.id, draftPlanning as Phase[], input.startDate,
+                    ...(input.workingPattern === undefined ? [] : [input.workingPattern]),
                 );
-                return {
-                    input,
-                    result: stored
+                if (!draftResult.success && draftResult.error === PROGRAMME_PLANNER_DRAFT_UNAVAILABLE) {
+                    const stored = writeLocalPlannerDraft(
+                        project.id, draftPlanning, input.startDate, plannerDraftStorageScope,
+                    );
+                    return stored
                         ? { success: true as const }
-                        : { success: false as const, error: "Planner draft could not be stored in this browser session." },
-                };
+                        : { success: false as const, error: "Planner draft could not be stored in this browser session." };
+                }
+                return draftResult;
             }
-            return { input, result: draftResult };
+
+            if (trackingDelta) {
+                const phasesForPublished = mergeTrackingOntoPublishedPlanning(
+                    published, input.phases,
+                ) as Phase[];
+                const trackResult = await updatePhasesAction(
+                    project.id, phasesForPublished, input.startDate,
+                    ...(input.workingPattern === undefined ? [] : [input.workingPattern]),
+                );
+                if (!trackResult.success) return { input, result: trackResult };
+                proposalPhasesRef.current = phasesForPublished;
+                proposalStartRef.current = input.startDate;
+
+                if (planningDelta) {
+                    return { input, result: await savePlannerDraft() };
+                }
+                clearLocalPlannerDraft(project.id, plannerDraftStorageScope);
+                const cleared = await clearProgrammePlannerDraftAction(
+                    project.id, phasesForPublished, input.startDate,
+                );
+                return { input, result: cleared.success ? trackResult : cleared };
+            }
+
+            if (!planningDelta) {
+                return { input, result: { success: true as const } };
+            }
+            return { input, result: await savePlannerDraft() };
         }),
     ));
 
@@ -273,10 +302,21 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     // column exists on projects. Kept in the fallback chain so legacy
     // selects elsewhere don't regress silently.)
     const existingPhases = savedPlannerPhases((project.programme_phases ?? project.timeline_phases) as unknown);
-    proposalPhasesRef.current = existingPhases;
-    proposalStartRef.current = project.start_date ?? toInputDate(programmeStart);
+    const publishedProgrammeFingerprint = useMemo(
+        () => JSON.stringify({ phases: existingPhases, start: project.start_date ?? "" }),
+        [existingPhases, project.start_date],
+    );
+    useEffect(() => {
+        proposalPhasesRef.current = savedPlannerPhases(
+            (project.programme_phases ?? project.timeline_phases) as unknown,
+        );
+        proposalStartRef.current = project.start_date ?? toInputDate(programmeStart);
+    }, [publishedProgrammeFingerprint, project.programme_phases, project.timeline_phases, project.start_date, programmeStart]);
 
-    const draftPhases = storedPlannerDraft ? savedPlannerPhases(storedPlannerDraft.phases) : null;
+    const rawDraftPhases = storedPlannerDraft ? savedPlannerPhases(storedPlannerDraft.phases) : null;
+    const draftPhases = rawDraftPhases?.length
+        ? savedPlannerPhases(overlayPublishedTrackingOnDraftPhases(existingPhases, rawDraftPhases))
+        : null;
 
     // The saved programme opens exactly as it was saved. Stages worked out
     // from the estimate are only ever a starting point for a job that has

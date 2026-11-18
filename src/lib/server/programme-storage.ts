@@ -5,7 +5,12 @@ import { workingPatternsEquivalent } from "@/lib/working-pattern-canonical";
 import { readProgrammeInclusion, withProgrammeInclusion } from "@/lib/programme-inclusion";
 import { draftPlanCoversEveryPhase } from "@/lib/programme-plan";
 import { computeDisplayProgramme } from "@/lib/relative-programme";
-import { programmePlanningChanged, parseProgrammePlannerDraft, PROGRAMME_PLANNER_DRAFT_UNAVAILABLE } from "@/lib/programme-planner-draft";
+import {
+    phasesWithoutTrackingFields,
+    programmePlanningChanged,
+    parseProgrammePlannerDraft,
+    PROGRAMME_PLANNER_DRAFT_UNAVAILABLE,
+} from "@/lib/programme-planner-draft";
 
 export const PROGRAMME_CHOICE_UNCONFIRMED = "The programme choice wasn't confirmed and may already have saved. Reload Programme before retrying.";
 
@@ -108,7 +113,7 @@ export async function writeProgrammePlannerDraft(
     const decision = readProgrammeInclusion(project.programme_phases);
     if (decision.intent === "invalid") throw new Error("Check the saved programme choice before changing it.");
     const draftPayload = {
-        phases: withProgrammeInclusion(input.phases, decision.intent === "include"),
+        phases: withProgrammeInclusion(phasesWithoutTrackingFields(input.phases), decision.intent === "include"),
         start_date: input.startDate,
         saved_at: new Date().toISOString(),
     };

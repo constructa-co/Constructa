@@ -29,7 +29,8 @@ function nodes(value: unknown): Element[] {
 }
 function parent(overrides: Partial<Parameters<typeof SimpleProgrammeClient>[0]> = {}) {
     hooks.cursor = 0;
-    return SimpleProgrammeClient({ project, lockReason: null, estimate: null, save: hooks.save, ...overrides });
+    return SimpleProgrammeClient({ project, lockReason: null, estimate: null, save: hooks.save,
+        plannerDraftViewerScope: "viewer-test", ...overrides });
 }
 function editor(overrides: Partial<Parameters<typeof SimpleProgrammeClient>[0]> = {}) {
     const entry = nodes(parent(overrides)).find(n => typeof n.type === "function" && n.props.initial);

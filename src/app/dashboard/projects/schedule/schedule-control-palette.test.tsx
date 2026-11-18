@@ -34,7 +34,8 @@ const button = (tree: Element[], label: string) => tree.find(n => n.type === "bu
 
 function setup(phases: TrackedPhase[] = example(), days = "5") {
     vi.stubGlobal("window", {}); vi.stubGlobal("localStorage", { getItem: () => days, setItem: hooks.setItem });
-    const props = { project: { id: "job", name: "Kitchen", start_date: "2026-11-02", programme_phases: phases }, projectId: "job", estimate: null };
+    const props = { project: { id: "job", name: "Kitchen", start_date: "2026-11-02", programme_phases: phases },
+        projectId: "job", estimate: null, plannerDraftViewerScope: "viewer-test" };
     const parent = () => { hooks.cursor = 0; return nodes(ClientSchedulePage(props)); };
     const tracking = () => {
         const toggle = parent().find(n => n.type === "button" && text(n.props.children).includes("Live Tracking"))!;

@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+    mergeTrackingOntoPublishedPlanning,
+    overlayPublishedTrackingOnDraftPhases,
+    phasesWithoutTrackingFields,
     programmePlanningChanged,
+    programmePhaseIdentityKey,
+    programmeTrackingFieldsChanged,
     programmeTrackingOnlyChanged,
     parseProgrammePlannerDraft,
     readLocalPlannerDraft,
@@ -36,6 +41,45 @@ describe("programme planner draft helpers", () => {
         const a = [{ manualDays: 5, name: "Roof", calculatedDays: 5, startOffset: 0, manhours: 0 }];
         const b = [{ name: "Roof", startOffset: 0, manhours: 0, calculatedDays: 5, manualDays: 5 }];
         expect(programmePlanningChanged(a, b, "2026-10-19", "2026-10-19")).toBe(false);
+    });
+
+    it("detects tracking deltas even when stages are reordered", () => {
+        const published = [
+            phase("Groundworks", 0),
+            phase("Roofing", 0),
+        ];
+        const reordered = [
+            { ...published[1], startOffset: 0, pct_complete: 30 },
+            { ...published[0], startOffset: 7, pct_complete: 0 },
+        ];
+        expect(programmePhaseIdentityKey(reordered[1])).toBe(programmePhaseIdentityKey(published[0]));
+        expect(programmeTrackingFieldsChanged(published, reordered, "2026-10-19", "2026-10-19")).toBe(true);
+        expect(programmePlanningChanged(published, reordered, "2026-10-19", "2026-10-19")).toBe(true);
+    });
+
+    it("overlays published tracking onto draft stages by identity, not row index", () => {
+        const published = [phase("Groundworks", 55), phase("Roofing", 0)];
+        const draft = [
+            { ...published[1], startOffset: 0 },
+            { ...published[0], startOffset: 7, pct_complete: 5 },
+        ];
+        const opened = overlayPublishedTrackingOnDraftPhases(published, draft);
+        expect((opened[0] as typeof published[0]).pct_complete).toBe(0);
+        expect((opened[1] as typeof published[0]).pct_complete).toBe(55);
+    });
+
+    it("merges tracking onto published planning without adopting draft planning", () => {
+        const published = [phase("Groundworks", 0)];
+        const observed = [{ ...published[0], pct_complete: 40 }];
+        const merged = mergeTrackingOntoPublishedPlanning(published, observed) as typeof published;
+        expect(merged[0].manualDays).toBe(5);
+        expect(merged[0].pct_complete).toBe(40);
+    });
+
+    it("strips operational fields before draft persistence", () => {
+        const phases = [{ ...phase("Brickwork", 40), actual_start_date: "2026-10-20" }];
+        expect(phasesWithoutTrackingFields(phases)[0]).not.toHaveProperty("pct_complete");
+        expect(phasesWithoutTrackingFields(phases)[0]).not.toHaveProperty("actual_start_date");
     });
 
     it("scopes session drafts to the signed-in owner", () => {

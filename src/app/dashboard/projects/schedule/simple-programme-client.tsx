@@ -100,9 +100,11 @@ interface Props {
     planningAssistantEnabled?: boolean;
     /** Why it is off, for this job's owner only. */
     planningAssistantOffReason?: JobAssistantOffReason | null;
+    /** Authenticated viewer id passed from the server route. */
+    plannerDraftViewerScope: string;
 }
 
-export default function SimpleProgrammeClient({ project: incomingProject, lockReason, estimate, save, saveInclusion, planningGenerator, planningAssistantEnabled = false, planningAssistantOffReason = null }: Props) {
+export default function SimpleProgrammeClient({ project: incomingProject, lockReason, estimate, save, saveInclusion, planningGenerator, planningAssistantEnabled = false, planningAssistantOffReason = null, plannerDraftViewerScope }: Props) {
     const { theme } = useTheme();
     const isDark = theme === "dark";
     const s = workspaceStyles(isDark);
@@ -281,7 +283,12 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
                         {/* The chart and tracking table scroll sideways on their own, so the planner's
                             title, Save and settings stay within a phone's width. */}
                         <div className="min-w-0">
-                            <DetailedPlanner project={project as never} estimate={estimate} projectId={project.id} />
+                            <DetailedPlanner
+                                project={project as never}
+                                estimate={estimate}
+                                projectId={project.id}
+                                plannerDraftViewerScope={plannerDraftViewerScope}
+                            />
                         </div>
                     </div>
                     {showExtended && (

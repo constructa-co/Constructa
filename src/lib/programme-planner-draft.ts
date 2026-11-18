@@ -6,6 +6,76 @@ const TRACKING_FIELDS = new Set([
     "delay_reason", "delay_category", "delay_notes",
 ]);
 
+/** Identity stable when stages are reordered — offsets and dependencies are excluded. */
+export function programmePhaseIdentityKey(phase: unknown): string {
+    if (!phase || typeof phase !== "object" || Array.isArray(phase)) return "";
+    const p = phase as Record<string, unknown>;
+    return JSON.stringify({
+        name: p.name,
+        calculatedDays: p.calculatedDays,
+        manualDays: p.manualDays,
+        manhours: p.manhours,
+        ...(p.color !== undefined ? { color: p.color } : {}),
+        ...(p.needsReview !== undefined ? { needsReview: p.needsReview } : {}),
+    });
+}
+
+function trackingFieldsOf(phase: unknown): Record<string, unknown> {
+    if (!phase || typeof phase !== "object" || Array.isArray(phase)) return {};
+    return Object.fromEntries(
+        Object.entries(phase as Record<string, unknown>).filter(([key]) => TRACKING_FIELDS.has(key)),
+    );
+}
+
+function trackingByIdentity(phases: unknown[]): Map<string, Record<string, unknown>> {
+    const map = new Map<string, Record<string, unknown>>();
+    for (const phase of phases) {
+        map.set(programmePhaseIdentityKey(phase), trackingFieldsOf(phase));
+    }
+    return map;
+}
+
+export function phasesWithoutTrackingFields(phases: unknown[]): unknown[] {
+    return phases.map(stripProgrammeTrackingFields);
+}
+
+/** Apply published operational tracking onto draft planning stages, matched by stable identity. */
+export function overlayPublishedTrackingOnDraftPhases(published: unknown[], draft: unknown[]): unknown[] {
+    const tracking = trackingByIdentity(published);
+    return draft.map(phase => {
+        const key = programmePhaseIdentityKey(phase);
+        const patch = tracking.get(key);
+        if (!patch || !Object.keys(patch).length) return phase;
+        if (!phase || typeof phase !== "object" || Array.isArray(phase)) return phase;
+        return { ...phase, ...patch };
+    });
+}
+
+/** Write tracking edits to the published programme without adopting unpublished planning from the UI. */
+export function mergeTrackingOntoPublishedPlanning(published: unknown[], observed: unknown[]): unknown[] {
+    const tracking = trackingByIdentity(observed);
+    return published.map(phase => {
+        const key = programmePhaseIdentityKey(phase);
+        const patch = tracking.get(key);
+        if (!patch) return phase;
+        if (!phase || typeof phase !== "object" || Array.isArray(phase)) return phase;
+        return { ...phase, ...patch };
+    });
+}
+
+export function programmeTrackingFieldsChanged(
+    before: unknown[], after: unknown[], startBefore: string, startAfter: string,
+): boolean {
+    if (startBefore !== startAfter) return false;
+    const left = trackingByIdentity(before);
+    const right = trackingByIdentity(after);
+    const keys = new Set([...left.keys(), ...right.keys()]);
+    for (const key of keys) {
+        if (!plainDeepEqual(left.get(key) ?? {}, right.get(key) ?? {})) return true;
+    }
+    return false;
+}
+
 export function stripProgrammeTrackingFields(phase: unknown): unknown {
     if (!phase || typeof phase !== "object" || Array.isArray(phase)) return phase;
     return Object.fromEntries(Object.entries(phase).filter(([key]) => !TRACKING_FIELDS.has(key)));
@@ -22,7 +92,8 @@ export function programmePlanningChanged(before: unknown[], after: unknown[], st
 
 export function programmeTrackingOnlyChanged(before: unknown[], after: unknown[], startBefore: string, startAfter: string): boolean {
     if (startBefore !== startAfter) return false;
-    return !programmePlanningChanged(before, after, startBefore, startAfter);
+    return programmeTrackingFieldsChanged(before, after, startBefore, startAfter)
+        && !programmePlanningChanged(before, after, startBefore, startAfter);
 }
 
 export type ProgrammePlannerDraftRecord = {

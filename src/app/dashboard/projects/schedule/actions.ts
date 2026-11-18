@@ -22,6 +22,7 @@ import { resolveJobWorkingPattern } from "@/lib/job-working-pattern";
 import { estimateSectionsFromWork, estimateSuggestedPhases, sequenceSuggestedPhases, type PlannerPhase } from "@/lib/planner-phases";
 import { validateProgrammeDependencies } from "@/lib/programme-phase-dependencies";
 import { WORKING_DAYS_PER_WEEK } from "@/lib/programme-plan";
+import { PROGRAMME_PLANNER_DRAFT_UNAVAILABLE, phasesWithoutTrackingFields } from "@/lib/programme-planner-draft";
 
 // This separate argument is deliberately not parsed by UpdatePhasesSchema, which strips unknown keys.
 function parseExpectedWorkingPattern(value: unknown) {
@@ -160,7 +161,7 @@ export async function autosaveProgrammePlannerDraftAction(
     const { user, supabase } = await requireProjectAccess(input.projectId);
     try {
         await writeProgrammePlannerDraft(supabase, user.id, input.projectId, {
-            phases: input.phases,
+            phases: phasesWithoutTrackingFields(input.phases),
             startDate: input.startDate!,
             ...(expectedWorkingPattern !== undefined
                 ? { expectedWorkingPattern: parseExpectedWorkingPattern(expectedWorkingPattern) }
@@ -168,6 +169,23 @@ export async function autosaveProgrammePlannerDraftAction(
         });
     } catch (err) {
         const message = err instanceof Error ? err.message : "Could not save the planner draft.";
+        return { success: false, error: message };
+    }
+    revalidatePath("/dashboard/projects/schedule");
+    return { success: true };
+}
+
+export async function clearProgrammePlannerDraftAction(
+    projectId: string,
+    publishedPhases: unknown[],
+    publishedStartDate: string,
+): Promise<{ success: true } | { success: false; error: string }> {
+    const { user, supabase } = await requireProjectAccess(projectId);
+    try {
+        await clearProgrammePlannerDraft(supabase, user.id, projectId, publishedPhases, publishedStartDate);
+    } catch (err) {
+        const message = err instanceof Error ? err.message : "Could not clear the planner draft.";
+        if (message === PROGRAMME_PLANNER_DRAFT_UNAVAILABLE) return { success: true };
         return { success: false, error: message };
     }
     revalidatePath("/dashboard/projects/schedule");

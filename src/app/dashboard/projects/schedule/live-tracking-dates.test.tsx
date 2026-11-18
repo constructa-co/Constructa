@@ -27,7 +27,8 @@ function nodes(value: unknown): Element[] {
 function setup(phases = example(), start = "2026-10-19", days = 5, workingPattern?: unknown) {
     vi.stubGlobal("window", {}); vi.stubGlobal("localStorage", { getItem: () => String(days) });
     const props = { project: { id: "job", name: "Kitchen", start_date: start, programme_phases: phases,
-        ...(workingPattern === undefined ? {} : { programme_working_pattern: workingPattern }) }, projectId: "job", estimate: null };
+        ...(workingPattern === undefined ? {} : { programme_working_pattern: workingPattern }) },
+        projectId: "job", estimate: null, plannerDraftViewerScope: "viewer-test" };
     const parent = () => { hooks.cursor = 0; return ClientSchedulePage(props); };
     const toggle = nodes(parent()).find(n => n.type === "button" && typeof n.props.children === "string" && n.props.children.includes("Live Tracking"))!;
     (toggle.props.onClick as () => void)();

@@ -2,7 +2,7 @@
 
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
-Current count: 55 merged, 18 in progress, 0 in review, 12 Rob-gated, 0 not started.
+Current count: 56 merged, 17 in progress, 0 in review, 12 Rob-gated, 0 not started.
 
 | --- | --- | --- | --- | --- | --- |
 | CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
@@ -74,7 +74,7 @@ Current count: 55 merged, 18 in progress, 0 in review, 12 Rob-gated, 0 not start
 | CON-067 | P2 | Claude | — | in progress | D51 batch 05 — Phone layout and theme |
 | CON-068 | P2 | Kimi / Codex | [#199](https://github.com/constructa-co/Constructa/pull/199) | in progress | Number validation shipped at 93ba54f. Main CI, secret scan and production passed. Persistent Included flag awaits schema approval. |
 | CON-069 | P2 | Cursor / Codex | [#208](https://github.com/constructa-co/Constructa/pull/208) | merged | Discounts above25% require reason and confirmation, including100%; cancellation/refusal restores acknowledged values. Main CI, secrets and production green at1cade4d. |
-| CON-070 | P2 | Claude | — | in progress | D51 batch 02 — Estimate pricing |
+| CON-070 | P2 | Cursor / Codex | [#209](https://github.com/constructa-co/Constructa/pull/209) | merged | Truthful helper wording and bulk unpriced drafts shipped; queue refusal/duplicate handling preserved. Main CI, secrets and production green at7a84897. |
 | CON-071 | P2 | Claude / Codex | [#200](https://github.com/constructa-co/Constructa/pull/200) | merged | Main CI, secret scan and production passed at 85c0f08. |
 | CON-072 | P2 | Claude / Codex | [#200](https://github.com/constructa-co/Constructa/pull/200) | merged | Main CI, secret scan and production passed at 85c0f08. |
 | CON-073 | P2 | Claude | — | in progress | D51 batch 12 — Dashboard and demo state |

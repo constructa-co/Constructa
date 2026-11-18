@@ -30,9 +30,52 @@ function trackingFieldsOf(phase: unknown): Record<string, unknown> {
 function trackingByIdentity(phases: unknown[]): Map<string, Record<string, unknown>> {
     const map = new Map<string, Record<string, unknown>>();
     for (const phase of phases) {
-        map.set(programmePhaseIdentityKey(phase), trackingFieldsOf(phase));
+        const key = programmePhaseIdentityKey(phase);
+        if (!key) continue;
+        map.set(key, trackingFieldsOf(phase));
     }
     return map;
+}
+
+function trackingRecordHasData(tracking: Record<string, unknown>): boolean {
+    return Object.values(tracking).some(value => value !== undefined && value !== null && value !== "");
+}
+
+export const PROGRAMME_TRACKING_ASSOCIATION_ERROR =
+    "Live tracking could not be matched to a saved programme stage. Each stage needs a unique name, duration and hours while tracking is in use.";
+
+export function programmePhaseIdentityCollisions(phases: unknown[]): boolean {
+    const seen = new Set<string>();
+    for (const phase of phases) {
+        const key = programmePhaseIdentityKey(phase);
+        if (!key) continue;
+        if (seen.has(key)) return true;
+        seen.add(key);
+    }
+    return false;
+}
+
+/** Refuse when tracking cannot be mapped uniquely between published and on-screen stages. */
+export function programmeTrackingAssociationError(published: unknown[], observed: unknown[]): string | null {
+    if (programmePhaseIdentityCollisions(published) || programmePhaseIdentityCollisions(observed)) {
+        return PROGRAMME_TRACKING_ASSOCIATION_ERROR;
+    }
+    const pub = trackingByIdentity(published);
+    const obs = trackingByIdentity(observed);
+    for (const [key, tracking] of pub) {
+        if (trackingRecordHasData(tracking) && !obs.has(key)) {
+            return PROGRAMME_TRACKING_ASSOCIATION_ERROR;
+        }
+    }
+    const keys = new Set([...pub.keys(), ...obs.keys()]);
+    for (const key of keys) {
+        const before = pub.get(key) ?? {};
+        const after = obs.get(key) ?? {};
+        if (!plainDeepEqual(before, after) && !pub.has(key)) {
+            return PROGRAMME_TRACKING_ASSOCIATION_ERROR;
+        }
+    }
+    return null;
 }
 
 export function phasesWithoutTrackingFields(phases: unknown[]): unknown[] {
@@ -64,9 +107,8 @@ export function mergeTrackingOntoPublishedPlanning(published: unknown[], observe
 }
 
 export function programmeTrackingFieldsChanged(
-    before: unknown[], after: unknown[], startBefore: string, startAfter: string,
+    before: unknown[], after: unknown[], _startBefore?: string, _startAfter?: string,
 ): boolean {
-    if (startBefore !== startAfter) return false;
     const left = trackingByIdentity(before);
     const right = trackingByIdentity(after);
     const keys = new Set([...left.keys(), ...right.keys()]);

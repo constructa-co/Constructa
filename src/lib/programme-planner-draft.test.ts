@@ -3,8 +3,10 @@ import {
     mergeTrackingOntoPublishedPlanning,
     overlayPublishedTrackingOnDraftPhases,
     phasesWithoutTrackingFields,
+    PROGRAMME_TRACKING_ASSOCIATION_ERROR,
     programmePlanningChanged,
     programmePhaseIdentityKey,
+    programmeTrackingAssociationError,
     programmeTrackingFieldsChanged,
     programmeTrackingOnlyChanged,
     parseProgrammePlannerDraft,
@@ -74,6 +76,23 @@ describe("programme planner draft helpers", () => {
         const merged = mergeTrackingOntoPublishedPlanning(published, observed) as typeof published;
         expect(merged[0].manualDays).toBe(5);
         expect(merged[0].pct_complete).toBe(40);
+    });
+
+    it("detects tracking deltas when the draft start date differs from published", () => {
+        const published = [phase("Brickwork", 0)];
+        const after = [phase("Brickwork", 40)];
+        expect(programmeTrackingFieldsChanged(published, after, "2026-10-19", "2026-10-26")).toBe(true);
+    });
+
+    it("refuses ambiguous tracking when a published stage is renamed in the draft", () => {
+        const published = [phase("Groundworks", 55)];
+        const renamed = [{ ...phase("Groundworks renamed", 40), calculatedDays: 5, manualDays: 5 }];
+        expect(programmeTrackingAssociationError(published, renamed)).toBe(PROGRAMME_TRACKING_ASSOCIATION_ERROR);
+    });
+
+    it("refuses ambiguous tracking when two stages share the same identity", () => {
+        const duplicate = [phase("Snagging", 10), phase("Snagging", 0)];
+        expect(programmeTrackingAssociationError(duplicate, duplicate)).toBe(PROGRAMME_TRACKING_ASSOCIATION_ERROR);
     });
 
     it("strips operational fields before draft persistence", () => {

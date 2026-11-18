@@ -1,5 +1,14 @@
 # Cursor change log
 
+## 2026-11-18 — CON-044 #206 679bccc B1–B4 tracking association repair (codex/con-044-publication-review)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/programme-planner-draft.ts` | `programmeTrackingFieldsChanged`, new helpers | Drop start-date gate on tracking diff; `programmeTrackingAssociationError` / collision checks | B1/B2/B3: no silent tracking loss; refuse ambiguous identity |
+| `src/lib/programme-planner-draft.test.ts` | new cases | Rename, duplicate identity, changed start | B1–B3 unit regression |
+| `src/app/dashboard/projects/schedule/client-page.tsx` | persist + open + manual save | Association guard before tracking merge/manual publish; overlay notice; always pass `workingPattern` (incl. `undefined`) before `startDate` | B4 signature fix + visible refusal |
+| `src/app/dashboard/projects/schedule/planner-opening.test.tsx` | CON-044 describe | Legacy no-pattern manual save args; changed-start tracking publish; rename refusal | B1–B4 integration regression |
+
 ## 2026-11-18 — CON-044 BLOCK-1 tracking/draft split repair (codex/con-044-publication-review)
 
 | File | Lines (approx.) | Change | Intent |

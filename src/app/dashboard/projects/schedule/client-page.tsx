@@ -16,6 +16,7 @@ import {
     parseProgrammePlannerDraft,
     phasesWithoutTrackingFields,
     programmePlanningChanged,
+    programmeTrackingAssociationError,
     programmeTrackingFieldsChanged,
     PROGRAMME_PLANNER_DRAFT_UNAVAILABLE,
     readLocalPlannerDraft,
@@ -206,10 +207,16 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
     const [persistProgrammeWrite] = useState(() => createLatestWriteQueue(
         (input: ProgrammeWrite) => serializeProgrammeWrite(async () => {
             if (input.kind === "manual") {
+                const associationError = programmeTrackingAssociationError(
+                    proposalPhasesRef.current, input.phases,
+                );
+                if (associationError) {
+                    return { input, result: { success: false, error: associationError } };
+                }
                 await saveProgrammePhasesAction(
                     project.id,
                     input.phases,
-                    ...(input.workingPattern === undefined ? [] : [input.workingPattern]),
+                    input.workingPattern,
                     input.startDate,
                 );
                 clearLocalPlannerDraft(project.id, plannerDraftStorageScope);
@@ -244,6 +251,10 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
             }
 
             if (trackingDelta) {
+                const associationError = programmeTrackingAssociationError(published, input.phases);
+                if (associationError) {
+                    return { input, result: { success: false, error: associationError } };
+                }
                 const phasesForPublished = mergeTrackingOntoPublishedPlanning(
                     published, input.phases,
                 ) as Phase[];
@@ -314,8 +325,13 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
     }, [publishedProgrammeFingerprint, project.programme_phases, project.timeline_phases, project.start_date, programmeStart]);
 
     const rawDraftPhases = storedPlannerDraft ? savedPlannerPhases(storedPlannerDraft.phases) : null;
+    const trackingOverlayError = rawDraftPhases?.length
+        ? programmeTrackingAssociationError(existingPhases, rawDraftPhases)
+        : null;
     const draftPhases = rawDraftPhases?.length
-        ? savedPlannerPhases(overlayPublishedTrackingOnDraftPhases(existingPhases, rawDraftPhases))
+        ? savedPlannerPhases(trackingOverlayError
+            ? rawDraftPhases
+            : overlayPublishedTrackingOnDraftPhases(existingPhases, rawDraftPhases))
         : null;
 
     // The saved programme opens exactly as it was saved. Stages worked out
@@ -844,6 +860,9 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
             </div>
 
             {regenerationNotice && <p role="status" className="text-sm text-amber-400">{regenerationNotice}</p>}
+            {trackingOverlayError && (
+                <p role="status" className="text-sm text-amber-400">{trackingOverlayError}</p>
+            )}
 
             {/* ── Programme settings (start date + working week) ── */}
             <div className="flex items-center gap-4 flex-wrap bg-slate-800/40 border border-slate-700/50 rounded-xl px-4 py-3">

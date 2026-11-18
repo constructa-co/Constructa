@@ -246,6 +246,7 @@ describe("detailed planner initial-open no-write intent", () => {
         expect(lifecycle.proposalWrite).toHaveBeenCalledExactlyOnceWith(
             "opening-check",
             [{ name: "Carpentry", calculatedDays: 5, manualDays: null, manhours: 40, startOffset: 0 }],
+            undefined,
             "2026-10-19",
         );
     });
@@ -268,6 +269,7 @@ describe("detailed planner initial-open no-write intent", () => {
         expect(lifecycle.proposalWrite).toHaveBeenCalledWith(
             "opening-check",
             [{ ...stages[0], name: "Removal" }],
+            undefined,
             "2026-10-19",
         );
     });
@@ -486,7 +488,7 @@ describe("programme Save and autosave operation-scoped status", () => {
         expect(view.saveStatus()).toMatchObject({ "data-programme-save-state": "saved", children: expect.stringMatching(/^Programme saved to proposal at \d{1,2}:\d{2}/) });
         expect(lifecycle.success).toHaveBeenCalledExactlyOnceWith("Programme saved to proposal");
         await vi.advanceTimersByTimeAsync(1000); view.unmount();
-        expect(lifecycle.proposalWrite).toHaveBeenCalledExactlyOnceWith("opening-check", stages, "2026-10-19");
+        expect(lifecycle.proposalWrite).toHaveBeenCalledExactlyOnceWith("opening-check", stages, undefined, "2026-10-19");
         expect(lifecycle.draftWrite).not.toHaveBeenCalled();
     });
 
@@ -674,6 +676,54 @@ describe("programme Save and autosave operation-scoped status", () => {
             expect(lifecycle.draftWrite).toHaveBeenCalledTimes(1);
             expect(lifecycle.draftWrite.mock.calls[0][1][0]).toMatchObject({ name: "Demo", startOffset: 7 });
             expect(lifecycle.draftWrite.mock.calls[0][1][0]).not.toHaveProperty("pct_complete");
+        });
+
+        it("still publishes tracking when only the draft start date differs", async () => {
+            const published = [{ ...stages[0], pct_complete: 0 }];
+            const pending = {
+                phases: [{ ...stages[0], startOffset: 7 }],
+                start_date: "2026-10-26",
+                saved_at: "2026-10-18T08:00:00.000Z",
+            };
+            const view = open(published, null, true, "2026-10-19", undefined, { programme_planner_draft: pending });
+            await settle(view);
+            const range = openLiveTracking(view).find(node => node.type === "input" && node.props.type === "range")!;
+            (range.props.onChange as (event: { target: { value: string } }) => void)({ target: { value: "35" } });
+            view.flush();
+            lifecycle.trackingWrite.mockClear();
+            lifecycle.draftWrite.mockClear();
+            await vi.advanceTimersByTimeAsync(500);
+            await settle(view);
+            expect(lifecycle.trackingWrite).toHaveBeenCalledTimes(1);
+            expect(lifecycle.trackingWrite.mock.calls[0][1][0].pct_complete).toBe(35);
+            expect(lifecycle.draftWrite).toHaveBeenCalledTimes(1);
+            expect(lifecycle.draftWrite.mock.calls[0][2]).toBe("2026-10-26");
+        });
+
+        it("refuses tracking autosave when a published stage was renamed in the draft", async () => {
+            const published = [{ ...stages[0], pct_complete: 60 }];
+            const pending = {
+                phases: [{ ...stages[0], name: "Renamed demo", startOffset: 0 }],
+                start_date: "2026-10-19",
+                saved_at: "2026-10-18T08:00:00.000Z",
+            };
+            const view = open(published, null, true, "2026-10-19", undefined, { programme_planner_draft: pending });
+            await settle(view);
+            expect(view.notices().some(text => String(text).includes("Live tracking could not be matched"))).toBe(true);
+            view.change(nameInput("Renamed demo"), "Renamed demo");
+            const range = openLiveTracking(view).find(node => node.type === "input" && node.props.type === "range")!;
+            (range.props.onChange as (event: { target: { value: string } }) => void)({ target: { value: "35" } });
+            view.flush();
+            lifecycle.trackingWrite.mockClear();
+            lifecycle.draftWrite.mockClear();
+            lifecycle.error.mockClear();
+            await vi.advanceTimersByTimeAsync(500);
+            await settle(view);
+            expect(lifecycle.trackingWrite).not.toHaveBeenCalled();
+            expect(lifecycle.draftWrite).not.toHaveBeenCalled();
+            expect(lifecycle.error).toHaveBeenCalled();
+            expect(view.saveStatus()?.["data-programme-save-state"]).toBe("error");
+            expect(view.names()).toContain("Renamed demo");
         });
     });
 

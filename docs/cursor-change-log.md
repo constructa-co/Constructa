@@ -1,5 +1,15 @@
 # Cursor change log
 
+## 2026-11-18 — CON-070 estimating helper copy and bulk list drafts
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/components/price-work-list.tsx` | summary, help, `onOpenAll` | Rename to “Turn a list into lines”; truthful no-rates copy; **Add every line as an unpriced draft** | CON-070: no implied rate engine |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | brief button/help, helpers note, queue + `submitNewPriceLine` | Start from brief; long-brief pointer; work-list queue in state; chain drafts after Save | Bulk list flow without AI/library rates |
+| `src/lib/simple-estimate.ts` | `WorkListDraftQueue`, `work-list/queue` action | Persist pending list lines across saves | Queue survives save + revision bump |
+| `src/components/brief-price-excerpt.tsx` | help | No suggested rates/quantities | Truthful brief excerpt helper |
+| Tests | `price-work-list`, `work-list-entry`, `brief-pricing-entry` | `onOpenAll` + queue continuation; long-brief copy | Meaningful behaviour contracts only |
+
 ## 2026-11-18 — CON-069 repair (Sonnet 638e31a review)
 
 | File | Lines (approx.) | Change | Intent |

@@ -33,6 +33,7 @@ import {
     priceUnitLabel,
     type AdjustmentKey,
     type EstimatingServer,
+    type EstimatingState,
     type LineOp,
     type PriceLineDraft,
     type PriceSummary,
@@ -298,9 +299,15 @@ export default function EstimateClient({
             store.dispatch({ type: "op/change", key: NEW_LINE_KEY, patch });
             if (patch.mode === "rate") setShowLineDetails(true);
         },
-        onCancel: () => store.dispatch({ type: "op/cancel", key: NEW_LINE_KEY }),
-        onSave: () => void submitPriceLine(store, server, project.id, NEW_LINE_KEY),
-        onSaveNext: () => submitPriceLine(store, server, project.id, NEW_LINE_KEY, { nextLineId: newClientId() }),
+        onCancel: () => {
+            store.dispatch({ type: "work-list/queue", queue: null });
+            store.dispatch({ type: "op/cancel", key: NEW_LINE_KEY });
+        },
+        onSave: () => submitNewPriceLine(),
+        onSaveNext: () => {
+            store.dispatch({ type: "work-list/queue", queue: null });
+            void submitPriceLine(store, server, project.id, NEW_LINE_KEY, { nextLineId: newClientId() });
+        },
     } : null;
     const [briefDraftError, setBriefDraftError] = useState("");
     const [advanced, setAdvanced] = useState<{ status: "idle" | "loading" | "failed" | "ready"; data: AdvancedEstimatingData | null; error: string }>(
@@ -480,12 +487,15 @@ export default function EstimateClient({
     const briefReview = pricingContext.ok ? reviewPricingSuggestion(pricingContext.value, {
         message: "", suggestions: [{ source: "briefWork", start: 0, end: pricingContext.value.work.length }],
     }) : null;
+    const briefWholeTooLong = !!briefReview && !briefReview.ok && briefReview.error.includes("500-character price line");
     const briefDraftBlocked = !pricingContext.ok || !briefReview?.ok || hasOpenWork || state.advancedOpen || pricingContext.value.clientBoQ;
     const briefDraftHelp = !pricingContext.ok ? pricingContext.error
+        : briefWholeTooLong
+            ? "The whole saved brief is too long for one price line. Use Choose part of the saved brief below, or Turn a list into lines. Nothing is truncated."
         : !briefReview?.ok ? briefReview?.error
         : hasOpenWork || state.advancedOpen ? PRICING_REVIEW_OPEN
         : pricingContext.value.clientBoQ ? "Use the existing client BoQ workflow for this estimate."
-        : "Copies only your work wording into an unsaved price-line draft. Review it before entering a price; no quantities or prices are filled.";
+        : "Copies only your work wording into an unsaved price-line draft. Review it before entering a price; no rates or quantities are suggested.";
     const openReviewedBriefDraft = (pending: PendingPricingReview): { ok: true } | { ok: false; error: string } => {
         const freshState = store.getState();
         const freshContext = buildPricingReviewContext(project, currentEstimate(freshState));
@@ -501,20 +511,60 @@ export default function EstimateClient({
         const opened = openReviewedBriefDraft(briefReview.value);
         if (!opened.ok) setBriefDraftError(opened.error);
     };
-    const openWorkListDraft = (source: string, range: WorkDescriptionRange, revision: string): { ok: true } | { ok: false; error: string } => {
+    const workListBlocked = (freshState: EstimatingState) =>
+        hasOpenEstimateWork(freshState) || freshState.advancedOpen || Object.keys(resourceSaveStatesRef.current).length > 0
+        || paymentWorkRef.current || scopeNotesWorkRef.current || experienceWorkRef.current || fullScopeWorkRef.current
+        || openingWorkRef.current || Object.keys(activityWorkRef.current).length > 0;
+
+    const openWorkListDraftAt = (source: string, range: WorkDescriptionRange, revision?: string): { ok: true } | { ok: false; error: string } => {
         const freshState = store.getState();
         const base = buildPricingReviewContext(project, currentEstimate(freshState));
         if (!base.ok) return base;
-        if (base.value.revision !== revision) return { ok: false, error: PRICING_REVIEW_STALE };
+        if (revision !== undefined && base.value.revision !== revision) return { ok: false, error: PRICING_REVIEW_STALE };
         const context = buildPricingReviewContext(project, currentEstimate(freshState), source);
         if (!context.ok) return context;
         const pending = reviewPricingSuggestion(context.value, { message: "", suggestions: [{ source: "contractorMessage", ...range }] });
         if (!pending.ok) return pending;
-        const draft = prepareReviewedPriceDraft(pending.value, 0, context.value, hasOpenEstimateWork(freshState) || freshState.advancedOpen || Object.keys(resourceSaveStatesRef.current).length > 0 || paymentWorkRef.current || scopeNotesWorkRef.current || experienceWorkRef.current || fullScopeWorkRef.current || openingWorkRef.current || Object.keys(activityWorkRef.current).length > 0);
+        const draft = prepareReviewedPriceDraft(pending.value, 0, context.value, workListBlocked(freshState));
         if (!draft.ok) return draft;
         store.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", draft: draft.value, lineId: newClientId() });
         return { ok: true };
     };
+
+    const openWorkListDraft = (source: string, range: WorkDescriptionRange, revision: string): { ok: true } | { ok: false; error: string } => {
+        store.dispatch({ type: "work-list/queue", queue: null });
+        return openWorkListDraftAt(source, range, revision);
+    };
+
+    const openWorkListAllDrafts = (source: string, ranges: WorkDescriptionRange[], revision: string): { ok: true } | { ok: false; error: string } => {
+        if (!ranges.length) return { ok: false, error: "Review the list first." };
+        store.dispatch({
+            type: "work-list/queue",
+            queue: ranges.length > 1 ? { source, ranges: ranges.slice(1) } : null,
+        });
+        return openWorkListDraftAt(source, ranges[0], revision);
+    };
+
+    const submitNewPriceLine = () =>
+        submitPriceLine(store, server, project.id, NEW_LINE_KEY).then(saved => {
+            const freshState = store.getState();
+            const queue = freshState.workListQueue;
+            if (!saved || !queue?.ranges.length) {
+                if (saved) store.dispatch({ type: "work-list/queue", queue: null });
+                return saved;
+            }
+            const [next, ...rest] = queue.ranges;
+            store.dispatch({
+                type: "work-list/queue",
+                queue: rest.length ? { source: queue.source, ranges: rest } : null,
+            });
+            if (workListBlocked(store.getState())) {
+                store.dispatch({ type: "work-list/queue", queue: null });
+                return saved;
+            }
+            openWorkListDraftAt(queue.source, next);
+            return saved;
+        });
     const briefHref = `/dashboard/projects/brief?projectId=${encodeURIComponent(project.id)}`;
     const programmeHref = `/dashboard/projects/schedule?projectId=${encodeURIComponent(project.id)}`;
     const hasLines = lines.length > 0;
@@ -633,7 +683,7 @@ export default function EstimateClient({
                     <div className="mt-3">
                         <button type="button" data-brief-price-draft aria-describedby="brief-price-draft-help"
                             disabled={briefDraftBlocked} onClick={startBriefPriceDraft} className={s.secondaryButton}>
-                            Start a price line from this brief
+                            Start from brief
                         </button>
                         <p id="brief-price-draft-help" className={`mt-2 text-sm ${s.muted}`}>{briefDraftHelp}</p>
                         {briefDraftError && <p role="alert" className={`mt-2 text-sm ${s.errorText}`}>{briefDraftError}</p>}
@@ -655,13 +705,17 @@ export default function EstimateClient({
             {project.proposal_introduction !== undefined && <PricingOpeningEditor key={project.id} projectId={project.id} source={project.proposal_introduction}
                 lockReason={project.payment_lock_reason ?? null} styles={s} onWorkChange={openingWorkChanged} />}
 
+            <p className={`text-sm ${s.muted}`} data-estimating-helpers-note>
+                Estimating helpers copy your wording into unpriced drafts. They do not suggest rates, quantities or cost-library prices — you enter every price yourself.
+            </p>
+
             <PricingAssistantPanel session={pricingAssistant} blocked={hasOpenWork || state.advancedOpen || !!estimate?.is_client_boq || !!project.payment_lock_reason} offReason={pricingAssistantOffReason}
                 blockedNote={project.payment_lock_reason ? `${project.payment_lock_reason} The pricing assistant is not available for this job.` : undefined} />
 
             {pricingContext.ok && <PriceWorkList data-price-work-list context={pricingContext.value} styles={s}
                 blocked={hasOpenEstimateWork(state) || state.advancedOpen || Object.keys(resourceSaveStates).length > 0 || paymentWork || scopeNotesWork || experienceWork || fullScopeWork || openingWork || activityBusy || pricingContext.value.clientBoQ}
                 blockedHelp={pricingContext.value.clientBoQ ? "Use the existing client BoQ workflow for this estimate." : PRICING_REVIEW_OPEN}
-                onWorkChange={workListChanged} onOpen={openWorkListDraft} />}
+                onWorkChange={workListChanged} onOpen={openWorkListDraft} onOpenAll={openWorkListAllDrafts} />}
 
             {/* Current version stays visible without competing with price entry. */}
             {estimate && (state.estimates.length > 1 || !estimate.is_active) && (

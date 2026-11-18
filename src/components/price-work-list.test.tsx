@@ -31,7 +31,7 @@ function view(blocked = false) {
     const context = buildPricingReviewContext({ id: "job", brief_scope: "Saved work" }, null);
     if (!context.ok) throw Error(context.error);
     return PriceWorkList({ context: { ...context.value, existingWork: [{ description: "Paint walls", section: "General" }] }, blocked,
-        blockedHelp: "Finish or cancel the open work.", styles: workspaceStyles(false), onOpen: replay.open, onWorkChange: replay.work });
+        blockedHelp: "Finish or cancel the open work.", styles: workspaceStyles(false), onOpen: replay.open, onOpenAll: replay.open, onWorkChange: replay.work });
 }
 function click(name: string, blocked = false) {
     const button = nodes(view(blocked)).find(n => n.type === "button" && n.props.children === name)!;

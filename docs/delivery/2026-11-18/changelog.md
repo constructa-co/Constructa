@@ -1,3 +1,14 @@
+## CON-070 — Estimating helper truthfulness + bulk list drafts — 18 November 2026
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `price-work-list.tsx` | “Turn a list into lines”; `Add every line as an unpriced draft` | No suggested rates; bulk draft queue after each Save |
+| `estimate-client.tsx` | Helpers note; Start from brief + long-brief guidance | Disabled whole-brief when >500 chars points to excerpt/list |
+| `simple-estimate.ts` | `workListQueue` state | Queue survives estimate revision after save |
+| Tests | work-list + brief pricing | Queue continuation; helper copy |
+
+Checks: `npx tsc --noEmit` pass; vitest on `price-work-list`, `work-list-entry`, `brief-pricing-entry` — 50 tests pass.
+
 ## CON-069 repair — 18 November 2026 (post 638e31a review)
 
 Acknowledged-discount baseline, missing-reason rollback, 100% warning, server `>25%` reason guard, interaction regression tests.

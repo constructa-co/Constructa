@@ -92,6 +92,21 @@ describe("reviewed work list in the real estimating parent", () => {
         expect(current.state!.ops[NEW_LINE_KEY].draft.description).toBe("");
         expect(open().ok).toBe(false); expect(current.server).toHaveBeenCalledOnce();
     });
+    it("opens the next reviewed description after Save when Add every line was used", async () => {
+        work(true);
+        const list = chooser();
+        const context = list.props.context as { revision: string };
+        (list.props.onOpenAll as (source: string, ranges: { start: number; end: number }[], revision: string) => { ok: boolean })(
+            "Fit doors\nPaint walls", [{ start: 0, end: 9 }, { start: 10, end: 21 }], context.revision);
+        expect(current.state!.ops[NEW_LINE_KEY].draft.description).toBe("Fit doors");
+        expect(current.state!.workListQueue?.ranges).toHaveLength(1);
+        (row().props.onChange as (patch: unknown) => void)({ amount: "100" });
+        current.server.mockImplementationOnce(async request => ({ ok: true, estimateId: "estimate", line: { id: request.lineId, estimate_id: "estimate", ...request.line, line_total: 100 } }));
+        await (row().props.onSave as () => Promise<boolean>)();
+        expect(current.server).toHaveBeenCalledOnce();
+        expect(current.state!.ops[NEW_LINE_KEY].draft.description).toBe("Paint walls");
+        expect(current.state!.workListQueue).toBeNull();
+    });
     it.each(["open-line", "adjustments", "advanced", "client-boq"])("rechecks %s even using an old list handler", boundary => {
         const old = chooser();
         if (boundary === "open-line") current.state = estimatingReducer(current.state!, { type: "op/open", key: "line", kind: "edit", lineId: "line", draft: EMPTY_PRICE_LINE_DRAFT });

@@ -37,17 +37,18 @@ interface Props {
     styles: WorkspaceStyles;
     onWorkChange: (open: boolean) => void;
     onOpen: (source: string, range: WorkDescriptionRange, revision: string) => { ok: true } | { ok: false; error: string };
+    onOpenAll: (source: string, items: WorkDescriptionRange[], revision: string) => { ok: true } | { ok: false; error: string };
 }
 
-export default function PriceWorkList({ context, blocked, blockedHelp, styles, onWorkChange, onOpen }: Props) {
+export default function PriceWorkList({ context, blocked, blockedHelp, styles, onWorkChange, onOpen, onOpenAll }: Props) {
     const [source, setSource] = useState("");
     const sourceRef = useRef("");
     const [review, setReview] = useState<{ source: string; items: WorkDescriptionRange[] } | null>(null);
     const [message, setMessage] = useState("");
     return (
         <details className="mt-4 min-w-0" data-price-work-list>
-            <summary className={`cursor-pointer py-2 text-base font-semibold ${styles.body}`}>Price a list of work descriptions</summary>
-            <p id="price-work-list-help" className={`mt-2 text-sm ${styles.muted}`}>Type or paste one complete description per line, including its limits and exclusions. Review the list, then open one unpriced draft at a time. This does not interpret scope, create sections or import quantities or prices.</p>
+            <summary className={`cursor-pointer py-2 text-base font-semibold ${styles.body}`}>Turn a list into lines</summary>
+            <p id="price-work-list-help" className={`mt-2 text-sm ${styles.muted}`}>Type or paste one complete description per line, including its limits and exclusions. Review the list, then open unpriced drafts — one line at a time, or all lines in order after each Save. No rates, quantities or cost-library prices are suggested; you enter every price yourself.</p>
             <label htmlFor="price-work-list-source" className={`mt-3 block text-sm font-semibold ${styles.body}`}>Work descriptions</label>
             <textarea id="price-work-list-source" rows={5} value={source} aria-describedby="price-work-list-help"
                 className={`${styles.input} mt-2 w-full min-w-0 resize-y text-base`} onChange={event => {
@@ -67,6 +68,16 @@ export default function PriceWorkList({ context, blocked, blockedHelp, styles, o
                 }}>Clear list</button>
             </div>
             <p className={`mt-2 text-sm ${styles.muted}`}>This list is not saved. Closing this panel keeps it here; leaving the job discards it. Use the price line&apos;s Save to return and choose another description. Cancel keeps the list and does not save that draft.</p>
+            {review && review.items.length > 1 && (
+                <button type="button" className={`${styles.secondaryButton} mt-3`} disabled={blocked} onClick={() => {
+                    if (sourceRef.current !== review.source) { setMessage("The list changed. Review the current descriptions first."); return; }
+                    if (blocked) { setMessage(blockedHelp); return; }
+                    const result = onOpenAll(review.source, review.items, context.revision);
+                    if (result.ok) {
+                        setMessage("First draft opened, not saved. After each Save, the next description opens automatically until the list is finished. Cancel stops the queue.");
+                    } else setMessage(result.error);
+                }}>Add every line as an unpriced draft</button>
+            )}
             {review && <ol className="mt-3 space-y-3" aria-label="Reviewed work descriptions">
                 {review.items.map((range, index) => {
                     const description = review.source.slice(range.start, range.end).replace(/\s+/g, " ").trim();

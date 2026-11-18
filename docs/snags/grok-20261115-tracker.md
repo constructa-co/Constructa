@@ -2,7 +2,7 @@
 
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
-Current count: 56 merged, 17 in progress, 0 in review, 12 Rob-gated, 0 not started.
+Current count: 57 merged, 16 in progress, 0 in review, 12 Rob-gated, 0 not started.
 
 | --- | --- | --- | --- | --- | --- |
 | CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
@@ -27,7 +27,7 @@ Current count: 56 merged, 17 in progress, 0 in review, 12 Rob-gated, 0 not start
 | CON-020 | P1 | Claude | [#193](https://github.com/constructa-co/Constructa/pull/193) | merged | D51 batch 03 — Proposal PDF pricing |
 | CON-021 | P1 | Claude | [#193](https://github.com/constructa-co/Constructa/pull/193) | merged | D51 batch 03 — Proposal PDF pricing |
 | CON-022 | P1 | Cursor / Claude | [#181](https://github.com/constructa-co/Constructa/pull/181) | merged | Kimi PASS and GitHub CI green. |
-| CON-023 | P1 | Claude | [#207](https://github.com/constructa-co/Constructa/pull/207) | in progress | Job-name limit feedback and sign-in field accessibility shipped at e6de701; main CI, secrets and production green. Broader original profile/save/sign-in scope remains open; no isolation or latency completion claimed. |
+| CON-023 | P1 | Codex | — | in progress | Original save-latency snag remains open: no measured bottleneck repaired. #207 job-name/sign-in UI is unrelated to latency. Region/settings changes remain gated; collect scoped timing evidence before repair. |
 | CON-024 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | merged | Independent PASS and GitHub browser green. |
 | CON-025 | P1 | Cursor | [#185](https://github.com/constructa-co/Constructa/pull/185) | in progress | — |
 | CON-026 | P1 | Cursor | [#185](https://github.com/constructa-co/Constructa/pull/185) | in progress | — |
@@ -80,7 +80,7 @@ Current count: 56 merged, 17 in progress, 0 in review, 12 Rob-gated, 0 not start
 | CON-073 | P2 | Claude | — | in progress | D51 batch 12 — Dashboard and demo state |
 | CON-074 | P2 | Claude | — | in progress | D51 batch 05 — Phone layout and theme |
 | CON-075 | P2 | Claude | — | in progress | D51 batch 12 — Dashboard and demo state |
-| CON-076 | P2 | Claude | [#207](https://github.com/constructa-co/Constructa/pull/207) | in progress | Job-name limit feedback and sign-in field accessibility shipped at e6de701; main CI, secrets and production green. Broader original profile/save/sign-in scope remains open; no isolation or latency completion claimed. |
+| CON-076 | P2 | Cursor / Codex | [#207](https://github.com/constructa-co/Constructa/pull/207) | merged | Original job-name truncation snag addressed by live countdown/limit feedback; main CI, secrets and production green ate6de701. |
 | CON-077 | P2 | Claude | [#193](https://github.com/constructa-co/Constructa/pull/193) | merged | D51 batch 03 — Proposal PDF pricing |
 | CON-078 | P2 | Claude | — | in progress | D51 batch 12 — Dashboard and demo state |
 | CON-079 | P2 | Kimi | [#190](https://github.com/constructa-co/Constructa/pull/190) | merged | D51 batch 10 — Marketing navigation and copy |

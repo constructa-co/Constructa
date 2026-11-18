@@ -20,14 +20,19 @@ export async function appendPipelineStageHistory(
         toStatus: string;
     },
 ): Promise<PipelineStageHistoryAppend> {
-    const { error } = await supabase.from(PIPELINE_STAGE_HISTORY_TABLE).insert({
-        project_id: entry.projectId,
-        user_id: entry.userId,
-        from_status: entry.fromStatus,
-        to_status: entry.toStatus,
-    });
+    let error: { code?: string; message?: string } | null;
+    try {
+        ({ error } = await supabase.from(PIPELINE_STAGE_HISTORY_TABLE).insert({
+            project_id: entry.projectId,
+            user_id: entry.userId,
+            from_status: entry.fromStatus,
+            to_status: entry.toStatus,
+        }));
+    } catch {
+        return { recorded: false, schemaGate: false };
+    }
     if (!error) return { recorded: true };
-    const code = (error as { code?: string }).code;
+    const code = error.code;
     const message = error.message ?? "";
     if (code === "42P01" || /does not exist|schema cache/i.test(message)) {
         return { recorded: false, schemaGate: true };

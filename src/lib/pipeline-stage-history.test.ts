@@ -18,6 +18,23 @@ describe("appendPipelineStageHistory", () => {
         expect(from).toHaveBeenCalledWith(PIPELINE_STAGE_HISTORY_TABLE);
     });
 
+    it("returns recorded:false without throwing when insert throws", async () => {
+        const from = vi.fn(() => ({
+            insert: vi.fn(async () => {
+                throw new Error("throwOnError");
+            }),
+        }));
+        const supabase = { from } as never;
+        await expect(
+            appendPipelineStageHistory(supabase, {
+                projectId: "job",
+                userId: "user",
+                fromStatus: "Lead",
+                toStatus: "Estimating",
+            }),
+        ).resolves.toEqual({ recorded: false, schemaGate: false });
+    });
+
     it("schema-gates when the history relation is absent", async () => {
         const from = vi.fn(() => ({
             insert: vi.fn(async () => ({ error: { code: "42P01", message: "relation does not exist" } })),

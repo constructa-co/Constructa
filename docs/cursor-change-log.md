@@ -1,5 +1,14 @@
 # Cursor change log
 
+## 2026-11-19 — CON-073 history append best-effort + prior-status CAS
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/pipeline-stage-history.ts` | `appendPipelineStageHistory` insert | `try/catch` around insert; thrown client → `{ recorded: false, schemaGate: false }` | Honour "never throws"; no false failure from history |
+| `src/lib/pipeline-stage-history.test.ts` | new case | insert-throw regression | Helper contract |
+| `src/app/dashboard/board-actions.ts` | `confirmedStageWrite` | `.eq("status", fromStatus)` on update; history append outside auth/update `try`, own swallow `catch` | CAS avoids wrong `from` on concurrent change; confirmed write stays `success:true` if append throws |
+| `src/app/dashboard/board-actions.test.ts` | filters + new case | expect status CAS filter; append-throw → `success:true` | Sonnet BLOCK repair |
+
 ## 2026-11-18 — CON-073 board stage move confirmation (S45)
 
 | File | Lines (approx.) | Change | Intent |

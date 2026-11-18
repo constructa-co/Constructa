@@ -100,7 +100,7 @@ describe("pipeline server mutation acknowledgement", () => {
     it("preserves the exact owner filter, stage payload and dashboard revalidation on a confirmed ordinary write", async () => {
         const db = setup(); expect(await updateStatusAction(project, "Lost")).toEqual({ success: true });
         expect(db.payload()).toEqual({ status: "Lost" });
-        expect(db.filters).toEqual([["id", project], ["user_id", user]]);
+        expect(db.filters).toEqual([["id", project], ["user_id", user], ["status", "Lead"]]);
         expect(db.builder.select).toHaveBeenCalledOnce(); expect(db.builder.single).toHaveBeenCalledOnce();
         expect(mocks.revalidate.mock.calls).toEqual([["/dashboard"]]);
         expect(mocks.appendHistory).toHaveBeenCalledWith(expect.anything(), {
@@ -109,6 +109,13 @@ describe("pipeline server mutation acknowledgement", () => {
             fromStatus: "Lead",
             toStatus: "Lost",
         });
+    });
+    it("still confirms the stage write when history append throws", async () => {
+        setup();
+        mocks.appendHistory.mockRejectedValue(new Error("history insert threw"));
+        const result = await updateStatusAction(project, "Estimating");
+        expect(result).toEqual({ success: true });
+        expect(mocks.revalidate).toHaveBeenCalledWith("/dashboard");
     });
     it("does not write when the prior stage cannot be read", async () => {
         setup("missing-prior");
@@ -122,7 +129,7 @@ describe("pipeline server mutation acknowledgement", () => {
         expect(result).toEqual({ success: true });
         expect(db.payload()).toEqual({ status: "Active", proposal_status: "accepted", proposal_accepted_at: expect.any(String) });
         expect(Number.isFinite(Date.parse(String(db.payload().proposal_accepted_at)))).toBe(true);
-        expect(db.filters).toEqual([["id", project], ["user_id", user]]);
+        expect(db.filters).toEqual([["id", project], ["user_id", user], ["status", "Lead"]]);
         expect(mocks.revalidate.mock.calls).toEqual([["/dashboard"], ["/dashboard/live"], ["/dashboard/projects/p-and-l"]]);
     });
     it("does not label a committed write unsaved when cache revalidation throws", async () => {

@@ -11,23 +11,29 @@ async function confirmedStageWrite(
     update: { status: string; proposal_status?: string; proposal_accepted_at?: string },
     paths: string[],
 ): Promise<PipelineMutationResult> {
+    let supabase: Awaited<ReturnType<typeof requireAuth>>["supabase"];
+    let userId: string;
+    let fromStatus: string;
     try {
-        const { user, supabase } = await requireAuth();
+        const auth = await requireAuth();
+        supabase = auth.supabase;
+        userId = auth.user.id;
         const { data: prior, error: priorError } = await supabase
             .from("projects")
             .select("status")
             .eq("id", projectId)
-            .eq("user_id", user.id)
+            .eq("user_id", userId)
             .single();
         if (priorError || !prior?.status) {
             return { success: false, error: PIPELINE_CHANGE_UNCONFIRMED };
         }
-        const fromStatus = prior.status as string;
+        fromStatus = prior.status as string;
         const { data, error } = await supabase
             .from("projects")
             .update(update)
             .eq("id", projectId)
-            .eq("user_id", user.id)
+            .eq("user_id", userId)
+            .eq("status", fromStatus)
             .select("id, status, proposal_status, proposal_accepted_at")
             .single();
         if (error || !data || data.id !== projectId || data.status !== update.status ||
@@ -35,14 +41,18 @@ async function confirmedStageWrite(
             (update.proposal_accepted_at !== undefined && Date.parse(data.proposal_accepted_at ?? "") !== Date.parse(update.proposal_accepted_at))) {
             return { success: false, error: PIPELINE_CHANGE_UNCONFIRMED };
         }
+    } catch {
+        return { success: false, error: PIPELINE_CHANGE_UNCONFIRMED };
+    }
+    try {
         await appendPipelineStageHistory(supabase, {
             projectId,
-            userId: user.id,
+            userId,
             fromStatus,
             toStatus: update.status,
         });
     } catch {
-        return { success: false, error: PIPELINE_CHANGE_UNCONFIRMED };
+        // History is best-effort; a confirmed stage write must not be reported as failed.
     }
     // A cache failure after the returned-row acknowledgement must not turn
     // an already confirmed database write into an "unsaved" response.

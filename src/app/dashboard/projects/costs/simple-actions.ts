@@ -30,6 +30,10 @@ import { recalcEstimateTotal } from "./estimate-total";
 import { toEstimate, toEstimateLine } from "./estimate-mapping";
 import { mapLegacyCostLibraryRow, mapMomRowsToCostLibrary } from "@/lib/cost-library-catalog";
 import type { CostLibraryItem, LabourRate, RateBuildup } from "./types";
+import {
+    HIGH_DISCOUNT_REASON_REQUIRED,
+    highDiscountRequiresReason,
+} from "@/lib/discount-confirm";
 
 // Simple estimating actions. Like the other estimating actions these never
 // call revalidatePath: the screen updates from the confirmed result.
@@ -357,6 +361,9 @@ export async function savePriceAdjustmentsAction(estimateId: string, input: Adju
     const id = z.string().uuid().safeParse(estimateId);
     const parsed = AdjustmentsSchema.safeParse(input);
     if (!id.success || !parsed.success) return { ok: false, error: "Enter each percentage as a number between 0 and 100." };
+    if (highDiscountRequiresReason(parsed.data.discount_pct, parsed.data.discount_reason)) {
+        return { ok: false, error: HIGH_DISCOUNT_REASON_REQUIRED };
+    }
 
     try {
         const { supabase } = await editableEstimate(estimateId);

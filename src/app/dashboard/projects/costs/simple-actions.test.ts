@@ -554,6 +554,16 @@ describe("edit, delete and adjustments", () => {
         expect(db.tables.estimates[0].overhead_pct).toBe(12);
     });
 
+    it("refuses a high discount with a blank reason before touching the database", async () => {
+        const db = seeded();
+        useDb(db);
+        const result = await savePriceAdjustmentsAction(NEW_ESTIMATE_ID, {
+            prelims_pct: 0, overhead_pct: 0, risk_pct: 0, profit_pct: 0, discount_pct: 40, discount_reason: "",
+        });
+        expect(result).toEqual({ ok: false, error: expect.stringMatching(/over 25%/) });
+        expect(db.log).toEqual([]);
+    });
+
     it("rejects out-of-range adjustments before touching the database", async () => {
         const db = seeded();
         useDb(db);

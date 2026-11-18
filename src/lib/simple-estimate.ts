@@ -12,6 +12,7 @@
  */
 
 import type { Estimate, EstimateLine } from "@/app/dashboard/projects/costs/types";
+import { evaluateDiscountSubmitGate } from "@/lib/discount-confirm";
 import { computeContractSum, isPricedPreliminariesLine, roundMoney, toNumber } from "./financial";
 import type { LaunchProfile } from "./launch-profile";
 import { getLaunchProfile, isCapabilityEnabled } from "./launch-profile";
@@ -309,9 +310,17 @@ export function adjustmentsDraftFromEstimate(estimate: Estimate): AdjustmentsDra
     };
 }
 
+export type AdjustmentFieldErrors = Partial<Record<AdjustmentKey | "discountReason", string>>;
+
 export type BuildAdjustmentsResult =
     | { ok: true; input: AdjustmentsInput }
-    | { ok: false; fieldErrors: Partial<Record<AdjustmentKey, string>> };
+    | { ok: false; fieldErrors: AdjustmentFieldErrors };
+
+export type SubmitAdjustmentsOptions = { highDiscountConfirmed?: boolean };
+
+export type SubmitAdjustmentsResult =
+    | { ok: true }
+    | { ok: false; fieldErrors?: AdjustmentFieldErrors; needsHighDiscountConfirm?: boolean; discountPct?: number; showHighDiscountWarning?: boolean };
 
 export function buildAdjustments(draft: AdjustmentsDraft): BuildAdjustmentsResult {
     const fieldErrors: Partial<Record<AdjustmentKey, string>> = {};
@@ -386,7 +395,7 @@ export interface EstimatingState {
         status: "idle" | "saving" | "failed";
         draft: AdjustmentsDraft | null;
         error: string | null;
-        fieldErrors: Partial<Record<AdjustmentKey, string>>;
+        fieldErrors: AdjustmentFieldErrors;
     };
     advancedOpen: boolean;
     /** Shown after the last save, e.g. a stored-total refresh warning. */
@@ -560,7 +569,7 @@ export type EstimatingAction =
     | { type: "adjustments/toggle" }
     | { type: "adjustments/change"; patch: Partial<AdjustmentsDraft> }
     | { type: "adjustments/saving" }
-    | { type: "adjustments/failed"; error: string | null; fieldErrors?: Partial<Record<AdjustmentKey, string>> }
+    | { type: "adjustments/failed"; error: string | null; fieldErrors?: AdjustmentFieldErrors }
     | { type: "adjustments/saved"; estimateId: string; input: AdjustmentsInput }
     | { type: "advanced/toggle" }
     | { type: "notice/clear" };
@@ -871,15 +880,34 @@ export async function removePriceLine(
 export async function submitAdjustments(
     store: EstimatingStore,
     server: Pick<EstimatingServer, "saveAdjustments">,
-): Promise<boolean> {
+    options?: SubmitAdjustmentsOptions,
+): Promise<SubmitAdjustmentsResult> {
     const state = store.getState();
     const estimate = currentEstimate(state);
-    if (!estimate || !state.adjustments.draft || state.adjustments.status === "saving") return false;
+    if (!estimate || !state.adjustments.draft || state.adjustments.status === "saving") return { ok: false };
 
     const built = buildAdjustments(state.adjustments.draft);
     if (!built.ok) {
         store.dispatch({ type: "adjustments/failed", error: null, fieldErrors: built.fieldErrors });
-        return false;
+        return { ok: false, fieldErrors: built.fieldErrors };
+    }
+
+    const gate = evaluateDiscountSubmitGate(
+        built.input.discount_pct,
+        built.input.discount_reason,
+        options?.highDiscountConfirmed === true,
+    );
+    if (!gate.ok) {
+        if (gate.needsConfirm) {
+            return {
+                ok: false,
+                needsHighDiscountConfirm: true,
+                discountPct: gate.discountPct,
+                showHighDiscountWarning: gate.showWarning,
+            };
+        }
+        store.dispatch({ type: "adjustments/failed", error: null, fieldErrors: gate.fieldErrors });
+        return { ok: false, fieldErrors: gate.fieldErrors };
     }
 
     store.dispatch({ type: "adjustments/saving" });
@@ -887,12 +915,12 @@ export async function submitAdjustments(
         const result = await server.saveAdjustments(estimate.id, built.input);
         if (!result.ok) {
             store.dispatch({ type: "adjustments/failed", error: result.error || ADJUSTMENTS_SAVE_ERROR });
-            return false;
+            return { ok: false };
         }
         store.dispatch({ type: "adjustments/saved", estimateId: estimate.id, input: built.input });
-        return true;
+        return { ok: true };
     } catch {
         store.dispatch({ type: "adjustments/failed", error: ADJUSTMENTS_SAVE_ERROR });
-        return false;
+        return { ok: false };
     }
 }

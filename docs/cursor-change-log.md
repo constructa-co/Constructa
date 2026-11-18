@@ -1,5 +1,30 @@
 # Cursor change log
 
+## 2026-11-18 — CON-069 repair (Sonnet 638e31a review)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/discount-confirm.ts` | 19–24 | 100% shows large-discount warning; `highDiscountRequiresReason` helper | Match spec; shared server guard |
+| `src/app/dashboard/projects/costs/advanced-estimate.tsx` | 287–548 | `acknowledgedDiscountRef`; rollback on missing reason; persist catch/reject cleanup | Baseline tracks last saved pair only |
+| `src/app/dashboard/projects/costs/simple-actions.ts` | 356+ | Reject `>25%` with blank reason | Server boundary |
+| `src/app/dashboard/projects/costs/actions.ts` | `saveDiscountAction` | Reject `>25%` with blank reason | Server boundary |
+| Tests | discount-confirm, simple-estimate, advanced-discount-confirm, simple-actions | 100% warning; tab/cancel regression; server refusal | CON-069 repair evidence |
+
+## 2026-11-18 — CON-069 high-discount confirmation (simple + advanced)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/discount-confirm.ts` | 1–55 | Shared 25% boundary, reason + confirm gate; 100% skips large-discount warning | CON-069 business rules without touching `financial.ts` |
+| `src/lib/simple-estimate.ts` | 312–322, 878–915 | `submitAdjustments` accepts `highDiscountConfirmed`; extended adjustment field errors | Gate high discounts before server write |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | 155–178, 808–823, 1538–1565 | Confirm dialog + cancel reverts draft discount/reason to saved estimate | Simple pricing path |
+| `src/app/dashboard/projects/costs/discount-confirm-dialog.tsx` | 1–58 | Reusable confirm dialog | Shared UI for simple + advanced |
+| `src/app/dashboard/projects/costs/advanced-estimate.tsx` | 98–100, 287–295, 388–548, 1700–1810 | Baseline rollback, 0–100 blur validation, confirm-before-save above 25% | Advanced path; no blur autosubmit for high discounts |
+| `src/app/dashboard/projects/costs/actions.ts` | 18–26, 99–102, 533–540 | Server-side 0–100 percentage validation on margins/discount | Align with D51 without broader prelim work |
+| `src/lib/discount-confirm.test.ts` | new | Boundary, 100% warning, gate cases | CON-069 unit regression |
+| `src/lib/simple-estimate.test.ts` | 548–620 | Adjustments submit result + high-discount cases | Simple flow regression |
+| `src/app/dashboard/projects/costs/estimate-discount-confirm.test.ts` | new | Cancel/draft revert without save | Cancel preserves acknowledged amounts |
+| `src/app/dashboard/projects/costs/advanced-discount-confirm.test.tsx` | new | 25% blur save; >25% no autosave | Advanced smoke |
+
 ## 2026-11-18 — CON-044 #206 f2d35dc published start ref + association autosave receipt
 
 | File | Lines (approx.) | Change | Intent |

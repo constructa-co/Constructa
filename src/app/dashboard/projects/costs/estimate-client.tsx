@@ -48,6 +48,8 @@ import {
 import type { Estimate, EstimateLine } from "./types";
 import ui from "@/components/estimating.module.css";
 import PricingFocus from "@/components/pricing-focus";
+import { discountNeedsConfirmation } from "@/lib/discount-confirm";
+import { HighDiscountConfirmDialog } from "./discount-confirm-dialog";
 import AreaQuantityAid from "@/components/area-quantity-aid";
 import { areaQuantity } from "@/lib/area-quantity";
 import { nextEditableSavedLine, savePriceAndChangeNext } from "@/lib/save-price-change-next";
@@ -151,6 +153,32 @@ export default function EstimateClient({
     const lines = useMemo(() => estimate?.estimate_lines ?? [], [estimate]);
     const summary = useMemo(() => summarisePrice(estimate, lines), [estimate, lines]);
     const [advancedRunningDraft, setAdvancedRunningDraft] = useState<AdvancedRunningTotalDraft | null>(null);
+    const [highDiscountConfirm, setHighDiscountConfirm] = useState<{
+        discountPct: number;
+        showWarning: boolean;
+    } | null>(null);
+    const saveAdjustmentsWithGate = async (confirmed = false) => {
+        const result = await submitAdjustments(store, server, { highDiscountConfirmed: confirmed });
+        if (!result.ok && result.needsHighDiscountConfirm) {
+            setHighDiscountConfirm({
+                discountPct: result.discountPct ?? 0,
+                showWarning: result.showHighDiscountWarning ?? false,
+            });
+            return;
+        }
+        setHighDiscountConfirm(null);
+    };
+    const cancelHighDiscountConfirm = () => {
+        const savedEstimate = currentEstimate(store.getState());
+        if (savedEstimate) {
+            const saved = adjustmentsDraftFromEstimate(savedEstimate);
+            store.dispatch({
+                type: "adjustments/change",
+                patch: { discount: saved.discount, discountReason: saved.discountReason },
+            });
+        }
+        setHighDiscountConfirm(null);
+    };
     const newOp = state.ops[NEW_LINE_KEY];
     const [priceFind, setPriceFind] = useState<PriceFindState>(EMPTY_PRICE_FIND);
     const priceFindRef = useRef(EMPTY_PRICE_FIND);
@@ -805,8 +833,19 @@ export default function EstimateClient({
                 s={s}
                 onToggle={() => store.dispatch({ type: "adjustments/toggle" })}
                 onChange={(patch) => store.dispatch({ type: "adjustments/change", patch })}
-                onSave={() => void submitAdjustments(store, server)}
+                onSave={() => void saveAdjustmentsWithGate()}
             />
+
+            {highDiscountConfirm && (
+                <HighDiscountConfirmDialog
+                    open
+                    discountPct={highDiscountConfirm.discountPct}
+                    showWarning={highDiscountConfirm.showWarning}
+                    s={s}
+                    onConfirm={() => void saveAdjustmentsWithGate(true)}
+                    onCancel={cancelHighDiscountConfirm}
+                />
+            )}
 
             {project.payment_schedule !== undefined && <PricingPaymentStages projectId={project.id} schedule={project.payment_schedule}
                 lockReason={project.payment_lock_reason ?? null} styles={s} onWorkChange={paymentWorkChanged} />}
@@ -1422,7 +1461,7 @@ function TotalCard({
         status: "idle" | "saving" | "failed";
         draft: ReturnType<typeof adjustmentsDraftFromEstimate> | null;
         error: string | null;
-        fieldErrors: Partial<Record<AdjustmentKey, string>>;
+        fieldErrors: Partial<Record<AdjustmentKey | "discountReason", string>>;
     };
     s: WorkspaceStyles;
     onToggle: () => void;
@@ -1432,6 +1471,8 @@ function TotalCard({
     const draft = state.draft ?? (estimate ? adjustmentsDraftFromEstimate(estimate) : null);
     const saving = state.status === "saving";
     const built = state.draft ? buildAdjustments(state.draft) : null;
+    const discountPct = built?.ok ? built.input.discount_pct : 0;
+    const reasonRequired = discountNeedsConfirmation(discountPct);
     const preview = estimate && built?.ok ? summarisePrice({ ...estimate, ...built.input }, lines) : null;
     const row = "flex items-baseline justify-between gap-3";
 
@@ -1536,9 +1577,15 @@ function TotalCard({
                                 ))}
                                 <div>
                                     <label htmlFor="adjust-discount-reason" className={s.label}>Reason for the discount</label>
-                                    <p className={`mt-0.5 text-sm ${s.muted}`}>Optional. Shown to the client with the discount.</p>
+                                    <p id="adjust-discount-reason-help" className={`mt-0.5 text-sm ${s.muted}`}>
+                                        {reasonRequired
+                                            ? "Required for discounts over 25%. Shown to the client with the discount."
+                                            : "Optional. Shown to the client with the discount."}
+                                    </p>
                                     <input
                                         id="adjust-discount-reason"
+                                        aria-describedby="adjust-discount-reason-help"
+                                        aria-invalid={state.fieldErrors.discountReason ? true : undefined}
                                         autoComplete="off"
                                         disabled={saving}
                                         maxLength={500}
@@ -1547,6 +1594,9 @@ function TotalCard({
                                         placeholder="e.g. Returning client"
                                         className={`${s.input} mt-1.5`}
                                     />
+                                    {state.fieldErrors.discountReason && (
+                                        <p className={`mt-1.5 text-sm ${s.errorText}`}>{state.fieldErrors.discountReason}</p>
+                                    )}
                                 </div>
 
                                 {state.draft && preview && (

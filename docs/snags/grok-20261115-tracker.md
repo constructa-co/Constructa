@@ -2,7 +2,7 @@
 
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
-Current count: 57 merged, 16 in progress, 0 in review, 12 Rob-gated, 0 not started.
+Current count: 58 merged, 15 in progress, 0 in review, 12 Rob-gated, 0 not started.
 
 | --- | --- | --- | --- | --- | --- |
 | CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
@@ -62,7 +62,7 @@ Current count: 57 merged, 16 in progress, 0 in review, 12 Rob-gated, 0 not start
 | CON-055 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | merged | Independent PASS and GitHub CI green. |
 | CON-056 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | merged | Independent PASS and GitHub CI green. |
 | CON-057 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | merged | Independent PASS and GitHub CI green. |
-| CON-058 | P2 | Claude | — | in progress | D51 batch 06 — Programme interactions |
+| CON-058 | P2 | Cursor / Codex | [#210](https://github.com/constructa-co/Constructa/pull/210) | merged | Working-day-first labels with calendar-aware optional weeks shipped at3f4b1f2. Main CI, secrets and production green; calculations unchanged. |
 | CON-059 | P2 | Claude | [#194](https://github.com/constructa-co/Constructa/pull/194) | merged | D51 batch 04 — Proposal evidence and terms |
 | CON-060 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | merged | Independent PASS and GitHub CI green. |
 | CON-061 | P2 | Claude | — | in progress | Existing D51 media upload/selection source reconciled as already on main e6de701 (public-image and photo-slot implementations match); 46 targeted and 307 case-study tests passed. No duplicate code PR. Remaining default selection, duplicate-photo and legacy positional-selection scope needs original snag mapping; hosted storage unverified. |

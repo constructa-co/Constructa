@@ -8,8 +8,10 @@ import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import {
     BLANK_PROJECT_CREATE_ERROR,
     EMPTY_BLANK_PROJECT_FORM,
+    PROJECT_NAME_MAX_LENGTH,
     PROJECT_TYPE_OPTIONS,
     briefPathForProject,
+    projectNameLimitNotice,
     validateBlankProjectForm,
     type BlankProjectField,
     type BlankProjectForm,
@@ -166,6 +168,8 @@ export default function NewProjectForm({
         fieldErrors[name] ? (
             <p id={`new-project-${name}-error`} className={errorCls}>{fieldErrors[name]}</p>
         ) : null;
+    const nameLimitNotice = projectNameLimitNotice(form.name);
+    const nameAtLimit = form.name.length >= PROJECT_NAME_MAX_LENGTH;
 
     return (
         <NewJobFrame first={isFirstProject} dark={isDark} creating={creating} errorKey={createError || Object.entries(fieldErrors).map(([name, message]) => `${name}:${message}`).join("|")}>
@@ -182,9 +186,19 @@ export default function NewProjectForm({
                         onChange={(e) => set("name", e.target.value)}
                         placeholder="e.g. 14 Oak Road rear extension"
                         autoComplete="off"
-                        maxLength={200}
+                        maxLength={PROJECT_NAME_MAX_LENGTH}
+                        aria-describedby={[fieldErrors.name ? "new-project-name-error" : "", nameLimitNotice ? "new-project-name-limit" : ""].filter(Boolean).join(" ") || undefined}
                         className={`${inputCls} mt-1.5`}
                     />
+                    {/* Always mounted so the limit is announced when it appears. */}
+                    <p
+                        id="new-project-name-limit"
+                        role="status"
+                        data-job-name-limit={nameLimitNotice ? (nameAtLimit ? "reached" : "near") : undefined}
+                        className={nameLimitNotice ? `mt-1.5 text-sm ${nameAtLimit ? (isDark ? "text-amber-200" : "text-amber-800") : muted}` : undefined}
+                    >
+                        {nameLimitNotice}
+                    </p>
                     {fieldError("name")}
                 </div>
 

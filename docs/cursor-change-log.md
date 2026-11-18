@@ -1,5 +1,14 @@
 # Cursor change log
 
+## 2026-11-18 — CON-070 queue stall repair (e12559d Sonnet review)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `estimate-client.tsx` | `clearWorkListQueue`, `endWorkListQueueAfterContinueBlocked`, ~525–580, openers | End queue on post-save continue block/fail; clear queue on unrelated openers + `onQueueClear` | No stranded hidden queue; list text preserved for reopen |
+| `price-work-list.tsx` | `onQueueClear` prop | Clear list invokes parent queue reset | Cancel queue when typed list cleared |
+| `work-list-entry.test.tsx` | 4 cases | blocked/fail after save, edit opener, `onQueueClear` | Sonnet BLOCK regression coverage |
+| `price-work-list.test.tsx` | Clear list | `onQueueClear` contract | Component wire for queue reset |
+
 ## 2026-11-18 — CON-070 bulk queue repair (ffb54c3 review)
 
 | File | Lines (approx.) | Change | Intent |

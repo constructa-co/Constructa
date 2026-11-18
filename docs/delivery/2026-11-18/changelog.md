@@ -1,3 +1,7 @@
+## CON-070 queue stall repair — 18 November 2026 (post e12559d Sonnet review)
+
+After acknowledged Save, blocked/failed automatic continue **ends** the queue with visible status (descriptions stay in the typed list). Unrelated openers (`openAdd`, brief, saved-line reuse, pricing assistant, line edit) and Clear list cancel the queue. Save failure still retains queue. Vitest: `work-list-entry`, `price-work-list` (38 tests). `tsc --noEmit` pass.
+
 ## CON-070 queue repair — 18 November 2026 (post ffb54c3 review)
 
 Visible queue remaining/status; Save-and-add-next off while queued; advance only after confirmed save; duplicate skip on bulk; failed/refused advance retains queue. Vitest: `work-list-entry`, `price-work-list` (33 tests). `tsc --noEmit` pass.

@@ -312,6 +312,17 @@ export default function EstimateClient({
     } : null;
     const [briefDraftError, setBriefDraftError] = useState("");
     const [workListQueueStatus, setWorkListQueueStatus] = useState("");
+    const clearWorkListQueue = () => {
+        store.dispatch({ type: "work-list/queue", queue: null });
+        setWorkListQueueStatus("");
+    };
+    const endWorkListQueueAfterContinueBlocked = (remainingInQueue: number, detail: string) => {
+        store.dispatch({ type: "work-list/queue", queue: null });
+        const listNote = remainingInQueue > 0
+            ? `${remainingInQueue} description(s) remain in your list above — open them again from the list when you are ready.`
+            : "Your list text is unchanged above — open descriptions from the list when you are ready.";
+        setWorkListQueueStatus(`${detail} ${listNote}`);
+    };
     const [advanced, setAdvanced] = useState<{ status: "idle" | "loading" | "failed" | "ready"; data: AdvancedEstimatingData | null; error: string }>(
         { status: "idle", data: null, error: "" },
     );
@@ -353,6 +364,7 @@ export default function EstimateClient({
             if (!context.ok) return context;
             const draft = prepareReviewedPriceDraft(pending, index, context.value, hasOpenEstimateWork(fresh) || fresh.advancedOpen);
             if (!draft.ok) return draft;
+            clearWorkListQueue();
             store.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", draft: draft.value, lineId: newClientId() });
             return { ok: true };
         }, pricingTransport,
@@ -430,17 +442,20 @@ export default function EstimateClient({
             || workListOpenRef.current || Object.keys(activityWorkRef.current).length > 0;
         const draft = prepareSavedLineReuse(reviewed, context.value, blocked);
         if (!draft.ok) return draft;
+        clearWorkListQueue();
         store.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", draft: draft.value, lineId: newClientId() });
         return { ok: true };
     };
 
     const openAdd = () => {
         if (Object.keys(activityWorkRef.current).length) return;
+        clearWorkListQueue();
         store.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", draft: EMPTY_PRICE_LINE_DRAFT, lineId: newClientId() });
     };
     const openEdit = (line: EstimateLine) => {
         if (Object.keys(activityWorkRef.current).length) return;
         if (store.getState().ops[line.id]?.status === "saving") return;
+        clearWorkListQueue();
         setNextEditFocusId(null);
         setFullAmountLineIds(current => ({ ...current, [line.id]: false }));
         store.dispatch({ type: "op/open", key: line.id, kind: "edit", draft: draftFromLine(line), lineId: line.id });
@@ -505,6 +520,7 @@ export default function EstimateClient({
         const prepared = prepareReviewedPriceDraft(pending, 0, freshContext.value, hasOpenEstimateWork(freshState) || freshState.advancedOpen || Object.keys(resourceSaveStatesRef.current).length > 0 || paymentWorkRef.current || scopeNotesWorkRef.current || experienceWorkRef.current || fullScopeWorkRef.current || openingWorkRef.current || workListOpenRef.current || Object.keys(activityWorkRef.current).length > 0);
         if (!prepared.ok) return prepared;
         setBriefDraftError("");
+        clearWorkListQueue();
         store.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", draft: prepared.value, lineId: newClientId() });
         return { ok: true };
     };
@@ -555,13 +571,15 @@ export default function EstimateClient({
                 continue;
             }
             if (workListBlocked(fresh)) {
-                const remaining = rest.length + 1;
-                setWorkListQueueStatus(`${remaining} description(s) remain queued. Finish or cancel the open work, then Save this line to continue. Cancel stops the queue without saving.`);
+                endWorkListQueueAfterContinueBlocked(
+                    rest.length + 1,
+                    "Could not open the next description automatically because other estimating work is still open.",
+                );
                 return;
             }
             const opened = openWorkListDraftAt(queue.source, next);
             if (!opened.ok) {
-                setWorkListQueueStatus(opened.error);
+                endWorkListQueueAfterContinueBlocked(queue.ranges.length, opened.error);
                 return;
             }
             store.dispatch({
@@ -769,7 +787,8 @@ export default function EstimateClient({
                 blocked={hasOpenEstimateWork(state) || state.advancedOpen || Object.keys(resourceSaveStates).length > 0 || paymentWork || scopeNotesWork || experienceWork || fullScopeWork || openingWork || activityBusy || pricingContext.value.clientBoQ}
                 blockedHelp={pricingContext.value.clientBoQ ? "Use the existing client BoQ workflow for this estimate." : PRICING_REVIEW_OPEN}
                 queuedRemaining={state.workListQueue?.ranges.length ?? 0}
-                onWorkChange={workListChanged} onOpen={openWorkListDraft} onOpenAll={openWorkListAllDrafts} />}
+                onWorkChange={workListChanged} onOpen={openWorkListDraft} onOpenAll={openWorkListAllDrafts}
+                onQueueClear={clearWorkListQueue} />}
 
             {(workListQueueStatus || state.workListQueue?.ranges.length) && (
                 <p role="status" data-work-list-queue-status className={`text-sm ${s.body}`}>

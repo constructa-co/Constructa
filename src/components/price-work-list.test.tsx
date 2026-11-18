@@ -99,6 +99,20 @@ describe("plain work-description review", () => {
         expect(replay.work).toHaveBeenLastCalledWith(false); expect(replay.open).not.toHaveBeenCalled();
         expect(nodes(view()).some(n => n.type === "li")).toBe(false);
     });
+    it("calls onQueueClear when Clear list is used", () => {
+        const onQueueClear = vi.fn();
+        replay.cursor = 0;
+        const context = buildPricingReviewContext({ id: "job", brief_scope: "Saved work" }, null);
+        if (!context.ok) throw Error(context.error);
+        const element = PriceWorkList({
+            context: context.value, blocked: false, blockedHelp: "Blocked.", styles: workspaceStyles(false),
+            onOpen: replay.open, onOpenAll: replay.open, onWorkChange: replay.work, onQueueClear,
+        });
+        const tree = nodes(element);
+        (tree.find(n => n.type === "textarea")!.props.onChange as (event: unknown) => void)({ currentTarget: { value: "Paint walls" } });
+        (tree.find(n => n.type === "button" && n.props.children === "Clear list")!.props.onClick as () => void)();
+        expect(onQueueClear).toHaveBeenCalledOnce();
+    });
     it("shows queued remaining copy when a bulk queue is active", () => {
         replay.cursor = 0;
         const context = buildPricingReviewContext({ id: "job", brief_scope: "Saved work" }, null);

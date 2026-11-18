@@ -49,6 +49,10 @@ function open(element = chooser(), source = "Fit doors\nPaint walls", start = 0,
 }
 function work(open: boolean) { (chooser().props.onWorkChange as (open: boolean) => void)(open); }
 function row() { return nodes(view()).find(n => n.props["data-inline-add"])!; }
+function queueStatusText() {
+    const status = nodes(view()).find(n => n.props["data-work-list-queue-status"]);
+    return status ? String(status.props.children) : "";
+}
 
 describe("reviewed work list in the real estimating parent", () => {
     it("opens only one unpriced draft, blocks stale repeated clicks, and Cancel writes nothing", () => {
@@ -117,6 +121,60 @@ describe("reviewed work list in the real estimating parent", () => {
         current.server.mockImplementationOnce(async request => ({ ok: true, estimateId: "estimate", line: { id: request.lineId, estimate_id: "estimate", ...request.line, line_total: 100 } }));
         await (row().props.onSaveNext as () => Promise<boolean>)();
         expect(current.state!.ops[NEW_LINE_KEY].draft.description).toBe("");
+        expect(current.state!.workListQueue).toBeNull();
+    });
+    it("ends the automatic queue with a visible reason when continue is blocked after an acknowledged Save", async () => {
+        work(true);
+        const list = chooser();
+        const context = list.props.context as { revision: string };
+        (list.props.onOpenAll as (source: string, ranges: { start: number; end: number }[], revision: string) => { ok: boolean })(
+            "Fit doors\nPaint walls", [{ start: 0, end: 9 }, { start: 10, end: 21 }], context.revision);
+        current.dispatch({ type: "op/open", key: "line", kind: "edit", lineId: "line", draft: { ...EMPTY_PRICE_LINE_DRAFT, description: "Existing work", amount: "259" } });
+        (row().props.onChange as (patch: unknown) => void)({ amount: "100" });
+        current.server.mockImplementationOnce(async request => ({ ok: true, estimateId: "estimate", line: { id: request.lineId, estimate_id: "estimate", ...request.line, line_total: 100 } }));
+        await (row().props.onSave as () => Promise<boolean>)();
+        expect(current.state!.workListQueue).toBeNull();
+        expect(current.state!.estimates[0].estimate_lines.some(line => line.description === "Fit doors")).toBe(true);
+        expect(queueStatusText()).toMatch(/other estimating work is still open/i);
+        expect(queueStatusText()).toMatch(/remain in your list above/i);
+        expect(current.state!.ops[NEW_LINE_KEY]).toBeUndefined();
+    });
+    it("ends the automatic queue when the next description fails after an acknowledged Save", async () => {
+        work(true);
+        const list = chooser();
+        const context = list.props.context as { revision: string };
+        const tail = "x".repeat(501);
+        const source = `Fit doors\n${tail}`;
+        (list.props.onOpenAll as (source: string, ranges: { start: number; end: number }[], revision: string) => { ok: boolean })(
+            source, [{ start: 0, end: 9 }, { start: 10, end: 10 + tail.length }], context.revision);
+        (row().props.onChange as (patch: unknown) => void)({ amount: "100" });
+        current.server.mockImplementationOnce(async request => ({ ok: true, estimateId: "estimate", line: { id: request.lineId, estimate_id: "estimate", ...request.line, line_total: 100 } }));
+        await (row().props.onSave as () => Promise<boolean>)();
+        expect(current.state!.workListQueue).toBeNull();
+        expect(current.state!.estimates[0].estimate_lines.some(line => line.description === "Fit doors")).toBe(true);
+        expect(queueStatusText()).toMatch(/remain in your list above/i);
+        expect(queueStatusText()).toMatch(/500-character|500 character/i);
+    });
+    it("clears a stale work-list queue when an unrelated saved-line edit opens", () => {
+        work(true);
+        const list = chooser();
+        const context = list.props.context as { revision: string };
+        (list.props.onOpenAll as (source: string, ranges: { start: number; end: number }[], revision: string) => { ok: boolean })(
+            "Fit doors\nPaint walls", [{ start: 0, end: 9 }, { start: 10, end: 21 }], context.revision);
+        expect(current.state!.workListQueue?.ranges).toHaveLength(1);
+        const edit = nodes(view()).find(n => typeof n.props.onEdit === "function" && n.props.line?.id === "line")!;
+        (edit.props.onEdit as () => void)();
+        expect(current.state!.workListQueue).toBeNull();
+        expect(current.state!.ops.line.kind).toBe("edit");
+    });
+    it("clears the work-list queue when Clear list is used", () => {
+        work(true);
+        const list = chooser();
+        const context = list.props.context as { revision: string };
+        (list.props.onOpenAll as (source: string, ranges: { start: number; end: number }[], revision: string) => { ok: boolean })(
+            "Fit doors\nPaint walls", [{ start: 0, end: 9 }, { start: 10, end: 21 }], context.revision);
+        expect(current.state!.workListQueue?.ranges).toHaveLength(1);
+        (list.props.onQueueClear as () => void)();
         expect(current.state!.workListQueue).toBeNull();
     });
     it("opens the next reviewed description after Save when Add every line was used", async () => {

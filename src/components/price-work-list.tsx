@@ -67,9 +67,11 @@ interface Props {
         | { ok: false; error: string };
     /** Remaining queued descriptions after the current open draft (0 = last item open). */
     queuedRemaining?: number;
+    /** Clears any automatic bulk queue when the typed list is cleared. */
+    onQueueClear?: () => void;
 }
 
-export default function PriceWorkList({ context, blocked, blockedHelp, styles, onWorkChange, onOpen, onOpenAll, queuedRemaining = 0 }: Props) {
+export default function PriceWorkList({ context, blocked, blockedHelp, styles, onWorkChange, onOpen, onOpenAll, queuedRemaining = 0, onQueueClear }: Props) {
     const [source, setSource] = useState("");
     const sourceRef = useRef("");
     const [review, setReview] = useState<{ source: string; items: WorkDescriptionRange[] } | null>(null);
@@ -93,7 +95,7 @@ export default function PriceWorkList({ context, blocked, blockedHelp, styles, o
                 }}>Review descriptions</button>
                 <button type="button" className={styles.quietButton} disabled={!source} onClick={() => {
                     sourceRef.current = "";
-                    setSource(""); setReview(null); setMessage(""); onWorkChange(false);
+                    setSource(""); setReview(null); setMessage(""); onWorkChange(false); onQueueClear?.();
                 }}>Clear list</button>
             </div>
             <p className={`mt-2 text-sm ${styles.muted}`}>This list is not saved. Closing this panel keeps it here; leaving the job discards it. Use the price line&apos;s Save to return and choose another description. Cancel on the price line stops an active queue without saving that draft.</p>

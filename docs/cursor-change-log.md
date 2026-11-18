@@ -1,5 +1,11 @@
 # Cursor change log
 
+## 2026-11-18 — CON-070 PR209 inline save-and-next await repair
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | `newLineProps.onSaveNext` (~308), `InlineNewPriceLine`/`LineForm` types | Return `submitPriceLine` promise from Save and add next; widen handler types | CI: `inline-price-entry` concurrency test can await confirmation before asserting contractSum 500 |
+
 ## 2026-11-18 — CON-070 queue stall repair (e12559d Sonnet review)
 
 | File | Lines (approx.) | Change | Intent |

@@ -305,9 +305,8 @@ export default function EstimateClient({
             store.dispatch({ type: "op/cancel", key: NEW_LINE_KEY });
         },
         onSave: () => submitNewPriceLine(),
-        onSaveNext: state.workListQueue ? undefined : () => {
-            void submitPriceLine(store, server, project.id, NEW_LINE_KEY, { nextLineId: newClientId() });
-        },
+        onSaveNext: state.workListQueue ? undefined : () =>
+            submitPriceLine(store, server, project.id, NEW_LINE_KEY, { nextLineId: newClientId() }).then(() => undefined),
         workListQueueActive: !!state.workListQueue,
     } : null;
     const [briefDraftError, setBriefDraftError] = useState("");
@@ -1326,7 +1325,7 @@ function InlineNewPriceLine({ idPrefix, title, op, s, showDetails, onChange, onU
     onUseArea: (quantity: string) => void;
     onCancel: () => void;
     onSave: () => void;
-    onSaveNext?: () => void;
+    onSaveNext?: () => void | Promise<void>;
     onFullForm: () => void;
     activityNames?: string[];
     workListQueueActive?: boolean;
@@ -1424,7 +1423,7 @@ function LineForm({
     onChange: (patch: Partial<PriceLineDraft>) => void;
     onCancel: () => void;
     onSave: () => void;
-    onSaveNext?: () => void;
+    onSaveNext?: () => void | Promise<void>;
     activityNames?: string[];
     workListQueueActive?: boolean;
 }) {

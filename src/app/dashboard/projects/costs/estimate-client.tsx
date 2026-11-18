@@ -313,7 +313,7 @@ export default function EstimateClient({
     const [briefDraftError, setBriefDraftError] = useState("");
     const [workListQueueStatus, setWorkListQueueStatus] = useState("");
     const clearWorkListQueue = () => {
-        store.dispatch({ type: "work-list/queue", queue: null });
+        if (store.getState().workListQueue) store.dispatch({ type: "work-list/queue", queue: null });
         setWorkListQueueStatus("");
     };
     const endWorkListQueueAfterContinueBlocked = (remainingInQueue: number, detail: string) => {

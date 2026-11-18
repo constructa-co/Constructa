@@ -6,6 +6,7 @@ import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 import ui from "@/components/project-chooser.module.css";
 import { pipelineStageDisplayLabel } from "./pipeline-stage-display";
+import { pipelineDaysOpenAge } from "./pipeline-card-facts";
 import { corePipelineTextLinkSmThemed } from "@/lib/core-editing-palette";
 
 type SortKey = "name" | "client_name" | "project_type" | "status" | "value" | "proposal_sent_at" | "days_open";
@@ -52,11 +53,9 @@ function getStatusBadgeClass(status: string | null, isDark: boolean): string {
     }
 }
 
-function getDaysOpen(createdAt: string | null): number {
-    if (!createdAt) return 0;
-    const created = new Date(createdAt);
-    const now = new Date();
-    return Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+/** Sort value only; rows with no usable date sort as 0, as before. */
+function getDaysOpenSortValue(project: { created_at?: string | null; is_archived?: boolean | null }): number {
+    return pipelineDaysOpenAge(project)?.days ?? 0;
 }
 
 function formatDate(dateStr: string | null): string {
@@ -151,8 +150,8 @@ export default function ProjectList({ projects, financials }: { projects: any[],
                 bVal = b.proposal_sent_at ? new Date(b.proposal_sent_at).getTime() : 0;
                 break;
             case "days_open":
-                aVal = getDaysOpen(a.created_at);
-                bVal = getDaysOpen(b.created_at);
+                aVal = getDaysOpenSortValue(a);
+                bVal = getDaysOpenSortValue(b);
                 break;
         }
 
@@ -187,7 +186,7 @@ export default function ProjectList({ projects, financials }: { projects: any[],
                 <tbody className={`divide-y ${isDark ? "divide-[#2a2a2a]" : "divide-gray-100"}`}>
                     {sorted.map((p) => {
                         const value = getValue(p);
-                        const days = getDaysOpen(p.created_at);
+                        const age = pipelineDaysOpenAge(p);
                         return (
                             <tr
                                 key={p.id}
@@ -215,8 +214,11 @@ export default function ProjectList({ projects, financials }: { projects: any[],
                                     {formatDate(p.proposal_sent_at)}
                                 </td>
                                 <td className="px-4 py-3 text-right">
-                                    <span className={`text-xs font-semibold ${days > 30 ? "text-amber-500" : isDark ? "text-[#a0a0a0]" : "text-gray-400"}`}>
-                                        {days}d
+                                    <span
+                                        title={age ? age.description : "Date added not recorded"}
+                                        className={`text-xs font-semibold ${age && age.days > 30 ? "text-amber-500" : isDark ? "text-[#a0a0a0]" : "text-gray-400"}`}
+                                    >
+                                        {age ? `${age.days}d` : "—"}
                                     </span>
                                 </td>
                                 <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>

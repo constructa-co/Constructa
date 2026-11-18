@@ -32,3 +32,18 @@ it.each(["dark", "system-c"])("visibly identifies stage filtering as view-only i
     expect(html).toContain('data-count="1"');
     expect(html).not.toContain("data-pipeline-board");
 });
+
+it("excludes archived projects from the pipeline list and board views", () => {
+    current.theme = "dark";
+    vi.stubEnv("NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE", "cohort");
+    const html = renderToStaticMarkup(<DashboardClient
+        projects={[
+            { id: "live", name: "Live kitchen", status: "Lead", project_type: "Kitchen", is_archived: false },
+            { id: "closed", name: "Old job", status: "Completed", project_type: "Kitchen", is_archived: true },
+        ]}
+        financials={{}}
+        companyName="Test builders"
+        metrics={{ totalPipelineValue: 0, proposalsSent: 0, wonThisMonth: 0, activeJobs: 0, winRate: 0, winRateSampleSize: 0, totalRevenueSigned: 0 }}
+    />);
+    expect(html).toContain('data-count="1"');
+});

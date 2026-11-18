@@ -174,6 +174,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
     // Filtered projects for pipeline board (all projects regardless of period)
     const filteredProjects = useMemo(() => {
         return projects.filter(p => {
+            if (p.is_archived) return false;
             const searchLower = search.toLowerCase();
             const matchesSearch =
                 !search ||

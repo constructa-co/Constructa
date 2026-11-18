@@ -18,7 +18,7 @@ export default async function Dashboard({
     // 1. Fetch all projects with relevant fields
     const { data: projects } = await supabase
         .from("projects")
-        .select("id, name, client_name, client_email, client_phone, status, project_type, potential_value, created_at, proposal_sent_at, proposal_accepted_at, site_address, client_address")
+        .select("id, name, client_name, client_email, client_phone, status, project_type, potential_value, created_at, proposal_sent_at, proposal_accepted_at, site_address, client_address, is_archived")
         .eq("user_id", user?.id)
         .order("created_at", { ascending: false });
 

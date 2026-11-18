@@ -1,5 +1,20 @@
 # Cursor change log
 
+## 2026-11-19 — CON-075 pipeline days open (S35)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/dashboard/pipeline-card-facts.ts` | new | `projectAge` + `pipelineDaysOpenAge` (created_at basis; null when invalid/future/archived) | Meaningful days open or hide — no `0d`/`NaNd`/negative |
+| `src/app/dashboard/pipeline-card-facts.test.ts` | new | Fixed `now`; labels, invalid dates, archived gate | CON-075 unit coverage without clock flake |
+| `src/app/dashboard/pipeline-days-open-display.test.tsx` | new | List renders dash vs `5d` with mocked `Date.now` | List column regression |
+| `src/app/dashboard/project-list.tsx` | import, sort, cell | Use `pipelineDaysOpenAge`; dash + tooltip when unusable | CON-075 list |
+| `src/app/dashboard/project-board.tsx` | age strip | `Open today` / `Open 5w` / dash; no sent-display changes | CON-075 board age only |
+| `src/app/dashboard/dashboard-client.tsx` | `filteredProjects` | Drop `is_archived` rows from board/list | Original scope exclude archived |
+| `src/app/dashboard/page.tsx` | select | Include `is_archived` for client filter | Archived exclusion wiring |
+| `src/app/dashboard/pipeline-filters.test.tsx` | new case | Archived row not passed to list mock | Regression |
+
+**Sibling collected:** `.cq-wt/claude-d56-dashboard-demo` CON-075 age helpers only (no CON-073 `recordedPlatformSendAt`, KPI, seed, or `page.tsx` proposal_status).
+
 ## 2026-11-19 — CON-074 dark selected pills and estimate total bar contrast
 
 | File | Lines (approx.) | Change | Intent |

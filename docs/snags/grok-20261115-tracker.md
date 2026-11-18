@@ -2,7 +2,7 @@
 
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
-Current count: 58 merged, 15 in progress, 0 in review, 12 Rob-gated, 0 not started.
+Current count: 59 merged, 14 in progress, 0 in review, 12 Rob-gated, 0 not started.
 
 | --- | --- | --- | --- | --- | --- |
 | CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
@@ -71,7 +71,7 @@ Current count: 58 merged, 15 in progress, 0 in review, 12 Rob-gated, 0 not start
 | CON-064 | P2 | Claude | [#196](https://github.com/constructa-co/Constructa/pull/196) | merged | #196 merged at 4ec090bc. Main CI, secret scan and production deployment passed. |
 | CON-065 | P2 | Claude | [#195](https://github.com/constructa-co/Constructa/pull/195) | merged | #195 merged at 02cdeb0. Main CI, secret scan and production deployment passed. |
 | CON-066 | P2 | Codex | [#203](https://github.com/constructa-co/Constructa/pull/203) | merged | Production green at 1a8a8c9. Headless real-component fixture at 360/390/430 confirms m²/m³/wk and 152/167/187px controls. [Screenshots and measurements](evidence/con-066/). Mock persistence, broader mobile journey remains CON-043. |
-| CON-067 | P2 | Claude | — | in progress | D51 batch 05 — Phone layout and theme |
+| CON-067 | P2 | Cursor / Codex | [#211](https://github.com/constructa-co/Constructa/pull/211) | merged | Consistent oneprice line quantity/unit/rate display with badge shipped025efbc; main CI, secrets and production green. Detailtoggle/maths unchanged. |
 | CON-068 | P2 | Kimi / Codex | [#199](https://github.com/constructa-co/Constructa/pull/199) | in progress | Number validation shipped at 93ba54f. Main CI, secret scan and production passed. Persistent Included flag awaits schema approval. |
 | CON-069 | P2 | Cursor / Codex | [#208](https://github.com/constructa-co/Constructa/pull/208) | merged | Discounts above25% require reason and confirmation, including100%; cancellation/refusal restores acknowledged values. Main CI, secrets and production green at1cade4d. |
 | CON-070 | P2 | Cursor / Codex | [#209](https://github.com/constructa-co/Constructa/pull/209) | merged | Truthful helper wording and bulk unpriced drafts shipped; queue refusal/duplicate handling preserved. Main CI, secrets and production green at7a84897. |

@@ -162,11 +162,35 @@ export function buildPriceLine(draft: PriceLineDraft): BuildPriceLineResult {
 
 const plain = (n: number): string => (Number.isFinite(n) && n !== 0 ? String(n) : "");
 
+/** Stored qty 1 + item (or blank unit) matches a one-price line — same rule as save, no conversion. */
+export function isStoredOnePriceLine(line: Pick<EstimateLine, "quantity" | "unit">): boolean {
+    return toNumber(line.quantity) === 1 && (line.unit === "item" || !line.unit);
+}
+
+/** Quantity cell when optional columns are open — stored value only. */
+export function storedLineQuantityLabel(line: Pick<EstimateLine, "quantity">): string {
+    const quantity = Number(line.quantity);
+    return Number.isFinite(quantity) ? String(quantity) : "—";
+}
+
+/** Unit cell when optional columns are open — stored value only. */
+export function storedLineUnitLabel(line: Pick<EstimateLine, "quantity" | "unit">): string {
+    const unit = line.unit?.trim();
+    if (unit) return unit;
+    return isStoredOnePriceLine(line) ? "item" : "—";
+}
+
+/** Rate cell when optional columns are open — stored unit_rate only, never derived from line_total. */
+export function storedLineRateLabel(line: Pick<EstimateLine, "unit_rate">): string {
+    const rate = Number(line.unit_rate);
+    return Number.isFinite(rate) ? formatGBP(rate) : "—";
+}
+
 /** Opens an existing line for editing in the form it was most likely entered. */
 export function draftFromLine(line: Pick<EstimateLine, "description" | "quantity" | "unit" | "unit_rate">): PriceLineDraft {
     const quantity = toNumber(line.quantity);
     const rate = toNumber(line.unit_rate);
-    const isAmount = quantity === 1 && (line.unit === "item" || !line.unit);
+    const isAmount = isStoredOnePriceLine(line);
     return {
         description: line.description || "",
         mode: isAmount ? "amount" : "rate",

@@ -1,3 +1,16 @@
+## CON-067 — One-price line detail columns — 18 November 2026
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `src/lib/simple-estimate.ts` | 163–187 | `isStoredOnePriceLine`, stored qty/unit/rate label helpers; `draftFromLine` uses shared semantics | Truthful stored one-price detection without maths changes |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | 1052–1155, 1234, 1390 | Detail toggle shows qty/unit/rate for every line; `One price` line-type badge; dashes for unsaved amount drafts | CON-067 consistent columns; simple-first when details hidden |
+| `src/components/estimating.module.css` | 187–195 | `.priceLineTypeBadge` | Badge styling; phone card layout preserved |
+| `src/lib/simple-estimate.test.ts` | CON-067 describe | Semantics + label tests | Regression |
+| `src/app/dashboard/projects/costs/price-workspace.test.tsx` | detail toggle tests | Expect stored cells + badge, not colspan | Row display regression |
+| `src/app/dashboard/projects/costs/inline-amount-entry.test.tsx` | expanded grid test | Six aligned cells with stored 1/item/rate | Inline one-price editing regression |
+
+Checks: `vitest run` on `simple-estimate.test.ts`, `price-workspace.test.tsx`, `inline-amount-entry.test.tsx` — 90 tests pass. Codex owns build/PR.
+
 ## CON-070 queue stall repair — 18 November 2026 (post e12559d Sonnet review)
 
 After acknowledged Save, blocked/failed automatic continue **ends** the queue with visible status (descriptions stay in the typed list). Unrelated openers (`openAdd`, brief, saved-line reuse, pricing assistant, line edit) and Clear list cancel the queue. Save failure still retains queue. Vitest: `work-list-entry`, `price-work-list` (38 tests). `tsc --noEmit` pass.

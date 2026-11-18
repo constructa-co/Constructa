@@ -19,6 +19,10 @@ import {
     estimatingReducer,
     initialEstimatingState,
     isSimpleEditable,
+    isStoredOnePriceLine,
+    storedLineQuantityLabel,
+    storedLineRateLabel,
+    storedLineUnitLabel,
     pickInitialEstimateId,
     removePriceLine,
     submitAdjustments,
@@ -173,6 +177,24 @@ describe("line calculations", () => {
             ok: true,
             line: { description: "Tiling", quantity: 12, unit: "m2", unit_rate: 45 },
         });
+    });
+});
+
+describe("stored one-price row semantics (CON-067)", () => {
+    it("detects one-price storage without inferring from line_total", () => {
+        expect(isStoredOnePriceLine(line())).toBe(true);
+        expect(isStoredOnePriceLine(line({ quantity: 1, unit: "" }))).toBe(true);
+        expect(isStoredOnePriceLine(line({ quantity: 2.5, unit: "crate", unit_rate: 20 }))).toBe(false);
+        expect(isStoredOnePriceLine(line({ quantity: 1, unit: "m2", unit_rate: 99 }))).toBe(false);
+    });
+
+    it("labels optional detail columns from stored fields only", () => {
+        expect(storedLineQuantityLabel(line({ quantity: 2.5 }))).toBe("2.5");
+        expect(storedLineUnitLabel(line({ quantity: 2.5, unit: "crate" }))).toBe("crate");
+        expect(storedLineRateLabel(line({ unit_rate: 20 }))).toBe("£20.00");
+        expect(storedLineQuantityLabel(line({ quantity: 1, unit: "item", unit_rate: 1100 }))).toBe("1");
+        expect(storedLineUnitLabel(line({ quantity: 1, unit: "item", unit_rate: 1100 }))).toBe("item");
+        expect(storedLineRateLabel(line({ unit_rate: 1100 }))).toBe("£1,100.00");
     });
 });
 

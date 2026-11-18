@@ -162,7 +162,7 @@ describe("reviewed work list in the real estimating parent", () => {
         (list.props.onOpenAll as (source: string, ranges: { start: number; end: number }[], revision: string) => { ok: boolean })(
             "Fit doors\nPaint walls", [{ start: 0, end: 9 }, { start: 10, end: 21 }], context.revision);
         expect(current.state!.workListQueue?.ranges).toHaveLength(1);
-        const edit = nodes(view()).find(n => typeof n.props.onEdit === "function" && n.props.line?.id === "line")!;
+        const edit = nodes(view()).find(n => typeof n.props.onEdit === "function" && (n.props.line as { id?: string } | undefined)?.id === "line")!;
         (edit.props.onEdit as () => void)();
         expect(current.state!.workListQueue).toBeNull();
         expect(current.state!.ops.line.kind).toBe("edit");

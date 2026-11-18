@@ -145,7 +145,7 @@ describe("document order and content", () => {
             { label: "Price including VAT", value: "£9,062.46" },
             { label: "Start on site", value: "2 Nov 2026" },
             { label: "Finish", value: "20 Nov 2026" },
-            { label: "Duration", value: "3 weeks" },
+            { label: "Duration", value: "15 working days (3 weeks)" },
         ]);
     });
 });

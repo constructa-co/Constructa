@@ -64,7 +64,7 @@ describe("ROB0942 recheck counterexamples (post a538272)", () => {
         const plan = computeDisplayProgramme(start, built, pattern);
         expect(plan?.working_days).toBe(5);
         expect(plan?.end_date).toBe(expectedEnd);
-        expect(plan?.duration_label).toBe("1 week");
+        expect(plan?.duration_label).toBe("5 working days (1 week)");
     });
 
     it("P2-2: display keeps explicit four programme days at ten hours/day (not capacity-derived five)", () => {

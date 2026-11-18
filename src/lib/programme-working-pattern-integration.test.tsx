@@ -66,8 +66,8 @@ describe("saved per-job working patterns in programme and proposals", () => {
         expect(isDefaultJobWorkingPattern(resolveJobWorkingPattern({ version: 1, weekdays: [5, 4, 3, 2, 1] })!)).toBe(true);
         expect(resolveJobWorkingPattern(undefined)).toBe(DEFAULT_JOB_WORKING_PATTERN);
         expect(Object.isFrozen(DEFAULT_JOB_WORKING_PATTERN.weekdays)).toBe(true);
-        expect(formatWorkingDuration(5)).toBe("1 week");
-        expect(formatWorkingDuration(15)).toBe("3 weeks");
+        expect(formatWorkingDuration(5)).toBe("5 working days (1 week)");
+        expect(formatWorkingDuration(15)).toBe("15 working days (3 weeks)");
         expect(formatWorkingDuration(8)).toBe("8 working days");
     });
 
@@ -76,7 +76,7 @@ describe("saved per-job working patterns in programme and proposals", () => {
         expect(plan).toMatchObject({ basis: "job_working_days", start_date: FRIDAY, end_date: "2026-10-17", working_days: 2, calendar_days: 2 });
         expect(computeProgrammePlan(FRIDAY, datedPhases())?.end_date).toBe("2026-10-19");
         expect(programmePlanForProject({ start_date: FRIDAY, programme_phases: datedPhases(), programme_working_pattern: sixDays() })).toEqual(plan);
-        expect(formatWorkingDuration(6, sixDays())).toBe("1 week");
+        expect(formatWorkingDuration(6, sixDays())).toBe("6 working days (1 week)");
         expect(formatWorkingDuration(5, sixDays())).toBe("5 working days");
         expect(programmeBasisNote(plan)).toBe("Working days are Monday, Tuesday, Wednesday, Thursday, Friday, Saturday. A week means 6 working days. UK bank holidays for England and Wales are not working days.");
     });
@@ -96,7 +96,7 @@ describe("saved per-job working patterns in programme and proposals", () => {
         expect(plan.stages.map(stage => stage.working_days)).toEqual([2, 2, 2]);
         expect(plan.working_days).toBe(total);
         expect(plan.stages[2].offset_days).toBe(14);
-        expect(formatWorkingDuration(weekdays.length * 2, pattern)).toBe("2 weeks");
+        expect(formatWorkingDuration(weekdays.length * 2, pattern)).toBe(`${weekdays.length * 2} working days (2 weeks)`);
     });
 
     it("keeps dated calendar phases on their own dates, even on non-working weekdays", () => {
@@ -177,10 +177,11 @@ describe("saved per-job working patterns in programme and proposals", () => {
         const doc = buildProposalDocument(JSON.parse(JSON.stringify(snapshot)), { isDraft: true });
         const html = renderToStaticMarkup(createElement(ProposalDocumentView, { doc }));
         const raw = renderProposalBrochure(doc, new Map()).doc.output();
-        for (const text of ["Day 3 to Day 8", "Start date not agreed", "1 week", "6 working days."]) {
+        for (const text of ["Day 3 to Day 8", "Start date not agreed", "6 working days (1 week)", "6 working days."]) {
             expect(html).toContain(text);
-            expect(raw).toContain(text);
         }
+        expect(raw).toMatch(/6 working days \\?\(1 week\\?\)/);
+        expect(raw).toContain("6 working days.");
         expect(html).not.toContain("five working days");
         expect(raw).not.toContain("five working days");
     });
@@ -210,11 +211,12 @@ describe("saved per-job working patterns in programme and proposals", () => {
         const html = renderToStaticMarkup(createElement(ProposalDocumentView, { doc }));
         const overview = renderToStaticMarkup(createElement(ProgrammeOverview, { plan, isDark: false }));
         const raw = renderProposalBrochure(doc, new Map()).doc.output();
-        for (const text of ["16 Oct to 17 Oct 2026", "19 Oct to 24 Oct 2026", "1 week", "6 working days."]) {
+        for (const text of ["16 Oct to 17 Oct 2026", "19 Oct to 24 Oct 2026", "6 working days (1 week)", "6 working days."]) {
             expect(html).toContain(text);
             expect(overview).toContain(text);
-            expect(raw).toContain(text);
         }
+        expect(raw).toMatch(/6 working days \\?\(1 week\\?\)/);
+        expect(raw).toContain("6 working days.");
         expect(html).not.toContain(PROGRAMME_BASIS_NOTE);
         expect(overview).not.toContain(PROGRAMME_BASIS_NOTE);
         expect(raw).not.toContain("Monday to Friday");

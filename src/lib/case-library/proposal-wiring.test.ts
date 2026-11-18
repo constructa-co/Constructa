@@ -27,10 +27,16 @@ const draftOf = (ctx: ReviewContext) => draftFromProject(ctx.project, () => "key
 
 describe("older-only proposals are exactly as they were", () => {
     // The a93712a baseline includes the regional bank-holiday division in the programme plan.
+    // CON-058 only changes programme_plan.duration_label ("3 weeks" → "15 working days (3 weeks)");
+    // case-study wiring unchanged; reverting that field alone restores the pre-CON-058 hashes (CI con058).
     it("pins the representative legacy selection with the regional calendar fields", async () => {
         const snapshot = buildProposalPublicationSnapshot(representativeInput());
-        expect(await hashProposalContent(snapshot)).toBe("2b0185bf6355f113239781dd87aaf9025648babacb72257a567a76c68161f8e4");
-        expect(await hashProposalPublication(snapshot)).toBe("87b47a6df37223f114ac39b0c0aec56718554ebfe260f67aac11ab9a2895b314");
+        expect(snapshot.programme_plan?.duration_label).toBe("15 working days (3 weeks)");
+        expect(await hashProposalContent(snapshot)).toBe("e769bc4faf2b82be3efd1fcb605ce094802767f1ddf59f76c8c4312aa7cc88ce");
+        expect(await hashProposalPublication(snapshot)).toBe("3a92756f10b0134472e71753affa785b927f6e880046481446a433e78d15cb48");
+        const legacyLabel = { ...snapshot, programme_plan: { ...snapshot.programme_plan!, duration_label: "3 weeks" } };
+        expect(await hashProposalContent(legacyLabel)).toBe("2b0185bf6355f113239781dd87aaf9025648babacb72257a567a76c68161f8e4");
+        expect(await hashProposalPublication(legacyLabel)).toBe("87b47a6df37223f114ac39b0c0aec56718554ebfe260f67aac11ab9a2895b314");
     });
 
     it.each([[[]], [["o1"]], [["1"]], [[2, "o5"]], [["o1", "o2", "o3", "o4", "o5", "o6", "o7"]], [["nope"]], [null], [["o7", "o1"]]])("selection %j: the case studies are today's selection, with no library, an empty one, or a full one", (selected) => {

@@ -1,3 +1,7 @@
+## CON-070 queue repair — 18 November 2026 (post ffb54c3 review)
+
+Visible queue remaining/status; Save-and-add-next off while queued; advance only after confirmed save; duplicate skip on bulk; failed/refused advance retains queue. Vitest: `work-list-entry`, `price-work-list` (33 tests). `tsc --noEmit` pass.
+
 ## CON-070 — Estimating helper truthfulness + bulk list drafts — 18 November 2026
 
 | File | Change | Intent |

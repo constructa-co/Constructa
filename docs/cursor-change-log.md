@@ -1,5 +1,14 @@
 # Cursor change log
 
+## 2026-11-18 — CON-070 bulk queue repair (ffb54c3 review)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/components/price-work-list.tsx` | helpers, `queuedRemaining`, bulk message | `filterUniqueWorkListRanges`; queue-remaining status; duplicate skip copy on bulk add | Visible queue progress; preserve per-row duplicate warnings |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | queue advance, `onSaveNext`, status UI | Advance queue only after confirmed save/open; disable Save-and-add-next when queued; refusal retains queue | Fix silent queue loss on failed save / blocked advance |
+| `src/app/dashboard/projects/costs/work-list-entry.test.tsx` | new cases | failed save + queue; Save-and-add-next; duplicate skip | Interaction contracts from Sonnet review |
+| `src/components/price-work-list.test.tsx` | filter + queued UI | duplicate filter unit; queued-remaining copy | Component-level regression |
+
 ## 2026-11-18 — CON-070 estimating helper copy and bulk list drafts
 
 | File | Lines (approx.) | Change | Intent |

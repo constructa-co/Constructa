@@ -7,6 +7,31 @@ import type { WorkspaceStyles } from "@/lib/workspace-styles";
 
 export interface WorkDescriptionRange { start: number; end: number }
 
+export function workDescriptionText(source: string, range: WorkDescriptionRange): string {
+    return source.slice(range.start, range.end).replace(/\s+/g, " ").trim();
+}
+
+/** Drop lines already saved or repeated earlier in the same list (first occurrence kept). */
+export function filterUniqueWorkListRanges(
+    source: string,
+    ranges: WorkDescriptionRange[],
+    savedDescriptions: string[],
+): { ranges: WorkDescriptionRange[]; skippedDuplicates: number } {
+    const seen = new Set(savedDescriptions.map(text => text.trim()).filter(Boolean));
+    const kept: WorkDescriptionRange[] = [];
+    let skippedDuplicates = 0;
+    for (const range of ranges) {
+        const text = workDescriptionText(source, range);
+        if (!text || seen.has(text)) {
+            skippedDuplicates++;
+            continue;
+        }
+        seen.add(text);
+        kept.push(range);
+    }
+    return { ranges: kept, skippedDuplicates };
+}
+
 /** Plain descriptions only: never interpret pasted columns, prices or headings. */
 export function reviewWorkDescriptionList(source: string):
     { ok: true; items: WorkDescriptionRange[] } | { ok: false; error: string } {
@@ -37,10 +62,14 @@ interface Props {
     styles: WorkspaceStyles;
     onWorkChange: (open: boolean) => void;
     onOpen: (source: string, range: WorkDescriptionRange, revision: string) => { ok: true } | { ok: false; error: string };
-    onOpenAll: (source: string, items: WorkDescriptionRange[], revision: string) => { ok: true } | { ok: false; error: string };
+    onOpenAll: (source: string, items: WorkDescriptionRange[], revision: string) =>
+        | { ok: true; skippedDuplicates?: number; queued?: number }
+        | { ok: false; error: string };
+    /** Remaining queued descriptions after the current open draft (0 = last item open). */
+    queuedRemaining?: number;
 }
 
-export default function PriceWorkList({ context, blocked, blockedHelp, styles, onWorkChange, onOpen, onOpenAll }: Props) {
+export default function PriceWorkList({ context, blocked, blockedHelp, styles, onWorkChange, onOpen, onOpenAll, queuedRemaining = 0 }: Props) {
     const [source, setSource] = useState("");
     const sourceRef = useRef("");
     const [review, setReview] = useState<{ source: string; items: WorkDescriptionRange[] } | null>(null);
@@ -67,20 +96,28 @@ export default function PriceWorkList({ context, blocked, blockedHelp, styles, o
                     setSource(""); setReview(null); setMessage(""); onWorkChange(false);
                 }}>Clear list</button>
             </div>
-            <p className={`mt-2 text-sm ${styles.muted}`}>This list is not saved. Closing this panel keeps it here; leaving the job discards it. Use the price line&apos;s Save to return and choose another description. Cancel keeps the list and does not save that draft.</p>
+            <p className={`mt-2 text-sm ${styles.muted}`}>This list is not saved. Closing this panel keeps it here; leaving the job discards it. Use the price line&apos;s Save to return and choose another description. Cancel on the price line stops an active queue without saving that draft.</p>
+            {queuedRemaining > 0 && (
+                <p role="status" data-work-list-queue-remaining className={`mt-2 text-sm ${styles.body}`}>
+                    {queuedRemaining} more description{queuedRemaining === 1 ? "" : "s"} queued after the open draft. Save each line to continue; Cancel on the price line stops the queue.
+                </p>
+            )}
             {review && review.items.length > 1 && (
                 <button type="button" className={`${styles.secondaryButton} mt-3`} disabled={blocked} onClick={() => {
                     if (sourceRef.current !== review.source) { setMessage("The list changed. Review the current descriptions first."); return; }
                     if (blocked) { setMessage(blockedHelp); return; }
                     const result = onOpenAll(review.source, review.items, context.revision);
                     if (result.ok) {
-                        setMessage("First draft opened, not saved. After each Save, the next description opens automatically until the list is finished. Cancel stops the queue.");
+                        const parts = ["First draft opened, not saved. After each Save, the next description opens automatically until the list is finished. Cancel stops the queue."];
+                        if (result.skippedDuplicates) parts.push(`${result.skippedDuplicates} duplicate description(s) were skipped (already saved or repeated in this list).`);
+                        if (result.queued) parts.push(`${result.queued} more queued after this draft.`);
+                        setMessage(parts.join(" "));
                     } else setMessage(result.error);
                 }}>Add every line as an unpriced draft</button>
             )}
             {review && <ol className="mt-3 space-y-3" aria-label="Reviewed work descriptions">
                 {review.items.map((range, index) => {
-                    const description = review.source.slice(range.start, range.end).replace(/\s+/g, " ").trim();
+                    const description = workDescriptionText(review.source, range);
                     const alreadySaved = context.existingWork.some(line => line.description === description);
                     return <li key={range.start} className={`${styles.inset} min-w-0 p-3`}>
                         <p className={`whitespace-pre-wrap break-words text-base ${styles.body}`}>{index + 1}. {description}</p>

@@ -85,12 +85,39 @@ describe("reviewed work list in the real estimating parent", () => {
         expect(current.state!.ops[NEW_LINE_KEY]).toMatchObject({ lineId: id, status: "failed", draft: { description: "Fit doors", amount: "100" } });
         expect(open().ok).toBe(false); expect(current.server).toHaveBeenCalledOnce();
     });
-    it("keeps existing Save-and-add-next blank, never auto-inserting another queued item", async () => {
+    it("keeps the work-list queue when Save fails during bulk add", async () => {
+        work(true);
+        const list = chooser();
+        const context = list.props.context as { revision: string };
+        (list.props.onOpenAll as (source: string, ranges: { start: number; end: number }[], revision: string) => { ok: boolean })(
+            "Fit doors\nPaint walls", [{ start: 0, end: 9 }, { start: 10, end: 21 }], context.revision);
+        expect(current.state!.workListQueue?.ranges).toHaveLength(1);
+        (row().props.onChange as (patch: unknown) => void)({ amount: "100" });
+        current.server.mockResolvedValueOnce({ ok: false, error: "Connection failed" });
+        await (row().props.onSave as () => Promise<boolean>)();
+        expect(current.state!.workListQueue?.ranges).toHaveLength(1);
+        expect(current.state!.ops[NEW_LINE_KEY].draft.description).toBe("Fit doors");
+    });
+    it("disables Save-and-add-next while a work-list queue is active", async () => {
+        work(true);
+        const list = chooser();
+        const context = list.props.context as { revision: string };
+        (list.props.onOpenAll as (source: string, ranges: { start: number; end: number }[], revision: string) => { ok: boolean })(
+            "Fit doors\nPaint walls", [{ start: 0, end: 9 }, { start: 10, end: 21 }], context.revision);
+        expect(row().props.onSaveNext).toBeUndefined();
+        (row().props.onChange as (patch: unknown) => void)({ amount: "100" });
+        current.server.mockImplementationOnce(async request => ({ ok: true, estimateId: "estimate", line: { id: request.lineId, estimate_id: "estimate", ...request.line, line_total: 100 } }));
+        await (row().props.onSave as () => Promise<boolean>)();
+        expect(current.state!.ops[NEW_LINE_KEY].draft.description).toBe("Paint walls");
+        expect(current.state!.workListQueue).toBeNull();
+    });
+    it("keeps Save-and-add-next when no work-list queue is active", async () => {
         work(true); open(); (row().props.onChange as (patch: unknown) => void)({ amount: "100" });
+        expect(row().props.onSaveNext).toBeDefined();
         current.server.mockImplementationOnce(async request => ({ ok: true, estimateId: "estimate", line: { id: request.lineId, estimate_id: "estimate", ...request.line, line_total: 100 } }));
         await (row().props.onSaveNext as () => Promise<boolean>)();
         expect(current.state!.ops[NEW_LINE_KEY].draft.description).toBe("");
-        expect(open().ok).toBe(false); expect(current.server).toHaveBeenCalledOnce();
+        expect(current.state!.workListQueue).toBeNull();
     });
     it("opens the next reviewed description after Save when Add every line was used", async () => {
         work(true);
@@ -106,6 +133,18 @@ describe("reviewed work list in the real estimating parent", () => {
         expect(current.server).toHaveBeenCalledOnce();
         expect(current.state!.ops[NEW_LINE_KEY].draft.description).toBe("Paint walls");
         expect(current.state!.workListQueue).toBeNull();
+    });
+    it("skips bulk-queue items that duplicate saved lines and keeps the rest queued", async () => {
+        work(true);
+        const list = chooser();
+        const context = list.props.context as { revision: string };
+        const source = "Existing work\nFit doors\nPaint walls";
+        const result = (list.props.onOpenAll as (source: string, ranges: { start: number; end: number }[], revision: string) => { ok: boolean; skippedDuplicates?: number; queued?: number })(
+            source, [{ start: 0, end: 13 }, { start: 14, end: 23 }, { start: 24, end: 35 }], context.revision);
+        expect(result).toMatchObject({ ok: true, skippedDuplicates: 1, queued: 1 });
+        expect(current.state!.ops[NEW_LINE_KEY].draft.description).toBe("Fit doors");
+        expect(current.state!.workListQueue?.ranges).toHaveLength(1);
+        expect(nodes(view()).find(n => n.props["data-work-list-queue-status"])).toBeDefined();
     });
     it.each(["open-line", "adjustments", "advanced", "client-boq"])("rechecks %s even using an old list handler", boundary => {
         const old = chooser();

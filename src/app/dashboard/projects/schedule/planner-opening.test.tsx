@@ -86,7 +86,7 @@ function open(
     workingPattern?: unknown,
     projectExtra: Partial<Props["project"]> = {},
 ) {
-    const props: Props = { project: { id: "opening-check", name: "Example", start_date: startDate, programme_phases: phases,
+    const props: Props = { project: { id: "opening-check", name: "Example", start_date: startDate ?? undefined, programme_phases: phases,
         ...projectExtra,
         ...(workingPattern === undefined ? {} : { programme_working_pattern: workingPattern }) },
         projectId: "opening-check", estimate: startingEstimate, plannerDraftViewerScope: "viewer-a" };

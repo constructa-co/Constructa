@@ -166,7 +166,7 @@ export default function ProjectList({ projects, financials }: { projects: any[],
             isDark
                 ? "bg-[#1a1a1a] border-[#2a2a2a]"
                 : "bg-white border-gray-200 shadow-sm"
-        }`} data-dark={isDark} role="region" aria-label="Project list" tabIndex={0}>
+        }`} data-dark={isDark ? "true" : undefined} role="region" aria-label="Project list" tabIndex={0}>
             <table className="w-full text-sm text-left">
                 <thead className={`border-b uppercase text-xs ${
                     isDark

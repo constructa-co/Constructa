@@ -597,7 +597,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
     );
 
     return (
-        <div className={`${ui.workspace} space-y-5`} data-dark={isDark} onClickCapture={(event) => {
+        <div className={`${ui.workspace} space-y-5`} data-dark={isDark ? "true" : undefined} onClickCapture={(event) => {
             // Existing in-page fixes still reveal their mounted preparation fields.
             const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
             const hash = anchor?.getAttribute("href");

@@ -207,7 +207,7 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
             onCancel={cancelPendingMove}
         />
         {moveNotice && <p role={moveNotice.kind === "error" ? "alert" : "status"} className="mb-3 max-w-3xl rounded-lg border border-amber-500/40 bg-amber-950 px-4 py-3 text-sm leading-relaxed text-amber-100">{moveNotice.text}</p>}
-        <div className={`${ui.board} grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 h-full items-start md:min-w-[900px]`} data-dark={isDark}>
+        <div className={`${ui.board} grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 h-full items-start md:min-w-[900px]`} data-dark={isDark ? "true" : undefined}>
             {COLUMNS.map(col => {
                 const items = projects.filter(p => getStatus(p) === col.id);
                 // P1-4 — prefer the canonical contract sum from the active

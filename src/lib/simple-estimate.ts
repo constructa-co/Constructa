@@ -384,11 +384,18 @@ export interface LineOp {
     fieldErrors: PriceLineFieldErrors;
 }
 
+export type WorkListDraftQueue = {
+    source: string;
+    ranges: { start: number; end: number }[];
+};
+
 export interface EstimatingState {
     estimates: Estimate[];
     activeEstimateId: string;
     /** Id the first estimate will be created under, reused on every retry. */
     pendingEstimateId: string;
+    /** Pending work-description lines to open after each explicit Save. */
+    workListQueue: WorkListDraftQueue | null;
     ops: Record<string, LineOp>;
     adjustments: {
         open: boolean;
@@ -417,6 +424,7 @@ export function initialEstimatingState(
         activeEstimateId: pickInitialEstimateId(estimates, options.preferredEstimateId),
         pendingEstimateId: options.pendingEstimateId,
         ops: {},
+        workListQueue: null,
         adjustments: { open: false, status: "idle", draft: null, error: null, fieldErrors: {} },
         advancedOpen: false,
         notice: null,
@@ -572,7 +580,8 @@ export type EstimatingAction =
     | { type: "adjustments/failed"; error: string | null; fieldErrors?: AdjustmentFieldErrors }
     | { type: "adjustments/saved"; estimateId: string; input: AdjustmentsInput }
     | { type: "advanced/toggle" }
-    | { type: "notice/clear" };
+    | { type: "notice/clear" }
+    | { type: "work-list/queue"; queue: WorkListDraftQueue | null };
 
 function withoutOp(ops: Record<string, LineOp>, key: string): Record<string, LineOp> {
     const next = { ...ops };
@@ -680,8 +689,12 @@ export function estimatingReducer(state: EstimatingState, action: EstimatingActi
                 ...state,
                 activeEstimateId: action.estimateId,
                 ops: {},
+                workListQueue: null,
                 adjustments: { ...state.adjustments, status: "idle", draft: null, error: null, fieldErrors: {} },
             };
+
+        case "work-list/queue":
+            return { ...state, workListQueue: action.queue };
 
         case "estimates/replace": {
             const estimates = action.update(state.estimates);

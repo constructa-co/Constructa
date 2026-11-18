@@ -1,3 +1,22 @@
+## CON-070 queue stall repair — 18 November 2026 (post e12559d Sonnet review)
+
+After acknowledged Save, blocked/failed automatic continue **ends** the queue with visible status (descriptions stay in the typed list). Unrelated openers (`openAdd`, brief, saved-line reuse, pricing assistant, line edit) and Clear list cancel the queue. Save failure still retains queue. Vitest: `work-list-entry`, `price-work-list` (38 tests). `tsc --noEmit` pass.
+
+## CON-070 queue repair — 18 November 2026 (post ffb54c3 review)
+
+Visible queue remaining/status; Save-and-add-next off while queued; advance only after confirmed save; duplicate skip on bulk; failed/refused advance retains queue. Vitest: `work-list-entry`, `price-work-list` (33 tests). `tsc --noEmit` pass.
+
+## CON-070 — Estimating helper truthfulness + bulk list drafts — 18 November 2026
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `price-work-list.tsx` | “Turn a list into lines”; `Add every line as an unpriced draft` | No suggested rates; bulk draft queue after each Save |
+| `estimate-client.tsx` | Helpers note; Start from brief + long-brief guidance | Disabled whole-brief when >500 chars points to excerpt/list |
+| `simple-estimate.ts` | `workListQueue` state | Queue survives estimate revision after save |
+| Tests | work-list + brief pricing | Queue continuation; helper copy |
+
+Checks: `npx tsc --noEmit` pass; vitest on `price-work-list`, `work-list-entry`, `brief-pricing-entry` — 50 tests pass.
+
 ## CON-069 repair — 18 November 2026 (post 638e31a review)
 
 Acknowledged-discount baseline, missing-reason rollback, 100% warning, server `>25%` reason guard, interaction regression tests.

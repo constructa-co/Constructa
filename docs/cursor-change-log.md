@@ -1,5 +1,39 @@
 # Cursor change log
 
+## 2026-11-18 — CON-070 PR209 inline save-and-next await repair
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | `newLineProps.onSaveNext` (~308), `InlineNewPriceLine`/`LineForm` types | Return `submitPriceLine` promise from Save and add next; widen handler types | CI: `inline-price-entry` concurrency test can await confirmation before asserting contractSum 500 |
+
+## 2026-11-18 — CON-070 queue stall repair (e12559d Sonnet review)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `estimate-client.tsx` | `clearWorkListQueue`, `endWorkListQueueAfterContinueBlocked`, ~525–580, openers | End queue on post-save continue block/fail; clear queue on unrelated openers + `onQueueClear` | No stranded hidden queue; list text preserved for reopen |
+| `price-work-list.tsx` | `onQueueClear` prop | Clear list invokes parent queue reset | Cancel queue when typed list cleared |
+| `work-list-entry.test.tsx` | 4 cases | blocked/fail after save, edit opener, `onQueueClear` | Sonnet BLOCK regression coverage |
+| `price-work-list.test.tsx` | Clear list | `onQueueClear` contract | Component wire for queue reset |
+
+## 2026-11-18 — CON-070 bulk queue repair (ffb54c3 review)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/components/price-work-list.tsx` | helpers, `queuedRemaining`, bulk message | `filterUniqueWorkListRanges`; queue-remaining status; duplicate skip copy on bulk add | Visible queue progress; preserve per-row duplicate warnings |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | queue advance, `onSaveNext`, status UI | Advance queue only after confirmed save/open; disable Save-and-add-next when queued; refusal retains queue | Fix silent queue loss on failed save / blocked advance |
+| `src/app/dashboard/projects/costs/work-list-entry.test.tsx` | new cases | failed save + queue; Save-and-add-next; duplicate skip | Interaction contracts from Sonnet review |
+| `src/components/price-work-list.test.tsx` | filter + queued UI | duplicate filter unit; queued-remaining copy | Component-level regression |
+
+## 2026-11-18 — CON-070 estimating helper copy and bulk list drafts
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/components/price-work-list.tsx` | summary, help, `onOpenAll` | Rename to “Turn a list into lines”; truthful no-rates copy; **Add every line as an unpriced draft** | CON-070: no implied rate engine |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | brief button/help, helpers note, queue + `submitNewPriceLine` | Start from brief; long-brief pointer; work-list queue in state; chain drafts after Save | Bulk list flow without AI/library rates |
+| `src/lib/simple-estimate.ts` | `WorkListDraftQueue`, `work-list/queue` action | Persist pending list lines across saves | Queue survives save + revision bump |
+| `src/components/brief-price-excerpt.tsx` | help | No suggested rates/quantities | Truthful brief excerpt helper |
+| Tests | `price-work-list`, `work-list-entry`, `brief-pricing-entry` | `onOpenAll` + queue continuation; long-brief copy | Meaningful behaviour contracts only |
+
 ## 2026-11-18 — CON-069 repair (Sonnet 638e31a review)
 
 | File | Lines (approx.) | Change | Intent |

@@ -1,5 +1,17 @@
 # Cursor change log
 
+## 2026-11-19 — CON-074 dark selected pills and estimate total bar contrast
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/components/project-chooser.module.css` | `--chooser-selected-*`, `.viewBar`/`.viewButton`, period/list sort | Shared selected-state tokens for light/dark; board/list view pills use module CSS instead of low-contrast charcoal-on-charcoal Tailwind | Fix illegible This Month / List selection in dark theme; AA pairs via tokens |
+| `src/components/estimating.module.css` | `--price-totalbar-*`, `.totalDock` | Dark total bar uses deep sage (`#1e3428` / `#f3fff2`), not mint `--price-accent` | Stop light-green sticky total bar in dark estimating |
+| `src/app/dashboard/dashboard-client.tsx` | `data-dark`, view toggle | `data-dark="true"` string; view pills → `ui.viewBar` / `ui.viewButton` | Match `[data-dark="true"]` selectors so dark tokens apply |
+| `src/app/dashboard/project-list.tsx`, `project-board.tsx`, `review-send-client.tsx`, `first-project-start.tsx` | `data-dark` | Boolean → `"true"` string | Same dark-token wiring |
+| `src/app/dashboard/con-074-theme-contrast.test.tsx` | new | Token/CSS assertions + explicit WCAG contrast math on pairs | Regression without claiming browser axe |
+
+**Sibling `claude-d56-mobile-theme`:** changelog bundles CON-074 label with phone layout work only; no pill/total-bar token slice to port (avoided planner/units/quantity-draft overlap).
+
 ## 2026-11-19 — CON-073 history append best-effort + prior-status CAS
 
 | File | Lines (approx.) | Change | Intent |

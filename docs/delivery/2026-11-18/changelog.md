@@ -1,3 +1,16 @@
+## CON-069 — High discount confirmation — 18 November 2026
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `src/lib/discount-confirm.ts` | new | 25% threshold (`>25`); reason + contractor confirm; 100% allowed without large-discount warning | Single gate for simple + advanced |
+| `src/lib/simple-estimate.ts` | submitAdjustments | Optional `highDiscountConfirmed`; no maths changes | Block save until confirm |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | TotalCard + dialog | Required reason copy above 25%; cancel restores saved discount | Simple estimating |
+| `src/app/dashboard/projects/costs/advanced-estimate.tsx` | discount blur | Confirm dialog above 25%; baseline rollback on cancel/failure | Advanced estimating |
+| `src/app/dashboard/projects/costs/actions.ts` | margins/discount | 0–100 validation on write (D51 parity) | Keep server boundary |
+| Tests | 4 files | discount-confirm, simple-estimate, estimate-cancel, advanced smoke | ≤25 no confirm, >25 reason+confirm, cancel/no write, 100% no warning |
+
+Checks: `npm run typecheck` pass; `vitest run` on 4 CON-069 files — 61 tests pass.
+
 ## D51 CON023 / CON076 / CON083 — Job name limit + sign-in field help — 18 November 2026
 
 Integrated from authorised sibling return `claude-d51-profile-save` (bounded; no profile save timing, no isolation/auth changes).

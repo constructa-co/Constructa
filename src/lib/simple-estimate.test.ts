@@ -545,7 +545,7 @@ describe("price adjustments", () => {
         store.dispatch({ type: "adjustments/change", patch: { overhead: "10", profit: "20" } });
         expect(currentSummary(store.getState()).contractSum).toBe(1000);
 
-        expect(await submitAdjustments(store, server)).toBe(true);
+        expect(await submitAdjustments(store, server)).toEqual({ ok: true });
 
         expect(server.saveAdjustments).toHaveBeenCalledWith("est-1", {
             prelims_pct: 0, overhead_pct: 10, risk_pct: 0, profit_pct: 20, discount_pct: 0, discount_reason: "",
@@ -560,11 +560,11 @@ describe("price adjustments", () => {
         vi.mocked(server.saveAdjustments).mockResolvedValueOnce({ ok: false, error: ADJUSTMENTS_SAVE_ERROR });
         store.dispatch({ type: "adjustments/change", patch: { profit: "20" } });
 
-        expect(await submitAdjustments(store, server)).toBe(false);
+        expect(await submitAdjustments(store, server)).toEqual({ ok: false });
         expect(store.getState().adjustments).toMatchObject({ status: "failed", error: ADJUSTMENTS_SAVE_ERROR, draft: { profit: "20" } });
         expect(currentSummary(store.getState()).contractSum).toBe(1000);
 
-        expect(await submitAdjustments(store, server)).toBe(true);
+        expect(await submitAdjustments(store, server)).toEqual({ ok: true });
         expect(currentSummary(store.getState()).contractSum).toBe(1200);
     });
 
@@ -573,13 +573,62 @@ describe("price adjustments", () => {
         const server = fakeServer();
         store.dispatch({ type: "adjustments/change", patch: { profit: "150", risk: "-5" } });
 
-        expect(await submitAdjustments(store, server)).toBe(false);
+        expect(await submitAdjustments(store, server)).toMatchObject({ ok: false, fieldErrors: { profit: expect.any(String), risk: expect.any(String) } });
         expect(server.saveAdjustments).not.toHaveBeenCalled();
         expect(Object.keys(store.getState().adjustments.fieldErrors).sort()).toEqual(["profit", "risk"]);
         expect(buildAdjustments({ prelims: "", overhead: "12.5%", risk: "0", profit: "15", discount: "", discountReason: " Returning client " })).toEqual({
             ok: true,
             input: { prelims_pct: 0, overhead_pct: 12.5, risk_pct: 0, profit_pct: 15, discount_pct: 0, discount_reason: "Returning client" },
         });
+    });
+
+    it("saves a 25% discount without confirmation", async () => {
+        const store = makeStore(existing());
+        const server = fakeServer();
+        store.dispatch({ type: "adjustments/change", patch: { discount: "25" } });
+        expect(await submitAdjustments(store, server)).toEqual({ ok: true });
+        expect(server.saveAdjustments).toHaveBeenCalled();
+    });
+
+    it("asks for confirmation and a reason above 25% before saving", async () => {
+        const store = makeStore(existing());
+        const server = fakeServer();
+        store.dispatch({ type: "adjustments/change", patch: { discount: "30", discountReason: "Returning client" } });
+        expect(await submitAdjustments(store, server)).toEqual({
+            ok: false,
+            needsHighDiscountConfirm: true,
+            discountPct: 30,
+            showHighDiscountWarning: true,
+        });
+        expect(server.saveAdjustments).not.toHaveBeenCalled();
+
+        expect(await submitAdjustments(store, server, { highDiscountConfirmed: true })).toEqual({ ok: true });
+        expect(server.saveAdjustments).toHaveBeenCalledWith("est-1", expect.objectContaining({
+            discount_pct: 30,
+            discount_reason: "Returning client",
+        }));
+    });
+
+    it("refuses a high discount with no reason", async () => {
+        const store = makeStore(existing());
+        const server = fakeServer();
+        store.dispatch({ type: "adjustments/change", patch: { discount: "40" } });
+        const result = await submitAdjustments(store, server, { highDiscountConfirmed: true });
+        expect(result).toEqual({ ok: false, fieldErrors: { discountReason: expect.any(String) } });
+        expect(server.saveAdjustments).not.toHaveBeenCalled();
+    });
+
+    it("accepts 100% with confirm and reason but without the large-discount warning flag", async () => {
+        const store = makeStore(existing());
+        const server = fakeServer();
+        store.dispatch({ type: "adjustments/change", patch: { discount: "100", discountReason: "Promotional" } });
+        expect(await submitAdjustments(store, server)).toEqual({
+            ok: false,
+            needsHighDiscountConfirm: true,
+            discountPct: 100,
+            showHighDiscountWarning: false,
+        });
+        expect(await submitAdjustments(store, server, { highDiscountConfirmed: true })).toEqual({ ok: true });
     });
 });
 

@@ -27,7 +27,7 @@ Current count: 54 merged, 19 in progress, 0 in review, 12 Rob-gated, 0 not start
 | CON-020 | P1 | Claude | [#193](https://github.com/constructa-co/Constructa/pull/193) | merged | D51 batch 03 — Proposal PDF pricing |
 | CON-021 | P1 | Claude | [#193](https://github.com/constructa-co/Constructa/pull/193) | merged | D51 batch 03 — Proposal PDF pricing |
 | CON-022 | P1 | Cursor / Claude | [#181](https://github.com/constructa-co/Constructa/pull/181) | merged | Kimi PASS and GitHub CI green. |
-| CON-023 | P1 | Claude | — | in progress | D51 batch 01 — Profile, save and sign-in |
+| CON-023 | P1 | Claude | [#207](https://github.com/constructa-co/Constructa/pull/207) | in progress | Job-name limit feedback and sign-in field accessibility shipped at e6de701; main CI, secrets and production green. Broader original profile/save/sign-in scope remains open; no isolation or latency completion claimed. |
 | CON-024 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | merged | Independent PASS and GitHub browser green. |
 | CON-025 | P1 | Cursor | [#185](https://github.com/constructa-co/Constructa/pull/185) | in progress | — |
 | CON-026 | P1 | Cursor | [#185](https://github.com/constructa-co/Constructa/pull/185) | in progress | — |
@@ -80,13 +80,13 @@ Current count: 54 merged, 19 in progress, 0 in review, 12 Rob-gated, 0 not start
 | CON-073 | P2 | Claude | — | in progress | D51 batch 12 — Dashboard and demo state |
 | CON-074 | P2 | Claude | — | in progress | D51 batch 05 — Phone layout and theme |
 | CON-075 | P2 | Claude | — | in progress | D51 batch 12 — Dashboard and demo state |
-| CON-076 | P2 | Claude | — | in progress | D51 batch 01 — Profile, save and sign-in |
+| CON-076 | P2 | Claude | [#207](https://github.com/constructa-co/Constructa/pull/207) | in progress | Job-name limit feedback and sign-in field accessibility shipped at e6de701; main CI, secrets and production green. Broader original profile/save/sign-in scope remains open; no isolation or latency completion claimed. |
 | CON-077 | P2 | Claude | [#193](https://github.com/constructa-co/Constructa/pull/193) | merged | D51 batch 03 — Proposal PDF pricing |
 | CON-078 | P2 | Claude | — | in progress | D51 batch 12 — Dashboard and demo state |
 | CON-079 | P2 | Kimi | [#190](https://github.com/constructa-co/Constructa/pull/190) | merged | D51 batch 10 — Marketing navigation and copy |
 | CON-080 | P2 | Kimi | [#190](https://github.com/constructa-co/Constructa/pull/190) | merged | D51 batch 10 — Marketing navigation and copy |
 | CON-081 | P2 | Kimi | [#190](https://github.com/constructa-co/Constructa/pull/190) | merged | D51 batch 10 — Marketing navigation and copy |
 | CON-082 | P2 | Kimi | [#192](https://github.com/constructa-co/Constructa/pull/192) | merged | #192 merged at 2077384. Main CI, secret scan and production deployment passed. |
-| CON-083 | P2 | Claude | — | in progress | D51 batch 01 — Profile, save and sign-in |
+| CON-083 | P2 | Claude | [#207](https://github.com/constructa-co/Constructa/pull/207) | in progress | Job-name limit feedback and sign-in field accessibility shipped at e6de701; main CI, secrets and production green. Broader original profile/save/sign-in scope remains open; no isolation or latency completion claimed. |
 | CON-084 | P2 | Kimi | [#192](https://github.com/constructa-co/Constructa/pull/192) | merged | #192 merged at 2077384. Main CI, secret scan and production deployment passed. |
 | CON-085 | P2 | Kimi | [#192](https://github.com/constructa-co/Constructa/pull/192) | merged | #192 merged at 2077384. Main CI, secret scan and production deployment passed. |

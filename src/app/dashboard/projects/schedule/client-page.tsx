@@ -253,25 +253,27 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
             if (trackingDelta) {
                 const associationError = programmeTrackingAssociationError(published, input.phases);
                 if (associationError) {
+                    if (planningDelta) {
+                        return { input, result: await savePlannerDraft() };
+                    }
                     return { input, result: { success: false, error: associationError } };
                 }
                 const phasesForPublished = mergeTrackingOntoPublishedPlanning(
                     published, input.phases,
                 ) as Phase[];
                 const trackResult = await updatePhasesAction(
-                    project.id, phasesForPublished, input.startDate,
+                    project.id, phasesForPublished, publishedStart,
                     ...(input.workingPattern === undefined ? [] : [input.workingPattern]),
                 );
                 if (!trackResult.success) return { input, result: trackResult };
                 proposalPhasesRef.current = phasesForPublished;
-                proposalStartRef.current = input.startDate;
 
                 if (planningDelta) {
                     return { input, result: await savePlannerDraft() };
                 }
                 clearLocalPlannerDraft(project.id, plannerDraftStorageScope);
                 const cleared = await clearProgrammePlannerDraftAction(
-                    project.id, phasesForPublished, input.startDate,
+                    project.id, phasesForPublished, publishedStart,
                 );
                 return { input, result: cleared.success ? trackResult : cleared };
             }

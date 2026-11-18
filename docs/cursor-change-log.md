@@ -1,5 +1,14 @@
 # Cursor change log
 
+## 2026-11-18 — CON-044 #206 fbec22b Sonnet review blockers (tracking start date, draft on refusal, duplicate publish)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/programme-planner-draft.ts` | `programmeIdentityCollisionsInvolvingTracking` | Duplicate identity refuses tracking only when colliding stages carry tracking data | Untracked duplicate stages remain publishable |
+| `src/app/dashboard/projects/schedule/client-page.tsx` | tracking autosave branch | `updatePhasesAction` / draft clear use `publishedStart`; on association failure with planning delta, draft autosave still runs | Published calendar stays on programme_phases; planning edits durable when tracking cannot merge |
+| `src/lib/programme-planner-draft.test.ts` | duplicate cases | Split no-tracking vs tracked duplicate | Regression for blocker 3 |
+| `src/app/dashboard/projects/schedule/planner-opening.test.tsx` | CON-044 describe | Assert tracking write start arg; manual save duplicates; rename keeps draft without tracking write | Regression for blockers 1–3 |
+
 ## 2026-11-18 — CON-044 #206 679bccc B1–B4 tracking association repair (codex/con-044-publication-review)
 
 | File | Lines (approx.) | Change | Intent |

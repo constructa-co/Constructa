@@ -55,9 +55,30 @@ export function programmePhaseIdentityCollisions(phases: unknown[]): boolean {
     return false;
 }
 
+/** Duplicate identity keys only block tracking when at least one colliding stage carries tracking data. */
+export function programmeIdentityCollisionsInvolvingTracking(phases: unknown[]): boolean {
+    const byKey = new Map<string, unknown[]>();
+    for (const phase of phases) {
+        const key = programmePhaseIdentityKey(phase);
+        if (!key) continue;
+        const bucket = byKey.get(key) ?? [];
+        bucket.push(phase);
+        byKey.set(key, bucket);
+    }
+    for (const group of byKey.values()) {
+        if (group.length < 2) continue;
+        const anyTracking = group.some(phase => trackingRecordHasData(trackingFieldsOf(phase)));
+        if (anyTracking) return true;
+    }
+    return false;
+}
+
 /** Refuse when tracking cannot be mapped uniquely between published and on-screen stages. */
 export function programmeTrackingAssociationError(published: unknown[], observed: unknown[]): string | null {
-    if (programmePhaseIdentityCollisions(published) || programmePhaseIdentityCollisions(observed)) {
+    if (
+        programmeIdentityCollisionsInvolvingTracking(published)
+        || programmeIdentityCollisionsInvolvingTracking(observed)
+    ) {
         return PROGRAMME_TRACKING_ASSOCIATION_ERROR;
     }
     const pub = trackingByIdentity(published);

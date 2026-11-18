@@ -90,7 +90,13 @@ describe("programme planner draft helpers", () => {
         expect(programmeTrackingAssociationError(published, renamed)).toBe(PROGRAMME_TRACKING_ASSOCIATION_ERROR);
     });
 
-    it("refuses ambiguous tracking when two stages share the same identity", () => {
+    it("allows duplicate identity when no stage has tracking data", () => {
+        const base = { name: "Snagging", calculatedDays: 5, manualDays: 5, manhours: 0, startOffset: 0 };
+        const duplicate = [base, { ...base, startOffset: 7 }];
+        expect(programmeTrackingAssociationError(duplicate, duplicate)).toBeNull();
+    });
+
+    it("refuses ambiguous tracking when duplicate identity includes tracked stages", () => {
         const duplicate = [phase("Snagging", 10), phase("Snagging", 0)];
         expect(programmeTrackingAssociationError(duplicate, duplicate)).toBe(PROGRAMME_TRACKING_ASSOCIATION_ERROR);
     });

@@ -696,11 +696,25 @@ describe("programme Save and autosave operation-scoped status", () => {
             await settle(view);
             expect(lifecycle.trackingWrite).toHaveBeenCalledTimes(1);
             expect(lifecycle.trackingWrite.mock.calls[0][1][0].pct_complete).toBe(35);
+            expect(lifecycle.trackingWrite.mock.calls[0][2]).toBe("2026-10-19");
             expect(lifecycle.draftWrite).toHaveBeenCalledTimes(1);
             expect(lifecycle.draftWrite.mock.calls[0][2]).toBe("2026-10-26");
         });
 
-        it("refuses tracking autosave when a published stage was renamed in the draft", async () => {
+        it("manual save publishes duplicate stages when none have tracking", async () => {
+            const published = [
+                { ...stages[0], name: "Snagging" },
+                { ...stages[0], name: "Snagging", startOffset: 7 },
+            ];
+            const view = open(published, null, true, "2026-10-19");
+            await settle(view);
+            lifecycle.proposalWrite.mockClear();
+            view.save();
+            await settle(view);
+            expect(lifecycle.proposalWrite).toHaveBeenCalledTimes(1);
+        });
+
+        it("skips tracking publish but keeps drafting when a tracked stage was renamed or resized", async () => {
             const published = [{ ...stages[0], pct_complete: 60 }];
             const pending = {
                 phases: [{ ...stages[0], name: "Renamed demo", startOffset: 0 }],
@@ -720,9 +734,9 @@ describe("programme Save and autosave operation-scoped status", () => {
             await vi.advanceTimersByTimeAsync(500);
             await settle(view);
             expect(lifecycle.trackingWrite).not.toHaveBeenCalled();
-            expect(lifecycle.draftWrite).not.toHaveBeenCalled();
-            expect(lifecycle.error).toHaveBeenCalled();
-            expect(view.saveStatus()?.["data-programme-save-state"]).toBe("error");
+            expect(lifecycle.draftWrite).toHaveBeenCalledTimes(1);
+            expect(lifecycle.draftWrite.mock.calls[0][1][0]).toMatchObject({ name: "Renamed demo" });
+            expect(lifecycle.error).not.toHaveBeenCalled();
             expect(view.names()).toContain("Renamed demo");
         });
     });

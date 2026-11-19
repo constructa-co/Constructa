@@ -30,18 +30,18 @@ Do not ship until the destination exists. Intro copy above the form:
 
 > **Send us a message**
 >
-> This form sends your message to [OWNER INPUT: destination — e.g. the Constructa team inbox, name the system if there is one]. [OWNER INPUT: one plain sentence on handling and retention, e.g. "We use it only to reply to you and delete it within …"]. It does not subscribe you to anything.
+> This form sends your message to [ROB TO CONFIRM] [destination — e.g. the Constructa team inbox, name the system if there is one]. [ROB TO CONFIRM] [one plain sentence on handling and retention, e.g. "We use it only to reply to you and delete it within …"]. [ROB TO CONFIRM] [Confirm that the implemented form creates no subscription.]
 
 Success copy:
 
-> **Message sent.** Thank you — [OWNER INPUT: truthful next step, e.g. "we read every message and reply from hello@constructa.co."]. If you do not hear back, email us directly at hello@constructa.co.
+> **Message sent.** Thank you — [ROB TO CONFIRM] [truthful next step, e.g. "we read every message and reply from hello@constructa.co."]. If you do not hear back, email us directly at hello@constructa.co.
 
 ## Draft C — Response-time line (needs the #3 decision)
 
 Two variants, pick only after Rob confirms:
 
-1. Commitment confirmed: "We reply within [OWNER INPUT: period, e.g. 1 working day]."
-2. No commitment approved: "We read every message and reply as soon as we can."
+1. Commitment confirmed: "We reply within [ROB TO CONFIRM] [period, e.g. 1 working day]."
+2. No response time promised: "[ROB TO CONFIRM] [Confirm who reads and replies before stating that messages are read and answered.]"
 
 ## Flag for review (not a draft change)
 

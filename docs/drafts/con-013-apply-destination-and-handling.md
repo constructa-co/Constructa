@@ -12,17 +12,17 @@ Current state: the apply page and form exist (`src/components/marketing/founding
 
 Storage notice copy (replaces the preview notice):
 
-> When you send this application, the details you enter are stored by [OWNER INPUT: destination — name the system and who operates it] so the Constructa team can review your application. [OWNER INPUT: retention sentence, e.g. "We keep applications for … and delete them if you are not offered a place."] [OWNER INPUT: access sentence, e.g. "You can ask us to see or delete your application at hello@constructa.co."]
+> When you send this application, the details you enter are stored by [ROB TO CONFIRM] [destination — name the system and who operates it] so the Constructa team can review your application. [ROB TO CONFIRM] [retention sentence, e.g. "We keep applications for … and delete them if you are not offered a place."] [ROB TO CONFIRM] [access sentence, e.g. "You can ask us to see or delete your application at hello@constructa.co."]
 
 Form success copy:
 
-> **Application received.** Thank you — the Constructa team reads every application. [OWNER INPUT: truthful next step and timing, e.g. "We reply to every applicant by email."]
+> **Application received.** Thank you — [ROB TO CONFIRM] [Confirm who reviews applications and whether every application is reviewed.] [ROB TO CONFIRM] [truthful next step and timing, e.g. "We reply to every applicant by email."]
 
 ## Variant 2 — Staying a non-submitting preview (no destination chosen)
 
 Keep the current approved framing; optional tightening only:
 
-> This application form is a preview of the founding-cohort process. It cannot accept submissions yet. Nothing you type here is sent or stored. If you would like to register interest, email hello@constructa.co.
+> This application form is a preview of the founding-cohort process. It cannot accept submissions yet. [ROB TO CONFIRM] [Confirm the exact browser, logging and storage behaviour before making a no-send/no-storage claim.] If you would like to register interest, email hello@constructa.co.
 
 Rules for variant 2:
 

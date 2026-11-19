@@ -12,10 +12,10 @@ No legal identity exists in any approved source. These drafts use placeholders o
 
 Placement: site footer, small print, all public pages.
 
-> © [OWNER INPUT: year range, e.g. 2026] [OWNER INPUT: legal entity name]. All rights reserved.
-> [OWNER INPUT: legal entity name] is [OWNER INPUT: registered in England and Wales / Scotland / other] · Company number [OWNER INPUT: company registration number] · Registered office: [OWNER INPUT: registered office address][OWNER INPUT: optional " · VAT number GB[…]" if registered]
+> © [ROB TO CONFIRM] [year range, e.g. 2026] [ROB TO CONFIRM] [legal entity name]. All rights reserved.
+> [ROB TO CONFIRM] [legal entity name] is [ROB TO CONFIRM] [registered in England and Wales / Scotland / other] · Company number [ROB TO CONFIRM] [company registration number] · Registered office: [ROB TO CONFIRM] [registered office address][ROB TO CONFIRM] [optional " · VAT number GB[…]" if registered]
 
-If the trading name "Constructa" differs from the legal entity name, add one line: "Constructa is the trading name of [OWNER INPUT: legal entity name]."
+If the trading name "Constructa" differs from the legal entity name, add one line: "Constructa is the trading name of [ROB TO CONFIRM] [legal entity name]."
 
 ## Draft B — About page "The company" paragraph
 
@@ -23,7 +23,7 @@ Placement: end of `full-about.tsx` / the About page, after the existing provenan
 
 > **The company behind Constructa**
 >
-> Constructa is built by [OWNER INPUT: legal entity name], [OWNER INPUT: one plain sentence about the company — where it is based and what it does, e.g. "a UK company building software for domestic and commercial contractors."]. You can reach the team at hello@constructa.co.
+> Constructa is built by [ROB TO CONFIRM] [legal entity name], [ROB TO CONFIRM] [one plain sentence about the company — where it is based and what it does, e.g. "a UK company building software for domestic and commercial contractors."]. You can reach the team at hello@constructa.co.
 
 ## Rules
 

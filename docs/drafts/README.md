@@ -2,15 +2,15 @@
 
 **Status of everything in this folder: PRIVATE REVIEW DRAFT · NOT APPROVED · NOT PUBLISHED · NOT SCHEDULED**
 **Author:** Kimi, 18 November 2026, branch `kimi/marketing-drafts-20261118` (Constructa CTO 00:26 batch, item 4, due 08:00)
-**Packaging:** files only, staged for Codex review and draft-PR packaging. No commit, push, PR, build, deploy or publication by Kimi.
+**Packaging:** original Kimi drafts are in draft PR #204. The 19 November Codex finishing pass changes Markdown only; no build, product change or publication is implied.
 
 ## What this folder is
 
-Draft copy for the marketing-site items of the 85-item snag tracker (`docs/snags/grok-20261115-tracker.md`, head `b1e0618`, 53 merged / 20 in progress / 12 Rob-gated) that are still open **because an approved owner input is missing**. Nothing here is wired into `src/`. Nothing here may ship as-is.
+Draft copy for the marketing-site items of the 85-item snag tracker (`docs/snags/grok-20261115-tracker.md`, current programme record `ef01014`, 62 delivered / 11 in progress / 12 Rob-gated (19 November; this draft branch does not replace that tracker)) that are still open **because an approved owner input is missing**. Nothing here is wired into `src/`. Nothing here may ship as-is.
 
 ## Placeholder convention
 
-`[OWNER INPUT: ...]` marks every fact that must come from Rob before publication: testimonials, pricing, legal identity, contact/application destinations, retention and handling statements. A draft containing any `[OWNER INPUT]` token must never be published, sent, scheduled or merged into a page without the input being supplied and the draft re-marked approved by a human reviewer. Drafts deliberately invent **no** testimonials, **no** prices, **no** legal identity and **no** destinations.
+`[ROB TO CONFIRM]` followed by a bracketed description marks every fact that must come from Rob before publication: testimonials, pricing, legal identity, contact/application destinations, retention and handling statements. A draft containing any `[ROB TO CONFIRM]` token must never be published, sent, scheduled or merged into a page without the input being supplied and the draft re-marked approved by a human reviewer. Drafts deliberately invent **no** testimonials, **no** prices, **no** legal identity and **no** destinations.
 
 ## Index
 
@@ -31,3 +31,11 @@ Draft copy for the marketing-site items of the 85-item snag tracker (`docs/snags
 - Held back — do not imply available: live AI chat assistance, payments/checkout, general sign-up, live customer jobs.
 - No invented testimonials, adoption stats, savings figures, price quotes, security certification or launch dates. The only date in approved copy is "Founding cohort opens 7 December 2026".
 - Canonical links only: `https://www.constructa.co/`, `/features`, `/pricing`, `/apply` — no UTMs, short links or new paths.
+
+## 19 November finishing pass — ready for Kimi/Rob review
+
+Codex applied the CTO 19 November 15:25 direction to these existing drafts without a build or product change. Original draft author remains Kimi; this finishing pass is Codex's work. Kimi Desktop currently shows a login screen and the established relay cannot be read (missing source rollout), so no fresh Kimi submission or return is claimed.
+
+Every unverified commercial fact or proposed operational commitment is marked `[ROB TO CONFIRM]`. Supplied source facts stay separate: existing-review-account framing, Apply separate from sign-in, no preview payment/subscription, the source's 7 December cohort wording, and the existing email link. These are descriptions of repository copy, not a new launch, response-time or data-handling promise. See `source-facts-and-review-handoff.md`.
+
+Draft PR #204 remains the only destination. Push is authorised; merge, publication, signup, forms, settings, legal approval and data handling changes are not. This package is complete as a marked draft; Rob's fact/approval decisions and Kimi's authenticated review remain open.

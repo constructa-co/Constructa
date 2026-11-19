@@ -14,13 +14,13 @@ Rules before this ever ships: every quote is a real quote from a real named revi
 
 > **What reviewers say**
 >
-> "[Exact approved words from reviewer 1.]" — [Full name or approved attribution], [role, e.g. "Director, [company type] contracting"], [context, e.g. "reviewed the phase-one proposal flow"]
+> [ROB TO CONFIRM] "[Exact approved words from reviewer 1.]" — [Full name or approved attribution], [role, e.g. "Director, [company type] contracting"], [context, e.g. "reviewed the phase-one proposal flow"]
 >
-> "[Exact approved words from reviewer 2.]" — [Attribution 2]
+> [ROB TO CONFIRM] "[Exact approved words from reviewer 2.]" — [Attribution 2]
 >
-> "[Exact approved words from reviewer 3.]" — [Attribution 3]
+> [ROB TO CONFIRM] "[Exact approved words from reviewer 3.]" — [Attribution 3]
 >
-> Reviewers used an existing review account during the phase-one preview. Their words describe their review experience; they are not a promise of results for your business.
+> [ROB TO CONFIRM] [Confirm the real reviewers and permission before using this context.] Reviewers used an existing review account during the phase-one preview. Their words describe their review experience; they are not a promise of results for your business.
 
 Placement note: after the journey/steps section on `full-home.tsx`, before the contact section. Tone matches the existing plain, non-hype voice (cf. "Good work. Clearly priced. Better presented." on `phase-one.tsx` — do not imitate that phrase inside quotes).
 
@@ -34,11 +34,11 @@ Blocked on confirmed pricing (missing input #2). Every number below is a placeho
 >
 > One plan at a time, priced plainly. The phase-one preview does not take a payment.
 >
-> - [OWNER INPUT: plan name] — [OWNER INPUT: price and billing period] — [OWNER INPUT: one-line scope]
-> - [OWNER INPUT: plan name] — [OWNER INPUT: price and billing period] — [OWNER INPUT: one-line scope]
-> - [OWNER INPUT: plan name] — [OWNER INPUT: price and billing period] — [OWNER INPUT: one-line scope]
+> - [ROB TO CONFIRM] [plan name] — [ROB TO CONFIRM] [price and billing period] — [ROB TO CONFIRM] [one-line scope]
+> - [ROB TO CONFIRM] [plan name] — [ROB TO CONFIRM] [price and billing period] — [ROB TO CONFIRM] [one-line scope]
+> - [ROB TO CONFIRM] [plan name] — [ROB TO CONFIRM] [price and billing period] — [ROB TO CONFIRM] [one-line scope]
 >
-> Founding cohort terms: [OWNER INPUT: cohort pricing terms, or state "available on application"]. Full details: https://www.constructa.co/pricing
+> Founding cohort terms: [ROB TO CONFIRM] [cohort pricing terms, or state "available on application"]. Full details: https://www.constructa.co/pricing
 
 Hard rules:
 

@@ -14,31 +14,31 @@ This is interface copy, not client-facing legal text. It tells the contractor wh
 
 > **Check the terms match your client**
 >
-> These terms are written for work for a homeowner. They state that the client is a domestic client (CDM) and name the RICS Homeowner Adjudication Scheme. If this job is for a business or organisation, review clauses 3 and 9 before sending, or choose terms written for commercial clients. [OWNER INPUT: second sentence stays only if a commercial set is approved; otherwise delete it.]
+> These terms are written for work for a homeowner. They state that the client is a domestic client (CDM) and name the RICS Homeowner Adjudication Scheme. If this job is for a business or organisation, review clauses 3 and 9 before sending, or choose terms written for commercial clients. [ROB TO CONFIRM] [second sentence stays only if a commercial set is approved; otherwise delete it.]
 
 Behaviour note for Codex: this notice should read the brief's `client_type` and appear only when it says commercial while the standard set is selected. Wiring is a product decision, not part of this copy draft.
 
 ## Draft B — Clause-wording skeletons (placeholders only)
 
-Structure for the decisions Rob listed in the D51 note (items 2–5). Each `[OWNER INPUT: ...]` must be replaced by approved wording; until then these skeletons never leave this folder.
+Structure for the decisions Rob listed in the D51 note (items 2–5). Each `[ROB TO CONFIRM] [...]` must be replaced by approved wording; until then these skeletons never leave this folder.
 
 Clause 3 (Adjudication) — commercial variant skeleton:
 
-> [OWNER INPUT: approved non-domestic dispute-resolution wording. Must not name the RICS Homeowner Adjudication Scheme for a commercial client.]
+> [ROB TO CONFIRM] [approved non-domestic dispute-resolution wording. Must not name the RICS Homeowner Adjudication Scheme for a commercial client.]
 
 Clause 9 (Health, Safety & CDM) — commercial variant skeleton:
 
-> [OWNER INPUT: approved CDM wording for a non-domestic client, including who holds Principal Contractor / Principal Designer duties.]
+> [ROB TO CONFIRM] [approved CDM wording for a non-domestic client, including who holds Principal Contractor / Principal Designer duties.]
 
 Optional additional clauses — domestic set skeletons (Termination / Final Account / Retention, per D51 owner decision 4):
 
-> [OWNER INPUT: Termination clause wording — who may end the contract, notice, payment for work done.]
-> [OWNER INPUT: Final Account wording — how the last payment is calculated and agreed.]
-> [OWNER INPUT: Retention wording — whether retention applies, at what percentage, and when released.]
+> [ROB TO CONFIRM] [Termination clause wording — who may end the contract, notice, payment for work done.]
+> [ROB TO CONFIRM] [Final Account wording — how the last payment is calculated and agreed.]
+> [ROB TO CONFIRM] [Retention wording — whether retention applies, at what percentage, and when released.]
 
 Payments reconciliation (D51 owner decision 5):
 
-> [OWNER INPUT: one sentence tying clause 7 payment dates to the payment stages printed on the proposal, so the two cannot contradict each other.]
+> [ROB TO CONFIRM] [one sentence tying clause 7 payment dates to the payment stages printed on the proposal, so the two cannot contradict each other.]
 
 ## Rules
 

@@ -31,3 +31,5 @@ node node_modules/@playwright/test/cli.js test \
 - `con043-phone-{360,390,430}-proposal-review.png`
 - `con043-phone-journey-evidence.json` — branch, head, source hashes, limitations
 The package retains the CON074 compiler scenario. Extra installed-package resolution and unused Node built-in adapters are confined to the two phone fixture scenarios. Set `CONSTRUCTA_PHONE_EVIDENCE_DIR` to retain a verification run outside the checked-in evidence directory.
+
+The retained six-test receipt is `playwright-final-result.json`, extracted after the reporter completed at capture head `b766075`; the capture manifest references its separate final reporter rather than embedding an earlier result.

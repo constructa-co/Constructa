@@ -1,8 +1,8 @@
 {
-  "recordedAt": "2026-11-19T10:25:30.773Z",
+  "recordedAt": "2026-11-19T10:34:32.268Z",
   "registerId": "CON-043",
-  "branch": "codex/con-043-phone-journey-evidence",
-  "head": "611d767df409a20d17a0e818247d5fece3ebc059",
+  "branch": "codex/con-043-phone-evidence-package",
+  "head": "b766075907ec974dee1a847c5ec5cecd3bf4b410",
   "base": "611d767df409a20d17a0e818247d5fece3ebc059",
   "composerModel": "composer-2.5-fast=false",
   "viewports": [
@@ -11,8 +11,8 @@
     430
   ],
   "compileOutputs": {
-    "estimate": "/tmp/con043est",
-    "proposal": "/tmp/con043pv"
+    "estimate": "/Users/robertsmith/cos-inbox/constructa-runs/con043-b766075-verification/estimate",
+    "proposal": "/Users/robertsmith/cos-inbox/constructa-runs/con043-b766075-verification/proposal"
   },
   "estimateBundleScope": "Actual EstimateClient add alongside two retained saved lines;MOCK saveLine refusal thenack fromsubmittedargs/existingestimateId;no downstreamreseed/AuthDB/hosted",
   "proposalBundleScope": "Actual proposal review/document dialog/native Edge modal;synthetic data/mock actions/router/theme;no save/send/download/Auth/DB/provider/hosted journey",
@@ -355,11 +355,11 @@
         "sha256": "7c8c3dfc0cdd370d44932828eb067ef771c8fe7996693221d5d4b90af6d54f2d"
       },
       {
-        "path": "/Users/robertsmith/dev/constructa-fresh-20261025/node_modules/clsx/dist/clsx.js",
+        "path": "/Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/codex-d36-markup-package-20261116/node_modules/clsx/dist/clsx.js",
         "sha256": "a2ba9f4c5fe36617aa930a5269bd910a2cafc7066398835d63cf3733f5c0651a"
       },
       {
-        "path": "/Users/robertsmith/dev/constructa-fresh-20261025/node_modules/tailwind-merge/dist/bundle-cjs.js",
+        "path": "/Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/codex-d36-markup-package-20261116/node_modules/tailwind-merge/dist/bundle-cjs.js",
         "sha256": "19aa176d1cb3f9026e4019206b6d05f11c754bbb1c3009c9b4193a1da4f95b92"
       },
       {
@@ -1533,11 +1533,11 @@
   "limitations": [
     "Two-legged offline fixture (estimate then proposal-view), not one continuous routed journey.",
     "Synthetic offline Playwright on about:blank; not Auth, PostgREST, Next routing or hosted URL.",
-    "Programme phone date list accepted at 611d767 \u2014 not re-tested here.",
+    "Programme phone date list accepted at 611d767 — not re-tested here.",
     "MOCK saveLine refusal/ack only on estimate leg; proposal leg uses existing synthetic context."
   ],
   "scope": {
-    "acceptance": "SYNTHETIC_OFFLINE_ONLY \u2014 not hosted Constructa acceptance",
+    "acceptance": "SYNTHETIC_OFFLINE_ONLY — not hosted Constructa acceptance",
     "programmePhoneList": "NOT_RUN (shipped PR216 at 611d767)",
     "estimateUnitFullWidth": "NOT_RUN (shipped #203)",
     "advancedDockPadding": "NOT_RUN (shipped CON-032/181)",
@@ -1547,159 +1547,8 @@
     "authDatabaseHosted": "NOT_RUN"
   },
   "playwright": {
-    "config": {
-      "argv": [
-        "/opt/homebrew/Cellar/node/26.12.1_1/bin/node",
-        "/Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/codex-d36-markup-package-20261116/node_modules/@playwright/test/cli.js",
-        "test",
-        "--config=playwright.local-phone-journey-estimate-proposal.config.ts",
-        "--grep",
-        "@390px: add"
-      ],
-      "configFile": "/Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/con-043-phone-journey-evidence/playwright.local-phone-journey-estimate-proposal.config.ts",
-      "rootDir": "/Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/con-043-phone-journey-evidence/e2e/local-phase1",
-      "failOnFlakyTests": false,
-      "forbidOnly": true,
-      "fullyParallel": false,
-      "globalSetup": null,
-      "globalTeardown": null,
-      "globalTimeout": 0,
-      "grep": {},
-      "grepInvert": null,
-      "maxFailures": 0,
-      "metadata": {
-        "actualWorkers": 1
-      },
-      "preserveOutput": "always",
-      "projects": [
-        {
-          "outputDir": "/tmp/con043est/browser-output",
-          "repeatEach": 1,
-          "retries": 0,
-          "metadata": {
-            "actualWorkers": 1
-          },
-          "id": "",
-          "name": "",
-          "testDir": "/Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/con-043-phone-journey-evidence/e2e/local-phase1",
-          "testIgnore": [],
-          "testMatch": [
-            "phone-journey-estimate-proposal.spec.ts"
-          ],
-          "timeout": 60000
-        }
-      ],
-      "quiet": false,
-      "reporter": [
-        [
-          "json",
-          {
-            "outputFile": "/tmp/con043est/browser-results.json"
-          }
-        ]
-      ],
-      "reportSlowTests": {
-        "max": 5,
-        "threshold": 300000
-      },
-      "shard": null,
-      "tags": [],
-      "updateSnapshots": "missing",
-      "updateSourceMethod": "patch",
-      "version": "1.63.0",
-      "workers": 1,
-      "webServer": null
-    },
-    "suites": [
-      {
-        "title": "phone-journey-estimate-proposal.spec.ts",
-        "file": "phone-journey-estimate-proposal.spec.ts",
-        "column": 0,
-        "line": 0,
-        "specs": [
-          {
-            "title": "CON-043 estimate @390px: add line, working total, dock must not hide Save line",
-            "ok": false,
-            "tags": [
-              "390px:"
-            ],
-            "tests": [
-              {
-                "timeout": 60000,
-                "annotations": [],
-                "expectedStatus": "passed",
-                "projectId": "",
-                "projectName": "",
-                "results": [
-                  {
-                    "workerIndex": 0,
-                    "parallelIndex": 0,
-                    "status": "failed",
-                    "duration": 1118,
-                    "error": {
-                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m",
-                      "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n    at expectControlReachable (/Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/con-043-phone-journey-evidence/e2e/local-phase1/phone-journey-estimate-proposal.spec.ts:90:23)\n    at /Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/con-043-phone-journey-evidence/e2e/local-phase1/phone-journey-estimate-proposal.spec.ts:116:9",
-                      "location": {
-                        "file": "/Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/con-043-phone-journey-evidence/e2e/local-phase1/phone-journey-estimate-proposal.spec.ts",
-                        "column": 23,
-                        "line": 90
-                      },
-                      "snippet": "  88 |         return hit === el || (hit !== null && el.contains(hit));\n  89 |     });\n> 90 |     expect(reachable).toBe(true);\n     |                       ^\n  91 | }\n  92 |\n  93 | for (const viewport of PHONE_VIEWPORTS) {"
-                    },
-                    "errors": [
-                      {
-                        "location": {
-                          "file": "/Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/con-043-phone-journey-evidence/e2e/local-phase1/phone-journey-estimate-proposal.spec.ts",
-                          "column": 23,
-                          "line": 90
-                        },
-                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\n  88 |         return hit === el || (hit !== null && el.contains(hit));\n  89 |     });\n> 90 |     expect(reachable).toBe(true);\n     |                       ^\n  91 | }\n  92 |\n  93 | for (const viewport of PHONE_VIEWPORTS) {\n    at expectControlReachable (/Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/con-043-phone-journey-evidence/e2e/local-phase1/phone-journey-estimate-proposal.spec.ts:90:23)\n    at /Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/con-043-phone-journey-evidence/e2e/local-phase1/phone-journey-estimate-proposal.spec.ts:116:9"
-                      }
-                    ],
-                    "stdout": [],
-                    "stderr": [],
-                    "retry": 0,
-                    "startTime": "2026-11-19T10:25:01.914Z",
-                    "annotations": [],
-                    "attachments": [
-                      {
-                        "name": "error-context",
-                        "contentType": "text/markdown",
-                        "path": "/tmp/con043est/browser-output/phone-journey-estimate-pro-3159e-ock-must-not-hide-Save-line/error-context.md"
-                      },
-                      {
-                        "name": "error-context",
-                        "contentType": "text/markdown",
-                        "path": "/tmp/con043est/browser-output/phone-journey-estimate-pro-3159e-ock-must-not-hide-Save-line/error-context.md"
-                      }
-                    ],
-                    "errorLocation": {
-                      "file": "/Users/robertsmith/dev/constructa-fresh-20261025/.cq-wt/con-043-phone-journey-evidence/e2e/local-phase1/phone-journey-estimate-proposal.spec.ts",
-                      "column": 23,
-                      "line": 90
-                    }
-                  }
-                ],
-                "status": "unexpected"
-              }
-            ],
-            "id": "384e3cc10bc2e2758c37-12c99f3b08e823a1c763",
-            "file": "phone-journey-estimate-proposal.spec.ts",
-            "line": 94,
-            "column": 9
-          }
-        ]
-      }
-    ],
-    "errors": [],
-    "stats": {
-      "startTime": "2026-11-19T10:25:01.660Z",
-      "duration": 3373.6549999999997,
-      "expected": 0,
-      "skipped": 0,
-      "unexpected": 1,
-      "flaky": 0
-    }
+    "reportPath": "/Users/robertsmith/cos-inbox/constructa-runs/con043-b766075-verification/estimate/browser-results.json",
+    "note": "The final reporter writes this after capture; read its completed result separately."
   },
-  "evidenceManifestSha256": "c9ee8f1048d82729bc5f667f816ac305f3c3fe5327c45a4061665db135e0b188"
+  "evidenceManifestSha256": "cabed21bd9b975b633d5335f328f8ba8376214222bb26257b227fea65404143e"
 }

@@ -1,5 +1,17 @@
 # Cursor change log
 
+## 2026-11-19 — CON-075 hide days open without enquiry_date (presentation fix)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/dashboard/pipeline-card-facts.ts` | `PipelineOpenFacts`, `pipelineDaysOpenAge` | Age from `enquiry_date` only; never `created_at` | HIDE outcome — no invented enquiry / no 218d demo |
+| `src/app/dashboard/pipeline-card-facts.test.ts` | `pipelineDaysOpenAge` cases | `created_at`-only → null; `enquiry_date` → age | Regression helpers |
+| `src/app/dashboard/pipeline-days-open-display.test.tsx` | list + board | 218d `created_at` demo: no column, no board age, no amber | CON-075 UI regression |
+| `src/app/dashboard/project-list.tsx` | header, body, colspan | Remove Days Open column and sort; colspan 7 | No meaningless header/cells |
+| `src/app/dashboard/project-board.tsx` | value strip | Remove open-age label (no dash) | Board consistent with hide |
+
+**Preserved:** archived exclusion from prior commit; `projectAge` helper for future `enquiry_date`; Sent Date and other sort/metrics unchanged.
+
 ## 2026-11-19 — CON-075 pipeline days open (S35)
 
 | File | Lines (approx.) | Change | Intent |

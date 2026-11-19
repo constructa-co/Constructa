@@ -12,7 +12,7 @@ describe("projectAge", () => {
         expect(projectAge(daysAgo(days), now)).toMatchObject({ days, label });
     });
 
-    it("describes the age in full with the date added", () => {
+    it("describes the age in full with the enquiry date", () => {
         expect(projectAge(daysAgo(0), now)?.description).toMatch(/^Open since today \(16 Nov 2026\)$/);
         expect(projectAge(daysAgo(1), now)?.description).toMatch(/^Open 1 day \(15 Nov 2026\)$/);
         expect(projectAge(daysAgo(40), now)?.description).toMatch(/^Open 40 days \(7 Oct 2026\)$/);
@@ -30,15 +30,25 @@ describe("projectAge", () => {
 
 describe("pipelineDaysOpenAge", () => {
     const now = Date.parse("2026-11-16T12:00:00.000Z");
-    const created = new Date(now - 12 * 86_400_000).toISOString();
+    const enquiry = new Date(now - 12 * 86_400_000).toISOString();
+    const oldCreated = new Date(now - 218 * 86_400_000).toISOString();
 
-    it("returns null for archived projects even with a valid created_at", () => {
-        expect(pipelineDaysOpenAge({ created_at: created, is_archived: true }, now)).toBeNull();
+    it("returns null for archived projects even with enquiry_date", () => {
+        expect(pipelineDaysOpenAge({ enquiry_date: enquiry, is_archived: true }, now)).toBeNull();
     });
 
-    it("matches projectAge for active pipeline rows", () => {
-        expect(pipelineDaysOpenAge({ created_at: created, is_archived: false }, now)).toEqual(
-            projectAge(created, now),
+    it("returns null when only created_at is present (no enquiry_date)", () => {
+        expect(pipelineDaysOpenAge({ enquiry_date: undefined, is_archived: false }, now)).toBeNull();
+        expect(
+            pipelineDaysOpenAge({ enquiry_date: null, is_archived: false }, now),
+        ).toBeNull();
+        expect(projectAge(oldCreated, now)?.days).toBe(218);
+        expect(pipelineDaysOpenAge({ enquiry_date: undefined, is_archived: false }, now)).toBeNull();
+    });
+
+    it("matches projectAge when enquiry_date is set", () => {
+        expect(pipelineDaysOpenAge({ enquiry_date: enquiry, is_archived: false }, now)).toEqual(
+            projectAge(enquiry, now),
         );
     });
 });

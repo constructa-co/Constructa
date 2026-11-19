@@ -12,37 +12,36 @@ export interface ProjectAge {
 }
 
 export interface PipelineOpenFacts {
-    /** System record of when the job entered Constructa (until a user-editable enquiry date exists). */
-    created_at?: string | null;
+    /** Genuine enquiry capture date only — not created_at. */
+    enquiry_date?: string | null;
     is_archived?: boolean | null;
 }
 
 /**
- * Age since the job was added (created_at), not time in its current stage.
- * Returns null when the date is missing, unreadable or more than a day ahead,
- * so callers show a dash instead of "0d", "NaNd" or a negative age.
+ * Age since a dated event (e.g. enquiry). Returns null when the date is missing,
+ * unreadable or more than a day ahead, so callers show nothing instead of "0d", "NaNd" or a negative age.
  */
-export function projectAge(createdAt: string | null | undefined, now: number = Date.now()): ProjectAge | null {
-    if (!createdAt) return null;
-    const created = new Date(createdAt);
-    const elapsed = now - created.getTime();
+export function projectAge(openFrom: string | null | undefined, now: number = Date.now()): ProjectAge | null {
+    if (!openFrom) return null;
+    const opened = new Date(openFrom);
+    const elapsed = now - opened.getTime();
     if (!Number.isFinite(elapsed) || elapsed <= -DAY_MS) return null;
     const days = Math.max(0, Math.floor(elapsed / DAY_MS));
-    const addedOn = created.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    const openedOn = opened.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
     const description = days === 0
-        ? `Open since today (${addedOn})`
-        : `Open ${days} day${days === 1 ? "" : "s"} (${addedOn})`;
+        ? `Open since today (${openedOn})`
+        : `Open ${days} day${days === 1 ? "" : "s"} (${openedOn})`;
     return { days, label: compactAge(days), description };
 }
 
 /**
- * Days open for pipeline list/board: uses created_at (enquiry capture date).
- * No separate enquiry_date column exists yet — callers hide when the date is unusable.
+ * Days open for pipeline list/board: enquiry_date only.
+ * No enquiry_date column exists yet — always hidden until one is available.
  * Archived jobs are excluded from display metrics.
  */
 export function pipelineDaysOpenAge(project: PipelineOpenFacts, now: number = Date.now()): ProjectAge | null {
     if (project.is_archived) return null;
-    return projectAge(project.created_at, now);
+    return projectAge(project.enquiry_date, now);
 }
 
 function compactAge(days: number): string {

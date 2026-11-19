@@ -32,7 +32,6 @@ import ui from "@/components/project-board.module.css";
 import { corePipelineMicroLinkColor, corePipelineMutedIconButton } from "@/lib/core-editing-palette";
 import { PIPELINE_CHANGE_UNCONFIRMED, PIPELINE_REFRESH_UNCONFIRMED } from "@/lib/pipeline-feedback";
 import { pipelineStageDisplayLabel } from "./pipeline-stage-display";
-import { pipelineDaysOpenAge } from "./pipeline-card-facts";
 import { PipelineStageMoveDialog, type PipelineStageMovePrompt } from "./pipeline-stage-move-dialog";
 
 const COLUMNS = [
@@ -254,7 +253,6 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                 : `${col.border} ${col.color} scrollbar-thumb-slate-200`
                         }`}>
                             {items.map(p => {
-                                const age = pipelineDaysOpenAge(p);
                                 // P1-4 — canonical contract sum wins; fall back to the
                                 // lead-stage rough estimate only if nothing priced yet.
                                 const value = financials[p.id] > 0 ? financials[p.id] : (p.potential_value || 0);
@@ -286,17 +284,10 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                 </span>
                                             )}
 
-                                            {/* VALUE & DAYS */}
-                                            <div className={`flex items-center justify-between py-2 border-y ${isDark ? "border-[#2a2a2a]" : "border-gray-100"}`}>
+                                            {/* VALUE */}
+                                            <div className={`py-2 border-y ${isDark ? "border-[#2a2a2a]" : "border-gray-100"}`}>
                                                 <span className={`font-mono font-black text-xs ${isDark ? "text-white" : "text-gray-900"}`}>
                                                     {value ? `£${value.toLocaleString("en-GB", { maximumFractionDigits: 0 })}` : "£—"}
-                                                </span>
-                                                <span
-                                                    data-board-age
-                                                    title={age ? age.description : "Date added not recorded"}
-                                                    className={`text-[9px] font-bold ${age && age.days > 30 ? "text-amber-500" : isDark ? "text-[#a0a0a0]" : "text-gray-600"}`}
-                                                >
-                                                    {age ? (age.days === 0 ? "Open today" : `Open ${age.label}`) : "—"}
                                                 </span>
                                             </div>
 

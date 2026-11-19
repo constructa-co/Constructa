@@ -83,11 +83,6 @@ function getTypeBadgeClass(type: string | null, isDark: boolean): string {
     return isDark ? colors.dark : colors.light;
 }
 
-function getDaysInStage(createdAt: string | null): number {
-    if (!createdAt) return 0;
-    return Math.floor((Date.now() - new Date(createdAt).getTime()) / 86400000);
-}
-
 function formatPlatformSendAt(iso: string): string {
     return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
@@ -258,7 +253,6 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                 : `${col.border} ${col.color} scrollbar-thumb-slate-200`
                         }`}>
                             {items.map(p => {
-                                const days = getDaysInStage(p.created_at);
                                 // P1-4 — canonical contract sum wins; fall back to the
                                 // lead-stage rough estimate only if nothing priced yet.
                                 const value = financials[p.id] > 0 ? financials[p.id] : (p.potential_value || 0);
@@ -290,13 +284,10 @@ export default function ProjectBoard({ projects, financials }: { projects: any[]
                                                 </span>
                                             )}
 
-                                            {/* VALUE & DAYS */}
-                                            <div className={`flex items-center justify-between py-2 border-y ${isDark ? "border-[#2a2a2a]" : "border-gray-100"}`}>
+                                            {/* VALUE */}
+                                            <div className={`py-2 border-y ${isDark ? "border-[#2a2a2a]" : "border-gray-100"}`}>
                                                 <span className={`font-mono font-black text-xs ${isDark ? "text-white" : "text-gray-900"}`}>
                                                     {value ? `£${value.toLocaleString("en-GB", { maximumFractionDigits: 0 })}` : "£—"}
-                                                </span>
-                                                <span className={`text-[9px] font-bold ${days > 30 ? "text-amber-500" : isDark ? "text-[#a0a0a0]" : "text-gray-600"}`}>
-                                                    {days}d
                                                 </span>
                                             </div>
 

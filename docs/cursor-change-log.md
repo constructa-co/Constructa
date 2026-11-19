@@ -1,5 +1,15 @@
 # Cursor change log
 
+## 2026-11-19 — CON-043 phone editing table horizontal scroll (bounded)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/dashboard/projects/schedule/client-page.tsx` | Gantt card ~1009–1260 | `data-planner-editing-table-scroll` with `overflow-x-auto lg:overflow-x-visible`; header/body `min-w-[444px] lg:min-w-[900px]` | Restore phone scroll for 444px fixed editing columns without putting `overflow-x-auto` on the outer card; phone date list unchanged |
+| `src/app/dashboard/projects/schedule/schedule-control-palette.test.tsx` | desktop layout case | Assert editing scroll wrapper and 444px min width | Regression |
+| `src/app/dashboard/projects/schedule/planner-phone-phase-list.test.tsx` | bounded list case | Assert editing scroll markup alongside phone list | CON-043 scroll repair |
+
+**Preserved:** `PlannerPhonePhaseList` default phone view; no maths or storage changes.
+
 ## 2026-11-19 — CON-043 phone programme phase list (detailed planner)
 
 | File | Lines (approx.) | Change | Intent |

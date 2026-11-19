@@ -1007,9 +1007,9 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                 // stage columns stay in view while the timeline scrolls sideways. Below lg, stages edit
                 // here without the chart; dates sit in the phone phase list from the same displayPlan.
                 <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl lg:overflow-x-auto lg:max-h-[75vh]">
-
+                    <div data-planner-editing-table-scroll className="overflow-x-auto lg:overflow-x-visible">
                     {/* Column headers */}
-                    <div className="flex min-w-0 lg:min-w-[900px] border-b border-slate-700/50 bg-slate-900/40 lg:sticky lg:top-0 lg:z-40 lg:bg-slate-900">
+                    <div className="flex min-w-[444px] lg:min-w-[900px] border-b border-slate-700/50 bg-slate-900/40 lg:sticky lg:top-0 lg:z-40 lg:bg-slate-900">
                         <div className="flex shrink-0 w-full lg:w-auto lg:sticky lg:left-0 lg:z-10 lg:bg-slate-900">
                             <div className="w-[216px] shrink-0 border-r border-slate-700/50 px-3 py-2.5">
                                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Phase / Trade</span>
@@ -1043,7 +1043,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                     </div>
 
                     {/* Body */}
-                    <div className="flex min-w-0 lg:min-w-[900px]">
+                    <div className="flex min-w-[444px] lg:min-w-[900px]">
 
                         {/* Left panel */}
                         <div className="shrink-0 w-full lg:w-auto border-slate-700/50 lg:border-r lg:sticky lg:left-0 lg:z-30 lg:bg-slate-900">
@@ -1256,6 +1256,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                                 );
                             })}
                         </div>
+                    </div>
                     </div>
                 </div>
             )}

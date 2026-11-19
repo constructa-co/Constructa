@@ -52,6 +52,8 @@ describe("CON-043 phone programme phase list", () => {
         expect(html).toMatch(/data-planner-phone-phase-list[^>]*class="[^"]*lg:hidden/);
         expect(html).toMatch(/class="hidden lg:block flex-1 relative/);
         expect(html).toMatch(/hidden lg:flex flex-1/);
+        expect(html).toMatch(/data-planner-editing-table-scroll[^>]*class="[^"]*overflow-x-auto/);
+        expect(html).toMatch(/min-w-\[444px\][^"]*lg:min-w-\[900px\]/);
     });
 
     it("matches the same canonical stage dates and working durations as the desktop inline labels", () => {

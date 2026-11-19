@@ -6,7 +6,18 @@ import { execFileSync } from 'node:child_process';
 
 const dir = path.dirname(new URL(import.meta.url).pathname);
 const root = path.resolve(dir, '../..');
-const deps = path.join(root, 'node_modules');
+const worktreeDeps = path.join(root, 'node_modules');
+const sharedDeps = path.resolve(root, '../../node_modules');
+const worktreeDepsLinked = (() => {
+  try {
+    return fs.lstatSync(worktreeDeps).isSymbolicLink();
+  } catch {
+    return false;
+  }
+})();
+const deps = worktreeDepsLinked && fs.existsSync(path.join(sharedDeps, 'typescript/lib/typescript.js'))
+  ? sharedDeps
+  : worktreeDeps;
 const out = process.argv[2];
 const scenario = process.argv[3] ?? 'brief-price';
 if (!['a051-advanced-boq', 'import-render', 'existing-price-uncertain', 'detailed-geometry', 'brief-price', 'first-job', 'programme-pdf', 'proposal-view', 'journey', 'unseeded-journey', 'pricing-payments-journey', 'terms-flow', 'reader-styled', 'programme-styled', 'build-up', 'built-up-proposal', 'activity-grouping', 'reported-calendar', 'signup-native', 'profile-sections', 'completion-native', 'existing-price-native', 'signin-native', 'existing-estimate-add', 'programme-mode', 'boq-activity-boundary', 'a003-palette', 'a111-readability', 'keyboard-price', 'callback-native', 'signup-outcome-native', 'con074-contrast'].includes(scenario)) throw Error('Unknown offline scenario.');
@@ -47,7 +58,12 @@ function stylesheet(file) {
   if (!virtual[id]) { styleSheets.push(source.replace(/\.([A-Za-z][\w-]*)/g,(_,key)=>'.'+classes[key])); virtual[id]='module.exports='+JSON.stringify(classes)+';'; }
   return 'virtual:'+id;
 }
+const phoneEvidenceScenario = ['existing-estimate-add', 'proposal-view'].includes(scenario);
+const nodeBuiltInStub = 'module.exports={};exports={};';
 const virtual = {
+  ...( (phoneEvidenceScenario ? ['fs','path','crypto','stream','buffer','util','os','zlib','http','https','url','assert','events','child_process',
+      'node:fs','node:path','node:crypto','node:stream','node:buffer','node:util','node:os','node:zlib','node:http','node:https','node:url','node:assert','node:events','node:child_process'] : [])
+      .reduce((acc, key) => { acc[key] = nodeBuiltInStub; return acc; }, {}) ),
   'next/link': `const React=require('react');module.exports=React.forwardRef(function Link({href,children,...props},ref){return React.createElement('a',{...props,href,ref},children)});`,
   'next/navigation': scenario === 'a111-readability' || scenario === 'con074-contrast'
     ? `exports.useRouter=()=>window.${fixtureGlobal}.router;exports.usePathname=()=>String(window.${fixtureGlobal}.pathname||'/dashboard').split('?')[0];exports.useSearchParams=()=>{const f=window.${fixtureGlobal};if(!f._searchParamsView){const p=f.searchParams||{};f._searchParamsView={get:(k)=>Object.prototype.hasOwnProperty.call(p,k)?p[k]:null,has:(k)=>Object.prototype.hasOwnProperty.call(p,k),toString:()=>''};}return f._searchParamsView;};`
@@ -117,6 +133,31 @@ const packages = {
   // The profile form also imports the installed toast package.
   ...(lazyScenario || scenario === 'profile-sections' ? { sonner: 'sonner/dist/index.js' } : {}),
 };
+function resolveInstalledPackage(specifier, depsRoot) {
+  const parts = specifier.split('/');
+  const pkgName = specifier.startsWith('@') ? `${parts[0]}/${parts[1]}` : parts[0];
+  const subpath = specifier.startsWith('@') ? parts.slice(2).join('/') : parts.slice(1).join('/');
+  const pkgRoot = path.join(depsRoot, pkgName);
+  if (subpath) {
+    for (const candidate of [
+      path.join(pkgRoot, `${subpath}.js`),
+      path.join(pkgRoot, subpath),
+      path.join(pkgRoot, subpath, 'index.js'),
+    ]) {
+      if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) return candidate;
+    }
+  }
+  const pkgJson = path.join(pkgRoot, 'package.json');
+  if (!fs.existsSync(pkgJson)) return null;
+  const meta = JSON.parse(fs.readFileSync(pkgJson, 'utf8'));
+  let rel = meta.main || meta.module || 'dist/index.js';
+  if (rel.endsWith('.mjs')) {
+    const cjs = rel.replace(/\.mjs$/, '.js');
+    if (fs.existsSync(path.join(pkgRoot, cjs))) rel = cjs;
+  }
+  const entry = path.resolve(pkgRoot, rel);
+  return fs.existsSync(entry) ? entry : null;
+}
 function resolve(specifier, parent) {
   if (virtual[specifier]) return `virtual:${specifier}`;
   if (plannerScenario && specifier === './actions' && /\/projects\/schedule\/(client-page|programme-ai-update)\.tsx$/.test(parent)) return 'virtual:planner-actions-mock';
@@ -136,8 +177,14 @@ function resolve(specifier, parent) {
     return `virtual:con074-${specifier.slice(2)}`;
   }
   if (scenario === 'con074-contrast' && specifier === '@radix-ui/react-dialog') return 'virtual:radix-dialog';
-  const base = specifier.startsWith('@/') ? path.resolve(root, 'src', specifier.slice(2)) : path.resolve(path.dirname(parent), specifier);
+  if (phoneEvidenceScenario && !specifier.startsWith('@/') && !specifier.startsWith('.')) {
+    for (const depsRoot of [deps, sharedDeps]) {
+      const entry = resolveInstalledPackage(specifier, depsRoot);
+      if (entry) return entry;
+    }
+  }
   if (!specifier.startsWith('@/') && !specifier.startsWith('.')) throw Error(`Unexpected browser dependency: ${specifier}`);
+  const base = specifier.startsWith('@/') ? path.resolve(root, 'src', specifier.slice(2)) : path.resolve(path.dirname(parent), specifier);
   for (const suffix of ['', '.ts', '.tsx', '.js', '/index.ts', '/index.js']) {
     if (fs.existsSync(base + suffix) && fs.statSync(base + suffix).isFile()) return base + suffix;
   }
@@ -145,6 +192,10 @@ function resolve(specifier, parent) {
 }
 function compile(id) {
   if (modules.has(id)) return;
+  if (/\.json$/i.test(id) && !id.startsWith('virtual:')) {
+    modules.set(id, { code: `module.exports=${read(id)};`, dependencies: {} });
+    return;
+  }
   modules.set(id, null);
   let source;
   try { source = id.startsWith('virtual:') ? virtual[id.slice(8)] : read(id); }

@@ -6,7 +6,11 @@ vi.mock("@/lib/pipeline-stage-history", () => ({
     appendPipelineStageHistory: (...args: unknown[]) => mocks.appendHistory(...args),
 }));
 import { markAsWonAction, updateStatusAction, updateTypeAction } from "./board-actions";
-import { PIPELINE_CHANGE_UNCONFIRMED } from "@/lib/pipeline-feedback";
+import {
+    PIPELINE_CHANGE_UNCONFIRMED,
+    PIPELINE_HISTORY_UNRECORDED,
+    PIPELINE_REFRESH_UNCONFIRMED,
+} from "@/lib/pipeline-feedback";
 
 const user = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const project = "11111111-1111-4111-8111-111111111111";
@@ -80,7 +84,7 @@ function typeForm(id: string, type: string) {
 beforeEach(() => {
     vi.clearAllMocks();
     mocks.revalidate.mockReset();
-    mocks.appendHistory.mockReset().mockResolvedValue({ recorded: false, schemaGate: true });
+    mocks.appendHistory.mockReset().mockResolvedValue({ recorded: true });
 });
 describe("pipeline server mutation acknowledgement", () => {
     it.each(["error", "empty", "throw", "wrong-id", "wrong-status"] as const)("does not confirm an ordinary stage change on %s", async kind => {
@@ -110,12 +114,32 @@ describe("pipeline server mutation acknowledgement", () => {
             toStatus: "Lost",
         });
     });
-    it("still confirms the stage write when history append throws", async () => {
+    it("still confirms the stage write when history append throws and warns that history was not recorded", async () => {
         setup();
         mocks.appendHistory.mockRejectedValue(new Error("history insert threw"));
         const result = await updateStatusAction(project, "Estimating");
-        expect(result).toEqual({ success: true });
+        expect(result).toEqual({ success: true, warning: PIPELINE_HISTORY_UNRECORDED });
         expect(mocks.revalidate).toHaveBeenCalledWith("/dashboard");
+    });
+    it.each([
+        { recorded: false, schemaGate: true as const },
+        { recorded: false, schemaGate: false as const },
+    ])("warns when history is not recorded (schemaGate=$schemaGate)", async historyResult => {
+        setup();
+        mocks.appendHistory.mockResolvedValue(historyResult);
+        expect(await updateStatusAction(project, "Estimating")).toEqual({
+            success: true,
+            warning: PIPELINE_HISTORY_UNRECORDED,
+        });
+    });
+    it("combines history and refresh warnings without reporting the stage as unsaved", async () => {
+        setup();
+        mocks.appendHistory.mockResolvedValue({ recorded: false, schemaGate: true });
+        mocks.revalidate.mockImplementation(() => { throw Error("cache failure"); });
+        expect(await updateStatusAction(project, "Estimating")).toEqual({
+            success: true,
+            warning: `${PIPELINE_HISTORY_UNRECORDED} ${PIPELINE_REFRESH_UNCONFIRMED}`,
+        });
     });
     it("does not write when the prior stage cannot be read", async () => {
         setup("missing-prior");

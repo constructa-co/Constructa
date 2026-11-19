@@ -22,7 +22,7 @@ import { resolveJobWorkingPattern } from "@/lib/job-working-pattern";
 import { estimateSectionsFromWork, estimateSuggestedPhases, sequenceSuggestedPhases, type PlannerPhase } from "@/lib/planner-phases";
 import { validateProgrammeDependencies } from "@/lib/programme-phase-dependencies";
 import { WORKING_DAYS_PER_WEEK } from "@/lib/programme-plan";
-import { PROGRAMME_PLANNER_DRAFT_UNAVAILABLE, phasesWithoutTrackingFields } from "@/lib/programme-planner-draft";
+import { PROGRAMME_PLANNER_DRAFT_UNAVAILABLE, PROGRAMME_REFRESH_WARNING, phasesWithoutTrackingFields } from "@/lib/programme-planner-draft";
 
 // This separate argument is deliberately not parsed by UpdatePhasesSchema, which strips unknown keys.
 function parseExpectedWorkingPattern(value: unknown) {
@@ -259,7 +259,7 @@ export async function saveProgrammePhasesAction(
     phases: any[],
     expectedWorkingPattern?: unknown,
     startDate?: string,
-): Promise<void> {
+): Promise<{ warning: string } | undefined> {
     const dependencyCheck = validateProgrammeDependencies(phases);
     if (!dependencyCheck.ok) throw new Error(dependencyCheck.error);
     const { user, supabase } = await requireEditableProjectAccess(projectId);
@@ -273,9 +273,17 @@ export async function saveProgrammePhasesAction(
     } catch {
         // Published programme is saved; draft clear is best-effort when the column exists.
     }
-    revalidatePath("/dashboard/projects/schedule");
-    revalidatePath("/dashboard/projects/proposal");
-    revalidatePath("/proposal", "layout");
+    // The write above is committed. A cache-refresh failure must not be reported
+    // as a failed save, or the client would show an error for stored planning.
+    try {
+        revalidatePath("/dashboard/projects/schedule");
+        revalidatePath("/dashboard/projects/proposal");
+        revalidatePath("/proposal", "layout");
+    } catch (err) {
+        console.error("saveProgrammePhasesAction: programme stored but cache refresh failed", { projectId, err });
+        return { warning: PROGRAMME_REFRESH_WARNING };
+    }
+    return undefined;
 }
 
 // ── Sprint 31: Live Programme Tracking ───────────────────────────────────────

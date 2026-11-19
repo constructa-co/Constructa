@@ -58,9 +58,12 @@ type ProgrammeWrite = {
     context: string;
     workingPattern?: unknown;
 };
+// `warning` marks a committed write whose page refresh failed; it is not a failure.
+type ProgrammeWriteResult = { success: true; warning?: string } | { success: false; error: string };
 type ProgrammeSaveStatus = {
     state: "idle" | "saving" | "saved" | "error" | "uncertain";
     savedAt?: string;
+    warning?: string;
     kind: ProgrammeWrite["kind"];
     operation: symbol | null;
     context: string;
@@ -206,7 +209,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
     const proposalPhasesRef = useRef<Phase[]>([]);
     const proposalStartRef = useRef<string>("");
     const [persistProgrammeWrite] = useState(() => createLatestWriteQueue(
-        (input: ProgrammeWrite) => serializeProgrammeWrite(async () => {
+        (input: ProgrammeWrite) => serializeProgrammeWrite(async (): Promise<{ input: ProgrammeWrite; result: ProgrammeWriteResult }> => {
             if (input.kind === "manual") {
                 const associationError = programmeTrackingAssociationError(
                     proposalPhasesRef.current, input.phases,
@@ -214,7 +217,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                 if (associationError) {
                     return { input, result: { success: false, error: associationError } };
                 }
-                await saveProgrammePhasesAction(
+                const saved = await saveProgrammePhasesAction(
                     project.id,
                     input.phases,
                     input.workingPattern,
@@ -223,7 +226,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                 clearLocalPlannerDraft(project.id, plannerDraftStorageScope);
                 proposalPhasesRef.current = input.phases;
                 proposalStartRef.current = input.startDate;
-                return { input, result: { success: true as const } };
+                return { input, result: { success: true as const, ...(saved?.warning ? { warning: saved.warning } : {}) } };
             }
             const published = proposalPhasesRef.current;
             const publishedStart = proposalStartRef.current;
@@ -407,8 +410,10 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                 return;
             }
             const savedAt = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-            setSaveStatus({ ...input, state: "saved", savedAt });
+            const warning = receipt.result.warning;
+            setSaveStatus({ ...input, state: "saved", savedAt, warning });
             if (kind === "manual") toast.success("Programme saved to proposal");
+            if (warning) toast.warning(warning);
         } catch {
             if (!isCurrent()) return;
             setSaveStatus({ ...input, state: "uncertain" });
@@ -420,7 +425,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
         ? (saveStatus.kind === "manual" ? "Saving programme to proposal..." : "Auto-saving changes...")
         : currentSaveState === "saved"
             ? (saveStatus.kind === "manual"
-                ? `Programme saved to proposal at ${saveStatus.savedAt}`
+                ? `Programme saved to proposal at ${saveStatus.savedAt}${saveStatus.warning ? `. ${saveStatus.warning}` : ""}`
                 : `Changes auto-saved at ${saveStatus.savedAt}`)
             : currentSaveState === "error" ? "Save not confirmed. Current stages remain on screen."
                 : currentSaveState === "uncertain" ? "Save uncertain: it may already have completed. Review before retrying."
@@ -776,11 +781,13 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                 if (!isCurrent()) return;
                 if (serverPhases.length > 0) {
                     const resequenced = sequenceSuggestedPhases(serverPhases, daysPerWeek, toInputDate(programmeStart), workingPattern);
+                    let refreshWarning: string | undefined;
                     const saved = await serializeProgrammeWrite(async () => {
                         if (!isCurrent()) return false;
                         attemptedSave = true;
                         // This existing action resolves only after its guarded write; refusals throw.
-                        await saveProgrammePhasesAction(projectId, resequenced, expectedWorkingPattern, toInputDate(programmeStart));
+                        const outcome = await saveProgrammePhasesAction(projectId, resequenced, expectedWorkingPattern, toInputDate(programmeStart));
+                        refreshWarning = outcome?.warning;
                         return true;
                     });
                     if (!saved) return;
@@ -798,6 +805,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                     setPhases(previous => previous === phases ? resequenced : previous);
                     setIsSuggestion(false);
                     toast.success("Programme regenerated from estimate and saved");
+                    if (refreshWarning) toast.warning(refreshWarning);
                 } else {
                     const regenerated = estimateSuggestedPhases(estimate, daysPerWeek, toInputDate(programmeStart), workingPattern);
                     if (regenerated.length > 0) {

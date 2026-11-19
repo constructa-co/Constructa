@@ -1,5 +1,16 @@
 # Cursor change log
 
+## 2026-11-19 — CON-043 phone estimate total and proposal review evidence
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `e2e/local-phase1/phone-journey-estimate-proposal.spec.ts` | new | Dual-bundle Edge tests at 360/390/430; add-line MOCK ack; trial-click reachability; screenshots + JSON manifest | Close remaining CON-043 scope without programme re-test |
+| `playwright.local-phone-journey-estimate-proposal.config.ts` | new | Config for dual compile outputs (`CONSTRUCTA_LOCAL_ESTIMATE_OUTPUT` + `CONSTRUCTA_LOCAL_PROPOSAL_OUTPUT`) | Reuse existing fixture compiles |
+| `e2e/local-phase1/build-brief-price.mjs` | resolve/compile | JSON bundle support, installed package resolution, symlinked `node_modules` fallback, clearer transpile errors | Unblock offline compile after `uk-bank-holidays-bundled.json` / Radix graph growth |
+| `docs/evidence/con-043-phone-journey-evidence/*` | new | PNG captures + `con043-phone-journey-evidence.json` + README | Synthetic offline evidence; not hosted acceptance |
+
+**Preserved:** Programme phone list at `611d767`; unit full-width #203; CON-032/181 dock padding — not duplicated. No app product source edits.
+
 ## 2026-11-19 — CON-074 browser/axe contrast evidence (offline fixture)
 
 | File | Lines (approx.) | Change | Intent |

@@ -1,0 +1,68 @@
+{
+  "captureHead": "b766075",
+  "stats": {
+    "startTime": "2026-11-19T10:34:25.206Z",
+    "duration": 8355.65,
+    "expected": 6,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "title": "CON-043 estimate @360px: add line, working total, dock must not hide Save line",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "title": "CON-043 proposal @360px: Prepare and Review document controls reachable",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "title": "CON-043 estimate @390px: add line, working total, dock must not hide Save line",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "title": "CON-043 proposal @390px: Prepare and Review document controls reachable",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "title": "CON-043 estimate @430px: add line, working total, dock must not hide Save line",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "title": "CON-043 proposal @430px: Prepare and Review document controls reachable",
+      "ok": true,
+      "results": [
+        {
+          "status": "passed"
+        }
+      ]
+    }
+  ],
+  "scope": "Completed final reporter result; six synthetic offline Edge tests, not hosted acceptance"
+}

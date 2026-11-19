@@ -95,29 +95,41 @@ export async function saveSimplePriceLineAction(request: SavePriceLineRequest): 
     try {
         const { supabase, user } = await requireEditableProjectAccess(projectId);
 
-        const { data: project, error: projectError } = await supabase
-            .from("projects")
-            .select("organization_id, status")
-            .eq("id", projectId)
-            .eq("user_id", user.id)
-            .single();
-        if (projectError || !project) return { ok: false, error: LINE_SAVE_ERROR };
-
         let estimateId = parsed.data.estimateId;
         let clientBoQ = false;
         let createdHere = false;
         const clientHadNoEstimate = estimateId === null;
 
-        if (estimateId) {
-            const { data: owned } = await supabase
-                .from("estimates")
-                .select("id, is_client_boq")
-                .eq("id", estimateId)
-                .eq("project_id", projectId)
-                .maybeSingle();
+        let project: { organization_id: string | null; status: string | null };
+
+        if (parsed.data.estimateId) {
+            const [{ data: projectData, error: projectError }, { data: owned }] = await Promise.all([
+                supabase
+                    .from("projects")
+                    .select("organization_id, status")
+                    .eq("id", projectId)
+                    .eq("user_id", user.id)
+                    .single(),
+                supabase
+                    .from("estimates")
+                    .select("id, is_client_boq")
+                    .eq("id", parsed.data.estimateId)
+                    .eq("project_id", projectId)
+                    .maybeSingle(),
+            ]);
+            if (projectError || !projectData) return { ok: false, error: LINE_SAVE_ERROR };
+            project = projectData;
             if (!owned) return { ok: false, error: "This estimate is no longer available. Reload the page and try again." };
             clientBoQ = !!owned.is_client_boq;
         } else {
+            const { data: projectData, error: projectError } = await supabase
+                .from("projects")
+                .select("organization_id, status")
+                .eq("id", projectId)
+                .eq("user_id", user.id)
+                .single();
+            if (projectError || !projectData) return { ok: false, error: LINE_SAVE_ERROR };
+            project = projectData;
             // Another tab, or an earlier attempt, may already have made one.
             const { data: existing, error: existingError } = await supabase
                 .from("estimates")

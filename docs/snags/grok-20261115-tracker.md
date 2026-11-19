@@ -2,7 +2,7 @@
 
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
-Current count: 62 merged, 11 in progress, 0 in review, 12 Rob-gated, 0 not started.
+Current count: 63 merged, 10 in progress, 0 in review, 12 Rob-gated, 0 not started.
 
 | --- | --- | --- | --- | --- | --- |
 | CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
@@ -27,7 +27,7 @@ Current count: 62 merged, 11 in progress, 0 in review, 12 Rob-gated, 0 not start
 | CON-020 | P1 | Claude | [#193](https://github.com/constructa-co/Constructa/pull/193) | merged | D51 batch 03 — Proposal PDF pricing |
 | CON-021 | P1 | Claude | [#193](https://github.com/constructa-co/Constructa/pull/193) | merged | D51 batch 03 — Proposal PDF pricing |
 | CON-022 | P1 | Cursor / Claude | [#181](https://github.com/constructa-co/Constructa/pull/181) | merged | Kimi PASS and GitHub CI green. |
-| CON-023 | P1 | Codex | — | in progress | Original save-latency snag remains open: no measured bottleneck repaired. #207 job-name/sign-in UI is unrelated to latency. Region/settings changes remain gated; collect scoped timing evidence before repair. |
+| CON-023 | P1 | Cursor / Codex | [#219](https://github.com/constructa-co/Constructa/pull/219) | in progress | e43a369 overlaps one independent project/owned-estimate read pair after existing guards for existing-estimate saves. No math/write/ownership change. PR CI, read-only Sonnet, main CI, secrets and production PASS under CTO18:25 CI-only verification. Wall-clock/perceived latency is unmeasured, so original save-latency snag remains open. Region/settings changes stay gated. |
 | CON-024 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | merged | Independent PASS and GitHub browser green. |
 | CON-025 | P1 | Cursor | [#185](https://github.com/constructa-co/Constructa/pull/185) | in progress | — |
 | CON-026 | P1 | Cursor | [#185](https://github.com/constructa-co/Constructa/pull/185) | in progress | — |
@@ -47,7 +47,7 @@ Current count: 62 merged, 11 in progress, 0 in review, 12 Rob-gated, 0 not start
 | CON-040 | P1 | Cursor / Grok | [#182](https://github.com/constructa-co/Constructa/pull/182) | merged | — |
 | CON-041 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | merged | Independent PASS and GitHub browser green. |
 | CON-042 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | merged | Independent PASS and GitHub browser green. |
-| CON-043 | P1 | Cursor / Codex | [#205](https://github.com/constructa-co/Constructa/pull/205), [#216](https://github.com/constructa-co/Constructa/pull/216) | in progress | Programme controls and phone phase dates/bounded editing scroll shipped 611d767; main CI/secrets/production PASS and six offline viewport cases. Estimate/proposal phone evidence corrected at local 227ed73 after type/stale-receipt block; six checks pass but final candidate build/review/packaging pending capacity. No hosted/joined journey claim. |
+| CON-043 | P1 | Cursor / Codex | [#203](https://github.com/constructa-co/Constructa/pull/203), [#205](https://github.com/constructa-co/Constructa/pull/205), [#216](https://github.com/constructa-co/Constructa/pull/216), [#218](https://github.com/constructa-co/Constructa/pull/218) | merged | Phone UI scope delivered: estimate controls/unit sizing, programme date list with bounded editing scroll, proposal review. #218 ce40e8d packages six corrected offline Edge checks at360/390/430; main CI/secrets/production PASS and Sonnet review PASS under authorised CI-only verification. Separate synthetic estimate/proposal legs with mock saves, plus prior programme proof; not a joined hosted/persistence acceptance. |
 | CON-044 | P1 | Cursor / Codex | [#206](https://github.com/constructa-co/Constructa/pull/206) | in progress | Publication separation shipped at a55bd82; main CI, secrets and production green. Tracking preserves published dates and ambiguous associations refuse visibly. Scoped browser-session draft fallback shipped. Durable server draft storage remains gated on the unapplied programme_planner_draft migration; not complete. |
 | CON-045 | P1 | Claude / Codex | [#201](https://github.com/constructa-co/Constructa/pull/201) | merged | Main CI, secret scan and production passed at 610e9b5. |
 | CON-046 | P1 | Kimi | [#191](https://github.com/constructa-co/Constructa/pull/191) | merged | #191 merged at 34c7e85. Main CI, secret scan and production passed. |

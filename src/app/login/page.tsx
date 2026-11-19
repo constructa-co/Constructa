@@ -13,6 +13,7 @@ import { platformSignupAction, type PlatformSignupErrorCode } from '@/lib/platfo
 import { PLATFORM_TERMS_CURRENT_REVISION } from '@/lib/platform-terms';
 import { PLATFORM_TERMS_COMPLETION_PATH, platformTermsCompletionReturn } from '@/lib/platform-terms-completion';
 import AuthCallbackNotice from '@/components/auth-callback-notice';
+import { isPlatformSignupDisabled } from '@/lib/platform-signup-policy';
 
 // A023 (Rob 15:05) — signup now runs through the server action seam
 // (platform-signup-action): the server verifies explicit terms acceptance
@@ -57,7 +58,10 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const router = useRouter();
 
+    const signupDisabled = isPlatformSignupDisabled();
+
     const switchMode = (next: Mode) => {
+        if (signupDisabled && next === "signup") return;
         if (next !== mode) setTermsAccepted(false);
         setMode(next);
         setErrorMessage(null);
@@ -150,7 +154,7 @@ export default function LoginPage() {
         }
     };
 
-    const isSignUp = mode === "signup";
+    const isSignUp = !signupDisabled && mode === "signup";
     // The checkbox is invalid only while its own refusal is shown and it is still unchecked.
     const termsRefused = isSignUp && !termsAccepted
         && errorMessage === "Please accept the platform terms of service before creating an account.";
@@ -178,10 +182,12 @@ export default function LoginPage() {
                     <>
                     {/* Shown only after the auth callback reports a link it could not confirm. */}
                     <AuthCallbackNotice />
+                    {!signupDisabled && (
                     <div className={ui.modeToggle} role="group" aria-label="Account mode">
                         <button type="button" disabled={loading} aria-pressed={isSignUp} onClick={() => switchMode("signup")}>Get started</button>
                         <button type="button" disabled={loading} aria-pressed={!isSignUp} onClick={() => switchMode("signin")}>Sign in</button>
                     </div>
+                    )}
                     <form
                         onSubmit={isSignUp ? handleSignUp : handleSignIn}
                         className={isSignUp ? ui.journeyStepForm : undefined}
@@ -325,14 +331,14 @@ export default function LoginPage() {
                                         Sign in
                                     </button>
                                 </>
-                            ) : (
+                            ) : !signupDisabled ? (
                                 <>
                                     <span className="text-gray-400">Don&apos;t have an account? </span>
                                     <button type="button" disabled={loading} onClick={() => switchMode("signup")} className={`${ui.textButton} ml-2`}>
                                         Get started
                                     </button>
                                 </>
-                            )}
+                            ) : null}
                         </div>
                     </form>
                     </>

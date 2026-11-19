@@ -26,6 +26,7 @@ vi.mock("@/lib/platform-signup-action", () => ({ platformSignupAction: state.sig
 vi.mock("next/navigation", () => ({
     useRouter: () => ({ push: state.push, refresh: state.refresh }),
 }));
+vi.mock("@/lib/platform-signup-policy", () => ({ isPlatformSignupDisabled: () => false }));
 import LoginPage from "./page";
 
 type Element = ReactElement<Record<string, unknown>>;

@@ -20,7 +20,7 @@ describe("account/setup progress and overview alignment", () => {
         const aside = html.slice(html.indexOf("<aside"));
         const rows = [...aside.matchAll(/<li>([\s\S]*?)<\/li>/g)].map(match => match[1]);
         expect(rows).toHaveLength(4);
-        rows.forEach((row, index) => expect(row).toMatch(new RegExp(`^<strong>[^<]+</strong><span aria-hidden="true">0${index + 1}</span><p>[^<]+</p>$`)));
+        rows.forEach((row, index) => expect(row).toMatch(new RegExp(`^<strong>[^<]+</strong><span aria-hidden="true">${index + 1}</span><p>[^<]+</p>$`)));
     });
     it("uses an explicit baseline-aligned grid, with detail on its own row", () => {
         const css = readFileSync(new URL("./first-session.module.css", import.meta.url), "utf8");

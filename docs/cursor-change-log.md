@@ -1,5 +1,16 @@
 # Cursor change log
 
+## 2026-11-19 — CON-043 phone programme phase list (detailed planner)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/dashboard/projects/schedule/client-page.tsx` | phone list, Gantt breakpoints | `PlannerPhonePhaseList` from `displayPlan`; `lg:hidden` list; Gantt track `hidden lg:block`; stage inline dates `hidden lg:flex` | Phone shows start/finish/duration from same plan as chart; desktop Gantt/editing unchanged |
+| `src/app/dashboard/projects/schedule/planner-phone-phase-list.test.tsx` | new | Date parity, responsive classes, incomplete-plan omit | CON-043 acceptance |
+| `src/app/dashboard/projects/schedule/schedule-control-palette.test.tsx` | desktop layout case | Expect phone list + `lg:min-w-[900px]` / `lg:overflow-x-auto` | Align with bounded responsive layout |
+| `src/app/dashboard/projects/schedule/planner-dates.test.tsx` | finish/stage assertions | Phone list + `fmtDateFull` completion labels | Keep date contract after mobile list |
+
+**Preserved:** `plannerDisplayPlan` / `computeProgrammePlan` only; no storage, publication or new date math.
+
 ## 2026-11-19 — CON-083 sign-in copy, numbering, and disabled signup chrome
 
 | File | Lines (approx.) | Change | Intent |

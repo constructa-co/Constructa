@@ -1,7 +1,12 @@
 "use server";
 import { requireAuth } from "@/lib/supabase/auth-utils";
 import { revalidatePath } from "next/cache";
-import { PIPELINE_CHANGE_UNCONFIRMED, PIPELINE_REFRESH_UNCONFIRMED, type PipelineMutationResult } from "@/lib/pipeline-feedback";
+import {
+    PIPELINE_CHANGE_UNCONFIRMED,
+    PIPELINE_HISTORY_UNRECORDED,
+    PIPELINE_REFRESH_UNCONFIRMED,
+    type PipelineMutationResult,
+} from "@/lib/pipeline-feedback";
 import { appendPipelineStageHistory } from "@/lib/pipeline-stage-history";
 
 const VALID_STATUSES = ["Lead", "Estimating", "Proposal Sent", "Active", "Won", "Completed", "Lost"];
@@ -44,20 +49,34 @@ async function confirmedStageWrite(
     } catch {
         return { success: false, error: PIPELINE_CHANGE_UNCONFIRMED };
     }
+    let historyWarning: string | undefined;
     try {
-        await appendPipelineStageHistory(supabase, {
+        const history = await appendPipelineStageHistory(supabase, {
             projectId,
             userId,
             fromStatus,
             toStatus: update.status,
         });
+        if (!history.recorded) {
+            historyWarning = PIPELINE_HISTORY_UNRECORDED;
+        }
     } catch {
-        // History is best-effort; a confirmed stage write must not be reported as failed.
+        historyWarning = PIPELINE_HISTORY_UNRECORDED;
     }
     // A cache failure after the returned-row acknowledgement must not turn
     // an already confirmed database write into an "unsaved" response.
     try { paths.forEach(path => revalidatePath(path)); }
-    catch { return { success: true, warning: PIPELINE_REFRESH_UNCONFIRMED }; }
+    catch {
+        return {
+            success: true,
+            warning: historyWarning
+                ? `${historyWarning} ${PIPELINE_REFRESH_UNCONFIRMED}`
+                : PIPELINE_REFRESH_UNCONFIRMED,
+        };
+    }
+    if (historyWarning) {
+        return { success: true, warning: historyWarning };
+    }
     return { success: true };
 }
 

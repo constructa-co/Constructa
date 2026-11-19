@@ -4,7 +4,7 @@
  * (existing-estimate-add + proposal-view); programme leg excluded.
  */
 
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page, type BrowserContext } from "@playwright/test";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
@@ -55,7 +55,7 @@ const scope = {
     authDatabaseHosted: "NOT_RUN",
 };
 
-const fixturePage = async (page: Page, context: Awaited<Parameters<Parameters<typeof test.beforeEach>[0]>[0]["context"]>, bundle: string, css: string, label: string) => {
+const fixturePage = async (page: Page, context: BrowserContext, bundle: string, css: string, label: string) => {
     await context.setOffline(true);
     await context.route("**/*", route => route.abort());
     await page.setContent(`<!doctype html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; script-src &#39;unsafe-inline&#39;; style-src &#39;unsafe-inline&#39;; connect-src &#39;none&#39;; form-action &#39;none&#39;"><title>CON-043 ${label} — LOCAL FIXTURE</title></head><body><p>LOCAL FIXTURE: synthetic offline only; not hosted acceptance.</p><div id="app"></div></body></html>`);
@@ -174,12 +174,6 @@ for (const viewport of PHONE_VIEWPORTS) {
 test.afterAll(() => {
     const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repoRoot, encoding: "utf8" }).trim();
     const branch = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd: repoRoot, encoding: "utf8" }).trim();
-    let browserResults: unknown = null;
-    try {
-        browserResults = JSON.parse(readFileSync(path.join(estimateOut, "browser-results.json"), "utf8"));
-    } catch {
-        browserResults = { note: "browser-results.json not found on estimate output" };
-    }
     const payload = {
         recordedAt: new Date().toISOString(),
         registerId: "CON-043",
@@ -205,7 +199,7 @@ test.afterAll(() => {
             "MOCK saveLine refusal/ack only on estimate leg; proposal leg uses existing synthetic context.",
         ],
         scope,
-        playwright: browserResults,
+        playwright: { reportPath: path.join(estimateOut, "browser-results.json"), note: "The final reporter writes this after capture; read its completed result separately." },
     };
     const body = JSON.stringify(payload, null, 2);
     writeFileSync(path.join(evidenceRoot, "con043-phone-journey-evidence.json"), JSON.stringify({

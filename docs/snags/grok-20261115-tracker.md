@@ -2,7 +2,7 @@
 
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
-Current count: 61 merged, 12 in progress, 0 in review, 12 Rob-gated, 0 not started.
+Current count: 62 merged, 11 in progress, 0 in review, 12 Rob-gated, 0 not started.
 
 | --- | --- | --- | --- | --- | --- |
 | CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
@@ -47,7 +47,7 @@ Current count: 61 merged, 12 in progress, 0 in review, 12 Rob-gated, 0 not start
 | CON-040 | P1 | Cursor / Grok | [#182](https://github.com/constructa-co/Constructa/pull/182) | merged | — |
 | CON-041 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | merged | Independent PASS and GitHub browser green. |
 | CON-042 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | merged | Independent PASS and GitHub browser green. |
-| CON-043 | P1 | Claude / Codex | [#205](https://github.com/constructa-co/Constructa/pull/205) | in progress | Planner controls shipped at 0eac746. Main CI and production green. [360/390/430 headless planner evidence](evidence/con-043/). Estimate and proposal phone work remains open. |
+| CON-043 | P1 | Cursor / Codex | [#205](https://github.com/constructa-co/Constructa/pull/205), [#216](https://github.com/constructa-co/Constructa/pull/216) | in progress | Programme controls and phone phase dates/bounded editing scroll shipped 611d767; main CI/secrets/production PASS and six offline viewport cases. Estimate/proposal phone evidence corrected at local 227ed73 after type/stale-receipt block; six checks pass but final candidate build/review/packaging pending capacity. No hosted/joined journey claim. |
 | CON-044 | P1 | Cursor / Codex | [#206](https://github.com/constructa-co/Constructa/pull/206) | in progress | Publication separation shipped at a55bd82; main CI, secrets and production green. Tracking preserves published dates and ambiguous associations refuse visibly. Scoped browser-session draft fallback shipped. Durable server draft storage remains gated on the unapplied programme_planner_draft migration; not complete. |
 | CON-045 | P1 | Claude / Codex | [#201](https://github.com/constructa-co/Constructa/pull/201) | merged | Main CI, secret scan and production passed at 610e9b5. |
 | CON-046 | P1 | Kimi | [#191](https://github.com/constructa-co/Constructa/pull/191) | merged | #191 merged at 34c7e85. Main CI, secret scan and production passed. |
@@ -78,7 +78,7 @@ Current count: 61 merged, 12 in progress, 0 in review, 12 Rob-gated, 0 not start
 | CON-071 | P2 | Claude / Codex | [#200](https://github.com/constructa-co/Constructa/pull/200) | merged | Main CI, secret scan and production passed at 85c0f08. |
 | CON-072 | P2 | Claude / Codex | [#200](https://github.com/constructa-co/Constructa/pull/200) | merged | Main CI, secret scan and production passed at 85c0f08. |
 | CON-073 | P2 | Cursor / Codex | [#212](https://github.com/constructa-co/Constructa/pull/212) | in progress | Boardstage confirmation shipped d0e9b2d; main CI, secrets and production green. History append is best-effort only when its table exists; durable stagehistory availability remains unverified, no schema applied. |
-| CON-074 | P2 | Cursor / Codex | [#213](https://github.com/constructa-co/Constructa/pull/213) | in progress | Theme contrasttokens shippedcc302c0; main CI, secrets and production green. Reviewedtokenpairs AA; browser/axe contrast evidence outstanding. Light-list scrolling preserved. |
+| CON-074 | P2 | Cursor / Codex | [#213](https://github.com/constructa-co/Constructa/pull/213), [#217](https://github.com/constructa-co/Constructa/pull/217) | merged | Theme tokens shipped cc302c0; scoped actual-component browser/axe evidence packaged ae88f35. Selected This Month/List pills and estimate total dock pass AA in both themes (6.02–12.93:1). Independent Sonnet, exact Node24 checks, main CI/secrets/production PASS. Offline synthetic evidence; not whole-app accessibility. |
 | CON-075 | P2 | Cursor / Codex | [#214](https://github.com/constructa-co/Constructa/pull/214) | merged | Misleadingdaysopen hidden until genuineenquirydate exists; archived excluded. MainCI/secrets/productiongreen8561053. No schema/dateguessing. |
 | CON-076 | P2 | Cursor / Codex | [#207](https://github.com/constructa-co/Constructa/pull/207) | merged | Original job-name truncation snag addressed by live countdown/limit feedback; main CI, secrets and production green ate6de701. |
 | CON-077 | P2 | Claude | [#193](https://github.com/constructa-co/Constructa/pull/193) | merged | D51 batch 03 — Proposal PDF pricing |

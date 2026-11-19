@@ -1,5 +1,18 @@
 # Cursor change log
 
+## 2026-11-19 — CON-083 sign-in copy, numbering, and disabled signup chrome
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/components/first-session-frame.tsx` | header tagline, overview `span` | “build your business”; decorative steps `1`–`4` not `01`–`04` | Trustworthy chrome; align overview numbers with journey labels (no `0`/`1` split) |
+| `src/app/login/page.tsx` | policy import, `isSignUp`, mode toggle, footnote | Hide Get started / signup progress when `isPlatformSignupDisabled()`; guard `switchMode` | Signup OFF: no dead-end account creation affordances |
+| `src/app/login/signup-disabled-presentation.test.tsx` | new | Disabled-gate presentation | CON-083 regression |
+| `src/components/account-progress.test.tsx` | overview row regex | Expect `1`–`4` numbering | Matches frame change |
+| `src/components/first-session-frame.test.tsx` | header describe | Tagline assertion | Regression |
+| `src/app/login/*.test.tsx` (7 files), `completion-routing.test.tsx` | `vi.mock` policy | `isPlatformSignupDisabled: () => false` in harnesses that exercise signup UI | Keep existing signup contracts testable while production gate stays on |
+
+**Preserved:** show/hide password and field-help from #207; `platform-signup-policy.ts` predicate unchanged; no auth/action logic changes.
+
 ## 2026-11-19 — CON-075 hide days open without enquiry_date (presentation fix)
 
 | File | Lines (approx.) | Change | Intent |

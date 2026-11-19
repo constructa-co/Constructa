@@ -24,6 +24,7 @@ vi.mock("@/lib/platform-signup-action", () => ({ platformSignupAction: state.act
 vi.mock("next/navigation", () => ({
     useRouter: () => ({ push: state.push, refresh: state.refresh }),
 }));
+vi.mock("@/lib/platform-signup-policy", () => ({ isPlatformSignupDisabled: () => false }));
 import { PLATFORM_TERMS_COMPLETION_PATH } from "@/lib/platform-terms-completion";
 import LoginPage from "./page";
 

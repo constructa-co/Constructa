@@ -182,6 +182,10 @@ export function parseProgrammePlannerDraft(value: unknown): ProgrammePlannerDraf
 export const PROGRAMME_PLANNER_DRAFT_UNAVAILABLE =
     "Planner draft storage is not available on the server yet. Changes stay in this browser until you save to the proposal.";
 
+// Shown after a programme write that was stored but whose page refresh failed.
+export const PROGRAMME_REFRESH_WARNING =
+    "The programme was saved, but other pages could not be refreshed. Check the proposal before using it.";
+
 const LOCAL_DRAFT_PREFIX = "constructa.programme-planner-draft.";
 
 export function localPlannerDraftKey(projectId: string, storageScope?: string): string {

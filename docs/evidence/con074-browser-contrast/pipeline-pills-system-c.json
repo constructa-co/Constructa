@@ -1,0 +1,16 @@
+{
+  "theme": "system-c",
+  "monthMeasure": {
+    "state": "solid",
+    "ratio": 11.824624177018707,
+    "color": "rgb(24, 44, 27)",
+    "background": "rgb(201, 239, 207)"
+  },
+  "listMeasure": {
+    "state": "solid",
+    "ratio": 11.824624177018707,
+    "color": "rgb(24, 44, 27)",
+    "background": "rgb(201, 239, 207)"
+  },
+  "axeViolations": []
+}

@@ -45,6 +45,7 @@ import {
     reconcileDependenciesAfterMove,
     wouldCreateCircularDependency,
 } from "@/lib/programme-phase-dependencies";
+import { formatWorkingDuration } from "@/lib/programme-plan";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 // Working days for lengths, calendar days from the project start for offsets.
@@ -927,7 +928,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
 
             {/* ── Drag hint ── */}
             {phases.length > 0 && (
-                <div className="flex items-center gap-4 text-[11px] text-slate-400 flex-wrap">
+                <div className="hidden lg:flex items-center gap-4 text-[11px] text-slate-400 flex-wrap">
                     <span>Drag bar to move · Drag right edge to resize · Snaps to week</span>
                     {weekHeaders[0].weeks > 1 && (
                         <span>Grid columns group up to {weekHeaders[0].weeks} calendar weeks; the last column may be shorter. Weekly move and resize snapping is unchanged.</span>
@@ -990,15 +991,26 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                 </div>
             )}
 
+            {phases.length > 0 && displayPlan && (
+                <PlannerPhonePhaseList
+                    phases={phases}
+                    displayPlan={displayPlan}
+                    reviewStages={reviewStages}
+                    criticalSet={criticalSet}
+                    toneOf={toneOf}
+                />
+            )}
+
             {/* ── Gantt ── */}
             {phases.length > 0 && (
                 // Desktop (lg+): a long programme scrolls inside the card under a fixed header, and the
-                // stage columns stay in view while the timeline scrolls sideways. Below lg nothing changes.
-                <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-x-auto lg:max-h-[75vh]">
-
+                // stage columns stay in view while the timeline scrolls sideways. Below lg, stages edit
+                // here without the chart; dates sit in the phone phase list from the same displayPlan.
+                <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl lg:overflow-x-auto lg:max-h-[75vh]">
+                    <div data-planner-editing-table-scroll className="overflow-x-auto lg:overflow-x-visible">
                     {/* Column headers */}
-                    <div className="flex min-w-[900px] border-b border-slate-700/50 bg-slate-900/40 lg:sticky lg:top-0 lg:z-40 lg:bg-slate-900">
-                        <div className="flex shrink-0 lg:sticky lg:left-0 lg:z-10 lg:bg-slate-900">
+                    <div className="flex min-w-[444px] lg:min-w-[900px] border-b border-slate-700/50 bg-slate-900/40 lg:sticky lg:top-0 lg:z-40 lg:bg-slate-900">
+                        <div className="flex shrink-0 w-full lg:w-auto lg:sticky lg:left-0 lg:z-10 lg:bg-slate-900">
                             <div className="w-[216px] shrink-0 border-r border-slate-700/50 px-3 py-2.5">
                                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Phase / Trade</span>
                             </div>
@@ -1012,7 +1024,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Starts After</span>
                             </div>
                         </div>
-                        <div className="flex-1 flex">
+                        <div className="hidden lg:flex flex-1">
                             {weekHeaders.map(wk => (
                                 <div key={wk.weekIndex} data-planner-week-start={wk.weekIndex + 1} data-planner-week-span={wk.weeks}
                                     title={wk.range} aria-label={wk.range}
@@ -1031,10 +1043,10 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                     </div>
 
                     {/* Body */}
-                    <div className="flex min-w-[900px]">
+                    <div className="flex min-w-[444px] lg:min-w-[900px]">
 
                         {/* Left panel */}
-                        <div className="shrink-0 border-r border-slate-700/50 lg:sticky lg:left-0 lg:z-30 lg:bg-slate-900">
+                        <div className="shrink-0 w-full lg:w-auto border-slate-700/50 lg:border-r lg:sticky lg:left-0 lg:z-30 lg:bg-slate-900">
                             {phases.map((phase, idx) => {
                                 const workingDur = phase.manualDays ?? phase.calculatedDays;
                                 const calculatedDays = phase.manhours > 0 ? phase.calculatedDays : null;
@@ -1064,7 +1076,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                                                     ×
                                                 </button>
                                             </div>
-                                            <div className="text-[9px] text-slate-400 pl-[14px] mt-0.5 flex items-center gap-1.5">
+                                            <div className="hidden lg:flex text-[9px] text-slate-400 pl-[14px] mt-0.5 items-center gap-1.5">
                                                 <span>{fmtDate(phaseStart)} – {fmtDate(phaseEnd)}</span>
                                                 {phase.manhours > 0 && <span>· {Math.round(phase.manhours)}h</span>}
                                                 {isCritical && <span className="text-yellow-500">★</span>}
@@ -1131,7 +1143,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                         {/* ── Gantt track ── */}
                         <div
                             ref={ganttRef}
-                            className={`flex-1 relative overflow-hidden select-none${isDragging ? " cursor-grabbing" : ""}`}
+                            className={`hidden lg:block flex-1 relative overflow-hidden select-none${isDragging ? " cursor-grabbing" : ""}`}
                             style={{ height: totalHeight }}
                         >
                             {/* Alternating row stripes */}
@@ -1245,6 +1257,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                             })}
                         </div>
                     </div>
+                    </div>
                 </div>
             )}
 
@@ -1283,6 +1296,59 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                 />
             )}
         </div>
+    );
+}
+
+// ─── Phone phase list (canonical dates from displayPlan; chart is lg+ only) ───
+function PlannerPhonePhaseList({
+    phases,
+    displayPlan,
+    reviewStages,
+    criticalSet,
+    toneOf,
+}: {
+    phases: Phase[];
+    displayPlan: NonNullable<ReturnType<typeof plannerDisplayPlan>>;
+    reviewStages: number[];
+    criticalSet: Set<number>;
+    toneOf: (phase: Phase, index: number) => (typeof ACTIVITY_TONES)[ActivityTone];
+}) {
+    return (
+        <ol
+            data-planner-phone-phase-list
+            className="lg:hidden space-y-3 rounded-xl border border-slate-700/50 bg-slate-800/50 p-4"
+            aria-label="Programme stages by date"
+        >
+            {phases.map((phase, idx) => {
+                const stage = displayPlan.stages[idx];
+                if (!stage) return null;
+                const tone = toneOf(phase, idx);
+                const start = new Date(stage.start_date + "T00:00:00");
+                const end = new Date(stage.end_date + "T00:00:00");
+                const pattern = displayPlan.basis === "job_working_days" ? displayPlan.working_pattern : undefined;
+                return (
+                    <li key={idx} data-planner-phone-phase={idx} className="min-w-0">
+                        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <span className={`h-2 w-2 rounded-full shrink-0 ${tone.dot}`} aria-hidden="true" />
+                                <span className="text-sm font-semibold text-slate-100 break-words">{phase.name}</span>
+                                {criticalSet.has(idx) && <span className="text-yellow-500 text-xs" aria-hidden="true">★</span>}
+                                {reviewStages.includes(idx) && (
+                                    <span data-planner-review-flag className="text-amber-400 text-xs font-semibold">Check days</span>
+                                )}
+                            </div>
+                            <span className="text-xs text-slate-400 shrink-0" data-planner-phone-phase-duration>
+                                {formatWorkingDuration(stage.working_days, pattern)}
+                            </span>
+                        </div>
+                        <p className="mt-1 text-xs text-slate-400 pl-4" data-planner-phone-phase-dates>
+                            {fmtDate(start)} – {fmtDate(end)}
+                            {phase.manhours > 0 && <span> · {Math.round(phase.manhours)}h</span>}
+                        </p>
+                    </li>
+                );
+            })}
+        </ol>
     );
 }
 

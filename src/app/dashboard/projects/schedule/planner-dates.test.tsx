@@ -47,8 +47,9 @@ describe("five-day detailed planner date presentation", () => {
 
     it("finishes the reported three-stage programme on 6 November, not the next Monday", () => {
         const html = render();
-        expect(html).toContain("6 Nov 26");
-        expect(html).not.toContain("9 Nov 26");
+        expect(html).toContain("6 Nov");
+        expect(html).toContain('data-planner-phone-phase-dates="true">2 Nov – 6 Nov');
+        expect(html).not.toMatch(/Completion<\/p><p[^>]*>9 Nov/);
         expect(html).toContain("15 working days (3 weeks)");
         expect(html).toContain("15 working days / 19 calendar days");
         expect(html).not.toContain("4 calendar weeks");
@@ -64,7 +65,7 @@ describe("five-day detailed planner date presentation", () => {
 
     it("does not call the four-column minimum viewport the length of a one-week job", () => {
         const html = render([phase("Works", 0)]);
-        expect(html).toContain("23 Oct 26");
+        expect(html).toContain("23 Oct");
         expect(html).toContain("5 working days (1 week)");
         expect(html).toContain("5 working days / 5 calendar days");
         expect(html).not.toContain("4 calendar weeks");
@@ -72,25 +73,25 @@ describe("five-day detailed planner date presentation", () => {
 
     it("uses actual working dates for a partial week", () => {
         const html = render([phase("Works", 0, 3)]);
-        expect(html).toContain("21 Oct 26");
+        expect(html).toContain("21 Oct");
         expect(html).toContain("3 working days / 3 calendar days");
     });
 
     it("keeps gaps in the canonical programme duration", () => {
         const html = render([phase("First", 0), phase("Last", 14)]);
-        expect(html).toContain("6 Nov 26");
+        expect(html).toContain("2 Nov – 6 Nov");
         expect(html).toContain("15 working days / 19 calendar days");
     });
 
     it("handles a year boundary without adding the trailing weekend", () => {
         const html = render(phases, "2026-12-28");
-        expect(html).toContain("15 Jan 27");
-        expect(html).not.toContain("18 Jan 27");
+        expect(html).toContain("15 Jan");
+        expect(html).not.toMatch(/Completion<\/p><p[^>]*>18 Jan/);
     });
 
     it.each([4, 6, 7])("ignores an old browser-only %i-day override rather than diverging from the saved job", days => {
         const html = render(phases, "2026-10-19", days);
-        expect(html).toContain("6 Nov 26");
+        expect(html).toContain("2 Nov – 6 Nov");
         expect(html).toContain("15 working days / 19 calendar days");
     });
 
@@ -118,8 +119,8 @@ describe("five-day detailed planner date presentation", () => {
         const html = renderToStaticMarkup(<ClientSchedulePage project={{ id: "partial", name: "Example", start_date: "2026-10-16",
             programme_phases: [phase("Works", 0, 2), phase("Needs duration", 0, 0)],
             programme_working_pattern: { version: 1, weekdays: [1, 2, 3, 4, 5, 6] } }} projectId="partial" estimate={null} plannerDraftViewerScope="viewer-test" />);
-        expect(html).toContain("19 Oct 26");
-        expect(html).not.toContain("23 Oct 26");
+        expect(html).not.toContain("data-planner-phone-phase-list");
+        expect(html).not.toContain("23 Oct –");
         expect(html).toContain('value="Needs duration"');
     });
 

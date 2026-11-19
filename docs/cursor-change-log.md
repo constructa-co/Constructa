@@ -1,5 +1,16 @@
 # Cursor change log
 
+## 2026-11-19 — CON-074 browser/axe contrast evidence (offline fixture)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `e2e/local-phase1/con074-contrast-entry.tsx` | new | Real `DashboardClient` + `EstimateClient` under `ThemeProvider` | CON-074 surfaces without hosted app |
+| `e2e/local-phase1/con074-contrast.spec.ts` | new | Playwright + `@axe-core/playwright`, computed contrast, screenshots | Browser evidence for pills + total bar in both themes |
+| `playwright.local-con074-contrast.config.ts` | new | Dedicated config (Edge channel via phase1 base) | Isolated leg |
+| `e2e/local-phase1/build-brief-price.mjs` | scenario list, JSON transpile guard, con074 stubs | `con074-contrast` scenario; `.json` bundle fix; pipeline/radix fixture adapters | Unblock offline compile at `4f4dfad` without shared `con066-fixture.mjs` edit |
+| `docs/evidence/con074-browser-contrast/*` | new | `provenance.json`, PNGs, axe JSON, README | Head + sourceHashes + axe outcomes at `4f4dfad69823548dde19cd94dd961ab1c368d44c` |
+
+**Boundary:** Synthetic job data; list/board are compiler stubs (pills/total bar are actual components). Not whole-dashboard WCAG sign-off.
 ## 2026-11-19 — CON-043 phone editing table horizontal scroll (bounded)
 
 | File | Lines (approx.) | Change | Intent |

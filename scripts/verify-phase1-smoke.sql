@@ -366,7 +366,7 @@ $$;
 
 -- Pipeline stage history: persistence, ownership isolation and append-only.
 INSERT INTO auth.users (id, email, raw_user_meta_data)
-VALUES ('10000000-0000-0000-0000-000000000002', 'phase1-other@example.test', '{}'::jsonb);
+VALUES ('10000000-0000-0000-0000-000000000003', 'phase1-other@example.test', '{}'::jsonb);
 
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000001', true);
@@ -392,7 +392,7 @@ BEGIN
   v_blocked := false;
   BEGIN
     INSERT INTO public.project_pipeline_stage_events (project_id, user_id, from_status, to_status)
-    VALUES (v_project, '10000000-0000-0000-0000-000000000002', 'Lead', 'Estimating');
+    VALUES (v_project, '10000000-0000-0000-0000-000000000003', 'Lead', 'Estimating');
   EXCEPTION WHEN insufficient_privilege THEN v_blocked := true;
   END;
   IF NOT v_blocked THEN RAISE EXCEPTION 'Owner could insert history attributed to another user.'; END IF;
@@ -427,7 +427,7 @@ SELECT set_config('smoke.history_project_id', id::text, true)
   FROM public.projects
  WHERE creation_request_id = '20000000-0000-0000-0000-000000000001';
 SET LOCAL ROLE authenticated;
-SELECT set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000002', true);
+SELECT set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000003', true);
 DO $$
 DECLARE
   v_blocked boolean := false;
@@ -438,7 +438,7 @@ BEGIN
   BEGIN
     INSERT INTO public.project_pipeline_stage_events (project_id, user_id, from_status, to_status)
     VALUES (current_setting('smoke.history_project_id')::uuid,
-            '10000000-0000-0000-0000-000000000002', 'Lead', 'Estimating');
+            '10000000-0000-0000-0000-000000000003', 'Lead', 'Estimating');
   EXCEPTION WHEN insufficient_privilege THEN v_blocked := true;
   END;
   IF NOT v_blocked THEN

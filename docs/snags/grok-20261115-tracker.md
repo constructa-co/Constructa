@@ -2,12 +2,12 @@
 
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
-Current count: 63 merged, 10 in progress, 0 in review, 12 Rob-gated, 0 not started.
+Current count: 63 merged, 9 in progress, 11 Rob-gated, 1 decided/held (CON-003 signup OFF), 1 post-RC evidence follow-up (CON-023); 0 not started. Decisions D62/D65 dated 20 Nov15:30; no extra delivery claimed.
 
 | --- | --- | --- | --- | --- | --- |
 | CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
 | CON-002 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
-| CON-003 | P0 | Rob | — | Rob-gated | Confirm signup activation after acceptance. |
+| CON-003 | P0 | Rob / CTO | — | decided/held | D62: real signup stays OFF until the P0 journey passes and Rob completes his walkthrough. Decision settled; enabling signup remains held, not an unanswered question. |
 | CON-004 | P0 | Codex / Kimi | [#171](https://github.com/constructa-co/Constructa/pull/171) | merged | D48 targeted suite 91/91 and Kimi PASS. Main CI and production readback pending. |
 | CON-005 | P0 | Cursor / Claude | [#178](https://github.com/constructa-co/Constructa/pull/178) | merged | — |
 | CON-006 | P0 | Cursor / Grok | [#172](https://github.com/constructa-co/Constructa/pull/172) | merged | — |
@@ -27,7 +27,7 @@ Current count: 63 merged, 10 in progress, 0 in review, 12 Rob-gated, 0 not start
 | CON-020 | P1 | Claude | [#193](https://github.com/constructa-co/Constructa/pull/193) | merged | D51 batch 03 — Proposal PDF pricing |
 | CON-021 | P1 | Claude | [#193](https://github.com/constructa-co/Constructa/pull/193) | merged | D51 batch 03 — Proposal PDF pricing |
 | CON-022 | P1 | Cursor / Claude | [#181](https://github.com/constructa-co/Constructa/pull/181) | merged | Kimi PASS and GitHub CI green. |
-| CON-023 | P1 | Cursor / Codex | [#219](https://github.com/constructa-co/Constructa/pull/219) | in progress | e43a369 overlaps one independent project/owned-estimate read pair after existing guards for existing-estimate saves. No math/write/ownership change. PR CI, read-only Sonnet, main CI, secrets and production PASS under CTO18:25 CI-only verification. No representative production timing sample was obtained (read-only observability endpoint unavailable; functional CI duration is not save latency). Wall-clock/perceived latency is unmeasured, so original save-latency snag remains open. Region/settings changes stay gated. |
+| CON-023 | P1 | Cursor / Codex | [#219](https://github.com/constructa-co/Constructa/pull/219) | post-RC evidence | e43a369 overlaps one independent project/owned-estimate read pair after existing guards for existing-estimate saves. No math/write/ownership change. PR CI, read-only Sonnet, main CI, secrets and production PASS under CTO18:25 CI-only verification. No representative production timing sample was obtained (read-only observability endpoint unavailable; functional CI duration is not save latency). Wall-clock/perceived latency is unmeasured, so original save-latency snag remains open. Region/settings changes stay gated.  D65: post-RC real latency evidence follow-up; does not block Phase 1 closure. CI duration is not latency. |
 | CON-024 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | merged | Independent PASS and GitHub browser green. |
 | CON-025 | P1 | Cursor | [#185](https://github.com/constructa-co/Constructa/pull/185) | in progress | — |
 | CON-026 | P1 | Cursor | [#185](https://github.com/constructa-co/Constructa/pull/185) | in progress | — |
@@ -65,7 +65,7 @@ Current count: 63 merged, 10 in progress, 0 in review, 12 Rob-gated, 0 not start
 | CON-058 | P2 | Cursor / Codex | [#210](https://github.com/constructa-co/Constructa/pull/210) | merged | Working-day-first labels with calendar-aware optional weeks shipped at3f4b1f2. Main CI, secrets and production green; calculations unchanged. |
 | CON-059 | P2 | Claude | [#194](https://github.com/constructa-co/Constructa/pull/194) | merged | D51 batch 04 — Proposal evidence and terms |
 | CON-060 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | merged | Independent PASS and GitHub CI green. |
-| CON-061 | P2 | Claude | — | in progress | Existing D51 media upload/selection source reconciled as already on main e6de701 (public-image and photo-slot implementations match); 46 targeted and 307 case-study tests passed. No duplicate code PR. Remaining default selection, duplicate-photo and legacy positional-selection scope needs original snag mapping; hosted storage unverified. |
+| CON-061 | P2 | Claude | — | in progress | Existing D51 media upload/selection source reconciled as already on main e6de701 (public-image and photo-slot implementations match); 46 targeted and 307 case-study tests passed. No duplicate code PR. Remaining default selection, duplicate-photo and legacy positional-selection scope needs original snag mapping; hosted storage unverified.  D63 now authorises first-upload primary unless explicitly selected, hash duplicate prevention and legacy-after-new ordering; Cursor source job active on codex/d63-case-photo-behaviour. |
 | CON-062 | P2 | Claude | [#196](https://github.com/constructa-co/Constructa/pull/196) | merged | #196 merged at 4ec090bc. Main CI, secret scan and production deployment passed. |
 | CON-063 | P2 | Claude | [#196](https://github.com/constructa-co/Constructa/pull/196) | merged | #196 merged at 4ec090bc. Main CI, secret scan and production deployment passed. |
 | CON-064 | P2 | Claude | [#196](https://github.com/constructa-co/Constructa/pull/196) | merged | #196 merged at 4ec090bc. Main CI, secret scan and production deployment passed. |

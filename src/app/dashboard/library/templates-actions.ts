@@ -1,6 +1,7 @@
 "use server";
 
 import { requireAuth } from "@/lib/supabase/extended-module-auth-utils";
+import { companyMarkupMethod } from "@/lib/server/company-markup-method";
 import { revalidatePath } from "next/cache";
 
 export async function createTemplateAction(formData: FormData) {
@@ -89,7 +90,8 @@ export async function applyTemplateAction(templateId: string, projectId: string)
         const { data: newEst } = await supabase.from("estimates").insert({
             project_id: projectId,
             version_name: "Original Estimate",
-            total_cost: 0
+            markup_method: await companyMarkupMethod(supabase, user.id),
+            total_cost: 0,
         }).select().single();
         estimateId = newEst.id;
     }

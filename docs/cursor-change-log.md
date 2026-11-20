@@ -13,7 +13,17 @@
 
 **Checks:** NOT RUN locally (source-only lane per D69). Validation is GitHub Actions on PR.
 
-**Public origin:** `https://www.constructa.co` from `marketingSiteOrigin()` fallback in `src/lib/marketing-seo.ts`.
+**Public origin:** canonical fallback `https://www.constructa.co` was audited separately; final11/11 CI uses independently verified main production alias `https://constructa-nu.vercel.app`. No domain/settings change.
+
+## 2026-11-21 — D69 release evidence reconciliation (main 53167bc)
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `walkthrough-action-register.json` | 4–45, A038, A109, A093 | `mainReleaseEvidence20261120` block; `evidence20261120` on A038/A109; `evidence20261121` on A093; `updatedAt` | Reconcile compact register to D63/D64 merge CI without status inflation |
+| `CLAUDE.md` | 3–8, 31 | Current-authority header → `AGENTS.md`/inbox; label April Perplexity commit block historical | Stop stale April instructions overriding live delivery rules |
+| `docs/delivery/2026-11-21/d69-release-evidence-reconciliation.md` | new | Bounded handoff; points to private D61–D65 handoff | Public delivery note without inventing private filename gates |
+
+**Checks:** NOT RUN (D69 source-only lane). No commit/push in this session.
 
 ## 2026-11-20 — D63 CON-061 case-study photo behaviour
 

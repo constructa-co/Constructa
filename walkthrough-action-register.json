@@ -1,8 +1,53 @@
 {
   "schemaVersion": 1,
   "kind": "compact-delivery-status-snapshot",
-  "updatedAt": "2026-11-13T14:15:00.000Z",
+  "updatedAt": "2026-11-20T20:31:46.480773+00:00",
   "scope": "118 stable action IDs; full append-only historical evidence retained privately. This snapshot is not a release claim.",
+  "mainReleaseEvidence20261120": {
+    "mainHead": "53167bce1049c39901261186b18119039b8c47d4",
+    "note": "Shipped-product evidence at main head; does not claim schema apply, hosted storage, form collection, or A093 release promotion.",
+    "mainCiAt53167bc": {
+      "workflowRunId": "44737532205",
+      "workflowResult": "PASS",
+      "secretsScanRunId": "44737532207",
+      "secretsScanResult": "PASS",
+      "productionDeploymentId": "dpl_dJDnp75QhNkkVzHyruoi5km6gFSs",
+      "productionState": "READY",
+      "productionTargetCommit": "53167bce1049c39901261186b18119039b8c47d4",
+      "verifiedBy": "R1 independent match (20 Nov 2026 inbox receipt)"
+    },
+    "mergePr225PhotosCon061D63": {
+      "pullRequest": 225,
+      "mergeCommitOnMain": "53167bce1049c39901261186b18119039b8c47d4",
+      "featureHead": "652baf3fce4244861b80dc8d8ce298f50cac05de",
+      "otherParent": "134e27b8b42119b6d19781c211c2b2de2e74ce7b",
+      "prCiRunId": "44736308386",
+      "prCiResult": "PASS",
+      "sonnetReview": "PASS (source only)",
+      "hostedStorageVerification": "NOT_RUN",
+      "registerCrosswalk": "A038 — Retain up to three photos and optional AI enhancement within the improved case-study journey."
+    },
+    "mergePr226FormsCon053Con013D64": {
+      "pullRequest": 226,
+      "mergeCommit": "134e27b8b42119b6d19781c211c2b2de2e74ce7b",
+      "featureHead": "20c7683b89c57abb9c0ba1506289cdd34964c181",
+      "mainPrCiSecretsSonnetProduction": "PASS (20 Nov receipts; production dpl_E4LshfA8ymmuGyYzseiCEQKnUTxn READY at 134e27b)",
+      "collectionEnabled": false,
+      "destinationRouting": "held — Rob gates; not register A013",
+      "registerCrosswalk": "A109 — Provide one clear Apply to the founding cohort entry separate from existing-user sign-in; CON053 contact on same D64 source lane (no A053 — that ID is estimate quantity aid, Complete)."
+    },
+    "d68SchemaDraftsOnMain531": {
+      "pullRequests": [
+        176,
+        185,
+        222,
+        223,
+        224
+      ],
+      "state": "DRAFT/OPEN — prepared green per D66/D68; unmerged beyond current main product merges; SQL unapplied",
+      "claim": "Main at 53167bc does not include applied production schema from these drafts"
+    }
+  },
   "actions": [
     {
       "id": "A001",
@@ -243,7 +288,8 @@
       "requested": "Retain up to three photos and optional AI enhancement within the improved case-study journey.",
       "status": "Partial",
       "evidence20261107": "cursor/a038-photo-checks-20261107 (e41e09c, d833dea, c1c45e0): all material checks pass; legacy save refuses >3 photos (Cursor cloud). Library wire photos/AI enhance still off; photos migration unapplied. Stays Partial.",
-      "evidence20261113": "#116 added offline photo save refusal coverage. Hosted photo evidence is open."
+      "evidence20261113": "#116 added offline photo save refusal coverage. Hosted photo evidence is open.",
+      "evidence20261120": "PR #225 merged at main 53167bc (CON-061 / D63): case-study photo ordering, content-hash dedupe, legacy tail display — docs/delivery/2026-11-20/d63-con061-case-study-photo-behaviour.md. PR CI 44736308386 PASS; Sonnet PASS (source only). Hosted storage NOT_RUN; library wire and photos migration unchanged. Stays Partial."
     },
     {
       "id": "A039",
@@ -620,7 +666,8 @@
       "phase": "P1-Jan2027",
       "requested": "Complete independent exact-candidate review and release readiness before promoting a replacement.",
       "status": "Blocked",
-      "evidence20261113": "#115 recorded the independent release checklist. Release readiness remains blocked."
+      "evidence20261113": "#115 recorded the independent release checklist. Release readiness remains blocked.",
+      "evidence20261121": "D69 Sonnet independent release review at main 53167bc: partials, Rob gates, and D68 unapplied schema drafts remain; compact register reconciled to D63/D64 main merge CI receipts (see mainReleaseEvidence20261120). No promotion; stays Blocked until gated evidence clears."
     },
     {
       "id": "A094",
@@ -721,7 +768,8 @@
       "requested": "Provide one clear Apply to the founding cohort entry separate from existing-user sign-in.",
       "status": "Partial",
       "evidence20261107": "cursor/a109-apply-cta-20261107 (73cfa64): /apply page + header/hero/footer CTAs, no-op submission adapter; 60 tests pass (Cursor cloud). Needs Rob: where applications go; nothing activated. Not started -> Partial.",
-      "evidence20261113": "#117 shipped cohort wording and #123 removed applicant logging and clarified that applications are not collected. Live destination is open."
+      "evidence20261113": "#117 shipped cohort wording and #123 removed applicant logging and clarified that applications are not collected. Live destination is open.",
+      "evidence20261120": "PR #226 at 134e27b (CON013 apply + CON053 contact / D64): shared minimal fields, collection default-off, destination routing not implemented — docs/delivery/2026-11-20/d64-con053-con013-contact-apply-minimal-forms.md. Main/PR CI, secrets, Sonnet, and production PASS; collection OFF and destinations Rob-held. Not register A013 (first-proposal tile). Stays Partial."
     },
     {
       "id": "A110",

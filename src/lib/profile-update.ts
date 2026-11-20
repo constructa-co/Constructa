@@ -20,9 +20,15 @@ import {
  *
  * Every other field is read exactly as the action read it before.
  */
+import { isMarkupMethod } from "./financial";
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function profileUpdateFromForm(userId: string, formData: FormData): Record<string, any> {
+    // Only a posted, recognised markup method is written. A form from before
+    // the choice existed, or any other value, leaves the saved choice alone.
+    const markupMethod = formData.get("markup_method");
     return {
+        ...(isMarkupMethod(markupMethod) ? { markup_method: markupMethod } : {}),
         id: userId,
         full_name: formData.get("full_name") as string,
         company_name: formData.get("company_name") as string,

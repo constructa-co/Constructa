@@ -46,6 +46,7 @@ interface Profile {
     sales_phone?: string | null;
     accounts_email?: string | null;
     pdf_theme?: string | null;
+    markup_method?: string | null;
     preferred_trades?: string[] | null;
     md_name?: string | null;
     md_message?: string | null;
@@ -831,6 +832,21 @@ export default function ProfileForm({ profile, userEmail, vatSettingsEnabled = f
                             </div>
                         </button>
                     ))}
+                </div>
+                <div className="space-y-1.5" data-markup-method>
+                    <label htmlFor="company-markup_method" className="text-sm font-medium text-slate-400">How overhead, risk and profit are calculated</label>
+                    <select
+                        id="company-markup_method"
+                        name="markup_method"
+                        defaultValue={profile?.markup_method === "compound" ? "compound" : "on_net"}
+                        className={coreProfileField}
+                    >
+                        <option value="on_net">On net cost (each percentage is taken from the net construction cost)</option>
+                        <option value="compound">Compounded (each percentage is taken from the total before it)</option>
+                    </select>
+                    <p className="text-xs text-slate-500">
+                        Applies to new estimates only. Estimates you have already started keep the method they were created with, so prices already sent do not change.
+                    </p>
                 </div>
             </section>
 

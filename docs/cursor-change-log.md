@@ -47,6 +47,23 @@
 - CON-018: `CONSTRUCTA_PROFILE_VAT_SETTINGS=1` **and** migration `20261116103000_con018_profile_vat_settings.sql` applied by **Rob**.
 - CON-026 cover persistence unchanged: `CONSTRUCTA_PROPOSAL_COVER_PHOTO=1` **and** migration `20261114201500_a074_proposal_cover_photo.sql`.
 
+## 2026-11-20 — PR #176 main integration merge conflict resolution (`codex/approved-176-integration-20261120`)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/financial.ts` | 36–99, 172–228 | D36 `on_net` / `compound` + main CON-016 inline comments | Single canonical contract sum |
+| `src/lib/simple-estimate.ts` | 15–19 | Both `evaluateDiscountSubmitGate` and `MarkupMethod` imports | Main discount gates + D36 summary |
+| `src/lib/proposal-publication.ts` | imports, fee items, case studies, site photos | `MARKUP_METHOD_NOTE`, `contractValueVatBasis`, main comments + D36 `calculation_note` | Publication snapshot parity |
+| `src/lib/case-library/proposal-wiring.test.ts` | 28–50 | Both main programme hash pin and D36 `calculation_note` pin | Preserve main wiring + D36 additive field |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | 1688–1696 | Markup note + main zero-adjustment guard | UI merge |
+| `src/app/dashboard/projects/costs/advanced-estimate.tsx` | 36–41 | Combined D36 + main imports | Advanced workspace |
+| `src/app/dashboard/projects/costs/boq-excel-export.ts` | 6–9 | Canonical sum + section grouping imports | BoQ export |
+| `src/lib/estimate-line-type.ts`, `proposal-site-photos.ts`, `proposal-site-photos.test.ts` | conflict tail | Marker cleanup only | Trivial UU |
+| `docs/delivery/2026-11-16/changelog.md` | whole | Merged delivery sections (no duplicate CON-073) | Both D36 and main notes |
+| `docs/delivery/2026-11-20/approved-176-integration.md` | rollback § | Safer rollback semantics | No blind column drop / old app |
+
+**Checks:** NOT RUN (source-only lane; R1 owns git commit, CI, Sonnet, preview).
+
 ## 2026-11-20 — D63 CON-061 case-study photo behaviour
 
 | File | Lines (approx.) | Change | Intent |

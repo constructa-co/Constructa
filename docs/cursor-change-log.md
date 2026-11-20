@@ -1,5 +1,15 @@
 # Cursor change log
 
+## 2026-11-20 — PR #176 main integration (source-only, branch `codex/approved-176-integration-20261120`)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `src/lib/financial.ts` | D36 markup + main face-value / prelims helpers | Single canonical contract sum |
+| `src/lib/estimate-line-type.ts`, `proposal-site-photos.ts`, `.test.ts`, `case-study-photo-behaviour.ts` | new / from main | CON-016 + D51/D63 photo ordering |
+| `src/lib/proposal-publication.ts`, `simple-estimate.ts`, `estimate-client.tsx` | merged behaviour | D36 markup + main totals / photos |
+| `src/lib/markup-method.test.ts` | face-value regression | Integrated financial maths |
+| `docs/delivery/2026-11-16/changelog.md`, `docs/delivery/2026-11-20/approved-176-integration.md` | delivery merge + receipt | Handoff for R1 |
+
 ## 2026-11-16 — D46 P1 proposal CON-036/037/040 (cursor/d46-p1-proposal-con-036-037-040-445c)
 
 | File | Lines (approx.) | Change | Intent |

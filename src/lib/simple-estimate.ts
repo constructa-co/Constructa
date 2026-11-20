@@ -12,7 +12,7 @@
  */
 
 import type { Estimate, EstimateLine } from "@/app/dashboard/projects/costs/types";
-import { computeContractSum, roundMoney, toNumber, type MarkupMethod } from "./financial";
+import { computeContractSum, isPricedPreliminariesLine, roundMoney, toNumber, type MarkupMethod } from "./financial";
 import type { LaunchProfile } from "./launch-profile";
 import { getLaunchProfile, isCapabilityEnabled } from "./launch-profile";
 
@@ -168,12 +168,17 @@ export interface AdjustmentRow {
     pct: number;
     /** Signed: the discount is negative. */
     amount: number;
+    /** Shown under the row when the amount is £0 for a reason the user should know. */
+    note?: string;
 }
 
 export interface PriceSummary {
     /** Sum of the contractor's own price lines. */
     linesTotal: number;
+    /** Prime-cost / provisional sum lines, carried at face value. */
+    faceValueTotal: number;
     adjustments: AdjustmentRow[];
+    /** Mark-up adjustments only: contract sum minus lines and face-value sums. */
     adjustmentsTotal: number;
     /** Canonical contract sum, before VAT. */
     contractSum: number;
@@ -193,18 +198,28 @@ type EstimatePercentages = Pick<Estimate, "prelims_pct" | "overhead_pct" | "risk
  */
 export function summarisePrice(
     estimate: EstimatePercentages | null,
-    lines: Pick<EstimateLine, "trade_section" | "line_total">[],
+    lines: Pick<EstimateLine, "trade_section" | "line_total" | "line_type">[],
 ): PriceSummary {
     const percentages = estimate ?? { prelims_pct: 0, overhead_pct: 0, risk_pct: 0, profit_pct: 0, discount_pct: 0, total_cost: 0 };
     const sum = computeContractSum(percentages, lines);
-    const prelimsFromLines = lines.some((l) => l.trade_section === "Preliminaries");
+    const prelimsFromLines = lines.some(isPricedPreliminariesLine);
+    const faceValueTotal = roundMoney(sum.faceValueTotal);
 
     const linesTotal = prelimsFromLines ? sum.totalConstructionCost : sum.totalConstructionCost - sum.prelimsTotal;
     const adjustments: AdjustmentRow[] = [];
     const push = (key: AdjustmentKey, label: string, pct: number, amount: number) => {
         if (pct > 0) adjustments.push({ key, label, pct, amount: roundMoney(amount) });
     };
-    if (!prelimsFromLines) push("prelims", "Preliminaries", toNumber(percentages.prelims_pct), sum.prelimsTotal);
+    const prelimsPct = toNumber(percentages.prelims_pct);
+    adjustments.push({
+        key: "prelims",
+        label: "Preliminaries",
+        pct: prelimsPct,
+        amount: prelimsFromLines ? 0 : roundMoney(sum.prelimsTotal),
+        note: prelimsFromLines && prelimsPct > 0
+            ? `You have ${formatGBP(sum.prelimsTotal)} of prelims lines and a ${prelimsPct}% prelims allowance. Priced lines take precedence, so the allowance is not charged — check you are not double counting.`
+            : undefined,
+    });
     push("overhead", "Overhead", toNumber(percentages.overhead_pct), sum.overheadAmount);
     push("risk", "Risk", toNumber(percentages.risk_pct), sum.riskAmount);
     push("profit", "Profit", toNumber(percentages.profit_pct), sum.profitAmount);
@@ -214,8 +229,9 @@ export function summarisePrice(
     const vat = roundMoney(contractSum * VAT_RATE);
     return {
         linesTotal: roundMoney(linesTotal),
+        faceValueTotal,
         adjustments,
-        adjustmentsTotal: roundMoney(contractSum - linesTotal),
+        adjustmentsTotal: roundMoney(contractSum - linesTotal - faceValueTotal),
         contractSum,
         vat,
         totalIncVat: roundMoney(contractSum + vat),
@@ -384,7 +400,7 @@ export function currentSummary(state: EstimatingState): PriceSummary {
     return summarisePrice(estimate, estimate?.estimate_lines ?? []);
 }
 
-type LineTotalRow = Pick<EstimateLine, "trade_section" | "line_total"> & { id: string };
+type LineTotalRow = Pick<EstimateLine, "trade_section" | "line_total" | "line_type"> & { id: string };
 
 export interface AdvancedRunningTotalDraft {
     estimateId: string;
@@ -405,6 +421,7 @@ function applySimpleLineOps(estimate: Estimate, ops: LineOp[]): LineTotalRow[] |
         id: line.id,
         trade_section: line.trade_section,
         line_total: line.line_total,
+        line_type: line.line_type,
     }));
 
     for (const op of ops) {
@@ -419,7 +436,7 @@ function applySimpleLineOps(estimate: Estimate, ops: LineOp[]): LineTotalRow[] |
             if (lines.some((line) => line.id === op.lineId)) {
                 lines = lines.map((line) => (line.id === op.lineId ? { ...line, line_total } : line));
             } else {
-                lines.push({ id: op.lineId, trade_section: SIMPLE_LINE_SECTION, line_total });
+                lines.push({ id: op.lineId, trade_section: SIMPLE_LINE_SECTION, line_total, line_type: "general" });
             }
             continue;
         }
@@ -468,6 +485,7 @@ export function previewRunningTotal(state: EstimatingState, options: PreviewRunn
         id: line.id,
         trade_section: line.trade_section,
         line_total: line.line_total,
+        line_type: line.line_type,
     }));
 
     if (state.advancedOpen && advanced) {

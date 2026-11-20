@@ -78,6 +78,19 @@ describe("markup method — maths", () => {
         }
     });
 
+    it("prime-cost and provisional sums add at face value after markup under both methods", () => {
+        const withPc = [
+            ...lines,
+            { trade_section: "General", line_total: 500, line_type: "pc_sum" as const },
+        ];
+        for (const markup_method of ["on_net", "compound"] as const) {
+            const r = computeContractSum({ ...estimate, markup_method }, withPc);
+            const base = computeContractSum({ ...estimate, markup_method }, lines);
+            expect(r.faceValueTotal).toBe(500);
+            expect(r.contractSum).toBeCloseTo(base.contractSum + 500, 6);
+        }
+    });
+
     it("with zero markups both methods give the construction cost", () => {
         for (const markup_method of ["on_net", "compound"]) {
             const r = computeContractSum({ prelims_pct: 0, markup_method }, lines);

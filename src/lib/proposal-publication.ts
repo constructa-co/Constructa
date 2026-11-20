@@ -1,4 +1,5 @@
-import { computeContractSum, MARKUP_METHOD_NOTE, roundMoney, toNumber } from "@/lib/financial";
+import { computeContractSum, isPricedPreliminariesLine, MARKUP_METHOD_NOTE, roundMoney, toNumber } from "@/lib/financial";
+import { isFaceValueLineType, type FaceValueLineType } from "@/lib/estimate-line-type";
 import { planCoversEveryPhase, resolveProgrammeSource } from "@/lib/programme-plan";
 import { computeDisplayProgramme, hasRelativeProgramme, RELATIVE_PROGRAMME_BASIS, type DisplayProgrammePlan } from "@/lib/relative-programme";
 import { resolveUkBankHolidayDivision } from "@/lib/uk-bank-holidays";
@@ -11,6 +12,8 @@ import {
     resolveProposalCoverPhoto,
     type ProposalCoverPhoto,
 } from "@/lib/proposal-cover-photo";
+import { sitePhotosForJob } from "@/lib/proposal-site-photos";
+import { legacyProfileCaseStudyPhotos } from "@/lib/case-library/case-study-photo-behaviour";
 
 /** Said when a chosen past job cannot be sent. The proposal is not published short of it. */
 export const CASE_STUDY_UNSENDABLE_ERROR = "One of the past jobs you chose can't be sent. Untick it under Relevant experience, or fix it in Case Studies, then check the proposal again.";
@@ -69,6 +72,8 @@ export interface ProposalPublicationEstimateLineInput {
     quantity?: number | string | null;
     unit?: string | null;
     line_total?: number | string | null;
+    /** "pc_sum" / "provisional_sum" publish at face value, never marked up. */
+    line_type?: string | null;
 }
 
 export interface ProposalPublicationEstimateInput {
@@ -290,19 +295,26 @@ function buildFeeItems(
     const breakdown = computeContractSum(estimate, estimate.estimate_lines);
     const multiplier = breakdown.ohRiskProfitMultiplier;
     const sourceItems = estimate.estimate_lines
-        .filter((line) => toNumber(line.line_total) > 0)
-        .map((line) => ({
-            id: line.id,
-            trade_section: optionalText(line.trade_section, 200) ?? "General",
-            description: optionalText(line.description, 1000) ?? "Works",
-            quantity: toNumber(line.quantity),
-            unit: optionalText(line.unit, 50) ?? "item",
-            amount_ex_vat: roundMoney(toNumber(line.line_total) * multiplier),
-        }));
+        .filter((line) =>
+            isFaceValueLineType(line.line_type)
+                ? toNumber(line.line_total) !== 0
+                : toNumber(line.line_total) > 0)
+        .map((line) => {
+            const faceValue = isFaceValueLineType(line.line_type);
+            return {
+                id: line.id,
+                trade_section: optionalText(line.trade_section, 200) ?? "General",
+                description: optionalText(line.description, 1000) ?? "Works",
+                quantity: toNumber(line.quantity),
+                unit: optionalText(line.unit, 50) ?? "item",
+                amount_ex_vat: faceValue
+                    ? roundMoney(toNumber(line.line_total))
+                    : roundMoney(toNumber(line.line_total) * multiplier),
+                ...(faceValue ? { line_type: line.line_type as FaceValueLineType } : {}),
+            };
+        });
 
-    const hasExplicitPrelims = estimate.estimate_lines.some(
-        (line) => (line.trade_section ?? "") === "Preliminaries",
-    );
+    const hasExplicitPrelims = estimate.estimate_lines.some(isPricedPreliminariesLine);
     if (!hasExplicitPrelims && breakdown.prelimsTotal > 0) {
         sourceItems.push({
             id: `preliminaries-${estimate.id}`,
@@ -317,9 +329,19 @@ function buildFeeItems(
     if (sourceItems.length > 0) {
         const itemTotal = roundMoney(sourceItems.reduce((sum, line) => sum + line.amount_ex_vat, 0));
         const residual = roundMoney(contractSum - itemTotal);
-        sourceItems[sourceItems.length - 1].amount_ex_vat = roundMoney(
-            sourceItems[sourceItems.length - 1].amount_ex_vat + residual,
-        );
+        const residualIndex = sourceItems.reduce((last, line, index) => line.line_type ? last : index, -1);
+        if (residualIndex >= 0) {
+            sourceItems[residualIndex].amount_ex_vat = roundMoney(sourceItems[residualIndex].amount_ex_vat + residual);
+        } else if (residual !== 0) {
+            sourceItems.push({
+                id: `price-adjustment-${estimate.id}`,
+                trade_section: "General",
+                description: "Price adjustment",
+                quantity: 1,
+                unit: "sum",
+                amount_ex_vat: residual,
+            });
+        }
     }
 
     return sourceItems;
@@ -413,10 +435,7 @@ export function selectCaseStudies(all: unknown[] | null | undefined, selected: u
             duration: textField(row, "programmeDuration", 100),
             delivered: textField(row, "whatWeDelivered", 5000),
             value_added: textField(row, "valueAdded", 5000),
-            photos: (Array.isArray(row.photos) ? row.photos : [])
-                .map(safeImageUrl)
-                .filter((url): url is string => url !== null)
-                .slice(0, 3),
+            photos: legacyProfileCaseStudyPhotos(row.photos, row.primaryPhotoIndex),
         }))
         .filter((study) => study.title !== "")
         .slice(0, 6);
@@ -517,6 +536,8 @@ export function buildProposalPublicationSnapshot(
         Object.freeze(programmePlan);
     }
 
+    const sitePhotos = sitePhotosForJob(sanitisePhotos(input.project.site_photos), { projectId: input.project.id });
+
     const snapshot: ProposalPublicationSnapshot = {
         schema_version: 1,
         document_presentation_version: 2,
@@ -588,13 +609,12 @@ export function buildProposalPublicationSnapshot(
             notice: responseWording(input.responseKind).notice,
         },
         case_studies: chosenCaseStudies.studies,
-        photos: sanitisePhotos(input.project.site_photos),
+        photos: sitePhotos,
         ...(isProposalCoverPhotoEnabled()
             ? ((): { cover_photo?: ProposalCoverPhoto } => {
-                const photos = sanitisePhotos(input.project.site_photos);
                 const cover = resolveProposalCoverPhoto(
                     parseProposalCoverPhotoChoice(input.project.proposal_cover_photo),
-                    photos,
+                    sitePhotos,
                 );
                 if (!cover) return {};
                 if (cover.kind === "site") {

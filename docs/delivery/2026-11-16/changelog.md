@@ -1,3 +1,26 @@
+## CON-073 — Board stage move confirmation (S45) — 18 November 2026
+
+Checks: focused Vitest on board feedback, board-actions, stage history, A115 source guard (no full build in this session).
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/app/dashboard/project-board.tsx` | Confirm gate before moves; operational copy | Stop accidental Proposal Sent one-clicks |
+| `src/app/dashboard/pipeline-stage-move-dialog.tsx`, `src/lib/pipeline-stage-move-copy.ts` | Dialog UI + strings | Clear from/to + cancel |
+| `src/lib/pipeline-stage-history.ts`, `src/app/dashboard/board-actions.ts` | Post-write append | History via `project_pipeline_stage_events` when present (schema gate if absent) |
+
+## D51 snags 027 / 038 / 039 / 059 — Proposal site photos, director's message, programme labels, terms gap — 16 November 2026
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `src/lib/proposal-site-photos.ts` | new | `sitePhotoOrigin`, `sitePhotosForJob` | Site photographs filtered to this job only |
+| `src/lib/proposal-publication.ts` | snapshot build | `sitePhotosForJob`, case-study primary photo ordering | D51/D63 publication behaviour on main |
+
+## D49 CON-017 / CON-034 / CON-035 — Brief figures, postcode lookup, UK dates — 16 November 2026
+
+Merged from main at `53167bc` (see integration note `docs/delivery/2026-11-20/approved-176-integration.md`).
+
+---
+
 ## D46 CON-028 / CON-029 / CON-030 — Programme regenerate, dependencies, drag — 16 November 2026
 
 ### Block #180 follow-up (Grok)

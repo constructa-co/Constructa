@@ -29,7 +29,9 @@
  *   8. + Profit               — compound: adjusted × profit_pct; on_net: totalConstruction × profit_pct
  *   9. = Pre-Discount Total
  *  10. − Discount             — preDiscount × discount_pct
- *  11. = Contract Sum (exc. VAT)  ← shown to client
+ *  11. = Marked-up total
+ *  12. + PC / provisional sums — at face value, no adjustment
+ *  13. = Contract Sum (exc. VAT)  ← shown to client
  *
  * Two markup methods exist (D36), chosen per company and frozen on each
  * estimate when it is created:
@@ -46,7 +48,13 @@
  * compounded, so a missing value MUST read as compound. Anything else would
  * silently re-price estimates and proposals already sent.
  * Discount is always taken from the pre-discount total.
+ *
+ * Prime-cost and provisional sum lines (CON-016) bypass the markup hierarchy:
+ * they are added to the contract sum at the exact face value typed, never
+ * multiplied, so the client never reads a mark-up on an allowance.
  */
+
+import { isFaceValueLineType } from "@/lib/estimate-line-type";
 
 export type MarkupMethod = "on_net" | "compound";
 export const DEFAULT_MARKUP_METHOD: MarkupMethod = "on_net";
@@ -99,6 +107,8 @@ export interface EstimateLineInput {
     line_total?: number | string | null;
     quantity?: number | string | null;
     unit_rate?: number | string | null;
+    /** "pc_sum" / "provisional_sum" are carried at face value, never marked up. */
+    line_type?: string | null;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -131,11 +141,17 @@ export interface ContractSumBreakdown {
     riskAmount: number;
     profitAmount: number;
     discountAmount: number;
+    /** Prime-cost / provisional sum lines, added at face value after the mark-up. */
+    faceValueTotal: number;
     contractSum: number;
     /** The method actually applied. */
     markupMethod: MarkupMethod;
     /** Handy multiplier for converting a single line rate into an all-in rate. */
     ohRiskProfitMultiplier: number;
+}
+
+export function isPricedPreliminariesLine(line: EstimateLineInput): boolean {
+    return line.trade_section === "Preliminaries" && !isFaceValueLineType(line.line_type) && toNumber(line.line_total) !== 0;
 }
 
 /**
@@ -146,12 +162,10 @@ export function computeContractSum(
     estimate: EstimateInput,
     lines: EstimateLineInput[]
 ): ContractSumBreakdown {
-    // 1. Direct cost — everything that isn't a Preliminaries line. Credit
-    // (negative) lines reduce the total just as positive lines increase it;
-    // zero-value lines are ignored.
     const directLines = lines.filter(
         (l) =>
             (l.trade_section ?? "General") !== "Preliminaries" &&
+            !isFaceValueLineType(l.line_type) &&
             toNumber(l.line_total) !== 0
     );
     const directCost = directLines.reduce(
@@ -159,35 +173,30 @@ export function computeContractSum(
         0
     );
 
-    // 2. Preliminaries — explicit lines take precedence over the percentage,
-    // but only when at least one carries a non-zero value. A zero-total
-    // Preliminaries placeholder (e.g. an auto-scaffolded row) must not
-    // suppress the percentage allowance. Negative prelims lines count as
-    // explicit values, symmetric with positive ones.
-    const explicitPrelimsLines = lines.filter(
-        (l) =>
-            (l.trade_section ?? "") === "Preliminaries" &&
-            toNumber(l.line_total) !== 0
+    const faceValueLines = lines.filter(
+        (l) => isFaceValueLineType(l.line_type) && toNumber(l.line_total) !== 0
     );
+    const faceValueTotal = faceValueLines.reduce(
+        (sum, l) => sum + toNumber(l.line_total),
+        0
+    );
+
+    const explicitPrelimsLines = lines.filter(isPricedPreliminariesLine);
     const explicitPrelimsTotal = explicitPrelimsLines.reduce(
         (sum, l) => sum + toNumber(l.line_total),
         0
     );
 
-    // Fallback base for prelims when there are no priced direct lines
-    // (legacy estimates with only a total_cost value).
     const constructionBase =
-        directLines.length > 0 || explicitPrelimsLines.length > 0
+        directLines.length > 0 || explicitPrelimsLines.length > 0 || faceValueLines.length > 0
             ? directCost
             : toNumber(estimate.total_cost);
     const prelimsFromPct = constructionBase * (toNumber(estimate.prelims_pct) / 100);
     const prelimsTotal =
         explicitPrelimsLines.length > 0 ? explicitPrelimsTotal : prelimsFromPct;
 
-    // 3. Total construction cost.
     const totalConstructionCost = constructionBase + prelimsTotal;
 
-    // 4-7. Overhead → Risk → Profit, compounded in that order.
     const overheadPct = toNumber(estimate.overhead_pct);
     const riskPct = toNumber(estimate.risk_pct);
     const profitPct = toNumber(estimate.profit_pct);
@@ -208,10 +217,8 @@ export function computeContractSum(
     const preDiscount = adjustedTotal + profitAmount;
     const discountAmount = preDiscount * (discountPct / 100);
 
-    const contractSum = preDiscount - discountAmount;
+    const contractSum = preDiscount - discountAmount + faceValueTotal;
 
-    // Multiplier used by the PDF to convert a raw line rate into an all-in
-    // rate displayed to the client (matches the same order of compounding).
     const markupFactor = markupMethod === "on_net"
         ? 1 + (overheadPct + riskPct + profitPct) / 100
         : (1 + overheadPct / 100) * (1 + riskPct / 100) * (1 + profitPct / 100);
@@ -225,6 +232,7 @@ export function computeContractSum(
         riskAmount,
         profitAmount,
         discountAmount,
+        faceValueTotal,
         contractSum,
         markupMethod,
         ohRiskProfitMultiplier,
@@ -242,15 +250,18 @@ export function computeContractSumValue(
 // ── Budget cost (no margins) ────────────────────────────────────────────────
 
 /**
- * Total budget cost = direct + prelims, no uplifts. This is what shows in
- * the P&L "Budget Cost" KPI and drives the burn bar.
+ * Total budget cost = direct + prelims + prime-cost / provisional sums, no
+ * uplifts. The face-value sums are money the contractor will spend (never
+ * margin), so a margin computed as contract sum minus budget cost must count
+ * them as cost. This is what shows in the P&L "Budget Cost" KPI and drives
+ * the burn bar.
  */
 export function computeBudgetCost(
     estimate: EstimateInput,
     lines: EstimateLineInput[]
 ): number {
-    const { totalConstructionCost } = computeContractSum(estimate, lines);
-    return totalConstructionCost;
+    const { totalConstructionCost, faceValueTotal } = computeContractSum(estimate, lines);
+    return totalConstructionCost + faceValueTotal;
 }
 
 // ── AfP netting (Billing) ────────────────────────────────────────────────────

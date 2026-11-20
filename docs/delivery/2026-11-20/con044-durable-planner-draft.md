@@ -4,7 +4,7 @@ Source-only draft, 20 Nov 2026. **Nothing was run** (no tests, build, SQL, netwo
 
 ## Finding
 The gap was packaging and evidence, not code. Already present and reused unchanged:
-- Migration `supabase/migrations/20261118003000_con044_programme_planner_draft.sql` adds `projects.programme_planner_draft JSONB` (idempotent, no new RLS needed: the existing `projects` owner policies cover the column).
+- Migration `supabase/migrations/20261118003000_con044_programme_planner_draft.sql` adds `projects.programme_planner_draft JSONB` (idempotent, no new RLS needed: the existing `projects` organisation-membership policies cover the column).
 - `writeProgrammePlannerDraft` / `clearProgrammePlannerDraft` (`src/lib/server/programme-storage.ts`) filter every read and write by `id` and `user_id`, use compare-and-swap, and refuse when the column is absent.
 - `autosaveProgrammePlannerDraftAction`, `clearProgrammePlannerDraftAction` and `saveProgrammePhasesAction` (`schedule/actions.ts`) keep auth/editable-access checks, explicit "Save to Proposal" writing `programme_phases` only, and the confirmed-write refresh warning (`PROGRAMME_REFRESH_WARNING`).
 - `schedule/page.tsx` loads the project row (`select *`, `user_id` scoped) and passes `plannerDraftViewerScope={user.id}`; the browser `sessionStorage` fallback is used only when the column is unavailable.
@@ -15,7 +15,7 @@ No application code was changed.
 `scripts/verify-phase1-smoke.sql` (existing step of `migration-replay.yml`, which already triggers on this path and on `supabase/migrations/**`), inserted after the authenticated brief save and before publication:
 1. Owner stores a published `programme_phases` and a `programme_planner_draft` under the `authenticated` role.
 2. A second user (new `auth.users` row) cannot see the project and an update of its draft affects 0 rows.
-3. A new owner role context reads the draft back, with `programme_phases` unchanged (draft separate from proposal baseline).
+3. The owner role context reads the draft back in the same transaction, with `programme_phases` unchanged (draft separate from proposal baseline).
 4. Clearing the draft sets it NULL and leaves `programme_phases` intact.
 
 No guard or RLS is weakened; the script rolls back and uses only the disposable localhost database.
@@ -29,3 +29,5 @@ No guard or RLS is weakened; the script rolls back and uses only the disposable 
 - Production still lacks the column until Rob applies the migration; until then the sessionStorage fallback (per user and job) applies and drafts do not survive browser changes.
 - The smoke's `projects` UPDATE policy behaviour is asserted against the real replayed schema; if a later policy blocks the owner update, CI will say so and the assertion needs adjusting, not the guard.
 - CON044 is not marked complete: needs migration applied plus a live cross-browser check.
+
+Independent review clarification: this rollback-only SQL proves in-transaction storage, cross-tenant isolation and proposal separation, not commit/new-connection/browser durability or same-organisation member isolation. TypeScript creator filters and PostgREST JSONB compare-and-swap semantics remain mocked/unverified against a real API. No production completeness claim.

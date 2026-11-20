@@ -230,7 +230,7 @@ $$;
 
 RESET ROLE;
 
--- A new owner role context (no client state) reloads the draft, and the draft
+-- In the same transaction, restore the owner role context and read the draft; the draft
 -- write left the published programme untouched.
 SET LOCAL ROLE authenticated;
 SELECT set_config(
@@ -246,11 +246,11 @@ SELECT EXISTS (
      AND programme_planner_draft #>> '{phases,0,name}' = 'Draft stage'
      AND programme_planner_draft ->> 'start_date' = '2027-02-01'
      AND programme_phases #>> '{0,name}' = 'Published stage'
-) AS smoke_planner_draft_durable
+) AS smoke_planner_draft_stored
 \gset
-\if :smoke_planner_draft_durable
+\if :smoke_planner_draft_stored
 \else
-DO $$ BEGIN RAISE EXCEPTION 'Planner draft was not durable, owner-scoped and separate from programme_phases.'; END $$;
+DO $$ BEGIN RAISE EXCEPTION 'Planner draft was not stored, owner-readable and separate from programme_phases.'; END $$;
 \endif
 
 -- Clearing the draft (as saving to proposal does) leaves the published programme.

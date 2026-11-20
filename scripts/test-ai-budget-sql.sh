@@ -349,6 +349,12 @@ echo "ai budget: reservation, shared pool, exact limits, no free failures, immut
 \set alpha '''aaaaaaaa-0000-0000-0000-000000000001'''
 \set beta  '''bbbbbbbb-0000-0000-0000-000000000002'''
 
+-- Reset only this throwaway test database after the preceding daily-cap race.
+-- Its three old attempts would otherwise mask the monthly refusal with a daily cap.
+DELETE FROM public.ai_generation_attempts;
+UPDATE public.ai_generation_limits
+SET per_hour_attempts = CASE WHEN scope = 'contractor' THEN 1000 ELSE NULL END,
+    per_day_attempts = 10000, per_day_output_tokens = 10000000;
 SET ROLE service_role;
 
 SELECT t.expect(public.ai_generation_reserve(:alpha, 'profile.rewrite', 700, NULL)->>'status' = 'disabled',

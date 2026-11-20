@@ -32,6 +32,10 @@ describe("older-only proposals are exactly as they were", () => {
     it("pins the representative legacy selection with the regional calendar fields", async () => {
         const snapshot = buildProposalPublicationSnapshot(representativeInput());
         expect(snapshot.programme_plan?.duration_label).toBe("15 working days (3 weeks)");
+        // D36 adds the separately asserted calculation note. Removing that one
+        // field must recover the exact current-main legacy snapshot, including
+        // CON-058 labels, calendar, photo order, values and all other content.
+        delete snapshot.commercial.calculation_note;
         expect(await hashProposalContent(snapshot)).toBe("e769bc4faf2b82be3efd1fcb605ce094802767f1ddf59f76c8c4312aa7cc88ce");
         expect(await hashProposalPublication(snapshot)).toBe("3a92756f10b0134472e71753affa785b927f6e880046481446a433e78d15cb48");
         const legacyLabel = { ...snapshot, programme_plan: { ...snapshot.programme_plan!, duration_label: "3 weeks" } };
@@ -44,8 +48,8 @@ describe("older-only proposals are exactly as they were", () => {
         const snapshot = buildProposalPublicationSnapshot(representativeInput());
         expect(snapshot.commercial.calculation_note).toContain("are compounded");
         delete snapshot.commercial.calculation_note;
-        expect(await hashProposalContent(snapshot)).toBe("c2f49cabb4771dbb6810ea0896a3ab8413040a309097032b903cbc3010442e61");
-        expect(await hashProposalPublication(snapshot)).toBe("bea30af8126b29ec39653032105dc9b889c435bcccf251ad7396c6bed5f2aa1d");
+        expect(await hashProposalContent(snapshot)).toBe("e769bc4faf2b82be3efd1fcb605ce094802767f1ddf59f76c8c4312aa7cc88ce");
+        expect(await hashProposalPublication(snapshot)).toBe("3a92756f10b0134472e71753affa785b927f6e880046481446a433e78d15cb48");
     });
 
     it.each([[[]], [["o1"]], [["1"]], [[2, "o5"]], [["o1", "o2", "o3", "o4", "o5", "o6", "o7"]], [["nope"]], [null], [["o7", "o1"]]])("selection %j: the case studies are today's selection, with no library, an empty one, or a full one", (selected) => {

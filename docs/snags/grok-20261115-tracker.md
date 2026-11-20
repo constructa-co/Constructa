@@ -4,6 +4,10 @@
 
 Current count: 63 merged, 13 in progress, 7 Rob-fact/render-signoff gated, 1 decided/held (CON-003 signup OFF), 1 post-RC evidence follow-up (CON-023); 0 not started. D66 Rob17:49 approved all seven approaches; D68 21:20 authorises complete CI preparation while access is blocked. No extra delivery claimed; no schema merge/apply. All five preview/rollback SQL instructions are in their PR descriptions.
 
+D69 overnight evidence (21 Nov): independent Sonnet/R1-graded release review is draft [#231](https://github.com/constructa-co/Constructa/pull/231), with all22 open CON rows classified and explicit implementation-coverage limits; A093 stays blocked. Source-fix [#230](https://github.com/constructa-co/Constructa/pull/230) merged at14209f7 after exact PR CI44812200128 and R1 review, documentation/register/CLAUDE historical-context only; production READY independently matched, mainCI44813668427 follow-through pending. No product/schema changes or extra completion.
+
+Read-only marketing audit [#229](https://github.com/constructa-co/Constructa/pull/229), CI44812734220, passed all11 public sitemap pages on independently verified Vercel main production alias constructa-nu.vercel.app (HTTP200/title/meta/OG/mobile390 width/internal public links/unblocked console). Canonical www.constructa.co separately returns200 but lacks OG and has old Kit/Clarity resources; CTO00:43 reports another Vercel account/team, directs R1 to leave settings alone. Domain consolidation is owner-managed, not an authorised source fix. Audit excludes auth/private/off-sitemap paths and interactive lazy-media acceptance; schema, signup, collection, publication and provider holds unchanged.
+
 | ID | Priority | Owner | PR | State | Evidence and remaining work |
 | --- | --- | --- | --- | --- | --- |
 | CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | in progress | D66 approves two dummy test identities on non-production only. Authenticated verified preview target still needed; no production signup/writes. |

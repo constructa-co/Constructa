@@ -299,6 +299,7 @@ export interface Estimate {
     profit_pct?: number | null;
     discount_pct?: number | null;
     discount_reason?: string | null;
+    markup_method?: string | null;
     is_client_boq: boolean;
     client_boq_filename?: string | null;
     manual_duration_days?: number | null;
@@ -335,6 +336,9 @@ export interface Profile {
     website?: string | null;
     company_number?: string | null;
     vat_number?: string | null;
+    vat_registered?: boolean | null;
+    default_vat_rate?: number | null;
+    default_vat_reverse_charge?: boolean | null;
     years_trading?: number | null;
     business_type?: string | null;
     specialisms?: string | null;
@@ -345,6 +349,7 @@ export interface Profile {
     md_name?: string | null;
     md_message?: string | null;
     pdf_theme?: PdfTheme | null;
+    markup_method?: string | null;
     case_studies?: CaseStudy[] | null;
     financial_year_start_month?: number | null;
     country?: string | null;

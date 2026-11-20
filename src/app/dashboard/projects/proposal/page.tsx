@@ -4,7 +4,11 @@ import DashboardRouteShell from "@/components/dashboard-route-shell";
 import ProjectNavBar from "@/components/project-navbar";
 import ProjectEntry from "@/components/project-entry";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
-import type { ProposalPublicationEstimateInput } from "@/lib/proposal-publication";
+import type {
+    ProposalPublicationEstimateInput,
+    ProposalPublicationProfileInput,
+} from "@/lib/proposal-publication";
+import { profilePublicationSelectColumns } from "@/lib/company-vat-settings";
 import { isProposalCoverPhotoEnabled } from "@/lib/proposal-cover-photo";
 import ReviewSendClient, { type CaseStudyOption } from "./review-send-client";
 import { caseLibraryEnabled } from "@/lib/case-library/gate";
@@ -66,7 +70,7 @@ export default async function ProposalPage(props: { searchParams: Promise<{ proj
 
     const { data: profile } = await supabase
         .from("profiles")
-        .select("company_name, logo_url, phone, website, accreditations, capability_statement, years_trading, specialisms, insurance_details, pdf_theme, md_name, md_message, case_studies")
+        .select(profilePublicationSelectColumns())
         .eq("id", user.id)
         .single();
 
@@ -77,7 +81,9 @@ export default async function ProposalPage(props: { searchParams: Promise<{ proj
         .eq("project_id", projectId)
         .order("version_number", { ascending: false });
 
-    const caseStudies: CaseStudyOption[] = (Array.isArray(profile?.case_studies) ? profile.case_studies : [])
+    const companyProfile = (profile ?? null) as ProposalPublicationProfileInput | null;
+
+    const caseStudies: CaseStudyOption[] = (Array.isArray(companyProfile?.case_studies) ? companyProfile.case_studies : [])
         .map((entry: unknown, index: number) => {
             const study = (entry && typeof entry === "object" ? entry : {}) as Record<string, unknown>;
             return {
@@ -106,7 +112,7 @@ export default async function ProposalPage(props: { searchParams: Promise<{ proj
                 key={project.id}
                 context={{
                     project,
-                    profile: profile ?? {},
+                    profile: companyProfile ?? {},
                     estimate,
                     nextVersion: (history[0]?.version_number ?? 0) + 1,
                     ...(caseStudyLibrary ? { caseStudyLibrary } : {}),

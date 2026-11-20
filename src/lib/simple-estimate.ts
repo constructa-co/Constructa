@@ -13,7 +13,7 @@
 
 import type { Estimate, EstimateLine } from "@/app/dashboard/projects/costs/types";
 import { evaluateDiscountSubmitGate } from "@/lib/discount-confirm";
-import { computeContractSum, isPricedPreliminariesLine, roundMoney, toNumber } from "./financial";
+import { computeContractSum, isPricedPreliminariesLine, roundMoney, toNumber, type MarkupMethod } from "./financial";
 import type { LaunchProfile } from "./launch-profile";
 import { getLaunchProfile, isCapabilityEnabled } from "./launch-profile";
 
@@ -278,11 +278,13 @@ export interface PriceSummary {
     contractSum: number;
     vat: number;
     totalIncVat: number;
+    /** How overhead, risk and profit were calculated. Printed beside the total. */
+    markupMethod: MarkupMethod;
     /** True when preliminaries come from the contractor's own lines, not a percentage. */
     prelimsFromLines: boolean;
 }
 
-type EstimatePercentages = Pick<Estimate, "prelims_pct" | "overhead_pct" | "risk_pct" | "profit_pct" | "discount_pct" | "total_cost">;
+type EstimatePercentages = Pick<Estimate, "prelims_pct" | "overhead_pct" | "risk_pct" | "profit_pct" | "discount_pct" | "total_cost" | "markup_method">;
 
 /**
  * The running total. Every figure is read from the canonical contract-sum
@@ -327,6 +329,7 @@ export function summarisePrice(
         contractSum,
         vat,
         totalIncVat: roundMoney(contractSum + vat),
+        markupMethod: sum.markupMethod,
         prelimsFromLines,
     };
 }

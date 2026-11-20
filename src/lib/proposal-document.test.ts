@@ -1,3 +1,4 @@
+import { MARKUP_METHOD_NOTE } from "@/lib/financial";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
@@ -168,7 +169,7 @@ describe("price", () => {
         const pence = price.groups.flatMap((group) => group.items).reduce((sum, item) => sum + Math.round(Number(item.amount.replace(/[£,]/g, "")) * 100), 0);
         expect(pence).toBe(Math.round(snapshot.commercial.contract_sum_ex_vat * 100));
         const everything = JSON.stringify(document);
-        for (const hidden of ["overhead", "profit", "margin", "markup", "10%", "15%"]) expect(everything.toLowerCase()).not.toContain(hidden);
+        for (const hidden of ["overhead", "profit", "margin", "markup", "10%", "15%"]) expect(everything.replace(MARKUP_METHOD_NOTE.compound, "").toLowerCase()).not.toContain(hidden);
     });
 
     it("words a reverse charge and a zero rate differently, and never shows a VAT line for either", () => {

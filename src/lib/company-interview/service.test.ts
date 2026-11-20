@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { representativeInput } from "@/lib/__fixtures__/proposal";
 import { buildProposalPublicationSnapshot } from "@/lib/proposal-publication";
 import { fakeInterviewDb } from "./__fixtures__/fake-db";
+import * as interviewService from "./service";
 import {
     INTERVIEW_ANSWER_CONFLICT,
     INTERVIEW_NOTHING_TO_DRAFT,
@@ -347,6 +348,14 @@ describe("resume", () => {
         const { db } = await interviewed();
         db.fail("select:company_interview_answers");
         expect(await loadInterview(as(db))).toBeNull();
+    });
+
+    it("CON-025 starts fresh when interview storage is not applied yet", async () => {
+        const db = seed();
+        const readAnswers = vi.spyOn(interviewService, "readAnswers").mockResolvedValue({});
+        const state = await loadInterview(as(db));
+        expect(state).toMatchObject({ companyName: "Smith Builders", answers: {}, draft: null });
+        readAnswers.mockRestore();
     });
 });
 

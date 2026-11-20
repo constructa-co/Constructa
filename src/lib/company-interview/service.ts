@@ -24,6 +24,7 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { INTERVIEW_LOAD_ERROR, INTERVIEW_SAVE_ERROR } from "./messages";
+import { isInterviewStorageMissing } from "./storage-ready";
 export { INTERVIEW_LOAD_ERROR, INTERVIEW_SAVE_ERROR } from "./messages";
 import { plainTextProblem } from "./guard";
 import {
@@ -126,7 +127,11 @@ export async function readAnswers(supabase: Reader, userId: string): Promise<Ans
         .from("company_interview_answers")
         .select("question_key, answer, skipped, revision")
         .eq("user_id", userId);
-    if (error || !Array.isArray(data)) return null;
+    if (error) {
+        if (isInterviewStorageMissing(error)) return {};
+        return null;
+    }
+    if (!Array.isArray(data)) return null;
     const answers: AnswerMap = {};
     for (const row of data as Array<{ question_key: string; answer: string; skipped: boolean; revision: number }>) {
         if ((QUESTION_KEYS as string[]).includes(row.question_key)) {
@@ -179,7 +184,7 @@ function toDraft(row: DraftRow, answers: AnswerMap, profile: InterviewProfile): 
 export async function loadInterview(context: Pick<InterviewContext, "supabase" | "userId">): Promise<InterviewState | null> {
     const { supabase, userId } = context;
     const [profile, answers] = await Promise.all([readProfile(supabase, userId), readAnswers(supabase, userId)]);
-    if (!profile || !answers) return null;
+    if (!profile || answers == null) return null;
 
     const { data, error } = await supabase
         .from("company_narrative_drafts")
@@ -189,7 +194,7 @@ export async function loadInterview(context: Pick<InterviewContext, "supabase" |
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-    if (error) return null;
+    if (error && !isInterviewStorageMissing(error)) return null;
     return {
         companyName: (profile.company_name ?? "").trim(),
         answers,

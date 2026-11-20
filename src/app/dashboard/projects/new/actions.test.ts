@@ -1,7 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ requireAuth: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+    requireAuth: vi.fn(),
+    companyMarkupMethod: vi.fn(async () => "compound" as const),
+}));
 vi.mock("@/lib/supabase/auth-utils", () => ({ requireAuth: mocks.requireAuth }));
+vi.mock("@/lib/server/company-markup-method", () => ({
+    companyMarkupMethod: mocks.companyMarkupMethod,
+}));
 
 import { createBlankProjectAction } from "./actions";
 import { BLANK_PROJECT_CREATE_ERROR } from "@/lib/blank-project";
@@ -35,12 +41,14 @@ function idempotentRpc() {
 describe("createBlankProjectAction", () => {
     beforeEach(() => {
         mocks.requireAuth.mockReset();
+        mocks.companyMarkupMethod.mockReset();
+        mocks.companyMarkupMethod.mockResolvedValue("compound");
         vi.spyOn(console, "error").mockImplementation(() => {});
     });
 
     it("calls the atomic creation RPC with a blank graph", async () => {
         const rpc = idempotentRpc();
-        mocks.requireAuth.mockResolvedValue({ supabase: { rpc } });
+        mocks.requireAuth.mockResolvedValue({ supabase: { rpc }, user: { id: "user-1" } });
 
         const result = await createBlankProjectAction(formData());
 
@@ -50,6 +58,7 @@ describe("createBlankProjectAction", () => {
         expect(name).toBe("create_phase1_project_graph");
         expect(args.p_request_id).toBe(REQUEST_ID);
         expect(args.p_estimates).toEqual([]);
+        expect(mocks.companyMarkupMethod).toHaveBeenCalledWith(expect.anything(), expect.any(String));
         expect(args.p_project).toMatchObject({ name: "14 Oak Road", client_name: "Alex Client", status: "Lead" });
         expect(Object.keys(args.p_project)).not.toEqual(
             expect.arrayContaining(["brief_scope", "scope_text", "programme_phases", "template_id"]),
@@ -58,7 +67,7 @@ describe("createBlankProjectAction", () => {
 
     it("ignores a template id sent by an old client", async () => {
         const rpc = idempotentRpc();
-        mocks.requireAuth.mockResolvedValue({ supabase: { rpc } });
+        mocks.requireAuth.mockResolvedValue({ supabase: { rpc }, user: { id: "user-1" } });
 
         await createBlankProjectAction(formData({ typeId: "extension_1", templateId: "abc" }));
 
@@ -69,7 +78,7 @@ describe("createBlankProjectAction", () => {
 
     it("returns the same project when the same request is retried", async () => {
         const rpc = idempotentRpc();
-        mocks.requireAuth.mockResolvedValue({ supabase: { rpc } });
+        mocks.requireAuth.mockResolvedValue({ supabase: { rpc }, user: { id: "user-1" } });
 
         const first = await createBlankProjectAction(formData());
         const retry = await createBlankProjectAction(formData());
@@ -83,7 +92,7 @@ describe("createBlankProjectAction", () => {
         const rpc = vi.fn()
             .mockResolvedValueOnce({ data: null, error: { code: "08006", message: "connection lost" } })
             .mockImplementation(working);
-        mocks.requireAuth.mockResolvedValue({ supabase: { rpc } });
+        mocks.requireAuth.mockResolvedValue({ supabase: { rpc }, user: { id: "user-1" } });
 
         expect(await createBlankProjectAction(formData())).toEqual({ success: false, error: BLANK_PROJECT_CREATE_ERROR });
         expect(await createBlankProjectAction(formData())).toEqual({ success: true, projectId: "project-1" });

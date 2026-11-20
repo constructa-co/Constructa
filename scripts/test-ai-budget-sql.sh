@@ -394,6 +394,13 @@ UPDATE public.ai_generation_features SET max_reserve_pence = 99 WHERE feature = 
 SELECT public.ai_generation_finish(:alpha, (SELECT id FROM public.ai_generation_attempts WHERE user_id = :alpha AND finished_at IS NULL), 'error', NULL, NULL, NULL, 'v');
 SELECT t.expect((SELECT charged_pence FROM public.ai_generation_attempts WHERE user_id = :alpha AND finished_at IS NOT NULL ORDER BY finished_at DESC LIMIT 1) = 50,
   'finish uses the reservation stored on the attempt');
+-- Prove the abandoned50 plus finished50 actually exhaust global100. With the
+-- abandoned charge omitted, another contractor's25 would incorrectly fit.
+UPDATE public.ai_generation_limits SET per_calendar_month_max_pence = 100 WHERE scope = 'global';
+UPDATE public.ai_generation_features SET max_reserve_pence = 25 WHERE feature = 'profile.rewrite';
+SELECT t.expect(public.ai_generation_reserve(:beta, 'profile.rewrite', 700, NULL)->>'status' = 'global-spend-cap',
+  'abandoned reservation remains charged in the next global month sum');
+UPDATE public.ai_generation_limits SET per_calendar_month_max_pence = 2500 WHERE scope = 'global';
 RESET ROLE;
 SQL
 

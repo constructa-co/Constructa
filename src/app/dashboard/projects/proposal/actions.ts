@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { isDeepStrictEqual } from "node:util";
+import { profilePublicationSelectColumns } from "@/lib/company-vat-settings";
 import { pricingFullScopeError, type PricingFullScopeSource } from "@/lib/pricing-full-scope";
 import { z } from "zod";
 import { caseLibraryEnabled } from "@/lib/case-library/gate";
@@ -21,6 +22,7 @@ import {
     hashProposalPublication,
     safeImageUrl,
     type ProposalPublicationEstimateInput,
+    type ProposalPublicationProfileInput,
     type ProposalPublicationSnapshot,
 } from "@/lib/proposal-publication";
 import { evaluateProposalReadiness } from "@/lib/proposal-readiness";
@@ -56,9 +58,6 @@ import {
 type Failure = { success: false; error: string };
 /** Refused because what would be published is not what the contractor reviewed. */
 type ChangedFailure = Failure & { changed: true };
-
-const PROFILE_PUBLICATION_COLUMNS =
-    "company_name, logo_url, phone, website, accreditations, capability_statement, years_trading, specialisms, insurance_details, pdf_theme, md_name, md_message, case_studies";
 
 function siteBaseUrl(): string {
     return process.env.NEXT_PUBLIC_SITE_URL || "https://constructa-nu.vercel.app";
@@ -489,12 +488,13 @@ export async function publishProposalAction(
 
     const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select(PROFILE_PUBLICATION_COLUMNS)
+        .select(profilePublicationSelectColumns())
         .eq("id", user.id)
         .single();
     if (profileError || !profile) {
         return { success: false, error: "Complete your company profile before publishing." };
     }
+    const companyProfile = profile as ProposalPublicationProfileInput;
 
     const estimate = estimates[0] as ProposalPublicationEstimateInput;
     let terms: ProposalTermsClause[];
@@ -557,12 +557,12 @@ export async function publishProposalAction(
             sentAt,
             validityDays,
             project,
-            profile,
+            profile: companyProfile,
             estimate,
             termsProfileVersion: PROPOSAL_TERMS_PROFILE_VERSION,
             resolvedTerms: terms,
             responseKind: input.responseKind,
-            ...vatFor(project),
+            ...vatFor(project, companyProfile),
             ...(caseStudyLibrary ? { caseStudyLibrary: { userId: user.id, rows: caseStudyLibrary.rows } } : {}),
         });
         [tokenHash, snapshotHash, contentHash] = await Promise.all([

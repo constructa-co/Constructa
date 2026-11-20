@@ -12,7 +12,15 @@ import { pendingFrom, sectionState, settle, type PendingCaseStudySuggestion } fr
 import { uploadProfileImageAction } from "@/app/storage/actions";
 import { PUBLIC_IMAGE_LIMITS_HINT, publicImageProblem } from "@/lib/storage/public-image";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
-import { keepFirstThreePhotos, legacyExtraPhotoCount } from "./legacy-save-photos";
+import {
+    CASE_STUDY_DUPLICATE_PHOTO_MESSAGE,
+    CASE_STUDY_PRIMARY_LABEL,
+    caseStudyPhotoContentHash,
+    legacyTailPhotoCount,
+    resolvePrimaryPhotoSlot,
+    mergeLegacyProfilePhotoUrls,
+    splitLegacyProfilePhotoUrls,
+} from "@/lib/case-library/case-study-photo-behaviour";
 import { SAVE_MESSAGES, initialSaveState, needsLeaveWarning, requestOf, saveReducer, statusLine, type SaveAction, type SaveCaseStudiesResult, type SaveState } from "./save-state";
 import { JOB_TYPE_EXAMPLES } from "@/lib/job-type-options";
 import type { CaseStudySectorId } from "@/lib/case-study-example-tags";
@@ -31,9 +39,6 @@ import { typedValueAmount } from "@/lib/case-study-value";
 type Enhance = (whatWeDelivered: string, valueAdded: string, projectName: string, projectType: string) => Promise<CaseStudyResult>;
 type Save = (caseStudies: unknown, expectedFingerprint: string, unconfirmed: unknown[][]) => Promise<SaveCaseStudiesResult>;
 
-/** Whether two picked files look like one file: same name, size and last-changed time. Their contents are not read. */
-const sameFile = (a: File, b: File) => a.name === b.name && a.size === b.size && a.lastModified === b.lastModified;
-
 interface CaseStudy {
     id: string;
     projectName: string;
@@ -45,6 +50,8 @@ interface CaseStudy {
     whatWeDelivered: string;
     valueAdded: string;
     photos: string[];
+    /** Which of the three active slots is the main picture on proposals (0–2). */
+    primaryPhotoIndex?: number | null;
     disciplineTags?: string[];
     sectorTags?: CaseStudySectorId[];
     disciplineTagsExplicit?: boolean;
@@ -168,9 +175,12 @@ export default function CaseStudiesClient({ initialCaseStudies, initialStoredFin
     const trouble = state.notice.kind === "failed" || state.notice.kind === "unknown" || state.uncertain;
 
     /** Resolves true only when the picture was put on the example. */
-    const handlePhotoUpload = async (csIndex: number, slot: number, file: File): Promise<boolean> => {
+    const handlePhotoUpload = async (row: number, slot: number, file: File, existingPhotos: readonly string[]): Promise<boolean> => {
         // Rows and photos can change while this waits, so the reply is placed from what is there when it arrives.
-        const row = rowHandles.current[csIndex];
+        if (!rowHandles.current.includes(row)) {
+            toast.error("That past work was removed, so its photo was not added.");
+            return false;
+        }
         const pickKey = `${row}:${slot}`;
         const pick = Symbol();
         latestPhotoPick.current.set(pickKey, pick);
@@ -192,11 +202,21 @@ export default function CaseStudiesClient({ initialCaseStudies, initialStoredFin
         if (latestPhotoPick.current.get(pickKey) !== pick) return false;
         const { url } = result;
         if (url) {
+            if (existingPhotos.some((photo, index) => photo === url && index !== slot)) {
+                toast.error(CASE_STUDY_DUPLICATE_PHOTO_MESSAGE);
+                return false;
+            }
             setCaseStudies(prev => prev.map((cs, i) => {
                 if (i !== rowIndex) return cs;
-                const newPhotos = [...(cs.photos || ["", "", ""])];
-                newPhotos[slot] = url;
-                return { ...cs, photos: newPhotos };
+                const { active, legacyTail } = splitLegacyProfilePhotoUrls(cs.photos);
+                const hadNone = active.every((entry) => entry.trim() === "");
+                const nextActive = [...active] as [string, string, string];
+                nextActive[slot] = url;
+                return {
+                    ...cs,
+                    photos: mergeLegacyProfilePhotoUrls(nextActive, legacyTail),
+                    primaryPhotoIndex: hadNone && cs.primaryPhotoIndex == null ? slot : cs.primaryPhotoIndex,
+                };
             }));
             toast.success("Photo uploaded");
             return true;
@@ -210,9 +230,10 @@ export default function CaseStudiesClient({ initialCaseStudies, initialStoredFin
         latestPhotoPick.current.set(`${rowHandles.current[csIndex]}:${slot}`, Symbol());
         setCaseStudies(prev => prev.map((cs, i) => {
             if (i !== csIndex) return cs;
-            const newPhotos = [...(cs.photos || ["", "", ""])];
-            newPhotos[slot] = "";
-            return { ...cs, photos: newPhotos };
+            const { active, legacyTail } = splitLegacyProfilePhotoUrls(cs.photos);
+            const nextActive = [...active] as [string, string, string];
+            nextActive[slot] = "";
+            return { ...cs, photos: mergeLegacyProfilePhotoUrls(nextActive, legacyTail), primaryPhotoIndex: cs.primaryPhotoIndex === slot ? null : cs.primaryPhotoIndex };
         }));
     };
 
@@ -251,21 +272,24 @@ export default function CaseStudiesClient({ initialCaseStudies, initialStoredFin
                 </div>
             )}
 
-            {caseStudies.map((cs, index) => (
+            {caseStudies.map((cs, index) => {
+                const row = rowHandles.current[index];
+                return (
                 <CaseStudyCard
-                    key={cs.id}
+                    key={row}
                     cs={cs}
                     index={index}
                     onChange={(field, value) => updateCaseStudy(index, field, value)}
                     onRemove={() => removeCaseStudy(index)}
-                    onPhotoUpload={(slot, file) => handlePhotoUpload(index, slot, file)}
+                    onPhotoUpload={(slot, file) => handlePhotoUpload(row, slot, file, Array.isArray(cs.photos) ? cs.photos : [])}
                     onPhotoRemove={(slot) => handlePhotoRemove(index, slot)}
                     onStoryTyped={(typed) => markStory(index, typed)}
                     inputCls={inputCls}
                     labelCls={labelCls}
                     enhance={enhance}
                 />
-            ))}
+                );
+            })}
 
             <div className={ui.saveBar}>
                 <button
@@ -316,15 +340,17 @@ function CaseStudyCard({
 }) {
     const [expanded, setExpanded] = useState(true);
     const [enhancing, setEnhancing] = useState(false);
-    const extraPhotos = legacyExtraPhotoCount(cs.photos);
+    const { active: activePhotoUrls, legacyTail } = splitLegacyProfilePhotoUrls(cs.photos);
+    const legacyTailCount = legacyTailPhotoCount(cs.photos);
+    const primarySlot = resolvePrimaryPhotoSlot(activePhotoUrls, cs.primaryPhotoIndex);
 
     // Which slots have a picture on its way, so the slot says so until its reply is in. Never saved.
     const [uploading, setUploading] = useState<boolean[]>([false, false, false]);
     const [photoNote, setPhotoNote] = useState<string | null>(null);
     /** The latest pick for each slot on this card. Only its reply ends that slot's "uploading". */
     const latestPick = useRef<(symbol | null)[]>([null, null, null]);
-    /** The file each slot's picture came from on this page, so the same picture added twice is noticed. Never saved. */
-    const pickedFiles = useRef<(File | null)[]>([null, null, null]);
+    /** Content hashes for files placed on each slot this session. Never saved. */
+    const slotHashes = useRef<(string | null)[]>([null, null, null]);
     const markUploading = (slot: number, on: boolean) => setUploading(prev => prev.map((value, i) => (i === slot ? on : value)));
 
     const pickPhoto = async (slot: number, input: HTMLInputElement) => {
@@ -340,24 +366,39 @@ function CaseStudyCard({
         }
         const pick = Symbol();
         latestPick.current[slot] = pick;
+        let hash: string;
+        try {
+            hash = await caseStudyPhotoContentHash(file);
+        } catch {
+            toast.error("That picture could not be checked, so it was not added.");
+            return;
+        }
+        if (slotHashes.current.some((entry, index) => entry === hash && index !== slot)) {
+            toast.error(CASE_STUDY_DUPLICATE_PHOTO_MESSAGE);
+            return;
+        }
+        if (latestPick.current[slot] !== pick) return;
+        const previousHash = slotHashes.current[slot];
+        slotHashes.current[slot] = hash;
         setPhotoNote(null);
         markUploading(slot, true);
         const added = await onPhotoUpload(slot, file);
         if (latestPick.current[slot] !== pick) return;
         markUploading(slot, false);
-        if (!added) return;
-        const twin = pickedFiles.current.findIndex((other, i) => i !== slot && other !== null && sameFile(other, file));
-        pickedFiles.current[slot] = file;
-        // Said, not refused: both pictures stay until the contractor removes one.
-        if (twin !== -1) setPhotoNote(`Photo ${slot + 1} looks like the same picture as photo ${twin + 1}. Both are kept. Remove one if you didn't mean to add it twice.`);
+        if (!added) { slotHashes.current[slot] = previousHash; return; }
     };
 
     const removePhoto = (slot: number) => {
         latestPick.current[slot] = null;
-        pickedFiles.current[slot] = null;
+        slotHashes.current[slot] = null;
         markUploading(slot, false);
         setPhotoNote(null);
         onPhotoRemove(slot);
+    };
+
+    const makePrimary = (slot: number) => {
+        if (!(activePhotoUrls[slot] ?? "").trim()) return;
+        onChange("primaryPhotoIndex", slot);
     };
 
     const uploadingSlots = uploading.flatMap((on, slot) => (on ? [slot + 1] : []));
@@ -625,10 +666,18 @@ function CaseStudyCard({
                         <div className={ui.photos}>
                             {[0, 1, 2].map(slot => (
                                 <div key={slot} className={`${ui.photoSlot} border rounded-lg overflow-hidden relative group`}>
-                                    {(cs.photos || [])[slot] ? (
+                                    {(activePhotoUrls[slot] ?? "").trim() ? (
                                         <>
                                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img src={cs.photos[slot]} alt={`Photo ${slot + 1}`} className="w-full h-full object-cover" />
+                                            <img src={activePhotoUrls[slot]} alt={`Photo ${slot + 1}`} className="w-full h-full object-cover" />
+                                            {primarySlot === slot && (
+                                                <span className="absolute top-1 left-1 z-10 rounded bg-emerald-900/90 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-100">{CASE_STUDY_PRIMARY_LABEL}</span>
+                                            )}
+                                            {primarySlot !== slot && (
+                                                <button type="button" aria-label={`Use photo ${slot + 1} as main for past work ${index + 1}`} onClick={() => makePrimary(slot)} className={`absolute top-1 left-1 z-10 min-h-8 px-2 rounded-lg bg-black/70 text-[10px] font-semibold text-white hover:bg-black ${coreFocusVisibleRing}`}>
+                                                    Use as main
+                                                </button>
+                                            )}
                                             <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
                                                 <Upload className="w-5 h-5 text-white" />
                                                 <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={`Replace photo ${slot + 1} for past work ${index + 1}`} className="sr-only" onChange={e => pickPhoto(slot, e.target)} />
@@ -656,20 +705,17 @@ function CaseStudyCard({
                         </div>
                         {/* Says a picture is on its way, or that the same picture was added twice. A failure is said where failures already are. */}
                         <p data-photo-status role="status" aria-live="polite" className={photoStatus ? "mt-2 text-xs font-semibold text-slate-200" : "sr-only"}>{photoStatus}</p>
-                        {extraPhotos > 0 && (
-                            // Older data can hold more than three. They are not shown and cannot be removed slot by slot, and a save with them is refused, so the choice is offered here. Nothing is dropped until it is pressed.
-                            <div data-extra-photos role="status" className="mt-2 flex flex-wrap items-center gap-3 rounded-lg border border-amber-500/50 bg-amber-950/40 p-3 text-xs text-amber-100">
-                                <p className="flex-1 min-w-[12rem]">
-                                    This example has {extraPhotos} more {extraPhotos === 1 ? "picture" : "pictures"} saved than the three allowed. Only the first three are shown, and saving is held until you keep just those three.
-                                </p>
-                                <button
-                                    type="button"
-                                    onClick={() => onChange("photos", keepFirstThreePhotos(cs.photos))}
-                                    aria-label={`Keep the first three pictures for past work ${index + 1}`}
-                                    className={`min-h-11 px-3 rounded-lg border border-amber-400 text-sm font-semibold text-amber-50 hover:bg-white/5 ${coreFocusVisibleRing}`}
-                                >
-                                    Keep the first three
-                                </button>
+                        {legacyTailCount > 0 && (
+                            <div data-legacy-photos className="mt-3 space-y-2">
+                                <p className="text-xs font-semibold text-slate-300">Older saved pictures (kept after your three active slots)</p>
+                                <div className={`${ui.photos} opacity-90`}>
+                                    {legacyTail.map((url, legacyIndex) => (
+                                        <div key={`${legacyIndex}-${url}`} className={`${ui.photoSlot} border border-slate-600 rounded-lg overflow-hidden`}>
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={url} alt={`Older saved photo ${legacyIndex + 1}`} className="w-full h-full object-cover" />
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </div>

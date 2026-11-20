@@ -32,17 +32,11 @@ describe("marketing footer contact navigation", () => {
     expect(cohortMarkup).not.toContain("<form");
 
     vi.stubEnv("NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE", "full");
-    const fullElements = nodes(ContactPage());
-    const form = fullElements.find(e => e.type === "form")!;
-    expect(form.props.action).toBe("https://formspree.io/f/xnnprlod");
-    expect(form.props.method).toBe("POST");
-    expect(fullElements.some(e => e.type === "input" && e.props.name === "name")).toBe(true);
-    expect(fullElements.some(e => e.type === "input" && e.props.name === "email")).toBe(true);
-    expect(fullElements.some(e => e.type === "textarea" && e.props.name === "message")).toBe(true);
-    const submit = fullElements.find(e => e.type === "button" && e.props.type === "submit")!;
-    expect(submit.props.children).toBe("Send Message");
     const fullMarkup = renderToStaticMarkup(ContactPage());
     expect(fullMarkup).toContain("Got a question? Want to stay in the loop?");
     expect(fullMarkup).toContain('href="mailto:hello@constructa.co"');
+    expect(fullMarkup).toContain('id="contact-message"');
+    expect(fullMarkup).toContain("Submission unavailable");
+    expect(fullMarkup).not.toContain("formspree");
   });
 });

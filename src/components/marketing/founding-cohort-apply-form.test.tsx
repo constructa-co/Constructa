@@ -6,7 +6,9 @@ import { FOUNDING_COHORT_APPLY_STORAGE_NOTICE_ID } from "./founding-cohort-apply
 
 describe("FoundingCohortApplyForm without storage", () => {
   it("disables submit and describes the upstream storage notice", () => {
-    const html = renderToStaticMarkup(<FoundingCohortApplyForm />);
+    const html = renderToStaticMarkup(
+      <FoundingCohortApplyForm collectionReady={false} />,
+    );
     expect(html).toContain('aria-describedby="founding-cohort-apply-storage-notice"');
     expect(html).toContain("Submission unavailable");
     expect(html).toMatch(/disabled(?:=""|="disabled")/);

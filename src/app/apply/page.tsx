@@ -5,6 +5,7 @@ import { FoundingCohortApplyStorageNotice } from "@/components/marketing/foundin
 import applyStyles from "@/components/marketing/founding-cohort-apply.module.css";
 import { PhaseOneFoundingCohortApply } from "@/components/marketing/founding-cohort-apply-page";
 import { getLaunchProfile } from "@/lib/launch-profile";
+import { isPublicApplyFormCollectionReady } from "@/lib/marketing/public-form-collection";
 
 import { marketingPageMetadata } from "@/lib/marketing-seo";
 
@@ -20,6 +21,8 @@ export default function ApplyPage() {
     return <PhaseOneFoundingCohortApply />;
   }
 
+  const collectionReady = isPublicApplyFormCollectionReady();
+
   return (
     <main className={`${applyStyles.theme} min-h-screen pt-16 ${applyStyles.root}`}>
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -33,7 +36,7 @@ export default function ApplyPage() {
         </p>
         <div className={applyStyles.formPanel}>
           <FoundingCohortApplyStorageNotice />
-          <FoundingCohortApplyForm />
+          <FoundingCohortApplyForm collectionReady={collectionReady} />
         </div>
       </div>
     </main>

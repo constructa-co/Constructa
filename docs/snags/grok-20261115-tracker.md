@@ -2,24 +2,24 @@
 
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
-Current count: 63 merged, 9 in progress, 11 Rob-gated, 1 decided/held (CON-003 signup OFF), 1 post-RC evidence follow-up (CON-023); 0 not started. Decisions D62/D65 dated 20 Nov15:30; no extra delivery claimed.
+Current count: 63 merged, 13 in progress, 7 Rob-fact/render-signoff gated, 1 decided/held (CON-003 signup OFF), 1 post-RC evidence follow-up (CON-023); 0 not started. D66 Rob17:49 approved all seven approaches; four approval gates move to execution. No extra delivery claimed.
 
 | --- | --- | --- | --- | --- | --- |
-| CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
-| CON-002 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | Rob-gated | Production test-account walkthrough at 18:30. |
+| CON-001 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | in progress | D66 approves two dummy test identities on non-production only. Authenticated verified preview target still needed; no production signup/writes. |
+| CON-002 | P0 | Rob / Codex | [#175](https://github.com/constructa-co/Constructa/pull/175) | in progress | D66 approves two dummy test identities on non-production only. Authenticated verified preview target still needed; no production signup/writes. |
 | CON-003 | P0 | Rob / CTO | — | decided/held | D62: real signup stays OFF until the P0 journey passes and Rob completes his walkthrough. Decision settled; enabling signup remains held, not an unanswered question. |
 | CON-004 | P0 | Codex / Kimi | [#171](https://github.com/constructa-co/Constructa/pull/171) | merged | D48 targeted suite 91/91 and Kimi PASS. Main CI and production readback pending. |
 | CON-005 | P0 | Cursor / Claude | [#178](https://github.com/constructa-co/Constructa/pull/178) | merged | — |
 | CON-006 | P0 | Cursor / Grok | [#172](https://github.com/constructa-co/Constructa/pull/172) | merged | — |
 | CON-007 | P0 | Cursor / Claude | [#173](https://github.com/constructa-co/Constructa/pull/173) | merged | — |
-| CON-008 | P0 | Rob / Kimi | — | Rob-gated | Confirm enabled features, allowances and production key names. |
-| CON-009 | P0 | Rob / Kimi | [#174](https://github.com/constructa-co/Constructa/pull/174) | Rob-gated | Approve privacy text. |
-| CON-010 | P0 | Rob / Kimi | [#174](https://github.com/constructa-co/Constructa/pull/174) | Rob-gated | Approve terms text. |
+| CON-008 | P0 | Rob / Kimi | — | in progress | D66 existing features only/no activation. Draft #228 a39fe3e: GBP25 global/GBP5 conservative per-company calendar-month cap, immutable reservations, missing verified cost bounds fail closed. SQL not applied; CI/review pending. |
+| CON-009 | P0 | Rob / Kimi | [#174](https://github.com/constructa-co/Constructa/pull/174) | Rob-gated | Approve privacy text. D66 drafting approved; #227877fbee incorporates existing204 drafts, founding price placeholders and no testimonials. Exact entity/price facts and Rob rendered-page legal signoff remain; no publication. |
+| CON-010 | P0 | Rob / Kimi | [#174](https://github.com/constructa-co/Constructa/pull/174) | Rob-gated | Approve terms text. D66 drafting approved; #227877fbee incorporates existing204 drafts, founding price placeholders and no testimonials. Exact entity/price facts and Rob rendered-page legal signoff remain; no publication. |
 | CON-011 | P0 | Codex / Claude | [#169](https://github.com/constructa-co/Constructa/pull/169) | merged | — |
 | CON-012 | P0 | Claude | — | in progress | D51 batch 01 — Profile, save and sign-in |
-| CON-013 | P0 | Rob / Kimi | — | Rob-gated | Choose the application destination and data handling. D64 minimal disabled-form source [#226](https://github.com/constructa-co/Constructa/pull/226) merged134e27b; exact PR/main CI, Sonnet, secrets and production READY verified. Collection/routing OFF, no submissions made; destination decision still Rob-gated. |
+| CON-013 | P0 | Rob / Kimi | — | Rob-gated | Choose the application destination and data handling. D64 minimal disabled-form source [#226](https://github.com/constructa-co/Constructa/pull/226) merged134e27b; exact PR/main CI, Sonnet, secrets and production READY verified. Collection/routing OFF, no submissions made; destination decision still Rob-gated. D66 approved one inbox/name-email-optionalcompany-message/12monthretention/Robonly. #228draft source updates fields, collectionOFF; mailbox existence and actual destination setting still required. No submissions or settings changed. |
 | CON-014 | P0 | Cursor / Claude | [#178](https://github.com/constructa-co/Constructa/pull/178) | merged | — |
-| CON-015 | P1 | Rob / Cursor | [#176](https://github.com/constructa-co/Constructa/pull/176) | Rob-gated | Confirm additive production migration and schema readback. |
+| CON-015 | P1 | Rob / Cursor | [#176](https://github.com/constructa-co/Constructa/pull/176) | in progress | D66 approved sequence176 then185 then222/223/224. #176 now draft c6882dd integrates current main; Sonnet product PASS, test-delta/freshCI pending. Sequence stopped before merge/apply: authenticated Supabase/preview/backup/readback required. No later step advanced. |
 | CON-016 | P1 | Kimi / Codex | [#198](https://github.com/constructa-co/Constructa/pull/198) | merged | Main CI, secret scan and production passed at 7f337fb. |
 | CON-017 | P1 | Cursor | [#184](https://github.com/constructa-co/Constructa/pull/184) | merged | Kimi PASS and GitHub CI green. |
 | CON-018 | P1 | Cursor | [#185](https://github.com/constructa-co/Constructa/pull/185) | in progress | — |
@@ -43,7 +43,7 @@ Current count: 63 merged, 9 in progress, 11 Rob-gated, 1 decided/held (CON-003 s
 | CON-036 | P1 | Cursor / Grok | [#182](https://github.com/constructa-co/Constructa/pull/182) | merged | — |
 | CON-037 | P1 | Cursor / Grok | [#182](https://github.com/constructa-co/Constructa/pull/182) | merged | — |
 | CON-038 | P1 | Claude | [#194](https://github.com/constructa-co/Constructa/pull/194) | merged | D51 batch 04 — Proposal evidence and terms |
-| CON-039 | P1 | Claude | — | Rob-gated | Approved domestic terms copy pending. |
+| CON-039 | P1 | Claude | — | Rob-gated | Approved domestic terms copy pending. D66 drafting approved; #227877fbee incorporates existing204 drafts, founding price placeholders and no testimonials. Exact entity/price facts and Rob rendered-page legal signoff remain; no publication. |
 | CON-040 | P1 | Cursor / Grok | [#182](https://github.com/constructa-co/Constructa/pull/182) | merged | — |
 | CON-041 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | merged | Independent PASS and GitHub browser green. |
 | CON-042 | P1 | Cursor | [#188](https://github.com/constructa-co/Constructa/pull/188) | merged | Independent PASS and GitHub browser green. |
@@ -55,9 +55,9 @@ Current count: 63 merged, 9 in progress, 11 Rob-gated, 1 decided/held (CON-003 s
 | CON-048 | P1 | Kimi | [#187](https://github.com/constructa-co/Constructa/pull/187) | merged | #187 merged at 97121a8. Main CI, secret scan and production deployment passed. |
 | CON-049 | P1 | Kimi | [#187](https://github.com/constructa-co/Constructa/pull/187) | merged | #187 merged at 97121a8. Main CI, secret scan and production deployment passed. |
 | CON-050 | P1 | Kimi | [#191](https://github.com/constructa-co/Constructa/pull/191) | merged | #191 merged at 34c7e85. Main CI, secret scan and production passed. |
-| CON-051 | P1 | Kimi | [#191](https://github.com/constructa-co/Constructa/pull/191) | Rob-gated | Review captures shipped in #191. Testimonials and pricing need approved owner inputs. |
-| CON-052 | P1 | Kimi | — | Rob-gated | Confirm legal entity details. |
-| CON-053 | P1 | Kimi | — | Rob-gated | Confirm contact form scope and destination. D64 minimal disabled-form source [#226](https://github.com/constructa-co/Constructa/pull/226) merged134e27b; exact PR/main CI, Sonnet, secrets and production READY verified. Collection/routing OFF, no submissions made; destination decision still Rob-gated. |
+| CON-051 | P1 | Kimi | [#191](https://github.com/constructa-co/Constructa/pull/191) | Rob-gated | Review captures shipped in #191. Testimonials and pricing need approved owner inputs. D66 drafting approved; #227877fbee incorporates existing204 drafts, founding price placeholders and no testimonials. Exact entity/price facts and Rob rendered-page legal signoff remain; no publication. |
+| CON-052 | P1 | Kimi | — | Rob-gated | Confirm legal entity details. D66 drafting approved; #227877fbee incorporates existing204 drafts, founding price placeholders and no testimonials. Exact entity/price facts and Rob rendered-page legal signoff remain; no publication. |
+| CON-053 | P1 | Kimi | — | Rob-gated | Confirm contact form scope and destination. D64 minimal disabled-form source [#226](https://github.com/constructa-co/Constructa/pull/226) merged134e27b; exact PR/main CI, Sonnet, secrets and production READY verified. Collection/routing OFF, no submissions made; destination decision still Rob-gated. D66 approved one inbox/name-email-optionalcompany-message/12monthretention/Robonly. #228draft source updates fields, collectionOFF; mailbox existence and actual destination setting still required. No submissions or settings changed. |
 | CON-054 | P1 | Claude | [#195](https://github.com/constructa-co/Constructa/pull/195) | merged | #195 merged at 02cdeb0. Main CI, secret scan and production deployment passed. |
 | CON-055 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | merged | Independent PASS and GitHub CI green. |
 | CON-056 | P2 | Cursor | [#186](https://github.com/constructa-co/Constructa/pull/186) | merged | Independent PASS and GitHub CI green. |
@@ -82,7 +82,7 @@ Current count: 63 merged, 9 in progress, 11 Rob-gated, 1 decided/held (CON-003 s
 | CON-075 | P2 | Cursor / Codex | [#214](https://github.com/constructa-co/Constructa/pull/214) | merged | Misleadingdaysopen hidden until genuineenquirydate exists; archived excluded. MainCI/secrets/productiongreen8561053. No schema/dateguessing. |
 | CON-076 | P2 | Cursor / Codex | [#207](https://github.com/constructa-co/Constructa/pull/207) | merged | Original job-name truncation snag addressed by live countdown/limit feedback; main CI, secrets and production green ate6de701. |
 | CON-077 | P2 | Claude | [#193](https://github.com/constructa-co/Constructa/pull/193) | merged | D51 batch 03 — Proposal PDF pricing |
-| CON-078 | P2 | Claude | — | in progress | D51 batch 12 — Dashboard and demo state |
+| CON-078 | P2 | Claude | — | in progress | D51 batch 12 — Dashboard and demo state CTO18:26 clarified approach-only approval: no approved row list existed. Read-only exact one-field proposal prepared privately from current signed-in app readback, no backup or writes; exact row/value needs Rob approval. |
 | CON-079 | P2 | Kimi | [#190](https://github.com/constructa-co/Constructa/pull/190) | merged | D51 batch 10 — Marketing navigation and copy |
 | CON-080 | P2 | Kimi | [#190](https://github.com/constructa-co/Constructa/pull/190) | merged | D51 batch 10 — Marketing navigation and copy |
 | CON-081 | P2 | Kimi | [#190](https://github.com/constructa-co/Constructa/pull/190) | merged | D51 batch 10 — Marketing navigation and copy |

@@ -199,10 +199,10 @@ describe("a confirmed save", () => {
                 "https://images.example.test/d.jpg",
             ],
         })], fp())).resolves.toMatchObject({ status: "saved" });
-        expect(stored()[0]).toMatchObject({ photos: [
+        expect(stored()).toMatchObject([{ photos: [
             "https://images.example.test/a.jpg", "https://images.example.test/b.jpg",
             "https://images.example.test/c.jpg", "https://images.example.test/d.jpg",
-        ] });
+        ] }]);
     });
 
     it("an empty list is a deliberate clear, and is saved", async () => {

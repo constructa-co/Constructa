@@ -287,6 +287,9 @@ async function main() {
     page.on("console", (msg) => {
       if (msg.type() !== "error") return;
       const text = msg.text();
+      const locationUrl = msg.location().url;
+      const blocked = report.interceptedRequests.find((r) => r.url === locationUrl && r.pagePath === activePagePath);
+      if (blocked) { consoleIgnored.push({ text, url: locationUrl, ignoreId: "audit-request-guard", ignoreReason: blocked.reason }); return; }
       const ignore = matchKnownTelemetryIgnore(text, "console");
       if (ignore) {
         consoleIgnored.push({ text, ignoreId: ignore.id, ignoreReason: ignore.reason });
@@ -302,6 +305,8 @@ async function main() {
     page.on("requestfailed", (req) => {
       const failure = req.failure();
       const text = `${req.url()} ${failure?.errorText ?? ""}`;
+      const blocked = report.interceptedRequests.find((r) => r.url === req.url() && r.pagePath === activePagePath);
+      if (blocked) { consoleIgnored.push({ text, ignoreId: "audit-request-guard", ignoreReason: blocked.reason }); return; }
       const ignore = matchKnownTelemetryIgnore(text, "requestfailed");
       if (ignore) {
         consoleIgnored.push({
@@ -317,7 +322,7 @@ async function main() {
     let response;
     try {
       response = await page.goto(url, {
-        waitUntil: "domcontentloaded",
+        waitUntil: "load",
         timeout: 60_000,
       });
     } catch (err) {

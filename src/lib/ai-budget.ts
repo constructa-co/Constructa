@@ -76,6 +76,10 @@ export type AiRefusal =
     | "attempt-limit"
     | "token-limit"
     | "service-limit"
+    /** Calendar-month spend ceiling for this contractor (pence ledger; SQL only). */
+    | "contractor-spend-cap"
+    /** Calendar-month spend ceiling for the whole service (pence ledger; SQL only). */
+    | "global-spend-cap"
     /** The budget could not be consulted, or the request was out of bounds. Nothing was called. */
     | "unavailable";
 
@@ -119,7 +123,15 @@ export function aiEmergencyStop(): boolean {
     return value !== "" && value !== "0" && value !== "false";
 }
 
-const REFUSALS: readonly string[] = ["disabled", "in-flight", "attempt-limit", "token-limit", "service-limit"];
+const REFUSALS: readonly string[] = [
+    "disabled",
+    "in-flight",
+    "attempt-limit",
+    "token-limit",
+    "service-limit",
+    "contractor-spend-cap",
+    "global-spend-cap",
+];
 
 export async function withAiBudget<S extends ZodTypeAny>(
     context: AiBudgetContext,

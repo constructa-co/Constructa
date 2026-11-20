@@ -340,3 +340,85 @@ if [[ "$reserved" != "3" || "$refused" != "7" ]]; then
 fi
 
 echo "ai budget: reservation, shared pool, exact limits, no free failures, immutable finish and isolation hold"
+
+# ── Founding-cohort pence ceilings (20261120174500) ───────────────────────────
+# Applied after the base budget proofs so token behaviour above stays unchanged.
+"${PSQL[@]}" -f "$ROOT_DIR/supabase/migrations/20261120174500_founding_cohort_ai_monthly_pence_caps.sql" >/dev/null
+
+"${PSQL[@]}" >/dev/null <<'SQL'
+\set alpha '''aaaaaaaa-0000-0000-0000-000000000001'''
+\set beta  '''bbbbbbbb-0000-0000-0000-000000000002'''
+
+-- Reset only this throwaway test database after the preceding daily-cap race.
+-- Its three old attempts would otherwise mask the monthly refusal with a daily cap.
+DELETE FROM public.ai_generation_attempts;
+UPDATE public.ai_generation_limits
+SET per_hour_attempts = CASE WHEN scope = 'contractor' THEN 1000 ELSE NULL END,
+    per_day_attempts = 10000, per_day_output_tokens = 10000000;
+SET ROLE service_role;
+
+SELECT t.expect(public.ai_generation_reserve(:alpha, 'profile.rewrite', 700, NULL)->>'status' = 'disabled',
+  'without a verified max_reserve_pence the feature cannot reserve');
+SELECT t.expect(t.attempts(:alpha) = 0, 'unpriced refusal inserts nothing');
+
+UPDATE public.ai_generation_features SET max_reserve_pence = 50 WHERE feature = 'profile.rewrite';
+SELECT t.expect((SELECT per_calendar_month_max_pence FROM public.ai_generation_limits WHERE scope = 'global') = 2500, 'global month cap is 2500 pence');
+SELECT t.expect((SELECT per_calendar_month_max_pence FROM public.ai_generation_limits WHERE scope = 'contractor') = 500, 'contractor month cap is 500 pence');
+
+-- Historical unpriced row in the London month blocks new reserves.
+INSERT INTO public.ai_generation_attempts (user_id, feature, reserved_output_tokens, started_at, finished_at, outcome, completion_tokens)
+VALUES (:alpha, 'profile.rewrite', 100, now(), now(), 'ok', 40);
+SELECT t.expect(public.ai_generation_reserve(:alpha, 'profile.rewrite', 700, NULL)->>'status' = 'disabled',
+  'a legacy attempt without reserved_pence fail-closes the month ledger');
+DELETE FROM public.ai_generation_attempts;
+
+-- Spend cap uses immutable reserved_pence on attempts, not mutable feature prices.
+UPDATE public.ai_generation_limits SET per_calendar_month_max_pence = 100 WHERE scope = 'global';
+SELECT t.expect(t.spend(:alpha, 'profile.rewrite', 100, 'ok', 40) = 'reserved', 'priced reserve 1');
+SELECT public.ai_generation_reserve(:alpha, 'profile.rewrite', 700, NULL) AS inflight \gset
+SELECT ((:'inflight'::jsonb)->>'attempt_id') AS inflight_id \gset
+UPDATE public.ai_generation_features SET max_reserve_pence = 1 WHERE feature = 'profile.rewrite';
+SELECT t.expect(public.ai_generation_reserve(:beta, 'profile.rewrite', 700, NULL)->>'status' = 'global-spend-cap',
+  'another contractor is refused when immutable 50+50 reaches global100 despite lowered feature price1');
+DELETE FROM public.ai_generation_attempts;
+UPDATE public.ai_generation_features SET max_reserve_pence = 50 WHERE feature = 'profile.rewrite';
+UPDATE public.ai_generation_limits SET per_calendar_month_max_pence = 2500 WHERE scope = 'global';
+
+-- Abandoned calls charge reserved_pence on the row.
+SELECT public.ai_generation_reserve(:alpha, 'profile.rewrite', 700, NULL) AS open_row \gset
+SELECT ((:'open_row'::jsonb)->>'attempt_id') AS open_id \gset
+RESET ROLE;
+SELECT t.age(:alpha, interval '3 minutes');
+SET ROLE service_role;
+SELECT t.expect(public.ai_generation_reserve(:alpha, 'profile.rewrite', 700, NULL)->>'status' = 'reserved', 'after abandon another reserve is allowed');
+SELECT t.expect((SELECT outcome = 'abandoned' AND charged_pence = 50 AND reserved_pence = 50 FROM public.ai_generation_attempts WHERE id = :'open_id'),
+  'abandoned attempt charges its stored reservation in pence');
+SELECT t.expect(public.ai_generation_finish(:alpha, :'open_id', 'ok', 10, 5, 'm', 'v') = false, 'abandoned row cannot be finished again');
+
+-- Finish charges reserved_pence from the attempt, not a later feature row.
+UPDATE public.ai_generation_features SET max_reserve_pence = 99 WHERE feature = 'profile.rewrite';
+SELECT public.ai_generation_finish(:alpha, (SELECT id FROM public.ai_generation_attempts WHERE user_id = :alpha AND finished_at IS NULL), 'error', NULL, NULL, NULL, 'v');
+SELECT t.expect((SELECT charged_pence FROM public.ai_generation_attempts WHERE user_id = :alpha AND finished_at IS NOT NULL ORDER BY finished_at DESC LIMIT 1) = 50,
+  'finish uses the reservation stored on the attempt');
+-- Prove the abandoned50 plus finished50 actually exhaust global100. With the
+-- abandoned charge omitted, another contractor's25 would incorrectly fit.
+UPDATE public.ai_generation_limits SET per_calendar_month_max_pence = 100 WHERE scope = 'global';
+UPDATE public.ai_generation_features SET max_reserve_pence = 25 WHERE feature = 'profile.rewrite';
+SELECT t.expect(public.ai_generation_reserve(:beta, 'profile.rewrite', 700, NULL)->>'status' = 'global-spend-cap',
+  'abandoned reservation remains charged in the next global month sum');
+UPDATE public.ai_generation_limits SET per_calendar_month_max_pence = 2500 WHERE scope = 'global';
+RESET ROLE;
+SQL
+
+for i in 1 2 3 4 5 6; do
+  "${PSQL[@]}" -At -c "SET ROLE service_role; UPDATE public.ai_generation_features SET max_reserve_pence = 10 WHERE feature = 'profile.rewrite'; SELECT public.ai_generation_reserve('bbbbbbbb-0000-0000-0000-000000000002', 'profile.rewrite', 700, NULL)->>'status';" | tail -n 1 > "$TEST_DIR/pence-race.$i" &
+done
+wait
+pence_reserved="$(cat "$TEST_DIR"/pence-race.* | grep -c '^reserved$' || true)"
+pence_in_flight="$(cat "$TEST_DIR"/pence-race.* | grep -c '^in-flight$' || true)"
+if [[ "$pence_reserved" != "1" || "$pence_in_flight" != "5" ]]; then
+  echo "FAILED: six simultaneous pence-path reservations gave $pence_reserved reserved and $pence_in_flight in-flight; expected 1 and 5." >&2
+  exit 1
+fi
+
+echo "ai budget: founding-cohort pence fail-closed, immutable reserved_pence, abandon charge, concurrent reserve"

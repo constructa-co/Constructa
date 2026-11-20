@@ -22,7 +22,9 @@ describe("/apply founding cohort route", () => {
     expect(html).toContain('id="apply-email"');
     expect(html).toContain('id="apply-company"');
     expect(html).toContain('id="apply-message"');
-    expect(html).toContain('id="apply-consent"');
+    expect(html).not.toContain('id="apply-consent"');
+    expect(html).not.toContain('name="consent"');
+    expect(html).toContain("12-month retention");
     expect(html).not.toContain('id="apply-trade"');
     expect(html).not.toContain('id="apply-team-size"');
     expect(html).toContain("are not collected yet.");

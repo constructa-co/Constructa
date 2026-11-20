@@ -22,9 +22,6 @@ export const PublicMarketingFormSchema = z
       z.string().trim().max(160, "Keep company name under 160 characters.").optional(),
     ),
     message: trimmedRequired(4000),
-    consent: z.literal("on", {
-      error: "Confirm you agree before sending.",
-    }),
   })
   .strict();
 
@@ -65,6 +62,5 @@ export function publicMarketingFormDataToRecord(
     email: formData.get("email"),
     company: formData.get("company"),
     message: formData.get("message"),
-    consent: formData.get("consent"),
   };
 }

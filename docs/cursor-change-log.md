@@ -1,5 +1,20 @@
 # Cursor change log
 
+## 2026-11-20 — R1 founding-cohort AI pence caps repair (source-only)
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `supabase/migrations/20261120174500_founding_cohort_ai_monthly_pence_caps.sql` | full | `reserved_pence` on attempts; fail-closed NULL `max_reserve_pence`; DST-safe London month; seed contractor 500p; `ai_generation_counted_pence`; finish uses stored reservation | R1 hard-cap repair |
+| `docs/delivery/2026-11-20/rollback/20261120174500_founding_cohort_ai_monthly_pence_caps.rollback.sql` | new | Operator rollback away from migrations glob | Prevent accidental rollback apply |
+| `supabase/migrations/20261120174500_founding_cohort_ai_monthly_pence_caps.rollback.sql` | stub | Pointer only — delete before db push | Glob safety |
+| `src/lib/__fixtures__/fake-ai-budget.ts` | reserve/finish | `penceLedger` option; NULL price disabled when on; `reserved_pence` ledger | Align fake with SQL without breaking token-only tests |
+| `src/lib/ai-generation/founding-cohort-spend-policy.ts` | constants | Contractor seed 500 pence | R1 scope |
+| `src/lib/ai-generation/founding-cohort-spend-policy.test.ts` | tests | Unpriced refusal; ledger via attempt rows | Policy regression |
+| `scripts/test-ai-budget-sql.sh` | tail | Pence migration section: NULL price, legacy row, cap sum, abandon, race | Disposable SQL lane |
+| `docs/delivery/2026-11-20/rob-approved-ai-forms.md` | rewrite | Honest operational pending / cost gate | Handoff |
+
+**Checks:** NOT RUN (source-only lane).
+
 ## 2026-11-20 — D63 CON-061 case-study photo behaviour
 
 | File | Lines (approx.) | Change | Intent |

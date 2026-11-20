@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { submitContactMarketingFormAction } from "./actions";
 
 function formDataFrom(fields: Record<string, string>): FormData {
@@ -11,12 +11,12 @@ describe("submitContactMarketingFormAction", () => {
   it("returns validation errors for incomplete input", async () => {
     const result = await submitContactMarketingFormAction(
       { status: "idle" },
-      formDataFrom({ name: "", email: "bad", message: "", consent: "" }),
+      formDataFrom({ name: "", email: "bad", message: "" }),
     );
     expect(result.status).toBe("validation_error");
     if (result.status === "validation_error") {
       expect(result.fieldErrors.email).toBeDefined();
-      expect(result.fieldErrors.consent).toBeDefined();
+      expect("consent" in result.fieldErrors).toBe(false);
     }
   });
 
@@ -27,7 +27,6 @@ describe("submitContactMarketingFormAction", () => {
         name: "Alex",
         email: "alex@example.co.uk",
         message: "Hello",
-        consent: "on",
       }),
     );
     expect(result.status).toBe("error");

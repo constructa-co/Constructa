@@ -131,7 +131,7 @@ describe("contact route under the full profile", () => {
         expect(markup).toContain("Got a question? Want to stay in the loop?");
         expect(markup).toContain('href="mailto:hello@constructa.co"');
         expect(markup).toContain('id="contact-name"');
-        expect(markup).toContain('id="contact-consent"');
+        expect(markup).not.toContain('name="consent"');
         expect(markup).toContain("Submission unavailable");
         expect(markup).not.toContain("formspree");
         expect(markup).not.toMatch(/action="https?:\/\//i);

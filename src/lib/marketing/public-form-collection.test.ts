@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { PUBLIC_MARKETING_INBOX_DESTINATION_ENV } from "./public-marketing-form-policy";
 import {
   isPublicApplyFormCollectionReady,
   isPublicContactFormCollectionReady,
-  isPublicMarketingFormCollectionEnabled,
+  isPublicMarketingFormCollectionReady,
+  isPublicMarketingInboxDestinationConfigured,
   PUBLIC_APPLY_FORM_DESTINATION_ENV,
   PUBLIC_CONTACT_FORM_DESTINATION_ENV,
   PUBLIC_FORM_COLLECTION_ENABLED_ENV,
@@ -13,37 +15,39 @@ afterEach(() => {
 });
 
 describe("public marketing form collection gates", () => {
-  it("exposes stable env var names for enablement and destinations", () => {
+  it("exposes one shared inbox env for contact and apply", () => {
     expect(PUBLIC_FORM_COLLECTION_ENABLED_ENV).toBe(
       "CONSTRUCTA_PUBLIC_FORM_COLLECTION_ENABLED",
     );
+    expect(PUBLIC_MARKETING_INBOX_DESTINATION_ENV).toBe(
+      "CONSTRUCTA_PUBLIC_MARKETING_INBOX_DESTINATION",
+    );
     expect(PUBLIC_CONTACT_FORM_DESTINATION_ENV).toBe(
-      "CONSTRUCTA_PUBLIC_CONTACT_FORM_DESTINATION",
+      PUBLIC_MARKETING_INBOX_DESTINATION_ENV,
     );
     expect(PUBLIC_APPLY_FORM_DESTINATION_ENV).toBe(
-      "CONSTRUCTA_PUBLIC_APPLY_FORM_DESTINATION",
+      PUBLIC_MARKETING_INBOX_DESTINATION_ENV,
     );
   });
 
   it("keeps collection disabled unless the enable flag is exactly 1", () => {
-    expect(isPublicMarketingFormCollectionEnabled(undefined)).toBe(false);
-    expect(isPublicMarketingFormCollectionEnabled("")).toBe(false);
-    expect(isPublicMarketingFormCollectionEnabled("true")).toBe(false);
-    expect(isPublicMarketingFormCollectionEnabled("0")).toBe(false);
-    expect(isPublicMarketingFormCollectionEnabled("1")).toBe(true);
+    expect(isPublicMarketingFormCollectionReady(undefined, "inbox")).toBe(false);
+    vi.stubEnv(PUBLIC_FORM_COLLECTION_ENABLED_ENV, "true");
+    expect(isPublicMarketingFormCollectionReady()).toBe(false);
+    vi.stubEnv(PUBLIC_FORM_COLLECTION_ENABLED_ENV, "1");
+    expect(isPublicMarketingFormCollectionReady()).toBe(false);
+    vi.stubEnv(PUBLIC_MARKETING_INBOX_DESTINATION_ENV, "operator-value-later");
+    expect(isPublicMarketingFormCollectionReady()).toBe(true);
   });
 
-  it("requires a non-empty destination before contact or apply collection is ready", () => {
+  it("requires a non-empty inbox destination before contact or apply is ready", () => {
     vi.stubEnv(PUBLIC_FORM_COLLECTION_ENABLED_ENV, "1");
     expect(isPublicContactFormCollectionReady()).toBe(false);
     expect(isPublicApplyFormCollectionReady()).toBe(false);
+    expect(isPublicMarketingInboxDestinationConfigured("  ")).toBe(false);
 
-    vi.stubEnv(PUBLIC_CONTACT_FORM_DESTINATION_ENV, "   ");
-    vi.stubEnv(PUBLIC_APPLY_FORM_DESTINATION_ENV, "configured-later");
-    expect(isPublicContactFormCollectionReady()).toBe(false);
-    expect(isPublicApplyFormCollectionReady()).toBe(true);
-
-    vi.stubEnv(PUBLIC_CONTACT_FORM_DESTINATION_ENV, "configured-later");
+    vi.stubEnv(PUBLIC_MARKETING_INBOX_DESTINATION_ENV, "operator-value-later");
     expect(isPublicContactFormCollectionReady()).toBe(true);
+    expect(isPublicApplyFormCollectionReady()).toBe(true);
   });
 });

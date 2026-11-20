@@ -364,6 +364,90 @@ BEGIN
 END;
 $$;
 
+-- Pipeline stage history: persistence, ownership isolation and append-only.
+INSERT INTO auth.users (id, email, raw_user_meta_data)
+VALUES ('10000000-0000-0000-0000-000000000002', 'phase1-other@example.test', '{}'::jsonb);
+
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000001', true);
+
+INSERT INTO public.project_pipeline_stage_events (project_id, user_id, from_status, to_status)
+SELECT id, '10000000-0000-0000-0000-000000000001', 'Estimating', 'Proposal Sent'
+  FROM public.projects
+ WHERE creation_request_id = '20000000-0000-0000-0000-000000000001';
+
+DO $$
+DECLARE
+  v_project uuid;
+  v_blocked boolean;
+BEGIN
+  SELECT id INTO v_project FROM public.projects
+   WHERE creation_request_id = '20000000-0000-0000-0000-000000000001';
+
+  IF (SELECT count(*) FROM public.project_pipeline_stage_events
+       WHERE project_id = v_project AND from_status = 'Estimating' AND to_status = 'Proposal Sent') <> 1 THEN
+    RAISE EXCEPTION 'Owner stage history did not persist or is not readable.';
+  END IF;
+
+  v_blocked := false;
+  BEGIN
+    INSERT INTO public.project_pipeline_stage_events (project_id, user_id, from_status, to_status)
+    VALUES (v_project, '10000000-0000-0000-0000-000000000002', 'Lead', 'Estimating');
+  EXCEPTION WHEN insufficient_privilege THEN v_blocked := true;
+  END;
+  IF NOT v_blocked THEN RAISE EXCEPTION 'Owner could insert history attributed to another user.'; END IF;
+
+  v_blocked := false;
+  BEGIN
+    INSERT INTO public.project_pipeline_stage_events (project_id, user_id, from_status, to_status)
+    VALUES (v_project, '10000000-0000-0000-0000-000000000001', 'Lead', 'Lead');
+  EXCEPTION WHEN check_violation THEN v_blocked := true;
+  END;
+  IF NOT v_blocked THEN RAISE EXCEPTION 'No-op stage history row was accepted.'; END IF;
+
+  v_blocked := false;
+  BEGIN
+    UPDATE public.project_pipeline_stage_events SET to_status = 'Lost';
+  EXCEPTION WHEN insufficient_privilege THEN v_blocked := true;
+  END;
+  IF NOT v_blocked THEN RAISE EXCEPTION 'Stage history is not append-only (update allowed).'; END IF;
+
+  v_blocked := false;
+  BEGIN
+    DELETE FROM public.project_pipeline_stage_events;
+  EXCEPTION WHEN insufficient_privilege THEN v_blocked := true;
+  END;
+  IF NOT v_blocked THEN RAISE EXCEPTION 'Stage history is not append-only (delete allowed).'; END IF;
+END;
+$$;
+
+-- A different signed-in user can neither read nor write this project's history.
+RESET ROLE;
+SELECT set_config('smoke.history_project_id', id::text, true)
+  FROM public.projects
+ WHERE creation_request_id = '20000000-0000-0000-0000-000000000001';
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000002', true);
+DO $$
+DECLARE
+  v_blocked boolean := false;
+BEGIN
+  IF (SELECT count(*) FROM public.project_pipeline_stage_events) <> 0 THEN
+    RAISE EXCEPTION 'Another user can read stage history for a project they do not own.';
+  END IF;
+  BEGIN
+    INSERT INTO public.project_pipeline_stage_events (project_id, user_id, from_status, to_status)
+    VALUES (current_setting('smoke.history_project_id')::uuid,
+            '10000000-0000-0000-0000-000000000002', 'Lead', 'Estimating');
+  EXCEPTION WHEN insufficient_privilege THEN v_blocked := true;
+  END;
+  IF NOT v_blocked THEN
+    RAISE EXCEPTION 'Another user wrote stage history for a project they do not own.';
+  END IF;
+END;
+$$;
+RESET ROLE;
+
 ROLLBACK;
 
 \echo 'constructa-phase1-database-smoke: pass'

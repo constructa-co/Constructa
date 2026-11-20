@@ -171,6 +171,11 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
         if (result.url) {
             // Placed on the photos as they are when the reply arrives, so two uploads on their way do not undo each other.
             const photos = normalisePhotoSlots(stateRef.current.draft.content.photos);
+            if (photos.some((photo, index) => photo.url === result.url && index !== slot)) {
+                slotHashes.current[slot] = null;
+                toast.error(CASE_STUDY_DUPLICATE_PHOTO_MESSAGE);
+                return;
+            }
             const hadNone = photos.every((entry) => entry.url.trim() === "");
             photos[slot] = { ...photos[slot], url: result.url };
             if (hadNone && slot !== 0) {

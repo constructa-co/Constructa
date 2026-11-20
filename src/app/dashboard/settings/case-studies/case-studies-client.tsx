@@ -175,7 +175,7 @@ export default function CaseStudiesClient({ initialCaseStudies, initialStoredFin
     const trouble = state.notice.kind === "failed" || state.notice.kind === "unknown" || state.uncertain;
 
     /** Resolves true only when the picture was put on the example. */
-    const handlePhotoUpload = async (row: number, slot: number, file: File): Promise<boolean> => {
+    const handlePhotoUpload = async (row: number, slot: number, file: File, existingPhotos: readonly string[]): Promise<boolean> => {
         // Rows and photos can change while this waits, so the reply is placed from what is there when it arrives.
         if (!rowHandles.current.includes(row)) {
             toast.error("That past work was removed, so its photo was not added.");
@@ -202,6 +202,10 @@ export default function CaseStudiesClient({ initialCaseStudies, initialStoredFin
         if (latestPhotoPick.current.get(pickKey) !== pick) return false;
         const { url } = result;
         if (url) {
+            if (existingPhotos.some((photo, index) => photo === url && index !== slot)) {
+                toast.error(CASE_STUDY_DUPLICATE_PHOTO_MESSAGE);
+                return false;
+            }
             setCaseStudies(prev => prev.map((cs, i) => {
                 if (i !== rowIndex) return cs;
                 const { active, legacyTail } = splitLegacyProfilePhotoUrls(cs.photos);
@@ -277,7 +281,7 @@ export default function CaseStudiesClient({ initialCaseStudies, initialStoredFin
                     index={index}
                     onChange={(field, value) => updateCaseStudy(index, field, value)}
                     onRemove={() => removeCaseStudy(index)}
-                    onPhotoUpload={(slot, file) => handlePhotoUpload(row, slot, file)}
+                    onPhotoUpload={(slot, file) => handlePhotoUpload(row, slot, file, Array.isArray(cs.photos) ? cs.photos : [])}
                     onPhotoRemove={(slot) => handlePhotoRemove(index, slot)}
                     onStoryTyped={(typed) => markStory(index, typed)}
                     inputCls={inputCls}

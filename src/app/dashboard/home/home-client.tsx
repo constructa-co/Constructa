@@ -12,6 +12,7 @@ import { isActiveProject, isPipelineProject, isClosedProject } from "@/lib/proje
 // estimate's risk_pct. Pulled from the shared financial library so Home's
 // "contract value" agrees with every other surface.
 import { computeContractSumValue } from "@/lib/financial";
+import { totalHomePipelineValue } from "@/lib/pipeline-value";
 import { calendarDayDiff } from "@/lib/dates";
 import { getHomePresentation } from "@/lib/first-session";
 import FirstProjectStart from "@/components/first-project-start";
@@ -178,7 +179,7 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
     const activeProjects   = projects.filter(isActiveProject);
     const pipelineProjects = projects.filter(isPipelineProject);
     const closedProjects   = projects.filter(isClosedProject);
-    const pipelineValue    = pipelineProjects.reduce((s, p) => s + (p.potential_value || 0), 0);
+    const pipelineValue = totalHomePipelineValue(pipelineProjects, estimates);
 
     // ── Win rate (90d) ────────────────────────────────────────────────────────
     const cutoff = new Date(Date.now() - 90 * 86400000);

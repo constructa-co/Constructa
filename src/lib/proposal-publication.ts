@@ -1,6 +1,8 @@
-import { computeContractSum, roundMoney, toNumber } from "@/lib/financial";
+import { computeContractSum, isPricedPreliminariesLine, roundMoney, toNumber } from "@/lib/financial";
+import { isFaceValueLineType, type FaceValueLineType } from "@/lib/estimate-line-type";
 import { planCoversEveryPhase, resolveProgrammeSource } from "@/lib/programme-plan";
 import { computeDisplayProgramme, hasRelativeProgramme, RELATIVE_PROGRAMME_BASIS, type DisplayProgrammePlan } from "@/lib/relative-programme";
+import { resolveUkBankHolidayDivision } from "@/lib/uk-bank-holidays";
 import { readProgrammeInclusion } from "@/lib/programme-inclusion";
 import { isProposalResponseKind, responseWording, type ProposalResponseKind } from "@/lib/proposal-response";
 import { resolveSelectedCaseStudies, type LibraryRow } from "@/lib/case-library/resolve";
@@ -10,6 +12,9 @@ import {
     resolveProposalCoverPhoto,
     type ProposalCoverPhoto,
 } from "@/lib/proposal-cover-photo";
+import { sitePhotosForJob } from "@/lib/proposal-site-photos";
+import { contractValueVatBasis, type ContractValueVatBasis } from "@/lib/case-study-value";
+import { legacyProfileCaseStudyPhotos } from "@/lib/case-library/case-study-photo-behaviour";
 
 /** Said when a chosen past job cannot be sent. The proposal is not published short of it. */
 export const CASE_STUDY_UNSENDABLE_ERROR = "One of the past jobs you chose can't be sent. Untick it under Relevant experience, or fix it in Case Studies, then check the proposal again.";
@@ -29,6 +34,7 @@ export interface ProposalPublicationProjectInput {
     client_name?: string | null;
     client_address?: string | null;
     site_address?: string | null;
+    region?: string | null;
     start_date?: string | null;
     proposal_introduction?: string | null;
     scope_text?: string | null;
@@ -70,6 +76,8 @@ export interface ProposalPublicationEstimateLineInput {
     quantity?: number | string | null;
     unit?: string | null;
     line_total?: number | string | null;
+    /** "pc_sum" / "provisional_sum" publish at face value, never marked up. */
+    line_type?: string | null;
 }
 
 export interface ProposalPublicationEstimateInput {
@@ -124,6 +132,17 @@ export interface ProposalCaseStudy {
     delivered: string | null;
     value_added: string | null;
     photos: string[];
+    /**
+     * CON-062/063/064 fields. Absent on snapshots issued before they existed,
+     * so an issued proposal keeps reading exactly as it was sent. Each is only
+     * present on a new snapshot when the stored case study holds a value.
+     */
+    client_quote?: string | null;
+    client_quote_attribution?: string | null;
+    challenge?: string | null;
+    solution?: string | null;
+    contract_value_amount?: number | null;
+    contract_value_vat_basis?: ContractValueVatBasis | null;
 }
 
 export interface ProposalPhoto {
@@ -131,12 +150,31 @@ export interface ProposalPhoto {
     caption: string | null;
 }
 
-/** PDF layout generation. Omitted on snapshots issued before headline price deduplication. */
-export type ProposalDocumentPresentationVersion = 1 | 2;
+/**
+ * PDF layout generation. Omitted on snapshots issued before headline price deduplication.
+ * Version 6 separates prime-cost / provisional sum lines into their own face-value blocks;
+ * versions 1–5 keep the layout they were issued with.
+ */
+export type ProposalDocumentPresentationVersion = 1 | 2 | 3 | 4 | 5 | 6;
+
+/** Written on every new snapshot. Issued snapshots keep the version they were sent with. */
+export const CURRENT_DOCUMENT_PRESENTATION_VERSION: ProposalDocumentPresentationVersion = 6;
 
 export interface ProposalPublicationSnapshot {
     schema_version: 1;
-    /** When 2, cover states the authoritative price and the price section avoids repeating it. */
+    /**
+     * From 2, cover states the authoritative price and the price section avoids repeating it.
+     * From 2, cover states the authoritative price and the price section avoids repeating it.
+     * From 3, a placeholder job type and a generic lone price heading are left out.
+     * From 4, a director's message used as the closing wording is shown once, and the PDF
+     * prints a long programme stage name in full.
+     * From 5, the price lines drop the "General" filing heading, keep preliminaries last,
+     * word counted units in the plural, and the PDF writes a long client name in full by
+     * the signature. From 6, prime-cost and provisional sum lines are drawn in their own
+     * blocks at face value, separate from the marked-up work, with a statement that no
+     * adjustment is applied to them. A snapshot issued under an earlier version keeps
+     * its layout.
+     */
     document_presentation_version?: ProposalDocumentPresentationVersion;
     publication: {
         id: string;
@@ -193,6 +231,8 @@ export interface ProposalPublicationSnapshot {
             quantity: number;
             unit: string;
             amount_ex_vat: number;
+            /** Present only on prime-cost / provisional sum lines, published at face value. */
+            line_type?: FaceValueLineType;
         }>;
         payment_schedule: Array<{
             id: string | null;
@@ -283,19 +323,32 @@ function buildFeeItems(
     const breakdown = computeContractSum(estimate, estimate.estimate_lines);
     const multiplier = breakdown.ohRiskProfitMultiplier;
     const sourceItems = estimate.estimate_lines
-        .filter((line) => toNumber(line.line_total) > 0)
-        .map((line) => ({
-            id: line.id,
-            trade_section: optionalText(line.trade_section, 200) ?? "General",
-            description: optionalText(line.description, 1000) ?? "Works",
-            quantity: toNumber(line.quantity),
-            unit: optionalText(line.unit, 50) ?? "item",
-            amount_ex_vat: roundMoney(toNumber(line.line_total) * multiplier),
-        }));
+        // A zero-value placeholder is never published — not even a typed
+        // allowance, which computeContractSum also leaves out of the price.
+        .filter((line) =>
+            isFaceValueLineType(line.line_type)
+                ? toNumber(line.line_total) !== 0
+                : toNumber(line.line_total) > 0)
+        .map((line) => {
+            // Prime-cost and provisional sums go to the client at exactly the
+            // typed figure — never multiplied by the mark-up.
+            const faceValue = isFaceValueLineType(line.line_type);
+            return {
+                id: line.id,
+                trade_section: optionalText(line.trade_section, 200) ?? "General",
+                description: optionalText(line.description, 1000) ?? "Works",
+                quantity: toNumber(line.quantity),
+                unit: optionalText(line.unit, 50) ?? "item",
+                amount_ex_vat: faceValue
+                    ? roundMoney(toNumber(line.line_total))
+                    : roundMoney(toNumber(line.line_total) * multiplier),
+                ...(faceValue ? { line_type: line.line_type as FaceValueLineType } : {}),
+            };
+        });
 
-    const hasExplicitPrelims = estimate.estimate_lines.some(
-        (line) => (line.trade_section ?? "") === "Preliminaries",
-    );
+    // A face-value line is governed by its type, so it never counts as an
+    // explicit prelims line either.
+    const hasExplicitPrelims = estimate.estimate_lines.some(isPricedPreliminariesLine);
     if (!hasExplicitPrelims && breakdown.prelimsTotal > 0) {
         sourceItems.push({
             id: `preliminaries-${estimate.id}`,
@@ -310,9 +363,21 @@ function buildFeeItems(
     if (sourceItems.length > 0) {
         const itemTotal = roundMoney(sourceItems.reduce((sum, line) => sum + line.amount_ex_vat, 0));
         const residual = roundMoney(contractSum - itemTotal);
-        sourceItems[sourceItems.length - 1].amount_ex_vat = roundMoney(
-            sourceItems[sourceItems.length - 1].amount_ex_vat + residual,
-        );
+        // The rounding residual lands on the last marked-up line, never on a
+        // face-value allowance the client must read at the typed figure.
+        const residualIndex = sourceItems.reduce((last, line, index) => line.line_type ? last : index, -1);
+        if (residualIndex >= 0) {
+            sourceItems[residualIndex].amount_ex_vat = roundMoney(sourceItems[residualIndex].amount_ex_vat + residual);
+        } else if (residual !== 0) {
+            sourceItems.push({
+                id: `price-adjustment-${estimate.id}`,
+                trade_section: "General",
+                description: "Price adjustment",
+                quantity: 1,
+                unit: "sum",
+                amount_ex_vat: residual,
+            });
+        }
     }
 
     return sourceItems;
@@ -386,6 +451,13 @@ function textField(row: Record<string, unknown>, key: string, maxLength: number)
     return trimmed ? trimmed.slice(0, maxLength) : null;
 }
 
+/** A stored numeric contract value: a finite, non-negative number or nothing. */
+function amountField(row: Record<string, unknown>, key: string): number | null {
+    const value = row[key];
+    if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 1e12) return null;
+    return value;
+}
+
 /**
  * The past jobs the contractor chose for this proposal, as they wrote them.
  * A case study is included only when it is ticked; nothing is added or
@@ -397,20 +469,31 @@ export function selectCaseStudies(all: unknown[] | null | undefined, selected: u
     return all
         .map((entry, index) => ({ row: asRecord(entry), index }))
         .filter(({ row, index }) => chosen.has(String(index)) || (typeof row.id === "string" && chosen.has(row.id)))
-        .map(({ row }) => ({
-            title: textField(row, "projectName", 200) ?? "",
-            project_type: textField(row, "projectType", 200),
-            location: textField(row, "location", 200),
-            client: textField(row, "client", 200),
-            contract_value: textField(row, "contractValue", 50),
-            duration: textField(row, "programmeDuration", 100),
-            delivered: textField(row, "whatWeDelivered", 5000),
-            value_added: textField(row, "valueAdded", 5000),
-            photos: (Array.isArray(row.photos) ? row.photos : [])
-                .map(safeImageUrl)
-                .filter((url): url is string => url !== null)
-                .slice(0, 3),
-        }))
+        .map(({ row }) => {
+            const amount = amountField(row, "contractValueAmount");
+            const vatBasis = contractValueVatBasis(row.contractValueVatBasis);
+            const clientQuote = textField(row, "clientQuote", 1000);
+            const challenge = textField(row, "challenge", 5000);
+            const solution = textField(row, "solution", 5000);
+            return {
+                title: textField(row, "projectName", 200) ?? "",
+                project_type: textField(row, "projectType", 200),
+                location: textField(row, "location", 200),
+                client: textField(row, "client", 200),
+                contract_value: textField(row, "contractValue", 50),
+                duration: textField(row, "programmeDuration", 100),
+                delivered: textField(row, "whatWeDelivered", 5000),
+                value_added: textField(row, "valueAdded", 5000),
+                photos: legacyProfileCaseStudyPhotos(row.photos, row.primaryPhotoIndex),
+                // Only when both parts are usable: a figure without a known VAT
+                // basis never prints, so a stored "gross" or a missing basis
+                // cannot put an invented "ex VAT" on a client proposal.
+                ...(amount !== null && vatBasis !== null ? { contract_value_amount: amount, contract_value_vat_basis: vatBasis } : {}),
+                ...(clientQuote ? { client_quote: clientQuote, client_quote_attribution: textField(row, "clientQuoteAttribution", 200) } : {}),
+                ...(challenge ? { challenge } : {}),
+                ...(solution ? { solution } : {}),
+            };
+        })
         .filter((study) => study.title !== "")
         .slice(0, 6);
 }
@@ -492,7 +575,12 @@ export function buildProposalPublicationSnapshot(
     const programmeSource = resolveProgrammeSource(input.project);
     const programmeDecision = readProgrammeInclusion(programmeSource.phases);
     const omitted = programmeDecision.intent === "omit";
-    const programmePlan = omitted ? null : computeDisplayProgramme(input.project.start_date, programmeSource.phases, input.project.programme_working_pattern);
+    const programmePlan = omitted ? null : computeDisplayProgramme(
+        input.project.start_date,
+        programmeSource.phases,
+        input.project.programme_working_pattern,
+        resolveUkBankHolidayDivision(input.project.region),
+    );
     if ((!programmePlan && !omitted || programmeDecision.intent === "invalid") && !options.allowIncomplete) throw new Error(PROGRAMME_REQUIRED_ERROR);
     // A stage the contractor saved is never left out of what is sent.
     if (programmePlan && !options.allowIncomplete && !planCoversEveryPhase(programmePlan, programmeSource.phases)) {
@@ -505,9 +593,14 @@ export function buildProposalPublicationSnapshot(
         Object.freeze(programmePlan);
     }
 
+    // A photo uploaded for another job, or as branding or a case study, is
+    // never sent as a photograph of this site. The preview is built here too,
+    // so it shows exactly the photographs that would be sent.
+    const sitePhotos = sitePhotosForJob(sanitisePhotos(input.project.site_photos), { projectId: input.project.id });
+
     const snapshot: ProposalPublicationSnapshot = {
         schema_version: 1,
-        document_presentation_version: 2,
+        document_presentation_version: CURRENT_DOCUMENT_PRESENTATION_VERSION,
         publication: {
             id: requiredText(input.publicationId, "Publication id", 100),
             version_number: input.versionNumber,
@@ -575,13 +668,12 @@ export function buildProposalPublicationSnapshot(
             notice: responseWording(input.responseKind).notice,
         },
         case_studies: chosenCaseStudies.studies,
-        photos: sanitisePhotos(input.project.site_photos),
+        photos: sitePhotos,
         ...(isProposalCoverPhotoEnabled()
             ? ((): { cover_photo?: ProposalCoverPhoto } => {
-                const photos = sanitisePhotos(input.project.site_photos);
                 const cover = resolveProposalCoverPhoto(
                     parseProposalCoverPhotoChoice(input.project.proposal_cover_photo),
-                    photos,
+                    sitePhotos,
                 );
                 if (!cover) return {};
                 if (cover.kind === "site") {

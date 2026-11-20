@@ -70,7 +70,7 @@ export default async function OverviewPage(props: { searchParams: Promise<{ proj
             .eq("user_id", user.id)
             .single(),
         supabase.from("estimates")
-            .select("*, estimate_lines(trade_section, line_total)")
+            .select("*, estimate_lines(trade_section, line_total, line_type)")
             .eq("project_id", activeProjectId),
         supabase.from("project_expenses")
             .select("amount, expense_date, trade_section, cost_type, cost_status")

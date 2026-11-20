@@ -12,13 +12,18 @@
  */
 
 import type { Estimate, EstimateLine } from "@/app/dashboard/projects/costs/types";
-import { computeContractSum, roundMoney, toNumber } from "./financial";
+import { evaluateDiscountSubmitGate } from "@/lib/discount-confirm";
+import { computeContractSum, isPricedPreliminariesLine, roundMoney, toNumber } from "./financial";
 import type { LaunchProfile } from "./launch-profile";
 import { getLaunchProfile, isCapabilityEnabled } from "./launch-profile";
 
 // ── Line drafts ──────────────────────────────────────────────────────────────
 
 export const PRICE_UNITS: readonly string[] = ["item", "m", "m2", "m3", "nr", "day", "week", "tonne", "kg", "lm"];
+
+export function priceUnitLabel(unit: string): string {
+    return ({ m2: "m²", m3: "m³", week: "wk" } as Record<string, string>)[unit] ?? unit;
+}
 
 /** The units offered for a draft: the standard list plus the line's own unit. */
 export function unitOptions(currentUnit: string): string[] {
@@ -54,7 +59,7 @@ export const EMPTY_PRICE_LINE_DRAFT: PriceLineDraft = {
     mode: "amount",
     amount: "",
     quantity: "",
-    unit: "m2",
+    unit: "item",
     rate: "",
 };
 
@@ -77,11 +82,31 @@ export function parseAdvancedQuantityDraft(raw: string): number | null {
     return Number.isFinite(number) ? number : null;
 }
 
-/** Plain digits with optional decimals. No sign, exponent or hex forms. */
+/**
+ * Plain digits with optional decimals. No sign, exponent or hex forms. A
+ * single comma with one or two digits after it and no dot is an en-GB decimal
+ * comma ("1,5" → 1.5). A leading zero also allows three decimal digits
+ * for quantities. Any other comma must be valid thousands grouping in
+ * threes ("1,500", "1,234.5"); malformed commas such as "1,2,3" or "1,2345"
+ * are rejected instead of being silently stripped into a different number.
+ */
 function parseDecimal(raw: string, maxDecimals: number): number | null {
-    const cleaned = raw.trim().replace(/[£,\s]/g, "");
-    if (!new RegExp(`^\\d+(\\.\\d{1,${maxDecimals}})?$`).test(cleaned)) return null;
-    return Number(cleaned);
+    const cleaned = raw.trim().replace(/[£\s]/g, "");
+    if (!cleaned) return null;
+    let normalised = cleaned;
+    if (/^\d+,\d{1,2}$/.test(cleaned) || /^0,\d{3}$/.test(cleaned)) {
+        normalised = cleaned.replace(",", ".");
+    } else if (cleaned.includes(",")) {
+        if (!/^[1-9]\d{0,2}(,\d{3})+(\.\d+)?$/.test(cleaned)) return null;
+        normalised = cleaned.replace(/,/g, "");
+    }
+    if (!new RegExp(`^\\d+(\\.\\d{1,${maxDecimals}})?$`).test(normalised)) return null;
+    return Number(normalised);
+}
+
+/** True when the text is plainly a number below zero, so the message can say so. */
+function isNegativeNumberText(raw: string): boolean {
+    return /^-\s*\d/.test(raw.trim());
 }
 
 export function lineTotal(quantity: number, unitRate: number): number {
@@ -119,8 +144,10 @@ export function buildPriceLine(draft: PriceLineDraft): BuildPriceLineResult {
 
     const quantity = parseDecimal(draft.quantity, 3);
     const rate = parseDecimal(draft.rate, 2);
-    if (quantity === null) fieldErrors.quantity = "Enter the quantity as a number.";
-    else if (quantity <= 0) fieldErrors.quantity = "Enter a quantity above 0.";
+    if (quantity === null) fieldErrors.quantity = isNegativeNumberText(draft.quantity)
+        ? "Quantity must be more than 0."
+        : "Enter the quantity as a number.";
+    else if (quantity <= 0) fieldErrors.quantity = "Quantity must be more than 0.";
     else if (quantity > MAX_LINE_QUANTITY) fieldErrors.quantity = "That quantity is too large.";
     if (rate === null) fieldErrors.rate = "Enter the rate as a number.";
     else if (rate <= 0) fieldErrors.rate = "Enter a rate above £0.";
@@ -135,11 +162,35 @@ export function buildPriceLine(draft: PriceLineDraft): BuildPriceLineResult {
 
 const plain = (n: number): string => (Number.isFinite(n) && n !== 0 ? String(n) : "");
 
+/** Stored qty 1 + item (or blank unit) matches a one-price line — same rule as save, no conversion. */
+export function isStoredOnePriceLine(line: Pick<EstimateLine, "quantity" | "unit">): boolean {
+    return toNumber(line.quantity) === 1 && (line.unit === "item" || !line.unit);
+}
+
+/** Quantity cell when optional columns are open — stored value only. */
+export function storedLineQuantityLabel(line: Pick<EstimateLine, "quantity">): string {
+    const quantity = Number(line.quantity);
+    return Number.isFinite(quantity) ? String(quantity) : "—";
+}
+
+/** Unit cell when optional columns are open — stored value only. */
+export function storedLineUnitLabel(line: Pick<EstimateLine, "quantity" | "unit">): string {
+    const unit = line.unit?.trim();
+    if (unit) return unit;
+    return isStoredOnePriceLine(line) ? "item" : "—";
+}
+
+/** Rate cell when optional columns are open — stored unit_rate only, never derived from line_total. */
+export function storedLineRateLabel(line: Pick<EstimateLine, "unit_rate">): string {
+    const rate = Number(line.unit_rate);
+    return Number.isFinite(rate) ? formatGBP(rate) : "—";
+}
+
 /** Opens an existing line for editing in the form it was most likely entered. */
 export function draftFromLine(line: Pick<EstimateLine, "description" | "quantity" | "unit" | "unit_rate">): PriceLineDraft {
     const quantity = toNumber(line.quantity);
     const rate = toNumber(line.unit_rate);
-    const isAmount = quantity === 1 && (line.unit === "item" || !line.unit);
+    const isAmount = isStoredOnePriceLine(line);
     return {
         description: line.description || "",
         mode: isAmount ? "amount" : "rate",
@@ -168,12 +219,17 @@ export interface AdjustmentRow {
     pct: number;
     /** Signed: the discount is negative. */
     amount: number;
+    /** Shown under the row when the amount is £0 for a reason the user should know. */
+    note?: string;
 }
 
 export interface PriceSummary {
     /** Sum of the contractor's own price lines. */
     linesTotal: number;
+    /** Prime-cost / provisional sum lines, carried at face value. */
+    faceValueTotal: number;
     adjustments: AdjustmentRow[];
+    /** Mark-up adjustments only: contract sum minus lines and face-value sums. */
     adjustmentsTotal: number;
     /** Canonical contract sum, before VAT. */
     contractSum: number;
@@ -191,18 +247,28 @@ type EstimatePercentages = Pick<Estimate, "prelims_pct" | "overhead_pct" | "risk
  */
 export function summarisePrice(
     estimate: EstimatePercentages | null,
-    lines: Pick<EstimateLine, "trade_section" | "line_total">[],
+    lines: Pick<EstimateLine, "trade_section" | "line_total" | "line_type">[],
 ): PriceSummary {
     const percentages = estimate ?? { prelims_pct: 0, overhead_pct: 0, risk_pct: 0, profit_pct: 0, discount_pct: 0, total_cost: 0 };
     const sum = computeContractSum(percentages, lines);
-    const prelimsFromLines = lines.some((l) => l.trade_section === "Preliminaries");
+    const prelimsFromLines = lines.some(isPricedPreliminariesLine);
+    const faceValueTotal = roundMoney(sum.faceValueTotal);
 
     const linesTotal = prelimsFromLines ? sum.totalConstructionCost : sum.totalConstructionCost - sum.prelimsTotal;
     const adjustments: AdjustmentRow[] = [];
     const push = (key: AdjustmentKey, label: string, pct: number, amount: number) => {
         if (pct > 0) adjustments.push({ key, label, pct, amount: roundMoney(amount) });
     };
-    if (!prelimsFromLines) push("prelims", "Preliminaries", toNumber(percentages.prelims_pct), sum.prelimsTotal);
+    const prelimsPct = toNumber(percentages.prelims_pct);
+    adjustments.push({
+        key: "prelims",
+        label: "Preliminaries",
+        pct: prelimsPct,
+        amount: prelimsFromLines ? 0 : roundMoney(sum.prelimsTotal),
+        note: prelimsFromLines && prelimsPct > 0
+            ? `You have ${formatGBP(sum.prelimsTotal)} of prelims lines and a ${prelimsPct}% prelims allowance. Priced lines take precedence, so the allowance is not charged — check you are not double counting.`
+            : undefined,
+    });
     push("overhead", "Overhead", toNumber(percentages.overhead_pct), sum.overheadAmount);
     push("risk", "Risk", toNumber(percentages.risk_pct), sum.riskAmount);
     push("profit", "Profit", toNumber(percentages.profit_pct), sum.profitAmount);
@@ -212,8 +278,9 @@ export function summarisePrice(
     const vat = roundMoney(contractSum * VAT_RATE);
     return {
         linesTotal: roundMoney(linesTotal),
+        faceValueTotal,
         adjustments,
-        adjustmentsTotal: roundMoney(contractSum - linesTotal),
+        adjustmentsTotal: roundMoney(contractSum - linesTotal - faceValueTotal),
         contractSum,
         vat,
         totalIncVat: roundMoney(contractSum + vat),
@@ -267,9 +334,17 @@ export function adjustmentsDraftFromEstimate(estimate: Estimate): AdjustmentsDra
     };
 }
 
+export type AdjustmentFieldErrors = Partial<Record<AdjustmentKey | "discountReason", string>>;
+
 export type BuildAdjustmentsResult =
     | { ok: true; input: AdjustmentsInput }
-    | { ok: false; fieldErrors: Partial<Record<AdjustmentKey, string>> };
+    | { ok: false; fieldErrors: AdjustmentFieldErrors };
+
+export type SubmitAdjustmentsOptions = { highDiscountConfirmed?: boolean };
+
+export type SubmitAdjustmentsResult =
+    | { ok: true }
+    | { ok: false; fieldErrors?: AdjustmentFieldErrors; needsHighDiscountConfirm?: boolean; discountPct?: number; showHighDiscountWarning?: boolean };
 
 export function buildAdjustments(draft: AdjustmentsDraft): BuildAdjustmentsResult {
     const fieldErrors: Partial<Record<AdjustmentKey, string>> = {};
@@ -333,18 +408,25 @@ export interface LineOp {
     fieldErrors: PriceLineFieldErrors;
 }
 
+export type WorkListDraftQueue = {
+    source: string;
+    ranges: { start: number; end: number }[];
+};
+
 export interface EstimatingState {
     estimates: Estimate[];
     activeEstimateId: string;
     /** Id the first estimate will be created under, reused on every retry. */
     pendingEstimateId: string;
+    /** Pending work-description lines to open after each explicit Save. */
+    workListQueue: WorkListDraftQueue | null;
     ops: Record<string, LineOp>;
     adjustments: {
         open: boolean;
         status: "idle" | "saving" | "failed";
         draft: AdjustmentsDraft | null;
         error: string | null;
-        fieldErrors: Partial<Record<AdjustmentKey, string>>;
+        fieldErrors: AdjustmentFieldErrors;
     };
     advancedOpen: boolean;
     /** Shown after the last save, e.g. a stored-total refresh warning. */
@@ -366,6 +448,7 @@ export function initialEstimatingState(
         activeEstimateId: pickInitialEstimateId(estimates, options.preferredEstimateId),
         pendingEstimateId: options.pendingEstimateId,
         ops: {},
+        workListQueue: null,
         adjustments: { open: false, status: "idle", draft: null, error: null, fieldErrors: {} },
         advancedOpen: false,
         notice: null,
@@ -381,7 +464,7 @@ export function currentSummary(state: EstimatingState): PriceSummary {
     return summarisePrice(estimate, estimate?.estimate_lines ?? []);
 }
 
-type LineTotalRow = Pick<EstimateLine, "trade_section" | "line_total"> & { id: string };
+type LineTotalRow = Pick<EstimateLine, "trade_section" | "line_total" | "line_type"> & { id: string };
 
 export interface AdvancedRunningTotalDraft {
     estimateId: string;
@@ -402,6 +485,7 @@ function applySimpleLineOps(estimate: Estimate, ops: LineOp[]): LineTotalRow[] |
         id: line.id,
         trade_section: line.trade_section,
         line_total: line.line_total,
+        line_type: line.line_type,
     }));
 
     for (const op of ops) {
@@ -416,7 +500,7 @@ function applySimpleLineOps(estimate: Estimate, ops: LineOp[]): LineTotalRow[] |
             if (lines.some((line) => line.id === op.lineId)) {
                 lines = lines.map((line) => (line.id === op.lineId ? { ...line, line_total } : line));
             } else {
-                lines.push({ id: op.lineId, trade_section: SIMPLE_LINE_SECTION, line_total });
+                lines.push({ id: op.lineId, trade_section: SIMPLE_LINE_SECTION, line_total, line_type: "general" });
             }
             continue;
         }
@@ -465,6 +549,7 @@ export function previewRunningTotal(state: EstimatingState, options: PreviewRunn
         id: line.id,
         trade_section: line.trade_section,
         line_total: line.line_total,
+        line_type: line.line_type,
     }));
 
     if (state.advancedOpen && advanced) {
@@ -516,10 +601,11 @@ export type EstimatingAction =
     | { type: "adjustments/toggle" }
     | { type: "adjustments/change"; patch: Partial<AdjustmentsDraft> }
     | { type: "adjustments/saving" }
-    | { type: "adjustments/failed"; error: string | null; fieldErrors?: Partial<Record<AdjustmentKey, string>> }
+    | { type: "adjustments/failed"; error: string | null; fieldErrors?: AdjustmentFieldErrors }
     | { type: "adjustments/saved"; estimateId: string; input: AdjustmentsInput }
     | { type: "advanced/toggle" }
-    | { type: "notice/clear" };
+    | { type: "notice/clear" }
+    | { type: "work-list/queue"; queue: WorkListDraftQueue | null };
 
 function withoutOp(ops: Record<string, LineOp>, key: string): Record<string, LineOp> {
     const next = { ...ops };
@@ -627,8 +713,12 @@ export function estimatingReducer(state: EstimatingState, action: EstimatingActi
                 ...state,
                 activeEstimateId: action.estimateId,
                 ops: {},
+                workListQueue: null,
                 adjustments: { ...state.adjustments, status: "idle", draft: null, error: null, fieldErrors: {} },
             };
+
+        case "work-list/queue":
+            return { ...state, workListQueue: action.queue };
 
         case "estimates/replace": {
             const estimates = action.update(state.estimates);
@@ -827,15 +917,34 @@ export async function removePriceLine(
 export async function submitAdjustments(
     store: EstimatingStore,
     server: Pick<EstimatingServer, "saveAdjustments">,
-): Promise<boolean> {
+    options?: SubmitAdjustmentsOptions,
+): Promise<SubmitAdjustmentsResult> {
     const state = store.getState();
     const estimate = currentEstimate(state);
-    if (!estimate || !state.adjustments.draft || state.adjustments.status === "saving") return false;
+    if (!estimate || !state.adjustments.draft || state.adjustments.status === "saving") return { ok: false };
 
     const built = buildAdjustments(state.adjustments.draft);
     if (!built.ok) {
         store.dispatch({ type: "adjustments/failed", error: null, fieldErrors: built.fieldErrors });
-        return false;
+        return { ok: false, fieldErrors: built.fieldErrors };
+    }
+
+    const gate = evaluateDiscountSubmitGate(
+        built.input.discount_pct,
+        built.input.discount_reason,
+        options?.highDiscountConfirmed === true,
+    );
+    if (!gate.ok) {
+        if (gate.needsConfirm) {
+            return {
+                ok: false,
+                needsHighDiscountConfirm: true,
+                discountPct: gate.discountPct,
+                showHighDiscountWarning: gate.showWarning,
+            };
+        }
+        store.dispatch({ type: "adjustments/failed", error: null, fieldErrors: gate.fieldErrors });
+        return { ok: false, fieldErrors: gate.fieldErrors };
     }
 
     store.dispatch({ type: "adjustments/saving" });
@@ -843,12 +952,12 @@ export async function submitAdjustments(
         const result = await server.saveAdjustments(estimate.id, built.input);
         if (!result.ok) {
             store.dispatch({ type: "adjustments/failed", error: result.error || ADJUSTMENTS_SAVE_ERROR });
-            return false;
+            return { ok: false };
         }
         store.dispatch({ type: "adjustments/saved", estimateId: estimate.id, input: built.input });
-        return true;
+        return { ok: true };
     } catch {
         store.dispatch({ type: "adjustments/failed", error: ADJUSTMENTS_SAVE_ERROR });
-        return false;
+        return { ok: false };
     }
 }

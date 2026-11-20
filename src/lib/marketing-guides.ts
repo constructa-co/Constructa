@@ -85,7 +85,7 @@ export const GUIDE_ARTICLES: readonly GuideArticle[] = [
     summary:
       'What to add and what to check on company details, scope and price lines before you move on in a phase-one review.',
     intro:
-      'These notes follow the same connected journey as the product review guide on the phase-one product page. They are for checking your own work while using an existing review account — not for live customer jobs or release claims.',
+      'These notes follow the same connected journey as the product review guide on the phase-one product page. They are for checking your own work while using an existing review account.',
     previewNote: 'In this phase-one preview, using an existing review account.',
     ...GUIDE_ARTICLE_ATTRIBUTION,
     steps: [companyStep, briefPriceStep],

@@ -19,6 +19,10 @@ import {
     estimatingReducer,
     initialEstimatingState,
     isSimpleEditable,
+    isStoredOnePriceLine,
+    storedLineQuantityLabel,
+    storedLineRateLabel,
+    storedLineUnitLabel,
     pickInitialEstimateId,
     removePriceLine,
     submitAdjustments,
@@ -132,7 +136,7 @@ describe("line calculations", () => {
         expect(amount).toEqual({ ok: false, fieldErrors: { description: "Say what this price is for.", amount: "Enter the price as a number, for example 2500." } });
 
         const rate = buildPriceLine({ ...EMPTY_PRICE_LINE_DRAFT, description: "Tiling", mode: "rate", quantity: "0", rate: "x" });
-        expect(rate).toEqual({ ok: false, fieldErrors: { quantity: "Enter a quantity above 0.", rate: "Enter the rate as a number." } });
+        expect(rate).toEqual({ ok: false, fieldErrors: { quantity: "Quantity must be more than 0.", rate: "Enter the rate as a number." } });
         expect(draftLineTotal({ ...EMPTY_PRICE_LINE_DRAFT, mode: "amount", amount: "" })).toBeNull();
     });
 
@@ -143,6 +147,19 @@ describe("line calculations", () => {
         expect(unitOptions("hr")).toContain("hr");
         expect(unitOptions("m2")).not.toContain("hr");
         expect(buildPriceLine(draft)).toEqual({ ok: true, line: { description: "Labour", quantity: 16, unit: "hr", unit_rate: 35 } });
+    });
+
+    it("accepts a decimal comma and rejects malformed grouping", () => {
+        const draft = { ...EMPTY_PRICE_LINE_DRAFT, mode: "rate" as const, description: "Work", unit: "hr", rate: "20" };
+        expect(buildPriceLine({ ...draft, quantity: "1,5" })).toMatchObject({ ok: true, line: { quantity: 1.5 } });
+        expect(buildPriceLine({ ...draft, quantity: "0,125" })).toMatchObject({ ok: true, line: { quantity: 0.125 } });
+        expect(buildPriceLine({ ...draft, quantity: "01,500" })).toMatchObject({ ok: false });
+        expect(buildPriceLine({ ...draft, rate: "0,500" })).toMatchObject({ ok: false });
+        expect(buildPriceLine({ ...draft, quantity: "1,500" })).toMatchObject({ ok: true, line: { quantity: 1500 } });
+        expect(buildPriceLine({ ...draft, quantity: "1,2,3" })).toMatchObject({ ok: false });
+        expect(buildPriceLine({ ...draft, quantity: "-5" })).toMatchObject({
+            ok: false, fieldErrors: { quantity: "Quantity must be more than 0." },
+        });
     });
 
     it("rejects zero, negative, exponent and hex prices", () => {
@@ -163,12 +180,50 @@ describe("line calculations", () => {
     });
 });
 
+describe("stored one-price row semantics (CON-067)", () => {
+    it("detects one-price storage without inferring from line_total", () => {
+        expect(isStoredOnePriceLine(line())).toBe(true);
+        expect(isStoredOnePriceLine(line({ quantity: 1, unit: "" }))).toBe(true);
+        expect(isStoredOnePriceLine(line({ quantity: 2.5, unit: "crate", unit_rate: 20 }))).toBe(false);
+        expect(isStoredOnePriceLine(line({ quantity: 1, unit: "m2", unit_rate: 99 }))).toBe(false);
+    });
+
+    it("labels optional detail columns from stored fields only", () => {
+        expect(storedLineQuantityLabel(line({ quantity: 2.5 }))).toBe("2.5");
+        expect(storedLineUnitLabel(line({ quantity: 2.5, unit: "crate" }))).toBe("crate");
+        expect(storedLineRateLabel(line({ unit_rate: 20 }))).toBe("£20.00");
+        expect(storedLineQuantityLabel(line({ quantity: 1, unit: "item", unit_rate: 1100 }))).toBe("1");
+        expect(storedLineUnitLabel(line({ quantity: 1, unit: "item", unit_rate: 1100 }))).toBe("item");
+        expect(storedLineRateLabel(line({ unit_rate: 1100 }))).toBe("£1,100.00");
+    });
+});
+
+describe("summarisePrice — face-value reconciliation (CON-016)", () => {
+    it("keeps lines, face-value sums and adjustments reconciling to the contract sum", () => {
+        const summary = summarisePrice(
+            estimate({ prelims_pct: 10, overhead_pct: 10, profit_pct: 15 }),
+            [
+                line({ id: "m1", trade_section: "Kitchen", line_total: 10000, line_type: "material" }),
+                line({ id: "pc1", trade_section: "Kitchen", line_total: 7500, line_type: "pc_sum" }),
+            ],
+        );
+        // Measured 10000 + 10% prelims = 11000 construction; marked up
+        // × 1.10 × 1.15 = 13915; the £7,500 PC sum rides on top untouched.
+        expect(summary.linesTotal).toBe(10000);
+        expect(summary.faceValueTotal).toBe(7500);
+        expect(summary.contractSum).toBe(13915 + 7500);
+        expect(summary.linesTotal + summary.faceValueTotal + summary.adjustmentsTotal).toBe(summary.contractSum);
+    });
+});
+
 describe("canonical totals", () => {
     const lines = [line({ line_total: 2500 }), line({ id: "line-2", line_total: 1500 })];
 
     it("with no adjustments the total is exactly the contractor's lines", () => {
         const summary = summarisePrice(estimate(), lines);
-        expect(summary).toMatchObject({ linesTotal: 4000, adjustments: [], adjustmentsTotal: 0, contractSum: 4000, vat: 800, totalIncVat: 4800 });
+        expect(summary).toMatchObject({ linesTotal: 4000, adjustmentsTotal: 0, contractSum: 4000, vat: 800, totalIncVat: 4800 });
+        // CON-033 — the prelims percentage row stays visible even at 0%.
+        expect(summary.adjustments).toEqual([{ key: "prelims", label: "Preliminaries", pct: 0, amount: 0, note: undefined }]);
     });
 
     it("matches computeContractSum for every figure it shows", () => {
@@ -193,15 +248,43 @@ describe("canonical totals", () => {
 
     it("uses the contractor's own preliminaries lines instead of the percentage", () => {
         const withPrelims = [...lines, line({ id: "p", trade_section: "Preliminaries", line_total: 600 })];
+        const withoutAllowance = summarisePrice(estimate({ prelims_pct: 0 }), withPrelims);
+        expect(withoutAllowance.adjustments[0]).toMatchObject({ key: "prelims", pct: 0, amount: 0 });
+        expect(withoutAllowance.adjustments[0].note).toBeUndefined();
         const summary = summarisePrice(estimate({ prelims_pct: 10 }), withPrelims);
         expect(summary.prelimsFromLines).toBe(true);
         expect(summary.linesTotal).toBe(4600);
-        expect(summary.adjustments).toEqual([]);
+        // CON-033 — the row stays visible with the configured percentage, a
+        // £0 amount and a double-counting warning instead of disappearing.
+        expect(summary.adjustments).toHaveLength(1);
+        expect(summary.adjustments[0]).toMatchObject({ key: "prelims", pct: 10, amount: 0 });
+        expect(summary.adjustments[0].note).toContain("£600.00 of prelims lines");
+        expect(summary.adjustments[0].note).toContain("10% prelims allowance");
+        expect(summary.adjustments[0].note).toContain("not charged");
         expect(summary.contractSum).toBe(4600);
     });
 
+    it("a zero-total Preliminaries placeholder does not hide the percentage allowance", () => {
+        const withPlaceholder = [...lines, line({ id: "p", trade_section: "Preliminaries", line_total: 0 })];
+        const summary = summarisePrice(estimate({ prelims_pct: 10 }), withPlaceholder);
+        expect(summary.prelimsFromLines).toBe(false);
+        expect(summary.adjustments[0]).toMatchObject({ key: "prelims", pct: 10, amount: 400 });
+        expect(summary.adjustments[0].note).toBeUndefined();
+        expect(summary.contractSum).toBe(4400);
+    });
+
+    it("a credit (negative) Preliminaries line counts as priced and takes precedence", () => {
+        const withCredit = [...lines, line({ id: "p", trade_section: "Preliminaries", line_total: -50 })];
+        const summary = summarisePrice(estimate({ prelims_pct: 10 }), withCredit);
+        expect(summary.prelimsFromLines).toBe(true);
+        expect(summary.linesTotal).toBe(3950);
+        expect(summary.adjustments[0]).toMatchObject({ key: "prelims", pct: 10, amount: 0 });
+        expect(summary.contractSum).toBe(3950);
+    });
+
     it("is zero for a blank project", () => {
-        expect(summarisePrice(null, [])).toMatchObject({ linesTotal: 0, contractSum: 0, vat: 0, totalIncVat: 0, adjustments: [] });
+        expect(summarisePrice(null, [])).toMatchObject({ linesTotal: 0, contractSum: 0, vat: 0, totalIncVat: 0, adjustmentsTotal: 0 });
+        expect(summarisePrice(null, []).adjustments).toEqual([{ key: "prelims", label: "Preliminaries", pct: 0, amount: 0, note: undefined }]);
     });
 });
 
@@ -484,7 +567,7 @@ describe("price adjustments", () => {
         store.dispatch({ type: "adjustments/change", patch: { overhead: "10", profit: "20" } });
         expect(currentSummary(store.getState()).contractSum).toBe(1000);
 
-        expect(await submitAdjustments(store, server)).toBe(true);
+        expect(await submitAdjustments(store, server)).toEqual({ ok: true });
 
         expect(server.saveAdjustments).toHaveBeenCalledWith("est-1", {
             prelims_pct: 0, overhead_pct: 10, risk_pct: 0, profit_pct: 20, discount_pct: 0, discount_reason: "",
@@ -499,11 +582,11 @@ describe("price adjustments", () => {
         vi.mocked(server.saveAdjustments).mockResolvedValueOnce({ ok: false, error: ADJUSTMENTS_SAVE_ERROR });
         store.dispatch({ type: "adjustments/change", patch: { profit: "20" } });
 
-        expect(await submitAdjustments(store, server)).toBe(false);
+        expect(await submitAdjustments(store, server)).toEqual({ ok: false });
         expect(store.getState().adjustments).toMatchObject({ status: "failed", error: ADJUSTMENTS_SAVE_ERROR, draft: { profit: "20" } });
         expect(currentSummary(store.getState()).contractSum).toBe(1000);
 
-        expect(await submitAdjustments(store, server)).toBe(true);
+        expect(await submitAdjustments(store, server)).toEqual({ ok: true });
         expect(currentSummary(store.getState()).contractSum).toBe(1200);
     });
 
@@ -512,13 +595,62 @@ describe("price adjustments", () => {
         const server = fakeServer();
         store.dispatch({ type: "adjustments/change", patch: { profit: "150", risk: "-5" } });
 
-        expect(await submitAdjustments(store, server)).toBe(false);
+        expect(await submitAdjustments(store, server)).toMatchObject({ ok: false, fieldErrors: { profit: expect.any(String), risk: expect.any(String) } });
         expect(server.saveAdjustments).not.toHaveBeenCalled();
         expect(Object.keys(store.getState().adjustments.fieldErrors).sort()).toEqual(["profit", "risk"]);
         expect(buildAdjustments({ prelims: "", overhead: "12.5%", risk: "0", profit: "15", discount: "", discountReason: " Returning client " })).toEqual({
             ok: true,
             input: { prelims_pct: 0, overhead_pct: 12.5, risk_pct: 0, profit_pct: 15, discount_pct: 0, discount_reason: "Returning client" },
         });
+    });
+
+    it("saves a 25% discount without confirmation", async () => {
+        const store = makeStore(existing());
+        const server = fakeServer();
+        store.dispatch({ type: "adjustments/change", patch: { discount: "25" } });
+        expect(await submitAdjustments(store, server)).toEqual({ ok: true });
+        expect(server.saveAdjustments).toHaveBeenCalled();
+    });
+
+    it("asks for confirmation and a reason above 25% before saving", async () => {
+        const store = makeStore(existing());
+        const server = fakeServer();
+        store.dispatch({ type: "adjustments/change", patch: { discount: "30", discountReason: "Returning client" } });
+        expect(await submitAdjustments(store, server)).toEqual({
+            ok: false,
+            needsHighDiscountConfirm: true,
+            discountPct: 30,
+            showHighDiscountWarning: true,
+        });
+        expect(server.saveAdjustments).not.toHaveBeenCalled();
+
+        expect(await submitAdjustments(store, server, { highDiscountConfirmed: true })).toEqual({ ok: true });
+        expect(server.saveAdjustments).toHaveBeenCalledWith("est-1", expect.objectContaining({
+            discount_pct: 30,
+            discount_reason: "Returning client",
+        }));
+    });
+
+    it("refuses a high discount with no reason", async () => {
+        const store = makeStore(existing());
+        const server = fakeServer();
+        store.dispatch({ type: "adjustments/change", patch: { discount: "40" } });
+        const result = await submitAdjustments(store, server, { highDiscountConfirmed: true });
+        expect(result).toEqual({ ok: false, fieldErrors: { discountReason: expect.any(String) } });
+        expect(server.saveAdjustments).not.toHaveBeenCalled();
+    });
+
+    it("accepts 100% with confirm, reason, and the large-discount warning flag", async () => {
+        const store = makeStore(existing());
+        const server = fakeServer();
+        store.dispatch({ type: "adjustments/change", patch: { discount: "100", discountReason: "Promotional" } });
+        expect(await submitAdjustments(store, server)).toEqual({
+            ok: false,
+            needsHighDiscountConfirm: true,
+            discountPct: 100,
+            showHighDiscountWarning: true,
+        });
+        expect(await submitAdjustments(store, server, { highDiscountConfirmed: true })).toEqual({ ok: true });
     });
 });
 

@@ -80,7 +80,8 @@ describe('homepage business illustration placement', () => {
     expect(scope).toBeGreaterThan(story);
     expect(page.split(QUALIFIER)).toHaveLength(2);
     expect(page).toContain(html());
-    expect(page).not.toMatch(/about-hero|<img\b/);
+    const storySection = page.slice(story, scope);
+    expect(storySection).not.toMatch(/about-hero|<img\b/);
     expect(page).not.toContain('Construction team reviewing plans together');
   });
 

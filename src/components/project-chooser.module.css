@@ -5,6 +5,8 @@
     --chooser-surface: #ffffff;
     --chooser-field: #f5f8f2;
     --chooser-mint: #b9f6a5;
+    --chooser-selected-bg: #c9efcf;
+    --chooser-selected-text: #182c1b;
     width: 100%;
     min-width: 0;
     padding: 36px clamp(16px, 3vw, 44px) 48px;
@@ -18,6 +20,8 @@
     --chooser-border: #354833;
     --chooser-surface: #131c15;
     --chooser-field: #101812;
+    --chooser-selected-bg: #3d6b45;
+    --chooser-selected-text: #f3fff2;
     background: radial-gradient(ellipse at top right, #1d3020 0, transparent 46%), #0c120e;
 }
 
@@ -133,13 +137,45 @@
 }
 
 .workspace .periodButton[data-selected="true"] {
-    background: #dcf4d2;
-    color: #152419;
+    background: var(--chooser-selected-bg);
+    color: var(--chooser-selected-text);
 }
 
-.workspace[data-dark="true"] .periodButton[data-selected="true"] {
-    background: #29452b;
-    color: #dbfbd0;
+.workspace .viewBar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--chooser-border);
+    border-radius: 8px;
+    background: var(--chooser-field);
+}
+
+.workspace .viewButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--chooser-muted);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.workspace .viewButton:hover {
+    color: var(--chooser-ink);
+}
+
+.workspace .viewButton[data-selected="true"] {
+    background: var(--chooser-selected-bg);
+    color: var(--chooser-selected-text);
 }
 
 .workspace .kpiCard {
@@ -217,13 +253,8 @@
 }
 
 .projectList th[aria-sort] button {
-    background: #dcf4d2;
-    color: #152419;
-}
-
-.projectList[data-dark="true"] th[aria-sort] button {
-    background: #29452b;
-    color: #dbfbd0;
+    background: var(--chooser-selected-bg);
+    color: var(--chooser-selected-text);
 }
 
 .projectList td a {
@@ -246,7 +277,7 @@
     outline-offset: -3px;
 }
 
-.workspace :is([data-project-header] a, [data-project-toolbar] input, [data-project-toolbar] select, [data-project-views] button, [data-project-period] button):focus-visible {
+.workspace :is([data-project-header] a, [data-project-toolbar] input, [data-project-toolbar] select, [data-project-views] button, [data-project-period] button, .viewButton):focus-visible {
     outline: 3px solid #77c66e;
     outline-offset: 3px;
 }

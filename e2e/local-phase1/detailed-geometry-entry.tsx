@@ -97,5 +97,6 @@ createRoot(document.getElementById("app")!).render(
             // the added saved plan carries its explicit version-1 pattern.
             ...(plan === "saved7" ? { programme_working_pattern: SAVED_SEVEN_DAY_PATTERN } : {}),
         }}
+        plannerDraftViewerScope="e2e-local-viewer"
     />,
 );

@@ -39,12 +39,18 @@ describe("planning context comes from the selected job's saved programme only", 
         expect(context).toMatchObject({ basis: "relative", start: null, finish: null });
         expect(context.stages[1]).toMatchObject({ name: "Dormer", from: "Day 6", to: "Day 20" });
     });
+    it("uses the job region when describing UK bank holidays", () => {
+        expect(buildPlanningContext({ ...DATED, region: "Edinburgh" })!.working_week).toContain("Scotland");
+        expect(buildPlanningContext(DATED)!.working_week).toContain("England and Wales");
+        expect(JSON.stringify(buildPlanningContext({ ...DATED, region: "Edinburgh" }))).not.toBe(JSON.stringify(buildPlanningContext(DATED)));
+    });
+
     it("carries the job's saved working week, and a changed saved pattern changes the context the server compares", () => {
         const none = { id: "job-c", name: "New", programme_phases: null };
         const fourDay = { ...none, programme_working_pattern: { version: 1, weekdays: [1, 2, 3, 4] } };
-        expect(buildPlanningContext(none)!.working_week).toBe("Working days are Monday, Tuesday, Wednesday, Thursday, Friday. A week means 5 working days. Bank holidays are not allowed for.");
+        expect(buildPlanningContext(none)!.working_week).toBe("Working days are Monday, Tuesday, Wednesday, Thursday, Friday. A week means 5 working days. UK bank holidays for England and Wales are not working days.");
         expect(buildPlanningContext(DATED)!.working_week).toContain("A week means 5 working days");
-        expect(buildPlanningContext(fourDay)!.working_week).toBe("Working days are Monday, Tuesday, Wednesday, Thursday. A week means 4 working days. Bank holidays are not allowed for.");
+        expect(buildPlanningContext(fourDay)!.working_week).toBe("Working days are Monday, Tuesday, Wednesday, Thursday. A week means 4 working days. UK bank holidays for England and Wales are not working days.");
         expect(JSON.stringify(buildPlanningContext(fourDay))).not.toBe(JSON.stringify(buildPlanningContext(none)));
     });
     it("tells V2 patterns apart by weekdays and intervals, not only timezone, productivity and minutes", () => {

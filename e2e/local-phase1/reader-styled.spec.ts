@@ -141,7 +141,10 @@ for (const theme of THEMES) {
         await expect(back).toBeFocused();
         const names = await tabbableNames(dialog);
         // Cover page: Previous is disabled and so is not in the tab order.
-        expect(names).toEqual(["button:Back to drafting", "div:region", "select:Reading page", "button:Next reading page"]);
+        expect(names).toEqual([
+            "button:Back to drafting", "div:region", "button:Section view", "button:Paginated web view",
+            "select:Reading page", "button:Next reading page",
+        ]);
         const n = names.length;
         expect((await focusProbe(page)).at).toBe(0);
 
@@ -202,7 +205,10 @@ test("keyboard reading pages start at the cover and stop at both boundaries", as
     await expect(next).toBeDisabled();
     await expect(select).toBeFocused();
     expect(await style(next, "opacity")).toBe("0.5");
-    expect(await tabbableNames(dialog)).toEqual(["button:Back to drafting", "div:region", "button:Previous reading page", "select:Reading page"]);
+    expect(await tabbableNames(dialog)).toEqual([
+        "button:Back to drafting", "div:region", "button:Section view", "button:Paginated web view",
+        "button:Previous reading page", "select:Reading page",
+    ]);
 
     await previous.focus();
     for (let pageNumber = keys.length - 1; pageNumber >= 1; pageNumber--) {
@@ -293,7 +299,7 @@ test("the exact source draft is retained across reading with no Save, Send or na
     await expect(dialog.locator("[data-doc-section='scope']")).toContainText("Indented second line kept.");
     await expect(dialog.locator("input,textarea,form")).toHaveCount(0);
     await expect(dialog.getByRole("button", { name: /save|send|download|publish|accept/i })).toHaveCount(0);
-    await expect(dialog.getByRole("button")).toHaveCount(3);
+    await expect(dialog.getByRole("button")).toHaveCount(5);
 
     await page.keyboard.press("Escape");
     await expect(dialog).toHaveCount(0);

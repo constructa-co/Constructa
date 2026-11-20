@@ -1,5 +1,6 @@
 "use server";
 
+import { caseStudyPhotoContentHash } from "@/lib/case-library/case-study-photo-behaviour";
 import { validatePublicImage } from "@/lib/storage/public-image";
 import { requireAuth } from "@/lib/supabase/auth-utils";
 
@@ -20,7 +21,10 @@ export async function uploadProfileImageAction(formData: FormData): Promise<{
   try {
     const { user, supabase } = await requireAuth();
     const { contentType, extension } = await validatePublicImage(file);
-    const path = `${user.id}/${purpose}/${crypto.randomUUID()}.${extension}`;
+    const objectId = purpose === "case-study"
+      ? await caseStudyPhotoContentHash(file)
+      : crypto.randomUUID();
+    const path = `${user.id}/${purpose}/${objectId}.${extension}`;
     const { error } = await supabase.storage
       .from("proposal-photos")
       .upload(path, file, {
@@ -29,7 +33,12 @@ export async function uploadProfileImageAction(formData: FormData): Promise<{
         upsert: false,
       });
 
-    if (error) return { error: "The image could not be uploaded." };
+    const status = error && (error as { statusCode?: string | number; status?: number }).statusCode;
+    const duplicateContent = purpose === "case-study" && String(status) === "409";
+    if (error && !duplicateContent) return { error: "The image could not be uploaded." };
+    // A content-addressed object in this authenticated user's folder can be
+    // reused after a lost acknowledgement. The editor refuses a URL already
+    // attached to the same example; no overwrite or duplicate object is needed.
 
     const { data } = supabase.storage.from("proposal-photos").getPublicUrl(path);
     return { url: data.publicUrl };

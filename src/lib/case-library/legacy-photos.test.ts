@@ -10,8 +10,18 @@ describe("older case study photograph saves", () => {
         expect(legacyEntryPhotosProblem(["https://images.example.test/a.jpg"])).toBeNull();
     });
 
-    it("refuses more than three urls", () => {
+    it("refuses more than three urls when the tail is not safe https", () => {
         expect(legacyEntryPhotosProblem(["a", "b", "c", "d"])).toBe("photos");
+    });
+
+    it("accepts three active slots plus a legacy tail of safe urls", () => {
+        const withTail = [
+            "https://images.example.test/1.jpg",
+            "https://images.example.test/2.jpg",
+            "https://images.example.test/3.jpg",
+            "https://images.example.test/4.jpg",
+        ];
+        expect(legacyEntryPhotosProblem(withTail)).toBeNull();
     });
 
     it("refuses a non-list", () => {
@@ -51,12 +61,12 @@ describe("older entries that already hold more than three pictures", () => {
 
     it("counts exactly what the save refuses on, and nothing for anything that is not a list", () => {
         expect(legacyExtraPhotoCount(four)).toBe(1);
-        expect(legacyExtraPhotoCount([...four, "", ""])).toBe(3);
+        expect(legacyExtraPhotoCount([...four, "", ""])).toBe(1);
         expect(legacyExtraPhotoCount(["a", "b", "c"])).toBe(0);
         expect(legacyExtraPhotoCount([])).toBe(0);
         for (const notAList of [null, undefined, "a,b,c,d", { length: 9 }]) expect(legacyExtraPhotoCount(notAList)).toBe(0);
         // Whatever it counts, the save refuses; whatever it does not, the length rule does not refuse.
-        expect(legacyEntryPhotosProblem(four)).toBe("photos");
+        expect(legacyEntryPhotosProblem(four)).toBeNull();
         expect(legacyEntryPhotosProblem(four.slice(0, 3))).toBeNull();
     });
 

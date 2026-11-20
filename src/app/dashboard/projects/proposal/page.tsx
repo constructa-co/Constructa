@@ -59,7 +59,7 @@ export default async function ProposalPage(props: { searchParams: Promise<{ proj
     // The estimate the proposal is priced from: the one marked active.
     const { data: estimates } = await supabase
         .from("estimates")
-        .select("*, estimate_lines(id, trade_section, description, quantity, unit, line_total)")
+        .select("*, estimate_lines(id, trade_section, description, quantity, unit, line_total, line_type)")
         .eq("project_id", projectId)
         .eq("is_active", true);
     const activeEstimates = estimates ?? [];
@@ -108,6 +108,7 @@ export default async function ProposalPage(props: { searchParams: Promise<{ proj
     return (
         <DashboardRouteShell header={<ProjectNavBar projectId={projectId} projectName={project.name || ""} activeTab="proposal" />}>
             <ReviewSendClient
+                now={new Date().toISOString()}
                 key={project.id}
                 context={{
                     project,

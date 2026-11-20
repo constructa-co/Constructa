@@ -41,7 +41,7 @@ export default async function BillingPage(props: { searchParams: Promise<{ proje
         { data: milestones },
     ] = await Promise.all([
         supabase.from("projects").select("*").eq("id", projectId).single(),
-        supabase.from("estimates").select("id, total_cost, is_active, prelims_pct, overhead_pct, risk_pct, profit_pct, discount_pct, estimate_lines(trade_section, line_total)").eq("project_id", projectId),
+        supabase.from("estimates").select("id, total_cost, is_active, prelims_pct, overhead_pct, risk_pct, profit_pct, discount_pct, estimate_lines(trade_section, line_total, line_type)").eq("project_id", projectId),
         supabase.from("variations").select("*").eq("project_id", projectId).eq("status", "Approved"),
         supabase.from("invoices").select("*").eq("project_id", projectId).order("created_at", { ascending: true }),
         supabase.from("payment_schedule_milestones").select("*").eq("project_id", projectId).order("order_index", { ascending: true }),

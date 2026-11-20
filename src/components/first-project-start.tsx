@@ -24,7 +24,7 @@ export default function FirstProjectStart({ companyName, forceDark = false }: {
     return (
         <section
             aria-labelledby="first-project-heading"
-            data-dark={isDark}
+            data-dark={isDark ? "true" : undefined}
             className={`${ui.frame} rounded-2xl border p-5 sm:p-8 ${
                 isDark ? "bg-[#1a1a1a] border-[#2a2a2a]" : "bg-white border-gray-200 shadow-sm"
             }`}

@@ -26,9 +26,9 @@ const over = (fg: string, bg: string, alpha: number) => rgb(fg).map((c, i) => al
 
 describe("declared readability checks, not a rendered accessibility certification", () => {
     it.each([
-        [".reviewNote", 14], [".visualHeader", 12], [".visual figcaption", 13], [".stageTop", 12],
-        [".journey small", 14], [".photo > span", 13], [".scopeList > .scopeNote", 14],
-        [".invitation small", 13], [".footerTop nav", 14], [".footerBottom", 13],
+        [".reviewNote", 14], [".visualHeader", 12], [".visual figcaption", 14], [".stageTop", 12],
+        [".journey small", 14], [".photo > span", 14], [".scopeList > .scopeNote", 15],
+        [".invitation small", 14], [".footerTop nav", 14], [".footerBottom", 14],
     ] as const)("keeps %s at the selected readable size", (selector, min) => {
         expect(parseFloat(declarations(selector)["font-size"])).toBeGreaterThanOrEqual(min);
     });
@@ -71,7 +71,7 @@ describe("declared readability checks, not a rendered accessibility certificatio
         const variables = declarations(".theme"), foreground = rgb(variables["--muted"]);
         const backgrounds = [rgb(variables["--base"]), rgb(variables["--panel"]), rgb("#151a16"),
             over("#263d2b", "#101211", 0x55 / 255), over("#35563b", "#101211", 0x50 / 255), over("#35563b", "#19241d", 0x80 / 255)];
-        for (const background of backgrounds) expect(contrast(foreground, background)).toBeGreaterThanOrEqual(4.5);
+        for (const background of backgrounds) expect(contrast(foreground, background)).toBeGreaterThanOrEqual(6);
         expect(contrast(rgb(declarations(".journey small").color), rgb("#151a16"))).toBeGreaterThanOrEqual(4.5);
         for (const background of ["#314136", "#1b241e"]) expect(contrast(rgb(declarations(".visual figcaption").color), rgb(background))).toBeGreaterThanOrEqual(4.5);
     });

@@ -17,6 +17,7 @@ import {
     saveProgramme,
     stageDurationField,
     stageNameField,
+    startDateInPastWarning,
     viewForProject,
     type ProgrammeAction,
     type ProgrammeDraft,
@@ -61,7 +62,7 @@ describe("minimum programme", () => {
     });
 
     it("gives one end date for the start and duration, in days or weeks", () => {
-        expect(draftPlan(whole)).toMatchObject({ start_date: MONDAY, end_date: "2026-10-30", duration_label: "3 weeks" });
+        expect(draftPlan(whole)).toMatchObject({ start_date: MONDAY, end_date: "2026-10-30", duration_label: "15 working days (3 weeks)" });
         expect(draftPlan({ ...whole, duration: "15", unit: "days" })?.end_date).toBe("2026-10-30");
         expect(draftPlan({ ...whole, duration: "8", unit: "days" })).toMatchObject({ end_date: "2026-10-21", duration_label: "8 working days" });
     });
@@ -90,6 +91,16 @@ describe("minimum programme", () => {
     it("rejects a job longer than ten years", () => {
         expect(buildSimpleProgramme({ ...whole, duration: "521" }).ok).toBe(false);
         expect(buildSimpleProgramme({ ...whole, duration: "520" }).ok).toBe(true);
+    });
+
+    it("notes a start date before today without refusing it", () => {
+        expect(startDateInPastWarning("2026-10-09", MONDAY)).toContain("in the past");
+        expect(startDateInPastWarning(MONDAY, MONDAY)).toBeNull();
+        expect(startDateInPastWarning("2026-10-13", MONDAY)).toBeNull();
+        expect(startDateInPastWarning("", MONDAY)).toBeNull();
+        expect(startDateInPastWarning("2026-10-09", null)).toBeNull();
+        // Friday 9 October 2026: in the past on the 12th, and still a programme that builds.
+        expect(buildSimpleProgramme({ ...whole, startDate: "2026-10-09" }).ok).toBe(true);
     });
 });
 
@@ -152,7 +163,7 @@ describe("stages", () => {
         store.dispatch({ type: "stage/remove", key: "c" });
         expect(store.getState().draft.stages.map((s) => s.key)).toEqual(["a", "b"]);
         store.dispatch({ type: "stages/disable" });
-        expect(draftPlan(store.getState().draft)?.duration_label).toBe("4 weeks");
+        expect(draftPlan(store.getState().draft)?.duration_label).toBe("20 working days (4 weeks)");
     });
 });
 

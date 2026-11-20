@@ -161,6 +161,7 @@ function renderEditor() {
         estimate={null}
         save={save}
         saveInclusion={saveInclusion}
+        plannerDraftViewerScope="e2e-local-viewer"
     />);
 }
 

@@ -17,6 +17,24 @@
 
 **Checks:** NOT RUN in this session (source-only lane). Root owns validation and draft PR.
 
+## 2026-11-20 — D64 CON053/CON013 minimal contact and apply forms (collection off)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/marketing/public-form-collection.ts` | new | Default-off `CONSTRUCTA_PUBLIC_FORM_COLLECTION_ENABLED`; destination env name constants; readiness helpers | Single fail-closed gate for contact + apply collection |
+| `src/lib/marketing/public-marketing-form-schema.ts` | new | Shared Zod schema: name, email, optional company, message, consent | CON053/CON013 minimal field contract |
+| `src/lib/marketing/public-marketing-form-submission.ts` | new | Server-only submit stub; throws when off or unrouted | No send/store while off |
+| `src/lib/founding-cohort/application-schema.ts`, `submission-adapter.ts` | rewire | Apply uses shared schema + apply readiness gate | Align apply with contact gates |
+| `src/components/marketing/public-marketing-lead-form.tsx` | new | Shared client form; disabled submit when collection off | UI fail-closed |
+| `src/components/marketing/public-form-collection-notice.tsx` | new | Notice citing enable + destination env var names only | Honest preview copy |
+| `src/app/contact/page.tsx`, `actions.ts`, `contact-marketing-form.tsx` | rewrite | Replace Formspree with gated server action form | Remove third-party POST |
+| `src/app/apply/actions.ts`, `founding-cohort-apply-form.tsx`, `page.tsx` | update | Minimal fields; server-passes `collectionReady` | Apply matches contact shape |
+| `src/components/marketing/full-home.tsx` | contact panel | Remove Formspree `fetch`; reuse gated form | Home contact stops live collection |
+| `src/components/marketing/founding-cohort-apply.module.css` | `.consentLabel` | Checkbox consent layout | Accessible consent tickbox |
+| `src/app/**`, `src/lib/**`, `src/components/marketing/**` tests | update/new | Expect minimal fields, no Formspree, collection-off behaviour | Reviewable focused tests |
+
+**Delivery note:** `docs/delivery/2026-11-20/d64-con053-con013-contact-apply-minimal-forms.md`
+
 ## 2026-11-19 — CON-043 phone estimate total and proposal review evidence
 
 | File | Lines (approx.) | Change | Intent |

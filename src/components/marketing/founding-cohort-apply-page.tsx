@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { isPublicApplyFormCollectionReady } from "@/lib/marketing/public-form-collection";
 import { FoundingCohortApplyForm } from "./founding-cohort-apply-form";
 import { FoundingCohortApplyStorageNotice } from "./founding-cohort-apply-storage-notice";
 import styles from "./founding-cohort-apply.module.css";
 
 export function PhaseOneFoundingCohortApply() {
+  const collectionReady = isPublicApplyFormCollectionReady();
   return (
     <div className={`${styles.theme} ${styles.root}`}>
       <section className={styles.pageIntro}>
@@ -39,7 +41,7 @@ export function PhaseOneFoundingCohortApply() {
             Application
           </h2>
           <FoundingCohortApplyStorageNotice />
-          <FoundingCohortApplyForm />
+          <FoundingCohortApplyForm collectionReady={collectionReady} />
         </div>
       </section>
     </div>

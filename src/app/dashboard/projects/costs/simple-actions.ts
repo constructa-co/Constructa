@@ -56,7 +56,8 @@ const LineSchema = z.object({
 }).refine(
     (line) => line.unit_rate > 0 || line.included,
     { message: "A zero rate requires Included (not charged)." },
-).refine((line) => lineTotal(line.quantity, line.unit_rate) <= MAX_LINE_AMOUNT);
+).refine((line) => lineTotal(line.quantity, line.unit_rate) <= MAX_LINE_AMOUNT)
+.transform((line) => ({ ...line, included: line.included && line.unit_rate === 0 }));
 
 const SaveLineSchema = z.object({
     projectId: z.string().uuid(),

@@ -181,6 +181,48 @@ SELECT EXISTS (
 DO $$ BEGIN RAISE EXCEPTION 'Authenticated brief save did not persist.'; END $$;
 \endif
 
+-- CON-068: explicit intent readback before proposal acceptance locks price writes.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+      FROM information_schema.columns
+     WHERE table_schema = 'public'
+       AND table_name = 'estimate_lines'
+       AND column_name = 'included'
+       AND is_nullable = 'NO'
+  ) THEN
+    RAISE EXCEPTION 'estimate_lines.included column missing or nullable after CON-068 migration.';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+      FROM public.estimate_lines el
+      JOIN public.estimates e ON e.id = el.estimate_id
+      JOIN public.projects p ON p.id = e.project_id
+     WHERE p.creation_request_id = '20000000-0000-0000-0000-000000000001'
+       AND el.included IS FALSE
+  ) THEN
+    RAISE EXCEPTION 'Phase 1 smoke estimate line did not receive included default false.';
+  END IF;
+
+  UPDATE public.estimate_lines SET included = true
+   WHERE estimate_id IN (SELECT e.id FROM public.estimates e JOIN public.projects p ON p.id=e.project_id
+     WHERE p.creation_request_id='20000000-0000-0000-0000-000000000001');
+  IF NOT EXISTS (SELECT 1 FROM public.estimate_lines el JOIN public.estimates e ON e.id=el.estimate_id
+    JOIN public.projects p ON p.id=e.project_id WHERE p.creation_request_id='20000000-0000-0000-0000-000000000001' AND el.included IS TRUE) THEN
+    RAISE EXCEPTION 'Included true did not read back.';
+  END IF;
+  UPDATE public.estimate_lines SET included = false
+   WHERE estimate_id IN (SELECT e.id FROM public.estimates e JOIN public.projects p ON p.id=e.project_id
+     WHERE p.creation_request_id='20000000-0000-0000-0000-000000000001');
+  IF EXISTS (SELECT 1 FROM public.estimate_lines el JOIN public.estimates e ON e.id=el.estimate_id
+    JOIN public.projects p ON p.id=e.project_id WHERE p.creation_request_id='20000000-0000-0000-0000-000000000001' AND el.included IS TRUE) THEN
+    RAISE EXCEPTION 'Included false did not read back.';
+  END IF;
+END;
+$$;
+
 SELECT *
   FROM public.publish_proposal_publication(
     :'smoke_project_id'::uuid,
@@ -362,42 +404,6 @@ BEGIN
     RAISE EXCEPTION 'Archive benchmark trigger did not capture the expected anonymized outcome.';
   END IF;
 
-  IF NOT EXISTS (
-    SELECT 1
-      FROM information_schema.columns
-     WHERE table_schema = 'public'
-       AND table_name = 'estimate_lines'
-       AND column_name = 'included'
-       AND is_nullable = 'NO'
-  ) THEN
-    RAISE EXCEPTION 'estimate_lines.included column missing or nullable after CON-068 migration.';
-  END IF;
-
-  IF NOT EXISTS (
-    SELECT 1
-      FROM public.estimate_lines el
-      JOIN public.estimates e ON e.id = el.estimate_id
-      JOIN public.projects p ON p.id = e.project_id
-     WHERE p.creation_request_id = '20000000-0000-0000-0000-000000000001'
-       AND el.included IS FALSE
-  ) THEN
-    RAISE EXCEPTION 'Phase 1 smoke estimate line did not receive included default false.';
-  END IF;
-
-  UPDATE public.estimate_lines SET included = true
-   WHERE estimate_id IN (SELECT e.id FROM public.estimates e JOIN public.projects p ON p.id=e.project_id
-     WHERE p.creation_request_id='20000000-0000-0000-0000-000000000001');
-  IF NOT EXISTS (SELECT 1 FROM public.estimate_lines el JOIN public.estimates e ON e.id=el.estimate_id
-    JOIN public.projects p ON p.id=e.project_id WHERE p.creation_request_id='20000000-0000-0000-0000-000000000001' AND el.included IS TRUE) THEN
-    RAISE EXCEPTION 'Included true did not read back.';
-  END IF;
-  UPDATE public.estimate_lines SET included = false
-   WHERE estimate_id IN (SELECT e.id FROM public.estimates e JOIN public.projects p ON p.id=e.project_id
-     WHERE p.creation_request_id='20000000-0000-0000-0000-000000000001');
-  IF EXISTS (SELECT 1 FROM public.estimate_lines el JOIN public.estimates e ON e.id=el.estimate_id
-    JOIN public.projects p ON p.id=e.project_id WHERE p.creation_request_id='20000000-0000-0000-0000-000000000001' AND el.included IS TRUE) THEN
-    RAISE EXCEPTION 'Included false did not read back.';
-  END IF;
 END;
 $$;
 

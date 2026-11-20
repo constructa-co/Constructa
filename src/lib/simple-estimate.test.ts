@@ -191,7 +191,7 @@ describe("line calculations", () => {
         });
         expect(draftFromLine(line({ unit_rate: 0, line_total: 0, quantity: 12, unit: "m2", included: true }))).toMatchObject({
             included: true,
-            rate: "0",
+            rate: "",
         });
     });
 

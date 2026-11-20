@@ -11,7 +11,7 @@ CON-068 (snag) requires deliberate £0 simple estimate lines (“Included, not c
 ## Solution
 
 - New column `public.estimate_lines.included BOOLEAN NOT NULL DEFAULT false`.
-- Backfill: ambiguous legacy simple zeros (`unit_rate = 0` and `line_total = 0`, not PC/provisional) → `included = false`.
+- No inferred backfill: every unflagged legacy row defaults false.
 - Simple estimating UI: “Included (not charged)” checkbox on rate/one-price drafts; saved badge when `included && unit_rate === 0`.
 - Client `buildPriceLine` + server `LineSchema`: `unit_rate = 0` only when `included === true`.
 - `toEstimateLine` maps DB flag; no inference from rate alone.
@@ -22,7 +22,7 @@ Contract-sum maths unchanged (`financial.ts` still ignores zero `line_total` row
 
 | Path | Intent |
 |------|--------|
-| `supabase/migrations/20261120040000_con068_estimate_line_included.sql` | Column, comment, safe backfill |
+| `supabase/migrations/20261120040000_con068_estimate_line_included.sql` | Column, comment, conservative false default |
 | `src/lib/simple-estimate.ts` | Draft/input/`buildPriceLine`/`draftFromLine`/badge helper |
 | `src/app/dashboard/projects/costs/simple-actions.ts` | Persist + validate on save/update |
 | `src/app/dashboard/projects/costs/estimate-client.tsx` | Checkbox + saved Included badge |
@@ -32,7 +32,7 @@ Contract-sum maths unchanged (`financial.ts` still ignores zero `line_total` row
 
 ## Intended verification (not run in this session)
 
-1. **GitHub `migration-replay.yml`** — disposable Postgres replays all migrations; `verify-phase1-smoke.sql` asserts `included` exists and smoke line defaults true.
+1. **GitHub `migration-replay.yml`** — disposable Postgres replays all migrations; `verify-phase1-smoke.sql` asserts `included` exists and smoke line defaults false.
 2. **Vitest (root packaging):**  
    `npx vitest run src/lib/simple-estimate.test.ts src/app/dashboard/projects/costs/simple-actions.test.ts src/app/dashboard/projects/costs/estimate-line-included.test.ts`
 3. **Typecheck:** `npx tsc --noEmit` on candidate before draft PR.
@@ -41,10 +41,12 @@ Contract-sum maths unchanged (`financial.ts` still ignores zero `line_total` row
 ## Limits
 
 - No local build/test/SQL execution in this Cursor session (D59 source-only).
-- Advanced estimating / non-simple write paths rely on DB default `included = true` only; no Advanced UI toggle in this slice.
+- Advanced estimating / non-simple write paths rely on DB default `included = false` only; no Advanced UI toggle in this slice.
 - Production Supabase not touched; migration apply remains Rob-gated.
 
 ## Evidence status
 
 **Not complete** until disposable CI + review receipts exist on the draft PR head SHA.
 Codex integration: conservative false default for all unknown/legacy rows, no rate-inferred intent/backfill; missing-column mapper false. Optional legacy action inputs default false. Included participates in update CAS. Disposable SQL asserts true then false readback in-transaction; no browser/commit durability claim.
+
+Review repair: SQL toggles execute before proposal publication/acceptance, preserving the precontract lock. Reopen zero-rate expectation uses blank editor text. Server normalises positive-rate Included intent to false. Production rollout requires migration before code; no automatic apply.

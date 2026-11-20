@@ -1,5 +1,17 @@
 # Cursor change log
 
+## 2026-11-20 — D68 approved schema sequence (CI fixture replay)
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `scripts/verify-migration-replay.sh` | baseline loop + D68 tail | Exclude six manifest filenames from sorted baseline; append fixtures in `manifest.tsv` order with SHA-256 and repo hash equality; per-PR `psql` stage checks and `d68-apply-receipt` lines | Ordered #176→#185→#222→#223→#224 proof without pre-applying planner from checkout |
+| `scripts/ci-replay-in-container.sh` | `prepare` | Copy `scripts/fixtures/d68-schema-sequence` when `manifest.tsv` present; validate fixture SQL exist | Container replay sees fixtures; no production migration copy |
+| `scripts/fixtures/d68-schema-sequence/manifest.tsv` | new | Tab-separated PR order + SHA-256 + source heads | Parse without Python/jq in container |
+| `scripts/test-replay-bootstrap.sh` | D68 branches | Optional fifth `docker cp`, workspace file count, expected replay path order, receipt grep guards | Preserve standard bootstrap when manifest absent |
+| `docs/delivery/2026-11-20/d68-schema-sequence.md` | new | Apply order, preview steps, non-destructive rollback SQL per PR | Operator apply-ready text (not executed) |
+
+**Checks:** NOT RUN (CI-only lane). **Workflow path** `scripts/fixtures/d68-schema-sequence/**` not added — R1 may extend `migration-replay.yml` triggers or pair with script commits.
+
 ## 2026-11-20 — D63 CON-061 case-study photo behaviour
 
 | File | Lines (approx.) | Change | Intent |

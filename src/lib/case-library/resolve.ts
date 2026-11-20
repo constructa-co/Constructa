@@ -26,7 +26,8 @@
 
 import { selectCaseStudies, type ProposalCaseStudy } from "@/lib/proposal-publication";
 import { approvedProblem, type ApprovedCaseStudy } from "./content";
-import { normalisePhotoSlots, proposalPhotoUrls } from "./photos";
+import { libraryCaseStudyProposalPhotos } from "./case-study-photo-behaviour";
+import { normalisePhotoSlots } from "./photos";
 
 export const LIBRARY_TICK_PREFIX = "lib:";
 export const MAX_CASE_STUDIES_PER_PROPOSAL = 6;
@@ -78,7 +79,7 @@ function toProposalCaseStudy(approved: ApprovedCaseStudy): ProposalCaseStudy {
         duration: orNull(approved.duration_text),
         delivered: orNull(approved.delivered),
         value_added: orNull(approved.value_added),
-        photos: proposalPhotoUrls(normalisePhotoSlots(approved.photos)),
+        photos: libraryCaseStudyProposalPhotos(normalisePhotoSlots(approved.photos), null),
     };
 }
 

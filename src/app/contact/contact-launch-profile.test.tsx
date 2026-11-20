@@ -126,18 +126,14 @@ describe("contact route under the full profile", () => {
         vi.unstubAllEnvs();
     });
 
-    it("retains the legacy form with its existing processor and destination", () => {
-        const elements = nodes(render());
-        const form = elements.find(e => e.type === "form")!;
-        expect(form.props.action).toBe("https://formspree.io/f/xnnprlod");
-        expect(form.props.method).toBe("POST");
-        expect(elements.some(e => e.type === "input" && e.props.name === "name")).toBe(true);
-        expect(elements.some(e => e.type === "input" && e.props.name === "email")).toBe(true);
-        expect(elements.some(e => e.type === "textarea" && e.props.name === "message")).toBe(true);
-        const submit = elements.find(e => e.type === "button" && e.props.type === "submit")!;
-        expect(submit.props.children).toBe("Send Message");
+    it("renders the gated marketing form without third-party POST", () => {
         const markup = html();
         expect(markup).toContain("Got a question? Want to stay in the loop?");
         expect(markup).toContain('href="mailto:hello@constructa.co"');
+        expect(markup).toContain('id="contact-name"');
+        expect(markup).toContain('id="contact-consent"');
+        expect(markup).toContain("Submission unavailable");
+        expect(markup).not.toContain("formspree");
+        expect(markup).not.toMatch(/action="https?:\/\//i);
     });
 });

@@ -9,6 +9,11 @@ import { fieldMessage } from "@/lib/case-library/messages";
 import { editorReducer, initialEditorState, isDirty, saveLine } from "@/lib/case-library/editor-state";
 import { questionOf } from "@/lib/case-library/guided";
 import { CANONICAL_WORK_NAMES } from "@/lib/case-library/labels";
+import {
+    CASE_STUDY_DUPLICATE_PHOTO_MESSAGE,
+    caseStudyPhotoContentHash,
+    libraryCaseStudyProposalPhotos,
+} from "@/lib/case-library/case-study-photo-behaviour";
 import { normalisePhotoSlots, type CaseStudyPhotoSlot } from "@/lib/case-library/photos";
 import type { ApprovalCheck, LibraryResult, StudyView } from "@/lib/case-library/service";
 import { asProposalCaseStudy, changesSinceApproval } from "@/lib/case-library/status";
@@ -73,7 +78,7 @@ export function ApprovedPreview({ approved }: { approved: ApprovedCaseStudy }) {
             {study.value_added && (<div><p className="text-sm font-semibold uppercase tracking-wide">Value added</p><p className="text-base whitespace-pre-wrap break-words">{study.value_added}</p></div>)}
             {study.photos.length > 0 && (
                 <div data-approved-photos className="grid grid-cols-3 gap-2">
-                    {study.photos.map((url, index) => (
+                    {libraryCaseStudyProposalPhotos(normalisePhotoSlots(approved.photos), null).map((url, index) => (
                         <div key={`${index}-${url}`}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={url} alt={`Photo ${index + 1}`} className="w-full aspect-square object-cover rounded" />
@@ -114,6 +119,7 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
     const [story, setStory] = useState<StoryNotes>(NO_STORY);
     const stateRef = useRef(state);
     useEffect(() => { stateRef.current = state; });
+    const slotHashes = useRef<(string | null)[]>([null, null, null]);
 
     const dirty = isDirty(state);
     // Something not saved, or a challenge typed but not added: leaving asks first.
@@ -140,6 +146,18 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
             toast.error(problem);
             return;
         }
+        let hash: string;
+        try {
+            hash = await caseStudyPhotoContentHash(file);
+        } catch {
+            toast.error("That picture could not be checked, so it was not added.");
+            return;
+        }
+        if (slotHashes.current.some((entry, index) => entry === hash && index !== slot)) {
+            toast.error(CASE_STUDY_DUPLICATE_PHOTO_MESSAGE);
+            return;
+        }
+        slotHashes.current[slot] = hash;
         const formData = new FormData();
         formData.set("file", file);
         formData.set("purpose", "case-study");
@@ -153,10 +171,21 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
         if (result.url) {
             // Placed on the photos as they are when the reply arrives, so two uploads on their way do not undo each other.
             const photos = normalisePhotoSlots(stateRef.current.draft.content.photos);
+            if (photos.some((photo, index) => photo.url === result.url && index !== slot)) {
+                slotHashes.current[slot] = null;
+                toast.error(CASE_STUDY_DUPLICATE_PHOTO_MESSAGE);
+                return;
+            }
+            const hadNone = photos.every((entry) => entry.url.trim() === "");
             photos[slot] = { ...photos[slot], url: result.url };
+            if (hadNone && slot !== 0) {
+                const first = photos[slot]; photos[slot] = photos[0]; photos[0] = first;
+                slotHashes.current[0] = hash; slotHashes.current[slot] = null;
+            }
             set({ photos });
             toast.success("Photo uploaded");
         } else {
+            slotHashes.current[slot] = null;
             toast.error(result.error || "Upload failed");
         }
     };
@@ -398,7 +427,25 @@ export default function CaseStudyEditor({ initial, disciplines: initialDisciplin
                     <textarea id="cs-value-added" className={input} rows={5} aria-describedby="cs-value-added-help" value={content.value_added} maxLength={5000} onChange={(event) => set({ value_added: event.target.value })} {...invalid("value_added")} />
                     {suggestionPanel("value_added", "value_added")}
                 </div>
-                <CaseStudyPhotoSlots photos={normalisePhotoSlots(content.photos)} onChange={setPhoto} onUpload={handlePhotoUpload} cardIndex={0} persistenceAvailable={caseLibraryDraftPhotosOnWire()} />
+                <CaseStudyPhotoSlots
+                    photos={normalisePhotoSlots(content.photos)}
+                    onChange={setPhoto}
+                    onUpload={handlePhotoUpload}
+                    cardIndex={0}
+                    persistenceAvailable={caseLibraryDraftPhotosOnWire()}
+                    primarySlot={(() => {
+                        const first = normalisePhotoSlots(content.photos).findIndex((photo) => photo.url.trim() !== "");
+                        return first === -1 ? 0 : first;
+                    })()}
+                    onMakePrimary={caseLibraryDraftPhotosOnWire() ? (slot) => {
+                        const photos = normalisePhotoSlots(content.photos);
+                        const chosen = photos.splice(slot, 1)[0];
+                        photos.unshift(chosen);
+                        const hash = slotHashes.current.splice(slot, 1)[0];
+                        slotHashes.current.unshift(hash);
+                        set({ photos });
+                    } : undefined}
+                />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label htmlFor="cs-place" className={label}>Roughly where? <span className="font-normal text-slate-300">(optional)</span></label>

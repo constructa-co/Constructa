@@ -171,7 +171,7 @@ describe("a confirmed save", () => {
         expect(legacy).toEqual(given);
     });
 
-    it("refuses a fourth photograph, an unsafe link, or pictures that are not a list", async () => {
+    it("refuses a legacy tail with unsafe links, an unsafe active slot, or pictures that are not a list", async () => {
         await expect(saveCaseStudiesAction([study("s1", "Kitchen", { photos: ["a", "b", "c", "d"] })], fp())).resolves.toEqual({
             status: "refused",
             message: LEGACY_CASE_STUDY_PHOTOS_MESSAGE,
@@ -188,6 +188,21 @@ describe("a confirmed save", () => {
         });
         expect(calls).toHaveLength(0);
         expect(stored()).toEqual([study("s1", "Kitchen refit")]);
+    });
+
+    it("preserves safe legacy extra photos on save", async () => {
+        await expect(saveCaseStudiesAction([study("s1", "Kitchen", {
+            photos: [
+                "https://images.example.test/a.jpg",
+                "https://images.example.test/b.jpg",
+                "https://images.example.test/c.jpg",
+                "https://images.example.test/d.jpg",
+            ],
+        })], fp())).resolves.toMatchObject({ status: "saved" });
+        expect(stored()).toMatchObject([{ photos: [
+            "https://images.example.test/a.jpg", "https://images.example.test/b.jpg",
+            "https://images.example.test/c.jpg", "https://images.example.test/d.jpg",
+        ] }]);
     });
 
     it("an empty list is a deliberate clear, and is saved", async () => {

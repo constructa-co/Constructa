@@ -1,5 +1,40 @@
 # Cursor change log
 
+## 2026-11-20 — D63 CON-061 case-study photo behaviour
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `src/lib/case-library/case-study-photo-behaviour.ts` | new | SHA-256 dedupe, active/legacy split, primary ordering for proposals | CON-061 pure rules |
+| `src/lib/case-library/legacy-photos.ts` | 12–30 | Save accepts three active slots plus safe legacy tail | Preserve stored extras |
+| `src/lib/proposal-publication.ts` | import + `selectCaseStudies` photos | `legacyProfileCaseStudyPhotos` | Main photo first on proposals |
+| `src/lib/case-library/resolve.ts` | library photos line | `libraryCaseStudyProposalPhotos` | Library parity |
+| `src/app/dashboard/settings/case-studies/case-studies-client.tsx` | photos section | Hash refusal, main control, legacy strip | Legacy editor UX |
+| `src/app/dashboard/settings/case-studies/library/case-study-editor.tsx` | upload + slots props | Duplicate refusal, primary state | Library editor UX |
+| `src/app/dashboard/settings/case-studies/library/case-study-photo-slots.tsx` | slot chrome | Main badge / Use as main | Shared slot UI |
+| `src/lib/case-library/case-study-photo-behaviour.test.ts` | new | Hash, split, primary order | Regression |
+| `src/lib/case-library/legacy-photos.test.ts`, `save-action.test.ts`, `photo-upload-outcomes.test.tsx`, `legacy-photo-save-outcomes.test.tsx`, `case-study-photo-journey.test.ts` | varied | Updated expectations | CON-061 contracts |
+| `docs/delivery/2026-11-20/d63-con061-case-study-photo-behaviour.md` | new | Delivery note | Handoff |
+
+**Checks:** NOT RUN in this session (source-only lane). Root owns validation and draft PR.
+
+## 2026-11-20 — D64 CON053/CON013 minimal contact and apply forms (collection off)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/marketing/public-form-collection.ts` | new | Default-off `CONSTRUCTA_PUBLIC_FORM_COLLECTION_ENABLED`; destination env name constants; readiness helpers | Single fail-closed gate for contact + apply collection |
+| `src/lib/marketing/public-marketing-form-schema.ts` | new | Shared Zod schema: name, email, optional company, message, consent | CON053/CON013 minimal field contract |
+| `src/lib/marketing/public-marketing-form-submission.ts` | new | Server-only submit stub; throws when off or unrouted | No send/store while off |
+| `src/lib/founding-cohort/application-schema.ts`, `submission-adapter.ts` | rewire | Apply uses shared schema + apply readiness gate | Align apply with contact gates |
+| `src/components/marketing/public-marketing-lead-form.tsx` | new | Shared client form; disabled submit when collection off | UI fail-closed |
+| `src/components/marketing/public-form-collection-notice.tsx` | new | Notice citing enable + destination env var names only | Honest preview copy |
+| `src/app/contact/page.tsx`, `actions.ts`, `contact-marketing-form.tsx` | rewrite | Replace Formspree with gated server action form | Remove third-party POST |
+| `src/app/apply/actions.ts`, `founding-cohort-apply-form.tsx`, `page.tsx` | update | Minimal fields; server-passes `collectionReady` | Apply matches contact shape |
+| `src/components/marketing/full-home.tsx` | contact panel | Remove Formspree `fetch`; reuse gated form | Home contact stops live collection |
+| `src/components/marketing/founding-cohort-apply.module.css` | `.consentLabel` | Checkbox consent layout | Accessible consent tickbox |
+| `src/app/**`, `src/lib/**`, `src/components/marketing/**` tests | update/new | Expect minimal fields, no Formspree, collection-off behaviour | Reviewable focused tests |
+
+**Delivery note:** `docs/delivery/2026-11-20/d64-con053-con013-contact-apply-minimal-forms.md`
+
 ## 2026-11-19 — CON-043 phone estimate total and proposal review evidence
 
 | File | Lines (approx.) | Change | Intent |

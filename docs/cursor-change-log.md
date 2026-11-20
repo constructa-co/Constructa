@@ -950,7 +950,7 @@ Base branch: `origin/cq/cq-0105-a001-initialize-kit-primary` (includes `5d73ebc`
 
 | File | Lines (approx.) | Change | Intent |
 |------|-----------------|--------|--------|
-| `supabase/migrations/20261120040000_con068_estimate_line_included.sql` | new | `estimate_lines.included` NOT NULL DEFAULT false; backfill ambiguous zero placeholders false | Durable CON-068 intent without overloading rate/notes columns |
+| `supabase/migrations/20261120040000_con068_estimate_line_included.sql` | new | `estimate_lines.included` NOT NULL DEFAULT false; conservative false default; no inferred backfill | Durable CON-068 intent without overloading rate/notes columns |
 | `src/lib/simple-estimate.ts` | ~45–210, 70–78 | `included` on draft/input; £0 validation; `draftFromLine`/`isIncludedNotChargedLine` | Client rules match server; reload restores checkbox |
 | `src/app/dashboard/projects/costs/simple-actions.ts` | LineSchema, insert/update | Persist `included`; reject zero rate without flag | Owner-scoped simple save path |
 | `src/app/dashboard/projects/costs/estimate-client.tsx` | badges + toggles | Included (not charged) UI | Visible intent on save/edit/read |

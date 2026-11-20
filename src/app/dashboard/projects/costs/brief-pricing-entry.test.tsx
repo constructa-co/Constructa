@@ -119,7 +119,7 @@ describe("reviewed brief-to-draft entry", () => {
         row = nodes(view()).find(n => n.props["data-inline-add"])!;
         (row.props.onSave as () => void)(); await Promise.resolve(); await Promise.resolve();
         expect(current.server).toHaveBeenCalledOnce();
-        expect(current.server.mock.calls[0][0].line).toEqual({ description: "Paint walls.", quantity: 1, unit: "item", unit_rate: 100 });
+        expect(current.server.mock.calls[0][0].line).toEqual({ description: "Paint walls.", quantity: 1, unit: "item", unit_rate: 100, included: false });
         expect(current.state!.estimates[0].estimate_lines).toContainEqual(expect.objectContaining({ description: "Paint walls.", line_total: 100 }));
         expect(current.state!.estimates[0].total_cost).toBe(877);
         expect(current.state!.ops[NEW_LINE_KEY]).toBeUndefined();

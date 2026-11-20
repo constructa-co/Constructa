@@ -499,6 +499,7 @@ describe("edit, delete and adjustments", () => {
             quantity: 1,
             unit: "item",
             unit_rate: 3000,
+            included: false,
         });
 
         expect(result.ok).toBe(false);

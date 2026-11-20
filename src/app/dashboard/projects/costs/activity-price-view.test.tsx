@@ -83,7 +83,7 @@ describe("optional activity breakdown in the actual price table", () => {
         expect(JSON.stringify(current.state!.ops.one.draft)).toBe(draft); expect(currentSummary(current.state!)).toEqual(totals);
         expect(current.dispatch).not.toHaveBeenCalled(); expect(text(subRows())).toContain("£400.00");
         oldSave(); await Promise.resolve(); await Promise.resolve();
-        expect(current.update).toHaveBeenCalledExactlyOnceWith("estimate", "one", { description: "My revised work", quantity: 12, unit: "m2", unit_rate: 25 });
+        expect(current.update).toHaveBeenCalledExactlyOnceWith("estimate", "one", { description: "My revised work", quantity: 12, unit: "m2", unit_rate: 25, included: false });
         expect(current.state!.ops.one).toBeUndefined(); expect(text(subRows())).toContain("£500.00");
     });
     it("does not replace or count a new draft, including a full-form measurement draft", () => {

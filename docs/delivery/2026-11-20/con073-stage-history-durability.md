@@ -8,10 +8,10 @@
 | --- | --- |
 | `supabase/migrations/20261120032000_con073_pipeline_stage_history.sql` | New table (`project_id`, `user_id`, `from_status`, `to_status`, `created_at`), length and `from <> to` checks, FKs with cascade, indexes, RLS. SELECT/INSERT policies require `user_id = auth.uid()` and ownership of the project (`projects.user_id`). Grants: `authenticated` SELECT+INSERT only; no UPDATE/DELETE; `anon` none. |
 | `scripts/verify-phase1-smoke.sql` | Scoped assertions before the final `ROLLBACK`: owner insert persists and reads back; cannot attribute a row to another user; no-op row rejected; update and delete denied; a second user sees zero rows and cannot insert for the first user's project. |
-| `src/lib/pipeline-stage-history.ts` | Comment corrected only. Payload already matches the schema; no behavioural change. |
+| `src/lib/pipeline-stage-history.ts` | Comment corrected; payload matches the schema. The board caller skips same-status events to avoid a false constraint warning. |
 | `src/lib/pipeline-stage-history.test.ts` | Pins table name and exact insert columns; RLS rejection (42501) is `recorded:false, schemaGate:false`. |
 
-**Preserved:** `board-actions.ts` untouched — owner filter, compare-and-set, returned-row verification, confirmed move never rolled back, history-not-confirmed warning, combined refresh warning. The migration is idempotent in shape (`IF NOT EXISTS`, `DROP POLICY IF EXISTS`). The workflow already triggers on `supabase/migrations/**` and `scripts/verify-phase1-smoke.sql`; no workflow change.
+**Preserved:** `board-actions.ts` skips audit append for a same-status acknowledged move; otherwise preserved — owner filter, compare-and-set, returned-row verification, confirmed move never rolled back, history-not-confirmed warning, combined refresh warning. The migration is idempotent in shape (`IF NOT EXISTS`, `DROP POLICY IF EXISTS`). The workflow already triggers on `supabase/migrations/**` and `scripts/verify-phase1-smoke.sql`; no workflow change.
 
 **Intended checks (not run):** `vitest run src/lib/pipeline-stage-history.test.ts src/app/dashboard/board-actions.test.ts`; `tsc --noEmit`; `migration-replay.yml` clean replay + smoke on disposable localhost Postgres.
 
@@ -20,3 +20,5 @@
 - The audit insert is a separate statement from the status update (not atomic); a failed insert still yields the warning, by design. Moves made before the migration is applied are not backfilled.
 - Cross-organisation (non-owner member) access is intentionally not granted; ownership follows `projects.user_id`, as the board action does.
 - Migration must remain unmerged until Rob approves.
+
+Independent review repair: same-status board writes no longer append a forbidden no-op history event; focused action assertion added. Append-only means no app-role update/delete; admin/service parent deletion can cascade. Replay SQL is rollback-only and proves in-transaction persistence/isolation, not commit or browser durability.

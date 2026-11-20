@@ -17,6 +17,7 @@ import {
     CASE_STUDY_PRIMARY_LABEL,
     caseStudyPhotoContentHash,
     legacyTailPhotoCount,
+    resolvePrimaryPhotoSlot,
     mergeLegacyProfilePhotoUrls,
     splitLegacyProfilePhotoUrls,
 } from "@/lib/case-library/case-study-photo-behaviour";
@@ -174,9 +175,12 @@ export default function CaseStudiesClient({ initialCaseStudies, initialStoredFin
     const trouble = state.notice.kind === "failed" || state.notice.kind === "unknown" || state.uncertain;
 
     /** Resolves true only when the picture was put on the example. */
-    const handlePhotoUpload = async (csIndex: number, slot: number, file: File): Promise<boolean> => {
+    const handlePhotoUpload = async (row: number, slot: number, file: File): Promise<boolean> => {
         // Rows and photos can change while this waits, so the reply is placed from what is there when it arrives.
-        const row = rowHandles.current[csIndex];
+        if (!rowHandles.current.includes(row)) {
+            toast.error("That past work was removed, so its photo was not added.");
+            return false;
+        }
         const pickKey = `${row}:${slot}`;
         const pick = Symbol();
         latestPhotoPick.current.set(pickKey, pick);
@@ -225,7 +229,7 @@ export default function CaseStudiesClient({ initialCaseStudies, initialStoredFin
             const { active, legacyTail } = splitLegacyProfilePhotoUrls(cs.photos);
             const nextActive = [...active] as [string, string, string];
             nextActive[slot] = "";
-            return { ...cs, photos: mergeLegacyProfilePhotoUrls(nextActive, legacyTail) };
+            return { ...cs, photos: mergeLegacyProfilePhotoUrls(nextActive, legacyTail), primaryPhotoIndex: cs.primaryPhotoIndex === slot ? null : cs.primaryPhotoIndex };
         }));
     };
 
@@ -264,21 +268,24 @@ export default function CaseStudiesClient({ initialCaseStudies, initialStoredFin
                 </div>
             )}
 
-            {caseStudies.map((cs, index) => (
+            {caseStudies.map((cs, index) => {
+                const row = rowHandles.current[index];
+                return (
                 <CaseStudyCard
-                    key={cs.id}
+                    key={row}
                     cs={cs}
                     index={index}
                     onChange={(field, value) => updateCaseStudy(index, field, value)}
                     onRemove={() => removeCaseStudy(index)}
-                    onPhotoUpload={(slot, file) => handlePhotoUpload(index, slot, file)}
+                    onPhotoUpload={(slot, file) => handlePhotoUpload(row, slot, file)}
                     onPhotoRemove={(slot) => handlePhotoRemove(index, slot)}
                     onStoryTyped={(typed) => markStory(index, typed)}
                     inputCls={inputCls}
                     labelCls={labelCls}
                     enhance={enhance}
                 />
-            ))}
+                );
+            })}
 
             <div className={ui.saveBar}>
                 <button
@@ -331,9 +338,7 @@ function CaseStudyCard({
     const [enhancing, setEnhancing] = useState(false);
     const { active: activePhotoUrls, legacyTail } = splitLegacyProfilePhotoUrls(cs.photos);
     const legacyTailCount = legacyTailPhotoCount(cs.photos);
-    const primarySlot = typeof cs.primaryPhotoIndex === "number" && cs.primaryPhotoIndex >= 0 && cs.primaryPhotoIndex < 3
-        ? cs.primaryPhotoIndex
-        : activePhotoUrls.findIndex((url) => url.trim() !== "") === -1 ? 0 : activePhotoUrls.findIndex((url) => url.trim() !== "");
+    const primarySlot = resolvePrimaryPhotoSlot(activePhotoUrls, cs.primaryPhotoIndex);
 
     // Which slots have a picture on its way, so the slot says so until its reply is in. Never saved.
     const [uploading, setUploading] = useState<boolean[]>([false, false, false]);
@@ -663,7 +668,7 @@ function CaseStudyCard({
                                                 <span className="absolute top-1 left-1 z-10 rounded bg-emerald-900/90 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-100">{CASE_STUDY_PRIMARY_LABEL}</span>
                                             )}
                                             {primarySlot !== slot && (
-                                                <button type="button" onClick={() => makePrimary(slot)} className={`absolute top-1 left-1 z-10 min-h-8 px-2 rounded-lg bg-black/70 text-[10px] font-semibold text-white hover:bg-black ${coreFocusVisibleRing}`}>
+                                                <button type="button" aria-label={`Use photo ${slot + 1} as main for past work ${index + 1}`} onClick={() => makePrimary(slot)} className={`absolute top-1 left-1 z-10 min-h-8 px-2 rounded-lg bg-black/70 text-[10px] font-semibold text-white hover:bg-black ${coreFocusVisibleRing}`}>
                                                     Use as main
                                                 </button>
                                             )}

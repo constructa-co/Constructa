@@ -79,7 +79,7 @@ function toProposalCaseStudy(approved: ApprovedCaseStudy): ProposalCaseStudy {
         duration: orNull(approved.duration_text),
         delivered: orNull(approved.delivered),
         value_added: orNull(approved.value_added),
-        photos: libraryCaseStudyProposalPhotos(normalisePhotoSlots(approved.photos), (approved as { primary_photo_index?: unknown }).primary_photo_index),
+        photos: libraryCaseStudyProposalPhotos(normalisePhotoSlots(approved.photos), null),
     };
 }
 

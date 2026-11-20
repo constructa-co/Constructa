@@ -38,3 +38,5 @@
 
 Original register **A038** asked to retain up to three photos in the improved journey; **CON-061** (CTO D63) adds ordering, dedupe, and legacy tail display without dropping stored urls beyond the proposal cap of three active pictures.
 Codex integration before packaging: browser Web Crypto only (no Node crypto in client graph); pending hash reservation blocks parallel duplicate picks; strict legacy string validation retained. Library primary choice reorders existing slots and is offered only while existing photo wire allows persistence; no new schema or wire flag.
+
+Independent review repair: async hash-aware UI fixtures use deterministic fingerprint mocks, while real SHA-256 remains tested separately; concurrent pending hash assertion added. Exact refusal-call/store assertions restored, safe legacy extra preservation isolated. Main photo removal falls back to a filled slot; accessible per-photo labels and dead schema cast removed. Library choice is represented in existing slot order (available only behind existing wire gate), not a new primary field.

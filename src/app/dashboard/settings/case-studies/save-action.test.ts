@@ -177,14 +177,6 @@ describe("a confirmed save", () => {
             message: LEGACY_CASE_STUDY_PHOTOS_MESSAGE,
         });
         expect(calls).toHaveLength(0);
-        await expect(saveCaseStudiesAction([study("s1", "Kitchen", {
-            photos: [
-                "https://images.example.test/a.jpg",
-                "https://images.example.test/b.jpg",
-                "https://images.example.test/c.jpg",
-                "https://images.example.test/d.jpg",
-            ],
-        })], fp())).resolves.toMatchObject({ status: "saved" });
         await expect(saveCaseStudiesAction([study("s1", "Kitchen", { photos: ["https://images.example.test/a.jpg", "", "http://not-https.example.test/b.png"] })], fp())).resolves.toEqual({
             status: "refused",
             message: LEGACY_CASE_STUDY_PHOTOS_MESSAGE,
@@ -194,7 +186,20 @@ describe("a confirmed save", () => {
             status: "refused",
             message: LEGACY_CASE_STUDY_PHOTOS_MESSAGE,
         });
-        expect(calls.length).toBeGreaterThanOrEqual(1);
+        expect(calls).toHaveLength(0);
+        expect(stored()).toEqual([study("s1", "Kitchen refit")]);
+    });
+
+    it("preserves safe legacy extra photos on save", async () => {
+        await expect(saveCaseStudiesAction([study("s1", "Kitchen", {
+            photos: [
+                "https://images.example.test/a.jpg",
+                "https://images.example.test/b.jpg",
+                "https://images.example.test/c.jpg",
+                "https://images.example.test/d.jpg",
+            ],
+        })], fp())).resolves.toMatchObject({ status: "saved" });
+        expect(stored()[0].photos).toHaveLength(4);
     });
 
     it("an empty list is a deliberate clear, and is saved", async () => {

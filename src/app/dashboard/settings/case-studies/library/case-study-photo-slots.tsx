@@ -61,7 +61,7 @@ export default function CaseStudyPhotoSlots({
                                             <span className="absolute top-1 left-1 z-10 rounded bg-emerald-900/90 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-100">{CASE_STUDY_PRIMARY_LABEL}</span>
                                         )}
                                         {onMakePrimary && primarySlot !== slot && (
-                                            <button type="button" onClick={() => onMakePrimary(slot)} className={`absolute top-1 left-1 z-10 min-h-8 px-2 rounded-lg bg-black/70 text-[10px] font-semibold text-white hover:bg-black ${coreFocusVisibleRing}`}>
+                                            <button type="button" aria-label={`Use photo ${slot + 1} as main for past work ${cardIndex + 1}`} onClick={() => onMakePrimary(slot)} className={`absolute top-1 left-1 z-10 min-h-8 px-2 rounded-lg bg-black/70 text-[10px] font-semibold text-white hover:bg-black ${coreFocusVisibleRing}`}>
                                                 Use as main
                                             </button>
                                         )}

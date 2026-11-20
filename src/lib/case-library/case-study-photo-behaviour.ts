@@ -44,7 +44,7 @@ export function legacyTailPhotoCount(photos: unknown): number {
 
 /** Resolved primary index in 0..2; default is the first non-empty active slot. */
 export function resolvePrimaryPhotoSlot(active: readonly string[], explicit: unknown): number {
-    if (typeof explicit === "number" && Number.isInteger(explicit) && explicit >= 0 && explicit < CASE_STUDY_PHOTO_COUNT) {
+    if (typeof explicit === "number" && Number.isInteger(explicit) && explicit >= 0 && explicit < CASE_STUDY_PHOTO_COUNT && (active[explicit] ?? "").trim() !== "") {
         return explicit;
     }
     const first = active.findIndex((url) => url.trim() !== "");

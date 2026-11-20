@@ -55,7 +55,11 @@ The table reconciles existing verified receipts; it does not claim independent s
 
 ## Marketing check
 
-D69 read-only production marketing audit is separate draft229. Initial CI reached all11 public sitemap pages withHTTP200, but its initial metadata sampling and harness-caused telemetry errors needed correction. Final result is pending and must be recorded independently; no all-pages PASS or product defect is inferred from the initial run. It performs no form submits/signup/data writes and cannot establish authenticated app acceptance.
+D69 read-only production audit is separate draft229. Final [CI44812734220](https://github.com/constructa-co/Constructa/actions/runs/44812734220) PASS on `https://constructa-nu.vercel.app`, independently verified as the main531 production alias via authenticated Vercel deployment metadata. All11 public sitemap pages returnedHTTP200 and passed title/description/OG, mobile390px horizontal-overflow, public internal-link and unblocked console/page-error checks. Artifacts include all page results, guard refusals and screenshots. No form submits/signup/data writes were performed.
+
+The repository canonical fallback `https://www.constructa.co` was separately audited in [CI44812112092](https://github.com/constructa-co/Constructa/actions/runs/44812112092): all11HTTP200, but OG tags missing and an external Kit resource error. Its resources/metadata differ from main531 and the deployment's verified aliases do not include that hostname. **needs sign-in/Rob:** confirm the intended public domain/routing owner before any domain/settings work. Main source already provides the missing metadata on its verified alias; changing it again is not an established fix for the canonical-domain result. No routing/settings changes made.
+
+Coverage limits: public sitemap marketing/legal pages only; auth/dashboard/API and off-sitemap routes are skipped rather than accepted. Blocked write/provider requests are reported as harness refusals, not passed network calls. Mobile check covers width/overflow and screenshots, not an interactive walkthrough of lazy-loaded media. The audit is not authenticated app acceptance.
 
 ## Boundaries and handoff
 

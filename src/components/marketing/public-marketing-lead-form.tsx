@@ -196,31 +196,6 @@ export function PublicMarketingLeadForm({
           ) : null}
         </div>
 
-        <div className={styles.field}>
-          <label className={styles.consentLabel} htmlFor={`${idPrefix}-consent`}>
-            <input
-              id={`${idPrefix}-consent`}
-              name="consent"
-              type="checkbox"
-              value="on"
-              required
-              aria-invalid={Boolean(fieldErrors.consent)}
-              aria-describedby={
-                fieldErrors.consent ? `${idPrefix}-consent-error` : undefined
-              }
-            />
-            <span>
-              I agree that Constructa may use these details to respond to my
-              message, in line with the privacy policy.
-            </span>
-          </label>
-          {fieldErrors.consent ? (
-            <p id={`${idPrefix}-consent-error`} className={styles.error}>
-              {fieldErrors.consent}
-            </p>
-          ) : null}
-        </div>
-
         <div className={styles.actions}>
           <button
             type="submit"

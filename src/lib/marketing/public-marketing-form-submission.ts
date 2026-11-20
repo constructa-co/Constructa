@@ -1,25 +1,21 @@
 import type { PublicMarketingFormPayload } from "./public-marketing-form-schema";
 import {
-  isPublicApplyFormCollectionReady,
-  isPublicContactFormCollectionReady,
-  PUBLIC_APPLY_FORM_DESTINATION_ENV,
-  PUBLIC_CONTACT_FORM_DESTINATION_ENV,
+  isPublicMarketingFormCollectionReady as isMarketingFormCollectionReady,
 } from "./public-form-collection";
+import { PUBLIC_MARKETING_INBOX_DESTINATION_ENV } from "./public-marketing-form-policy";
 
 export type PublicMarketingFormKind = "contact" | "apply";
 
-export function isPublicMarketingFormCollectionReady(kind: PublicMarketingFormKind): boolean {
-  return kind === "contact"
-    ? isPublicContactFormCollectionReady()
-    : isPublicApplyFormCollectionReady();
+export function isPublicMarketingFormCollectionReady(
+  _kind: PublicMarketingFormKind,
+): boolean {
+  return isMarketingFormCollectionReady();
 }
 
 export function publicMarketingFormDestinationEnvName(
-  kind: PublicMarketingFormKind,
+  _kind: PublicMarketingFormKind,
 ): string {
-  return kind === "contact"
-    ? PUBLIC_CONTACT_FORM_DESTINATION_ENV
-    : PUBLIC_APPLY_FORM_DESTINATION_ENV;
+  return PUBLIC_MARKETING_INBOX_DESTINATION_ENV;
 }
 
 /**

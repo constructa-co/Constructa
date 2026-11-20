@@ -11,19 +11,47 @@ export type Row = Record<string, unknown>;
 const OUTCOMES = ["ok", "rejected:schema", "rejected:tripwire", "sources-moved", "error"];
 const HOUR = 60 * 60 * 1000;
 
-export function fakeAiBudget(options: { introductionEnabled?: boolean; cohortEnabled?: boolean } = {}) {
+function countedPence(row: Row): number | null {
+    const reserved = row.reserved_pence;
+    if (reserved == null) return null;
+    if (row.finished_at == null) return Number(reserved);
+    return Number(row.charged_pence ?? reserved);
+}
+
+function monthPenceSum(rows: Row[]): number | null {
+    let sum = 0;
+    for (const row of rows) {
+        const c = countedPence(row);
+        if (c == null) return null;
+        sum += c;
+    }
+    return sum;
+}
+
+export function fakeAiBudget(options: {
+    introductionEnabled?: boolean;
+    cohortEnabled?: boolean;
+    /** When true, applies post-migration pence rules (NULL max_reserve_pence => disabled). */
+    penceLedger?: boolean;
+} = {}) {
+    const penceLedger = options.penceLedger ?? false;
     // As seeded by the migrations: profile rewrite on, everything else off.
-    const features: Record<string, { enabled: boolean; max: number }> = {
-        "profile.rewrite": { enabled: true, max: 700 },
-        "company.introduction": { enabled: options.introductionEnabled ?? false, max: 500 },
-        "brief.suggest": { enabled: options.cohortEnabled ?? false, max: 700 },
-        "proposal.wording": { enabled: options.cohortEnabled ?? false, max: 2000 },
-        "case-studies.enhance": { enabled: options.cohortEnabled ?? false, max: 1000 },
-        "schedule.programme-update": { enabled: options.cohortEnabled ?? false, max: 900 },
+    const features: Record<string, { enabled: boolean; max: number; reservePence: number | null }> = {
+        "profile.rewrite": { enabled: true, max: 700, reservePence: null },
+        "company.introduction": { enabled: options.introductionEnabled ?? false, max: 500, reservePence: null },
+        "brief.suggest": { enabled: options.cohortEnabled ?? false, max: 700, reservePence: null },
+        "proposal.wording": { enabled: options.cohortEnabled ?? false, max: 2000, reservePence: null },
+        "case-studies.enhance": { enabled: options.cohortEnabled ?? false, max: 1000, reservePence: null },
+        "schedule.programme-update": { enabled: options.cohortEnabled ?? false, max: 900, reservePence: null },
     };
     const limits = {
-        contractor: { perHour: 6 as number | null, perDay: 20, perDayTokens: 12_000 },
-        global: { perDay: 2000, perDayTokens: 1_000_000 },
+        contractor: {
+            perHour: 6 as number | null,
+            perDay: 20,
+            perDayTokens: 12_000,
+            spendCapPence: null as number | null,
+        },
+        global: { perDay: 2000, perDayTokens: 1_000_000, spendCapPence: null as number | null },
     };
     const attempts: Row[] = [];
     const rpcCalls: Array<{ name: string; args: Row }> = [];
@@ -39,15 +67,40 @@ export function fakeAiBudget(options: { introductionEnabled?: boolean; cohortEna
             if (!p_user_id) throw new Error("A contractor is required.");
             const feature = features[String(p_feature)];
             if (!feature || !feature.enabled) return { status: "disabled" };
+            if (penceLedger && feature.reservePence == null) return { status: "disabled" };
             const reserve = Number(p_reserve_output_tokens);
             if (!Number.isInteger(reserve) || reserve < 1 || reserve > feature.max) throw new Error("reservation out of bounds");
             if (p_feature === "company.introduction" ? !/^[0-9a-f]{32}$/.test(String(p_source_fingerprint)) : p_source_fingerprint != null) throw new Error("fingerprint rule");
 
             const mine = attempts.filter((row) => row.user_id === p_user_id);
             for (const row of mine) {
-                if (row.finished_at == null && Number(row.started_at) < clock - 2 * 60 * 1000) Object.assign(row, { finished_at: clock, outcome: "abandoned" });
+                if (row.finished_at == null && Number(row.started_at) < clock - 2 * 60 * 1000) {
+                    const patch: Row = { finished_at: clock, outcome: "abandoned" };
+                    if (penceLedger) patch.charged_pence = row.reserved_pence;
+                    Object.assign(row, patch);
+                }
             }
             if (mine.some((row) => row.finished_at == null)) return { status: "in-flight" };
+
+            const reservePence = feature.reservePence;
+            if (penceLedger && reservePence != null) {
+                if (attempts.some((row) => row.reserved_pence == null)) return { status: "disabled" };
+
+                const contractorMonth = monthPenceSum(mine);
+                if (contractorMonth == null) return { status: "disabled" };
+                const contractorCap = limits.contractor.spendCapPence;
+                if (contractorCap != null && contractorMonth + reservePence > contractorCap) {
+                    return { status: "contractor-spend-cap" };
+                }
+
+                const globalMonth = monthPenceSum(attempts);
+                if (globalMonth == null) return { status: "disabled" };
+                const globalCap = limits.global.spendCapPence;
+                if (globalCap != null && globalMonth + reservePence > globalCap) {
+                    return { status: "global-spend-cap" };
+                }
+            }
+
             const day = since(mine, 24 * HOUR);
             if ((limits.contractor.perHour !== null && since(mine, HOUR).length >= limits.contractor.perHour) || day.length >= limits.contractor.perDay) return { status: "attempt-limit" };
             if (day.reduce((sum, row) => sum + charged(row), 0) + reserve > limits.contractor.perDayTokens) return { status: "token-limit" };
@@ -55,8 +108,19 @@ export function fakeAiBudget(options: { introductionEnabled?: boolean; cohortEna
             if (everyone.length >= limits.global.perDay || everyone.reduce((sum, row) => sum + charged(row), 0) + reserve > limits.global.perDayTokens) return { status: "service-limit" };
 
             const attempt: Row = {
-                id: `00000000-0000-4000-8000-${String(nextId++).padStart(12, "0")}`, user_id: p_user_id, feature: p_feature, started_at: clock,
-                finished_at: null, outcome: null, reserved_output_tokens: reserve, prompt_tokens: null, completion_tokens: null, model: null, prompt_version: null,
+                id: `00000000-0000-4000-8000-${String(nextId++).padStart(12, "0")}`,
+                user_id: p_user_id,
+                feature: p_feature,
+                started_at: clock,
+                finished_at: null,
+                outcome: null,
+                reserved_output_tokens: reserve,
+                reserved_pence: penceLedger ? reservePence : null,
+                charged_pence: null,
+                prompt_tokens: null,
+                completion_tokens: null,
+                model: null,
+                prompt_version: null,
                 source_fingerprint: p_source_fingerprint ?? null,
             };
             attempts.push(attempt);
@@ -67,7 +131,16 @@ export function fakeAiBudget(options: { introductionEnabled?: boolean; cohortEna
             if (p_outcome === "ok" && p_completion_tokens == null) throw new Error("A successful AI attempt must record its usage.");
             const attempt = attempts.find((row) => row.id === p_attempt_id && row.user_id === p_user_id && row.finished_at == null);
             if (!attempt) return false;
-            Object.assign(attempt, { finished_at: clock, outcome: p_outcome, prompt_tokens: p_prompt_tokens ?? null, completion_tokens: p_completion_tokens ?? null, model: p_model ?? null, prompt_version: p_prompt_version ?? null });
+            if (penceLedger && attempt.reserved_pence == null) return false;
+            Object.assign(attempt, {
+                finished_at: clock,
+                outcome: p_outcome,
+                prompt_tokens: p_prompt_tokens ?? null,
+                completion_tokens: p_completion_tokens ?? null,
+                model: p_model ?? null,
+                prompt_version: p_prompt_version ?? null,
+                ...(penceLedger ? { charged_pence: attempt.reserved_pence } : {}),
+            });
             return true;
         },
     };

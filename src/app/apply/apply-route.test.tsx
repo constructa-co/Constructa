@@ -14,21 +14,22 @@ afterEach(() => {
 });
 
 describe("/apply founding cohort route", () => {
-  it("renders the application form with expected fields and TODO notice", () => {
+  it("renders the minimal application form with collection-off notice", () => {
     const html = renderToStaticMarkup(<ApplyPage />);
     expect(html).toContain("Apply for the");
     expect(html).toContain("Founding cohort opens 7 December 2026.");
     expect(html).toContain('id="apply-name"');
-    expect(html).toContain('id="apply-company"');
     expect(html).toContain('id="apply-email"');
-    expect(html).toContain('id="apply-trade"');
-    expect(html).toContain('id="apply-team-size"');
-    expect(html).toContain('id="apply-note"');
-    expect(html).toContain("Applications are not saved yet.");
+    expect(html).toContain('id="apply-company"');
+    expect(html).toContain('id="apply-message"');
+    expect(html).toContain('id="apply-consent"');
+    expect(html).not.toContain('id="apply-trade"');
+    expect(html).not.toContain('id="apply-team-size"');
+    expect(html).toContain("are not collected yet.");
+    expect(html).not.toContain("CONSTRUCTA_PUBLIC_FORM_COLLECTION_ENABLED");
     expect(html).toContain('href="/contact"');
     expect(html).toContain('id="founding-cohort-apply-storage-notice"');
     expect(html).toContain("Submission unavailable");
-    expect(html).not.toContain("TODO(A109)");
     expect(html).toContain('href="/login"');
     expect(html).not.toMatch(/formspree|resend|supabase/i);
   });
@@ -53,13 +54,12 @@ describe("/apply founding cohort route", () => {
     expect(html).toContain("Founding cohort opens 7 December 2026.");
     expect(html).toContain("not the same as signing in");
     expect(html).toContain('href="/login"');
-    expect(html).toContain("Applications are not saved yet.");
+    expect(html).toContain("are not collected yet.");
     expect(html).toContain('href="/contact"');
     expect(html).toContain("Submission unavailable");
-    expect(html).not.toContain("TODO(A109)");
   });
 
-  it("places the storage notice before the form fields", () => {
+  it("places the collection notice before the form fields", () => {
     const html = renderToStaticMarkup(<ApplyPage />);
     const noticeIndex = html.indexOf('id="founding-cohort-apply-storage-notice"');
     const nameIndex = html.indexOf('id="apply-name"');

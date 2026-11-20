@@ -72,7 +72,7 @@ export default function PrivacyPolicyPage() {
                 you contact us or join the updates list.
               </li>
               <li>
-                Updates list: if you submit the updates form, your email address is sent to Kit
+                Updates list: If you submit the updates form on this site, your email address is sent to Kit
                 (ConvertKit), the email provider that runs that list.
               </li>
               <li data-privacy-apply-handling>

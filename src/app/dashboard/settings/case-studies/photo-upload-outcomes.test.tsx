@@ -313,7 +313,11 @@ describe("taking a photo off an older example", () => {
 function pickFile(label: string, file: File) {
     const target = { files: [file], value: "C:\\fakepath\\photo.png" };
     const change = labelled(render(), label).props.onChange as (event: unknown) => unknown;
-    return { target, done: Promise.resolve(change({ target })) };
+  const done = (async () => {
+        void change({ target });
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    })();
+    return { target, done };
 }
 const uploadingSlots = () => render().filter(element => element.props["data-photo-uploading"] !== undefined).map(element => element.props["data-photo-uploading"]);
 const photoStatus = () => render().find(element => element.props["data-photo-status"] !== undefined)!.props.children;
@@ -424,35 +428,28 @@ describe("the same file chosen again", () => {
         expect(photoStatus()).toBe("");
     });
 
-    it("says so when it is added to a second slot, and keeps both", async () => {
+    it("refuses the same file hash on a second slot", async () => {
         const held = heldUploads();
         const one = pickFile("Upload photo 1 for past work 1", sameFile());
         held[0].resolve({ url: "/one.png" });
         await one.done;
-        expect(photoStatus()).toBe("");
         const two = pickFile("Upload photo 2 for past work 1", sameFile());
-        held[1].resolve({ url: "/two.png" });
         await two.done;
-        expect(photosOf()[0]).toEqual(["/one.png", "/two.png", ""]);
-        expect(photoStatus()).toBe("Photo 2 looks like the same picture as photo 1. Both are kept. Remove one if you didn't mean to add it twice.");
-        expect(toasts.success).toHaveBeenCalledTimes(2);
-        expect(toasts.error).not.toHaveBeenCalled();
+        expect(photosOf()[0]).toEqual(["/one.png", "", ""]);
+        expect(toasts.success).toHaveBeenCalledTimes(1);
+        expect(toasts.error.mock.calls.some((call) => String(call[0]).includes("already on this example"))).toBe(true);
+        expect(held).toHaveLength(1);
     });
 
-    it("stops saying so once one of the two is removed, and says nothing for a different file", async () => {
+    it("allows a different file on another slot after the first upload", async () => {
         const held = heldUploads();
         const one = pickFile("Upload photo 1 for past work 1", sameFile());
         held[0].resolve({ url: "/one.png" });
         await one.done;
-        const two = pickFile("Upload photo 2 for past work 1", sameFile());
-        held[1].resolve({ url: "/two.png" });
-        await two.done;
-        takeOffPhoto("Remove photo 1 for past work 1");
-        expect(photoStatus()).toBe("");
         const three = pickFile("Upload photo 3 for past work 1", new File(["a different picture"], "other.png", { type: "image/png", lastModified: 2 }));
-        held[2].resolve({ url: "/three.png" });
+        held[1].resolve({ url: "/three.png" });
         await three.done;
-        expect(photosOf()[0]).toEqual(["", "/two.png", "/three.png"]);
+        expect(photosOf()[0]).toEqual(["/one.png", "", "/three.png"]);
         expect(photoStatus()).toBe("");
     });
 

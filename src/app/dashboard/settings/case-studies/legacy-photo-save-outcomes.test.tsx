@@ -164,7 +164,7 @@ describe("when pictures stop a save on older past work", () => {
 
 describe("when older past work already holds more than three pictures", () => {
     const four = ["https://images.example.test/1.jpg", "https://images.example.test/2.jpg", "https://images.example.test/3.jpg", "https://images.example.test/4.jpg"];
-    const notice = (tree: Host[]) => tree.find(element => element.props["data-extra-photos"] !== undefined);
+    const notice = (tree: Host[]) => tree.find(element => element.props["data-legacy-photos"] !== undefined);
 
     it("says so and changes nothing on its own: no trim on load, no save, no upload", () => {
         initial = [study({ photos: four })];
@@ -178,18 +178,12 @@ describe("when older past work already holds more than three pictures", () => {
         expect(actions.enhance).not.toHaveBeenCalled();
     });
 
-    it("keeps the first three only when the contractor chooses, and nothing else in the entry changes", () => {
+    it("shows legacy pictures after the three active slots without trimming on load", () => {
         initial = [study({ photos: four, location: "Leeds" })];
-
-        (labelled(render(), "Keep the first three pictures for past work 1").props.onClick as () => void)();
         const tree = render();
-
-        expect(heldSave().draft[0].photos).toEqual(four.slice(0, 3));
+        expect(notice(tree)).toBeDefined();
+        expect(heldSave().draft[0].photos).toEqual(four);
         expect(heldSave().draft[0].location).toBe("Leeds");
-        // The stored copy is untouched until a save is confirmed.
-        expect(heldSave().saved[0].photos).toEqual(four);
-        expect(notice(tree)).toBeUndefined();
-        expect(actions.save).not.toHaveBeenCalled();
     });
 
     it("shows no notice for three pictures, or fewer", () => {

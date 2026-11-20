@@ -2,7 +2,9 @@
 
 import { Upload } from "lucide-react";
 import { fieldMessage } from "@/lib/case-library/messages";
+import { CASE_STUDY_PRIMARY_LABEL } from "@/lib/case-library/case-study-photo-behaviour";
 import { CASE_STUDY_PHOTO_COUNT, type CaseStudyPhotoSlot } from "@/lib/case-library/photos";
+import { coreFocusVisibleRing } from "@/lib/core-editing-palette";
 import { PUBLIC_IMAGE_LIMITS_HINT } from "@/lib/storage/public-image";
 
 export type PhotoUpload = (slot: number, file: File) => Promise<void>;
@@ -25,6 +27,8 @@ export default function CaseStudyPhotoSlots({
     onUpload,
     cardIndex,
     persistenceAvailable,
+    primarySlot,
+    onMakePrimary,
 }: {
     photos: CaseStudyPhotoSlot[];
     onChange: (slot: number, patch: Partial<CaseStudyPhotoSlot>) => void;
@@ -33,6 +37,8 @@ export default function CaseStudyPhotoSlots({
     cardIndex: number;
     /** From {@link caseLibraryDraftPhotosOnWire}; when false, upload/replace is not offered. */
     persistenceAvailable: boolean;
+    primarySlot?: number;
+    onMakePrimary?: (slot: number) => void;
 }) {
     const canUpload = libraryPhotoUploadOffered(persistenceAvailable, onUpload);
     const unavailableCopy = fieldMessage("photos");
@@ -51,6 +57,14 @@ export default function CaseStudyPhotoSlots({
                                     <>
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img src={photo.url} alt={photo.caption || `Photo ${slot + 1}`} className="w-full h-full object-cover" />
+                                        {primarySlot === slot && (
+                                            <span className="absolute top-1 left-1 z-10 rounded bg-emerald-900/90 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-100">{CASE_STUDY_PRIMARY_LABEL}</span>
+                                        )}
+                                        {onMakePrimary && primarySlot !== slot && (
+                                            <button type="button" aria-label={`Use photo ${slot + 1} as main for past work ${cardIndex + 1}`} onClick={() => onMakePrimary(slot)} className={`absolute top-1 left-1 z-10 min-h-8 px-2 rounded-lg bg-black/70 text-[10px] font-semibold text-white hover:bg-black ${coreFocusVisibleRing}`}>
+                                                Use as main
+                                            </button>
+                                        )}
                                         {canUpload && (
                                             <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
                                                 <Upload className="w-5 h-5 text-white" aria-hidden />

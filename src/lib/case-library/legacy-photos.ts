@@ -3,6 +3,7 @@
  * job (plain strings, not library slots). Pure.
  */
 
+import { legacyTailUrlsProblem, splitLegacyProfilePhotoUrls } from "./case-study-photo-behaviour";
 import { CASE_STUDY_PHOTO_COUNT, normalisePhotoSlots, photoInputWouldBeCut, photoSlotsProblem } from "./photos";
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -10,14 +11,15 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 
 /** Wording when a save is refused for pictures on an older case study. */
 export const LEGACY_CASE_STUDY_PHOTOS_MESSAGE =
-    "Check the pictures on each past work example. Each one can have up to three. Each link must start with https (or use http://localhost or http://127.0.0.1 when testing locally).";
+    "Check the pictures on each past work example. Each one can have up to three active pictures (older extras are kept after them). Each link must start with https (or use http://localhost or http://127.0.0.1 when testing locally).";
 
 /** Null when `photos` is acceptable on one older entry; otherwise a problem code (always `"photos"` today). */
 export function legacyEntryPhotosProblem(photos: unknown): string | null {
-    if (!Array.isArray(photos)) return "photos";
-    if (photos.length > CASE_STUDY_PHOTO_COUNT) return "photos";
-    if (photoInputWouldBeCut(photos)) return "photos";
-    return photoSlotsProblem(normalisePhotoSlots(photos));
+    if (!Array.isArray(photos) || photos.some((photo) => typeof photo !== "string")) return "photos";
+    const { active, legacyTail } = splitLegacyProfilePhotoUrls(photos);
+    if (photoInputWouldBeCut(active)) return "photos";
+    if (legacyTailUrlsProblem(legacyTail) !== null) return "photos";
+    return photoSlotsProblem(normalisePhotoSlots(active));
 }
 
 /**
@@ -26,7 +28,7 @@ export function legacyEntryPhotosProblem(photos: unknown): string | null {
  * the editor can tell the contractor why a save is held and what it would drop.
  */
 export function legacyExtraPhotoCount(photos: unknown): number {
-    return Array.isArray(photos) ? Math.max(0, photos.length - CASE_STUDY_PHOTO_COUNT) : 0;
+    return splitLegacyProfilePhotoUrls(photos).legacyTail.length;
 }
 
 /**

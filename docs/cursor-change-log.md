@@ -1,5 +1,22 @@
 # Cursor change log
 
+## 2026-11-20 — D63 CON-061 case-study photo behaviour
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `src/lib/case-library/case-study-photo-behaviour.ts` | new | SHA-256 dedupe, active/legacy split, primary ordering for proposals | CON-061 pure rules |
+| `src/lib/case-library/legacy-photos.ts` | 12–30 | Save accepts three active slots plus safe legacy tail | Preserve stored extras |
+| `src/lib/proposal-publication.ts` | import + `selectCaseStudies` photos | `legacyProfileCaseStudyPhotos` | Main photo first on proposals |
+| `src/lib/case-library/resolve.ts` | library photos line | `libraryCaseStudyProposalPhotos` | Library parity |
+| `src/app/dashboard/settings/case-studies/case-studies-client.tsx` | photos section | Hash refusal, main control, legacy strip | Legacy editor UX |
+| `src/app/dashboard/settings/case-studies/library/case-study-editor.tsx` | upload + slots props | Duplicate refusal, primary state | Library editor UX |
+| `src/app/dashboard/settings/case-studies/library/case-study-photo-slots.tsx` | slot chrome | Main badge / Use as main | Shared slot UI |
+| `src/lib/case-library/case-study-photo-behaviour.test.ts` | new | Hash, split, primary order | Regression |
+| `src/lib/case-library/legacy-photos.test.ts`, `save-action.test.ts`, `photo-upload-outcomes.test.tsx`, `legacy-photo-save-outcomes.test.tsx`, `case-study-photo-journey.test.ts` | varied | Updated expectations | CON-061 contracts |
+| `docs/delivery/2026-11-20/d63-con061-case-study-photo-behaviour.md` | new | Delivery note | Handoff |
+
+**Checks:** NOT RUN in this session (source-only lane). Root owns validation and draft PR.
+
 ## 2026-11-20 — D64 CON053/CON013 minimal contact and apply forms (collection off)
 
 | File | Lines (approx.) | Change | Intent |

@@ -14,6 +14,7 @@ import {
 } from "@/lib/proposal-cover-photo";
 import { sitePhotosForJob } from "@/lib/proposal-site-photos";
 import { contractValueVatBasis, type ContractValueVatBasis } from "@/lib/case-study-value";
+import { legacyProfileCaseStudyPhotos } from "@/lib/case-library/case-study-photo-behaviour";
 
 /** Said when a chosen past job cannot be sent. The proposal is not published short of it. */
 export const CASE_STUDY_UNSENDABLE_ERROR = "One of the past jobs you chose can't be sent. Untick it under Relevant experience, or fix it in Case Studies, then check the proposal again.";
@@ -480,10 +481,7 @@ export function selectCaseStudies(all: unknown[] | null | undefined, selected: u
                 duration: textField(row, "programmeDuration", 100),
                 delivered: textField(row, "whatWeDelivered", 5000),
                 value_added: textField(row, "valueAdded", 5000),
-                photos: (Array.isArray(row.photos) ? row.photos : [])
-                    .map(safeImageUrl)
-                    .filter((url): url is string => url !== null)
-                    .slice(0, 3),
+                photos: legacyProfileCaseStudyPhotos(row.photos, row.primaryPhotoIndex),
                 // Only when both parts are usable: a figure without a known VAT
                 // basis never prints, so a stored "gross" or a missing basis
                 // cannot put an invented "ex VAT" on a client proposal.

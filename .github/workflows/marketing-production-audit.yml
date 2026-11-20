@@ -1,0 +1,51 @@
+name: Marketing production audit (read-only)
+
+# D69: read-only GET/HEAD checks against the public marketing origin configured
+# in src/lib/marketing-seo.ts. No secrets, no Supabase, no local app build.
+
+on:
+  pull_request:
+
+concurrency:
+  group: marketing-production-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  marketing-production-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium for read-only audit
+        run: npx playwright install chromium --with-deps
+      - name: Run production marketing audit
+        run: node e2e/readonly-marketing-audit/run-production-marketing-audit.mjs
+      - name: Upload audit artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d69-marketing-production-audit
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            readonlyaudit/marketing-production-audit.json
+            readonlyaudit/marketing-production-audit.md
+            readonlyaudit/screenshots/**
+      - name: Summarise audit outcome
+        if: always()
+        run: |
+          if [ -f readonlyaudit/marketing-production-audit.md ]; then
+            head -n 40 readonlyaudit/marketing-production-audit.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Marketing audit artifacts were not produced." >> "$GITHUB_STEP_SUMMARY"
+          fi

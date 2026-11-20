@@ -360,6 +360,8 @@ function CaseStudyCard({
             toast.error(problem);
             return;
         }
+        const pick = Symbol();
+        latestPick.current[slot] = pick;
         let hash: string;
         try {
             hash = await caseStudyPhotoContentHash(file);
@@ -371,15 +373,15 @@ function CaseStudyCard({
             toast.error(CASE_STUDY_DUPLICATE_PHOTO_MESSAGE);
             return;
         }
-        const pick = Symbol();
-        latestPick.current[slot] = pick;
+        if (latestPick.current[slot] !== pick) return;
+        const previousHash = slotHashes.current[slot];
         slotHashes.current[slot] = hash;
         setPhotoNote(null);
         markUploading(slot, true);
         const added = await onPhotoUpload(slot, file);
         if (latestPick.current[slot] !== pick) return;
         markUploading(slot, false);
-        if (!added) { slotHashes.current[slot] = null; return; }
+        if (!added) { slotHashes.current[slot] = previousHash; return; }
     };
 
     const removePhoto = (slot: number) => {

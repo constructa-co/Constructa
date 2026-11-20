@@ -170,7 +170,7 @@ const FeatureSection = () => {
 
 export default function Home() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'quarterly' | 'annual'>('monthly');
-  const contactCollectionReady = isPublicContactFormCollectionReady();
+  const contactCollectionReady = false; // Collection remains off for the client-only home panel.
 
   const getBillingText = (price: number) => {
     switch (billingPeriod) {
@@ -675,7 +675,7 @@ export default function Home() {
                   id={`${PUBLIC_FORM_COLLECTION_NOTICE_ID_CONTACT}-home`}
                   kind="contact"
                 />
-                <ContactMarketingForm collectionReady={contactCollectionReady} />
+                <ContactMarketingForm collectionReady={contactCollectionReady} collectionNoticeId={`${PUBLIC_FORM_COLLECTION_NOTICE_ID_CONTACT}-home`} />
               </div>
             </div>
           </div>

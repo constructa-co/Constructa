@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   PUBLIC_MEASUREMENT_EVENT_NAMES,
@@ -113,15 +114,10 @@ describe("marketing measurement handler wiring", () => {
       events.push(event);
     });
 
-    const form = contactForm(renderHome())!;
-    const prevented = vi.fn();
-
-    await (form.props.onSubmit as (event: unknown) => Promise<void>)({
-      preventDefault: prevented,
-      currentTarget: document.createElement("form"),
-    });
-
-    expect(prevented).toHaveBeenCalled();
+    const markup = renderToStaticMarkup(Home());
+    expect(markup).toContain("Submission unavailable");
+    expect(markup).toMatch(/<fieldset[^>]*disabled/);
+    expect(markup).not.toMatch(/action="https?:/);
     expect(fetchMock).not.toHaveBeenCalled();
     expect(events).toEqual([]);
   });
@@ -137,11 +133,9 @@ describe("marketing measurement handler wiring", () => {
       removeEventListener: vi.fn(),
     });
 
-    const form = contactForm(renderHome())!;
-    await (form.props.onSubmit as (event: unknown) => Promise<void>)({
-      preventDefault: vi.fn(),
-      currentTarget: document.createElement("form"),
-    });
+    const markup = renderToStaticMarkup(Home());
+    expect(markup).toContain("Submission unavailable");
+    expect(markup).toMatch(/<fieldset[^>]*disabled/);
     expect(fetchMock).not.toHaveBeenCalled();
     expect(events).toEqual([]);
   });

@@ -39,3 +39,5 @@ Public **contact** (`/contact`, full profile + home contact panel) and **apply**
 2. Set destination values for contact and/or apply in the respective `*_DESTINATION` vars.
 3. Implement approved routing in `public-marketing-form-submission.ts` under root review.
 Codex integration before packaging: disabled fieldset and absent form action prevent data entry/native submission while OFF; public notice omits environment internals, while source uses names only. No network/storage routing is implemented. Unused non-async server-action exports removed.
+
+Independent review repair: Zod4 consent option corrected; absent optional company maps to undefined; shared form markup tests replace obsolete shallow tree assumptions. Home collection remains explicit false to avoid hydration mismatch; notice reference fixed, client filters React action fields out before validation. Collection and routing stay off.

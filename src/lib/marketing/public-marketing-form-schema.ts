@@ -18,12 +18,12 @@ export const PublicMarketingFormSchema = z
       .max(254),
     company: z.preprocess(
       (value) =>
-        typeof value === "string" && value.trim() === "" ? undefined : value,
+        value == null || (typeof value === "string" && value.trim() === "") ? undefined : value,
       z.string().trim().max(160, "Keep company name under 160 characters.").optional(),
     ),
     message: trimmedRequired(4000),
     consent: z.literal("on", {
-      errorMap: () => ({ message: "Confirm you agree before sending." }),
+      error: "Confirm you agree before sending.",
     }),
   })
   .strict();

@@ -7,6 +7,7 @@ import {
   formatFoundingCohortFieldErrors,
   type FoundingCohortApplicationFieldErrors,
 } from "@/lib/founding-cohort/application-schema";
+import { publicMarketingFormDataToRecord } from "@/lib/marketing/public-marketing-form-schema";
 import styles from "./founding-cohort-apply.module.css";
 
 export type PublicMarketingLeadFormState =
@@ -77,7 +78,7 @@ export function PublicMarketingLeadForm({
       return;
     }
     const form = event.currentTarget;
-    const raw = Object.fromEntries(new FormData(form).entries());
+    const raw = publicMarketingFormDataToRecord(new FormData(form));
     const parsed = FoundingCohortApplicationSchema.safeParse(raw);
     if (!parsed.success) {
       event.preventDefault();

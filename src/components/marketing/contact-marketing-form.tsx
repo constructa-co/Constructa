@@ -6,19 +6,21 @@ import { PublicMarketingLeadForm } from "./public-marketing-lead-form";
 
 type ContactMarketingFormProps = {
   collectionReady: boolean;
+  collectionNoticeId?: string;
   className?: string;
   buttonClassName?: string;
 };
 
 export function ContactMarketingForm({
   collectionReady,
+  collectionNoticeId = PUBLIC_FORM_COLLECTION_NOTICE_ID_CONTACT,
   className,
   buttonClassName,
 }: ContactMarketingFormProps) {
   return (
     <PublicMarketingLeadForm
       collectionReady={collectionReady}
-      collectionNoticeId={PUBLIC_FORM_COLLECTION_NOTICE_ID_CONTACT}
+      collectionNoticeId={collectionNoticeId}
       formAction={submitContactMarketingFormAction}
       idPrefix="contact"
       submitLabel="Send message"

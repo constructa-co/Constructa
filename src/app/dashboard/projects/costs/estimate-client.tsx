@@ -18,6 +18,7 @@ import {
     buildAdjustments,
     currentEstimate,
     draftFromLine,
+    isIncludedNotChargedLine,
     draftLineTotal,
     estimatingReducer,
     formatGBP,
@@ -1055,6 +1056,41 @@ function OnePriceTypeBadge() {
     return <span className={ui.priceLineTypeBadge} data-line-type="one-price">One price</span>;
 }
 
+function IncludedNotChargedBadge() {
+    return <span className={ui.priceLineTypeBadge} data-line-type="included">Included</span>;
+}
+
+function IncludedNotChargedToggle({
+    id,
+    form,
+    checked,
+    disabled,
+    onChange,
+    s,
+}: {
+    id: string;
+    form?: string;
+    checked: boolean;
+    disabled: boolean;
+    onChange: (included: boolean) => void;
+    s: WorkspaceStyles;
+}) {
+    return (
+        <label htmlFor={id} className={`mt-2 flex items-start gap-2 text-sm ${s.body}`}>
+            <input
+                id={id}
+                form={form}
+                type="checkbox"
+                className="mt-0.5"
+                checked={checked}
+                disabled={disabled}
+                onChange={(event) => onChange(event.target.checked)}
+            />
+            <span>Included (not charged) — save at £0 when this item is in scope but not priced.</span>
+        </label>
+    );
+}
+
 function storedDetailCells(line: EstimateLine) {
     return [
         <td key="quantity" data-label="Quantity" className={ui.priceLineNumber}>{storedLineQuantityLabel(line)}</td>,
@@ -1137,6 +1173,7 @@ function PriceLineRow({
                     <p className={`text-sm ${s.muted} flex flex-wrap items-center gap-x-2 gap-y-1`}>
                         {section ? <span>{section}</span> : null}
                         {isAmount ? <OnePriceTypeBadge /> : null}
+                        {isIncludedNotChargedLine(line) ? <IncludedNotChargedBadge /> : null}
                         {!isAmount && !showDetails ? (
                             <span>{`${Number(line.quantity)} ${line.unit} × ${formatGBP(Number(line.unit_rate) || 0)}`}</span>
                         ) : null}
@@ -1236,6 +1273,8 @@ function InlineAmountEditor({ line, op, s, showDetails, onChange, onCancel, onSa
             <input {...field("amount", "Price in pounds")} value={draft.amount} inputMode="decimal" autoComplete="off"
                 className={s.input} onChange={event => onChange({ amount: event.target.value })} />
             {error("amount")}
+            <IncludedNotChargedToggle id={`${prefix}-included`} form={formId} checked={draft.included === true}
+                disabled={saving} s={s} onChange={included => onChange({ included })} />
             <p aria-live="polite" className={`mt-2 ${s.body}`}>Draft <strong>{total === null ? "Check entries" : formatGBP(total)}</strong></p>
             <p className={`mt-2 text-sm ${s.muted}`}>Saved {formatGBP(Number(line.line_total) || 0)}</p>
         </td>
@@ -1311,6 +1350,8 @@ function InlineRateEditor({ line, op, s, onChange, onUseArea, onCancel, onSave, 
             <input {...field("rate", "Rate in pounds")} value={draft.rate} inputMode="decimal" autoComplete="off"
                 className={s.input} onChange={event => onChange({ rate: event.target.value })} />
             {error("rate")}
+            <IncludedNotChargedToggle id={`${prefix}-included`} form={formId} checked={draft.included === true}
+                disabled={saving} s={s} onChange={included => onChange({ included })} />
         </td>
         <td data-label="Price" className={ui.priceLineAmount}>
             <p aria-live="polite" className={s.body}>Draft <strong>{total === null ? "Check entries" : formatGBP(total)}</strong></p>
@@ -1405,6 +1446,8 @@ function InlineNewPriceLine({ idPrefix, title, op, s, showDetails, onChange, onU
                 <input {...field("rate", "New unit rate in pounds")} value={draft.rate} inputMode="decimal" autoComplete="off"
                     className={s.input} onChange={event => onChange({ rate: event.target.value })} />
                 {error("rate")}
+                <IncludedNotChargedToggle id={`${idPrefix}-included-rate`} form={formId} checked={draft.included === true}
+                    disabled={saving} s={s} onChange={included => onChange({ included })} />
             </td>
         </>)}
         <td data-label="Price" className={ui.priceLineAmount}>
@@ -1413,6 +1456,8 @@ function InlineNewPriceLine({ idPrefix, title, op, s, showDetails, onChange, onU
                 <input {...field("amount", "New line price in pounds")} value={draft.amount} inputMode="decimal" autoComplete="off"
                     className={`${s.input} mt-2`} onChange={event => onChange({ amount: event.target.value })} />
                 {error("amount")}
+                <IncludedNotChargedToggle id={`${idPrefix}-included-amount`} form={formId} checked={draft.included === true}
+                    disabled={saving} s={s} onChange={included => onChange({ included })} />
             </>}
             <p aria-live="polite" className={`mt-2 ${s.body}`}>Draft <strong>{total === null ? "Check entries" : formatGBP(total)}</strong></p>
         </td>
@@ -1526,6 +1571,8 @@ function LineForm({
                         className={`${s.input} mt-1.5 sm:max-w-xs`}
                     />
                     {fieldError("amount")}
+                    <IncludedNotChargedToggle id={`${idPrefix}-included`} checked={draft.included === true}
+                        disabled={saving} s={s} onChange={included => onChange({ included })} />
                 </div>
             ) : (
                 <div className="grid grid-cols-3 gap-2 sm:gap-3">
@@ -1561,6 +1608,10 @@ function LineForm({
                             onChange={(e) => onChange({ rate: e.target.value })}
                             className={`${s.input} mt-1.5`}
                         />
+                    </div>
+                    <div className="col-span-3">
+                        <IncludedNotChargedToggle id={`${idPrefix}-included`} checked={draft.included === true}
+                            disabled={saving} s={s} onChange={included => onChange({ included })} />
                     </div>
                     <div className="col-span-3 -mt-1">
                         {fieldError("quantity")}

@@ -255,6 +255,8 @@ export interface EstimateLine {
     mom_item_code?: string | null;
     client_ref?: string | null;
     notes?: string | null;
+    /** Simple lines: true when unit_rate 0 is deliberately in scope but not charged. */
+    included?: boolean | null;
     assembly_id?: Uuid | null;
     created_at?: IsoDateTime;
     // Build-up components loaded via nested select

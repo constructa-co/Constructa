@@ -946,6 +946,17 @@ Base branch: `origin/cq/cq-0105-a001-initialize-kit-primary` (includes `5d73ebc`
 | `playwright.config.ts` | ~1–8 | Import `readLegacyHostedPhase1Env` instead of `readE2EEnv` at config load | Block webServer/browser start before disposable env is read |
 | `e2e/support/global-setup.ts` | setup entry | Call `readLegacyHostedPhase1Env()` before auth settings fetch | Same hold at global setup boundary |
 
+## 2026-11-20 — CON-068 persistent Included flag (D59, Cursor composer-2.5)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `supabase/migrations/20261120040000_con068_estimate_line_included.sql` | new | `estimate_lines.included` NOT NULL DEFAULT false; backfill ambiguous zero placeholders false | Durable CON-068 intent without overloading rate/notes columns |
+| `src/lib/simple-estimate.ts` | ~45–210, 70–78 | `included` on draft/input; £0 validation; `draftFromLine`/`isIncludedNotChargedLine` | Client rules match server; reload restores checkbox |
+| `src/app/dashboard/projects/costs/simple-actions.ts` | LineSchema, insert/update | Persist `included`; reject zero rate without flag | Owner-scoped simple save path |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | badges + toggles | Included (not charged) UI | Visible intent on save/edit/read |
+| `scripts/verify-phase1-smoke.sql` | ~361+ | Column presence + default smoke assertions | Scoped disposable CI only |
+| `*.test.ts` | focused | build/save/mapping cases | No full-suite claim |
+
 ## 2026-10-27 — A059 weekend pattern → proposal refresh (Composer a059)
 
 | File | Lines (approx.) | Change | Intent |
@@ -953,3 +964,5 @@ Base branch: `origin/cq/cq-0105-a001-initialize-kit-primary` (includes `5d73ebc`
 | `src/app/dashboard/projects/schedule/simple-programme-client.tsx` | ~392–395 | Call `router.refresh()` after `router.push` on **Next: Proposal** | Re-fetch the proposal page server props so `programme_working_pattern` saved in Programme is not stale in Review & Send |
 | `src/app/dashboard/projects/schedule/simple-programme-workspace.test.tsx` | hoisted router mock, new test | Assert push + refresh on **Next: Proposal** | Lock the navigation seam after saved weekend working days |
 | `src/app/dashboard/projects/proposal/review-send-client.test.ts` | new test | All-week pattern shows Sunday 15 Nov finish in programme section | Prove production Review & Send uses saved pattern, not default Mon–Fri |
+
+Codex integration: conservative false default for all unknown/legacy rows, no rate-inferred intent/backfill; missing-column mapper false. Optional legacy action inputs default false. Included participates in update CAS. Disposable SQL asserts true then false readback in-transaction; no browser/commit durability claim.

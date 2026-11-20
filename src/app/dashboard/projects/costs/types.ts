@@ -26,6 +26,8 @@ export interface EstimateLine {
     mom_item_code?: string | null;
     notes?: string | null;
     pricing_mode: "simple" | "buildup";
+    /** True when a £0 simple line is deliberately in scope but not charged (CON-068). */
+    included?: boolean;
     estimate_line_components: EstimateLineComponent[];
     client_ref?: string | null;
 }

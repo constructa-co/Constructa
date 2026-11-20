@@ -1,5 +1,20 @@
 # Cursor change log
 
+## 2026-11-21 — D69 read-only production marketing audit (CI only)
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `e2e/readonly-marketing-audit/load-audit-target.mjs` | new | Parse `marketingSiteOrigin`, `MARKETING_SITEMAP_PATHS`, disallow prefixes from `src/lib/marketing-seo.ts` | Public origin from repo, not guessed |
+| `e2e/readonly-marketing-audit/known-telemetry-ignores.mjs` | new | Documented Vercel Web Analytics ignore rules with source citations | Never fake-pass telemetry noise |
+| `e2e/readonly-marketing-audit/run-production-marketing-audit.mjs` | new | Playwright chromium audit: GET/HEAD only, SEO/meta/OG, 390px overflow, links, JSON+MD | D69 marketing defect evidence |
+| `.github/workflows/marketing-production-audit.yml` | new | `pull_request` job: `npm ci`, chromium install, 15m, `contents: read`, artifacts | CI-only; no secrets |
+| `readonlyaudit/README.md` | new | Artifact directory pointer | CI output location |
+| `.gitignore` | readonlyaudit | Ignore generated audit output; keep README | Avoid committing CI screenshots |
+
+**Checks:** NOT RUN locally (source-only lane per D69). Validation is GitHub Actions on PR.
+
+**Public origin:** canonical fallback `https://www.constructa.co` was audited separately; final11/11 CI uses independently verified main production alias `https://constructa-nu.vercel.app`. No domain/settings change.
+
 ## 2026-11-21 — D69 release evidence reconciliation (main 53167bc)
 
 | File | Lines (approx.) | Change | Intent |

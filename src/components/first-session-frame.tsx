@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { LogOut } from "lucide-react";
+import { BrandMark } from "./brand-mark";
 import ui from "./first-session.module.css";
 
 const overview = [
@@ -27,12 +28,12 @@ const companySetupOverview = [
 export type SetupStage = "trade" | "company";
 
 export function FirstSessionFrame({ children, signOut = false }: { children: ReactNode; signOut?: boolean }) {
-    const brand = <><span className={ui.brandMark} aria-hidden="true">C</span>constructa</>;
+    const brand = <><span className={ui.brandMark} aria-hidden="true"><BrandMark /></span>constructa</>;
     return (
         <div className={ui.root}>
             <header className={ui.header}>
                 {signOut ? <span className={ui.brand}>{brand}</span> : <Link href="/" className={ui.brand}>{brand}</Link>}
-                <span className={ui.headerNote}>A better way to build business.</span>
+                <span className={ui.headerNote}>A better way to build your business.</span>
                 {signOut ? (
                     <form action="/auth/signout" method="post">
                         <button className={ui.textButton}><LogOut size={16} aria-hidden="true" /> Sign out</button>
@@ -102,7 +103,7 @@ export function FirstSessionPanel({
                     {overviewRows.map(([title, detail], index) => (
                         <li key={title}>
                             <strong>{title}</strong>
-                            <span aria-hidden="true">0{index + 1}</span>
+                            <span aria-hidden="true">{index + 1}</span>
                             <p>{detail}</p>
                         </li>
                     ))}

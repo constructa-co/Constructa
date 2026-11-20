@@ -8,6 +8,8 @@ import {
   hasFoundingCohortApplicationStorageAdapter,
   submitFoundingCohortApplication,
 } from "@/lib/founding-cohort/submission-adapter";
+import { publicMarketingFormDataToRecord } from "@/lib/marketing/public-marketing-form-schema";
+import { isPublicApplyFormCollectionReady } from "@/lib/marketing/public-form-collection";
 
 export type FoundingCohortApplyFormState =
   | { status: "idle" }
@@ -15,35 +17,24 @@ export type FoundingCohortApplyFormState =
   | { status: "success" }
   | { status: "error"; message: string };
 
-export const initialFoundingCohortApplyFormState: FoundingCohortApplyFormState = {
-  status: "idle",
-};
 
-function formDataToRecord(formData: FormData): Record<string, unknown> {
-  return {
-    name: formData.get("name"),
-    company: formData.get("company"),
-    email: formData.get("email"),
-    trade: formData.get("trade"),
-    teamSize: formData.get("teamSize"),
-    note: formData.get("note") ?? "",
-  };
-}
 
 export async function submitFoundingCohortApplicationAction(
   _previous: FoundingCohortApplyFormState,
   formData: FormData,
 ): Promise<FoundingCohortApplyFormState> {
-  const parsed = parseFoundingCohortApplicationInput(formDataToRecord(formData));
+  const parsed = parseFoundingCohortApplicationInput(
+    publicMarketingFormDataToRecord(formData),
+  );
   if (!parsed.ok) {
     return { status: "validation_error", fieldErrors: parsed.fieldErrors };
   }
 
-  if (!hasFoundingCohortApplicationStorageAdapter()) {
+  if (!isPublicApplyFormCollectionReady() || !hasFoundingCohortApplicationStorageAdapter()) {
     return {
       status: "error",
       message:
-        "Applications cannot be submitted yet because storage is not connected. Use the contact page to reach the team.",
+        "Applications cannot be submitted yet because collection is turned off. Use the contact page or email hello@constructa.co to reach the team.",
     };
   }
 

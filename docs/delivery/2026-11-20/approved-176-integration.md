@@ -35,21 +35,23 @@ Release sequence for #176 remains **STOPPED** until R1 runs fresh CI, Sonnet rev
 
 Apply order on preview/staging first; production only after green CI + Sonnet + verified readback.
 
-1. **Before apply (Rob/operator):** Supabase backup / PITR snapshot; record `profiles.markup_method` and `estimates.markup_method` row counts and null rates.
+1. **Before apply (Rob/operator):** Supabase backup / PITR snapshot; **export the live `create_phase1_project_graph` definition** (pre-apply RPC backup — not inferred from git). Record `profiles.markup_method` and `estimates.markup_method` row counts, null rates, and any non-null `on_net` rows created after go-live.
 2. **Migrations (forward):**
    - `20261115120000_d36_markup_method.sql` — adds `profiles.markup_method`, `estimates.markup_method` (default `on_net` column default for new rows only; existing rows unchanged until written by app).
    - `20261116140000_d36_phase1_project_graph_markup_method.sql` — `CREATE OR REPLACE` `create_phase1_project_graph` to stamp company method on new estimates in the RPC payload.
 3. **Rollback (if apply fails or post-apply defect):**
-   - Redeploy **previous app build** that does not read `markup_method` (main before #176).
-   - SQL rollback (preview only): restore prior `create_phase1_project_graph` body from migration history **before** `20261116140000_*` (actual backed-up definition in repo history — do not invent a stub). Drop columns only if no production estimates rely on stored method: `ALTER TABLE estimates DROP COLUMN IF EXISTS markup_method;` `ALTER TABLE profiles DROP COLUMN IF EXISTS markup_method;` — **only** after confirming no dependent rows.
-   - **Data:** column drops destroy method choice; prefer leaving columns and redeploying old app if rollback is urgent.
-4. **Readback after apply:** `SELECT markup_method, count(*) FROM estimates GROUP BY 1;` and spot-check one legacy estimate still compounds in UI/PDF.
+   - **Stop estimate/profile writes** if rollback cannot preserve stored `markup_method` values and pricing semantics (especially any post-apply `on_net` estimates).
+   - **Do not** blindly redeploy a pre-#176 app build after new on-net estimates exist — that build ignores stored method and would mis-price live jobs.
+   - **Do not** drop `markup_method` columns to “clean up”; that destroys contractor choices and is irreversible without a row-level backup.
+   - SQL rollback (preview only): restore **the backed-up** `create_phase1_project_graph` body from step 1. Leave columns in place; forward-fix the app if urgent.
+   - App rollback is allowed only when readback proves no production estimates depend on stored `on_net` (or those rows are migrated/compounded under operator control).
+4. **Readback after apply:** `SELECT markup_method, count(*) FROM estimates GROUP BY 1;` and spot-check one legacy null-method estimate still compounds in UI/PDF; spot-check one new estimate matches company default.
 
 ## Remaining blockers (honest)
 
 | Blocker | Status |
 | --- | --- |
-| `git merge 53167bc` + merge commit on `codex/approved-176-integration-20261120` | **NOT DONE** — Cursor shell rejected all commands in authoring session |
+| `git merge 53167bc` + merge commit on `codex/approved-176-integration-20261120` | **Conflict markers cleared in source** — R1 must `git add` and commit merge |
 | Fresh GitHub CI on integration branch | **NOT RUN** |
 | Independent Sonnet review post-merge | **NOT RUN** (prior review at `dbbbaab` only) |
 | Protected Vercel Preview | **NOT CLAIMED PASS** — Supabase browser signed out; stale health run cited at release stop |

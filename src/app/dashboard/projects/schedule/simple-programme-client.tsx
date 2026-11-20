@@ -46,6 +46,7 @@ import {
     saveProgramme,
     stageDurationField,
     stageNameField,
+    startDateInPastWarning,
     viewForProject,
     type DurationUnit,
     type ExpectedProgramme,
@@ -99,9 +100,11 @@ interface Props {
     planningAssistantEnabled?: boolean;
     /** Why it is off, for this job's owner only. */
     planningAssistantOffReason?: JobAssistantOffReason | null;
+    /** Authenticated viewer id passed from the server route. */
+    plannerDraftViewerScope: string;
 }
 
-export default function SimpleProgrammeClient({ project: incomingProject, lockReason, estimate, save, saveInclusion, planningGenerator, planningAssistantEnabled = false, planningAssistantOffReason = null }: Props) {
+export default function SimpleProgrammeClient({ project: incomingProject, lockReason, estimate, save, saveInclusion, planningGenerator, planningAssistantEnabled = false, planningAssistantOffReason = null, plannerDraftViewerScope }: Props) {
     const { theme } = useTheme();
     const isDark = theme === "dark";
     const s = workspaceStyles(isDark);
@@ -277,8 +280,15 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
                         </p>
                     )}
                     <div data-wide-workspace className="rounded-xl bg-[#0d0d0d] p-3 sm:p-4 overflow-x-auto">
-                        <div className="min-w-[760px]">
-                            <DetailedPlanner project={project as never} estimate={estimate} projectId={project.id} />
+                        {/* The chart and tracking table scroll sideways on their own, so the planner's
+                            title, Save and settings stay within a phone's width. */}
+                        <div className="min-w-0">
+                            <DetailedPlanner
+                                project={project as never}
+                                estimate={estimate}
+                                projectId={project.id}
+                                plannerDraftViewerScope={plannerDraftViewerScope}
+                            />
                         </div>
                     </div>
                     {showExtended && (
@@ -464,7 +474,15 @@ function ProgrammeEditor({
     const [state, store] = useReducerStore(programmeReducer, () => initialProgrammeState(initial.draft, initial.hasSaved, opened));
     const [leaving, setLeaving] = useState(false);
     const [leaveError, setLeaveError] = useState<string | null>(null);
+    // The reader's own calendar day, read after mount so the server and first browser render agree.
+    const [today, setToday] = useState<string | null>(null);
+    useEffect(() => {
+        const now = new Date();
+        setToday(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`);
+    }, []);
     const { draft, fieldErrors } = state;
+    // A note only: a past start still saves. Not shown over a start-date error.
+    const pastStart = draft.timeBasis === "relative" || fieldErrors.startDate ? null : startDateInPastWarning(draft.startDate, today);
     const estimateActivities = programmeEstimateActivities(project.id, estimate);
     const status = programmeSaveStatus(state);
     useEffect(() => {
@@ -611,7 +629,7 @@ function ProgrammeEditor({
                         <p id="programme-working-days-note" className={`text-sm ${s.muted}`}>Monday to Friday is the default. Include weekends only when this job works them. A week uses the selected working days. Review the dates, then save the programme; these choices are not saved just in this browser.</p>
                         {([6, 0] as const).map(day => (
                             <label key={day} className={`flex items-center gap-3 min-h-11 text-sm ${s.body}`}>
-                                <input type="checkbox" id={`programme-weekend-${day}`}
+                                <input type="checkbox" id={`programme-weekend-${day}`} className="w-5 h-5 flex-shrink-0"
                                     checked={draftWeekdays(draft.workingPattern).includes(day)}
                                     onChange={event => {
                                         const weekdays = event.target.checked
@@ -628,7 +646,7 @@ function ProgrammeEditor({
                         ))}
                         {errorText("programme-working-days-error", fieldErrors.workingPattern)}
                         <label className={`flex items-center gap-3 min-h-11 text-sm ${s.body}`}>
-                            <input type="checkbox" id="programme-local-hours"
+                            <input type="checkbox" id="programme-local-hours" className="w-5 h-5 flex-shrink-0"
                                 checked={isWorkingPatternV2Draft(draft.workingPattern)}
                                 onChange={event => {
                                     if (event.target.checked) {
@@ -734,11 +752,12 @@ function ProgrammeEditor({
                                 value={draft.startDate}
                                 disabled={saving}
                                 aria-invalid={fieldErrors.startDate ? true : undefined}
-                                aria-describedby={fieldErrors.startDate ? "programme-start-error" : undefined}
+                                aria-describedby={fieldErrors.startDate ? "programme-start-error" : pastStart ? "programme-start-past" : undefined}
                                 onChange={(e) => store.dispatch({ type: "field/change", patch: { startDate: e.target.value } })}
                                 className={`${s.input} mt-1.5`}
                             />
                             {errorText("programme-start-error", fieldErrors.startDate)}
+                            {pastStart && <p id="programme-start-past" role="status" className={`mt-2 text-sm ${s.noticeBox}`} data-programme-past-start>{pastStart}</p>}
                         </div>}
 
                         {staged ? (

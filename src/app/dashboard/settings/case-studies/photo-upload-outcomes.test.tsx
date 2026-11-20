@@ -17,6 +17,12 @@ const hook = vi.hoisted(() => {
     };
     return { state, next };
 });
+vi.mock("@/lib/case-library/case-study-photo-behaviour", async (original) => ({
+    ...await original<typeof import("@/lib/case-library/case-study-photo-behaviour")>(),
+    // Deterministic content fingerprint at the UI boundary; real SHA-256 is tested separately.
+    caseStudyPhotoContentHash: vi.fn(async (file: File) => `${file.name}:${file.size}`),
+}));
+let pickSequence = 0;
 const actions = vi.hoisted(() => ({ save: vi.fn(), enhance: vi.fn(), upload: vi.fn() }));
 const toasts = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 
@@ -48,6 +54,7 @@ vi.mock("@/app/storage/actions", () => ({ uploadProfileImageAction: actions.uplo
 
 import { CASE_LIBRARY_DRAFT_PHOTOS_ON_WIRE } from "@/lib/case-library/content";
 import { caseStudyTextEnhanceEnabled } from "@/lib/cohort-ai/case-study-enhance-enabled";
+import { MAX_PUBLIC_IMAGE_BYTES } from "@/lib/storage/public-image";
 import CaseStudiesClient from "./case-studies-client";
 import { statusLine, SAVE_MESSAGES, type SaveState } from "./save-state";
 
@@ -81,7 +88,7 @@ function expand(value: unknown, path: string): Host[] {
 }
 
 let initial: Study[];
-const render = () => expand(<CaseStudiesClient userId="synthetic" initialCaseStudies={initial} />, "root");
+const render = () => expand(<CaseStudiesClient userId="synthetic" initialStoredFingerprint="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" initialCaseStudies={initial} />, "root");
 
 function editorState() {
     const held = [...hook.state.instances.values()].flatMap(instance => instance.slots);
@@ -97,7 +104,7 @@ const labelled = (tree: Host[], label: string) => {
 
 function pick(label: string) {
     const change = labelled(render(), label).props.onChange as (event: unknown) => unknown;
-    return Promise.resolve(change({ target: { files: [new File(["synthetic"], "photo.png", { type: "image/png" })] } }));
+    return Promise.resolve(change({ target: { files: [new File(["synthetic"], `pick-${++pickSequence}.png`, { type: "image/png" })] } }));
 }
 const remove = (position: number) => (labelled(render(), `Remove past work ${position}`).props.onClick as () => void)();
 const typeInto = (tree: Host[], label: string, value: string) => (labelled(tree, label).props.onChange as (event: unknown) => void)({ target: { value } });
@@ -117,9 +124,21 @@ beforeEach(() => {
 });
 
 describe("a photo reply lands on the example it was picked for", () => {
+    it("keeps its stable example identity while hashing before the upload starts", async () => {
+        const held = heldUploads();
+        const upload = pick("Upload photo 1 for past work 2");
+        remove(1);
+        await Promise.resolve();
+        expect(held).toHaveLength(1);
+        held[0].resolve({ url: "/bravo-after-hash.png" });
+        await upload;
+        expect(photosOf()).toEqual([["/bravo-after-hash.png", "", ""], ["", "", ""]]);
+    });
+
     it("follows its example when an earlier one is removed while it uploads", async () => {
         const held = heldUploads();
         const upload = pick("Upload photo 1 for past work 2");
+        await Promise.resolve();
         remove(1);
         held[0].resolve({ url: "/bravo.png" });
         await upload;
@@ -134,6 +153,7 @@ describe("a photo reply lands on the example it was picked for", () => {
     it("is discarded, and says so, when its example was removed", async () => {
         const held = heldUploads();
         const upload = pick("Upload photo 2 for past work 1");
+        await Promise.resolve();
         remove(1);
         held[0].resolve({ url: "/alpha.png" });
         await upload;
@@ -153,8 +173,11 @@ describe("a photo reply lands on the example it was picked for", () => {
         ];
         const held = heldUploads();
         const secondTwin = pick("Upload photo 1 for past work 2");
+        await Promise.resolve();
         const secondNoId = pick("Upload photo 1 for past work 4");
+        await Promise.resolve();
         const firstNoId = pick("Upload photo 3 for past work 3");
+        await Promise.resolve();
         remove(3);
         remove(1);
         held[0].resolve({ url: "/twin.png" });
@@ -172,6 +195,7 @@ describe("a photo reply lands on the example it was picked for", () => {
         const addAnother = render().find(element => element.props["data-add-example"] !== undefined)!;
         (addAnother.props.onClick as () => void)();
         const upload = pick("Upload photo 1 for past work 4");
+        await Promise.resolve();
         remove(2);
         held[0].resolve({ url: "/added.png" });
         await upload;
@@ -183,6 +207,8 @@ describe("photos and text changed while an upload runs", () => {
     it.each([[0, 1], [1, 0]])("keeps both of two slots however they return (first back: %i)", async (first, second) => {
         const held = heldUploads();
         const uploads = [pick("Upload photo 1 for past work 1"), pick("Upload photo 3 for past work 1")];
+        await Promise.resolve();
+        await Promise.resolve();
         const urls = ["/one.png", "/three.png"];
         held[first].resolve({ url: urls[first] });
         await uploads[first];
@@ -196,6 +222,7 @@ describe("photos and text changed while an upload runs", () => {
         initial = [study("a", "Alpha", { photos: ["/kept.png", "", ""] })];
         const held = heldUploads();
         const upload = pick("Upload photo 2 for past work 1");
+        await Promise.resolve();
         typeInto(render(), "What We Delivered", "Typed while it uploaded");
         held[0].resolve({ url: "/new.png" });
         await upload;
@@ -206,7 +233,9 @@ describe("photos and text changed while an upload runs", () => {
     it("lets the latest pick for one slot stand when the older reply comes last", async () => {
         const held = heldUploads();
         const older = pick("Upload photo 1 for past work 1");
+        await Promise.resolve();
         const newer = pick("Upload photo 1 for past work 1");
+        await Promise.resolve();
         held[1].resolve({ url: "/newer.png" });
         await newer;
         held[0].resolve({ url: "/older.png" });
@@ -218,7 +247,9 @@ describe("photos and text changed while an upload runs", () => {
     it("does not fill a slot from an older pick when the latest pick failed", async () => {
         const held = heldUploads();
         const older = pick("Upload photo 1 for past work 1");
+        await Promise.resolve();
         const newer = pick("Upload photo 1 for past work 1");
+        await Promise.resolve();
         held[1].resolve({ error: "That image is too large." });
         await newer;
         held[0].resolve({ url: "/older.png" });
@@ -233,6 +264,7 @@ describe("an upload that fails", () => {
     it("settles and reports a thrown transport failure, changing nothing and sending once", async () => {
         const held = heldUploads();
         const upload = pick("Upload photo 1 for past work 1");
+        await Promise.resolve();
         held[0].reject(new Error("transport lost"));
         await expect(upload).resolves.toBeUndefined();
         expect(photosOf()[0]).toEqual(["", "", ""]);
@@ -248,6 +280,7 @@ describe("an upload that fails", () => {
     ])("reports a returned failure and sends once: %j", async (reply, message) => {
         const held = heldUploads();
         const upload = pick("Upload photo 1 for past work 1");
+        await Promise.resolve();
         held[0].resolve(reply);
         await upload;
         expect(photosOf()[0]).toEqual(["", "", ""]);
@@ -259,6 +292,7 @@ describe("an upload that fails", () => {
     it("still reports a thrown failure on a removed example without touching the others", async () => {
         const held = heldUploads();
         const upload = pick("Upload photo 1 for past work 1");
+        await Promise.resolve();
         remove(1);
         held[0].reject(new Error("transport lost"));
         await expect(upload).resolves.toBeUndefined();
@@ -290,6 +324,7 @@ describe("taking a photo off an older example", () => {
         initial = [study("a", "Alpha", { photos: ["/one.png", "/two.png", ""] })];
         const held = heldUploads();
         const upload = pick("Replace photo 1 for past work 1");
+        await Promise.resolve();
         takeOff("Remove photo 1 for past work 1");
         held[0].resolve({ url: "/late.png" });
         await upload;
@@ -301,6 +336,7 @@ describe("taking a photo off an older example", () => {
         initial = [study("a", "Alpha", { photos: ["/one.png", "", ""] })];
         const held = heldUploads();
         const upload = pick("Upload photo 2 for past work 1");
+        await Promise.resolve();
         takeOff("Remove photo 1 for past work 1");
         held[0].resolve({ url: "/two.png" });
         await upload;
@@ -308,10 +344,194 @@ describe("taking a photo off an older example", () => {
     });
 });
 
+// D51: what the editor says about a picture's limits, a picture on its way, and the same file chosen twice.
+function pickFile(label: string, file: File) {
+    const target = { files: [file], value: "C:\\fakepath\\photo.png" };
+    const change = labelled(render(), label).props.onChange as (event: unknown) => unknown;
+    const done = Promise.resolve(change({ target }));
+    return { target, done };
+}
+const uploadingSlots = () => render().filter(element => element.props["data-photo-uploading"] !== undefined).map(element => element.props["data-photo-uploading"]);
+const photoStatus = () => render().find(element => element.props["data-photo-status"] !== undefined)!.props.children;
+const takeOffPhoto = (label: string) => (labelled(render(), label).props.onClick as () => void)();
+
+describe("a picture's limits, said before anything is sent", () => {
+    it("states the limits the upload enforces beside the slots", () => {
+        const label = render().find(element => element.type === "label" && typeof element.props.children === "string" && element.props.children.startsWith("Photos"))!;
+        expect(label.props.children).toBe("Photos (up to 3. JPEG, PNG or WebP, up to 10 MB each)");
+    });
+
+    it.each([
+        [{ size: MAX_PUBLIC_IMAGE_BYTES + 1, type: "image/png" }, "Images must be 10 MB or smaller."],
+        [{ size: 9, type: "image/gif" }, "Only JPEG, PNG and WebP images are supported."],
+        [{ size: 0, type: "image/png" }, "Choose a non-empty image file."],
+    ])("refuses %j in the upload's own words and sends nothing", async (shape, message) => {
+        const picked = pickFile("Upload photo 1 for past work 1", { name: "photo", lastModified: 1, ...shape } as File);
+        await Promise.resolve();
+        await picked.done;
+        expect(actions.upload).not.toHaveBeenCalled();
+        expect(toasts.error.mock.calls).toEqual([[message]]);
+        expect(toasts.success).not.toHaveBeenCalled();
+        expect(photosOf()[0]).toEqual(["", "", ""]);
+        expect(uploadingSlots()).toEqual([]);
+    });
+
+    it("leaves a pick already on its way alone when a later file for that slot is refused", async () => {
+        const held = heldUploads();
+        const first = pick("Upload photo 1 for past work 1");
+        await Promise.resolve();
+        await pickFile("Upload photo 1 for past work 1", { name: "big.png", lastModified: 1, size: MAX_PUBLIC_IMAGE_BYTES + 1, type: "image/png" } as File).done;
+        expect(actions.upload).toHaveBeenCalledTimes(1);
+        expect(uploadingSlots()).toEqual([1]);
+        held[0].resolve({ url: "/first.png" });
+        await first;
+        expect(photosOf()[0]).toEqual(["/first.png", "", ""]);
+        expect(uploadingSlots()).toEqual([]);
+    });
+});
+
+describe("what a slot says while its picture is on its way", () => {
+    it("says it is uploading until the reply is in", async () => {
+        const held = heldUploads();
+        const upload = pick("Upload photo 2 for past work 1");
+        await Promise.resolve();
+        expect(uploadingSlots()).toEqual([2]);
+        expect(photoStatus()).toBe("Uploading photo 2…");
+        held[0].resolve({ url: "/two.png" });
+        await upload;
+        expect(uploadingSlots()).toEqual([]);
+        expect(photoStatus()).toBe("");
+    });
+
+    it("says so for each of two slots, and stops for each when its own reply is in, failed or thrown", async () => {
+        const held = heldUploads();
+        const one = pick("Upload photo 1 for past work 1");
+        await Promise.resolve();
+        const three = pick("Upload photo 3 for past work 1");
+        await Promise.resolve();
+        expect(photoStatus()).toBe("Uploading photos 1 and 3…");
+        held[0].resolve({ error: "The image could not be uploaded." });
+        await one;
+        expect(uploadingSlots()).toEqual([3]);
+        held[1].reject(new Error("transport lost"));
+        await three;
+        expect(uploadingSlots()).toEqual([]);
+        expect(photosOf()[0]).toEqual(["", "", ""]);
+    });
+
+    it("stays on while the latest pick for a slot is on its way, though an older reply is in", async () => {
+        const held = heldUploads();
+        const older = pick("Upload photo 1 for past work 1");
+        await Promise.resolve();
+        const newer = pick("Upload photo 1 for past work 1");
+        await Promise.resolve();
+        held[0].resolve({ url: "/older.png" });
+        await older;
+        expect(uploadingSlots()).toEqual([1]);
+        expect(photosOf()[0]).toEqual(["", "", ""]);
+        held[1].resolve({ url: "/newer.png" });
+        await newer;
+        expect(uploadingSlots()).toEqual([]);
+        expect(photosOf()[0]).toEqual(["/newer.png", "", ""]);
+    });
+
+    it("stops when the picture is taken off while its replacement uploads", async () => {
+        initial = [study("a", "Alpha", { photos: ["/one.png", "", ""] })];
+        const held = heldUploads();
+        const upload = pick("Replace photo 1 for past work 1");
+        await Promise.resolve();
+        expect(uploadingSlots()).toEqual([1]);
+        takeOffPhoto("Remove photo 1 for past work 1");
+        expect(uploadingSlots()).toEqual([]);
+        held[0].resolve({ url: "/late.png" });
+        await upload;
+        expect(uploadingSlots()).toEqual([]);
+        expect(photosOf()[0]).toEqual(["", "", ""]);
+    });
+});
+
+describe("the same file chosen again", () => {
+    const sameFile = () => new File(["synthetic"], "photo.png", { type: "image/png", lastModified: 1 });
+
+    it("clears the input after a pick, so the same file can be chosen again after a failure", async () => {
+        const held = heldUploads();
+        const file = sameFile();
+        const first = pickFile("Upload photo 1 for past work 1", file);
+        await Promise.resolve();
+        expect(first.target.value).toBe("");
+        held[0].resolve({ error: "The image could not be uploaded." });
+        await first.done;
+        const again = pickFile("Upload photo 1 for past work 1", file);
+        await Promise.resolve();
+        held[1].resolve({ url: "/second-try.png" });
+        await again.done;
+        expect(actions.upload).toHaveBeenCalledTimes(2);
+        expect(photosOf()[0]).toEqual(["/second-try.png", "", ""]);
+        expect(photoStatus()).toBe("");
+    });
+
+    it("reserves a file hash while its first upload is still pending", async () => {
+        const held = heldUploads();
+        const one = pickFile("Upload photo 1 for past work 1", sameFile());
+        const two = pickFile("Upload photo 2 for past work 1", sameFile());
+        await Promise.resolve();
+        await two.done;
+        expect(actions.upload).toHaveBeenCalledTimes(1);
+        expect(held).toHaveLength(1);
+        held[0].resolve({ url: "/only-once.png" });
+        await one.done;
+        expect(photosOf()[0]).toEqual(["/only-once.png", "", ""]);
+    });
+
+    it("refuses the same file hash on a second slot", async () => {
+        const held = heldUploads();
+        const one = pickFile("Upload photo 1 for past work 1", sameFile());
+        await Promise.resolve();
+        held[0].resolve({ url: "/one.png" });
+        await one.done;
+        const two = pickFile("Upload photo 2 for past work 1", sameFile());
+        await Promise.resolve();
+        await two.done;
+        expect(photosOf()[0]).toEqual(["/one.png", "", ""]);
+        expect(toasts.success).toHaveBeenCalledTimes(1);
+        expect(toasts.error.mock.calls.some((call) => String(call[0]).includes("already on this example"))).toBe(true);
+        expect(held).toHaveLength(1);
+    });
+
+    it("allows a different file on another slot after the first upload", async () => {
+        const held = heldUploads();
+        const one = pickFile("Upload photo 1 for past work 1", sameFile());
+        await Promise.resolve();
+        held[0].resolve({ url: "/one.png" });
+        await one.done;
+        const three = pickFile("Upload photo 3 for past work 1", new File(["a different picture"], "other.png", { type: "image/png", lastModified: 2 }));
+        await Promise.resolve();
+        held[1].resolve({ url: "/three.png" });
+        await three.done;
+        expect(photosOf()[0]).toEqual(["/one.png", "", "/three.png"]);
+        expect(photoStatus()).toBe("");
+    });
+
+    it("says nothing when a failed upload of the same file never put a picture on the example", async () => {
+        const held = heldUploads();
+        const one = pickFile("Upload photo 1 for past work 1", sameFile());
+        await Promise.resolve();
+        held[0].resolve({ error: "The image could not be uploaded." });
+        await one.done;
+        const two = pickFile("Upload photo 2 for past work 1", sameFile());
+        await Promise.resolve();
+        held[1].resolve({ url: "/two.png" });
+        await two.done;
+        expect(photosOf()[0]).toEqual(["", "/two.png", ""]);
+        expect(photoStatus()).toBe("");
+    });
+});
+
 describe("what stays as it was", () => {
     it("leaves the save rules alone: a save already sent keeps its copy, and a late photo is unsaved", async () => {
         const held = heldUploads();
         const upload = pick("Upload photo 1 for past work 1");
+        await Promise.resolve();
         const save = render().find(element => element.type === "button" && element.props.children === "Save all past work")!;
         typeInto(render(), "What We Delivered", "Changed");
         (save.props.onClick as () => void)();

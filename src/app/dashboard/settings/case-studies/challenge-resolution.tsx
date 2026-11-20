@@ -39,18 +39,27 @@ function refusal(key: DepthKey, status: AddStatus, target: string): string {
 }
 
 /**
- * An optional challenge and how it was resolved, captured into the one
- * existing "what we delivered" text. Nothing is written for the contractor and
- * nothing changes until they press Add; then it is ordinary text in that box,
- * saved by the ordinary save.
+ * An optional challenge and how it was resolved. By default it is captured
+ * into the one existing "what we delivered" text: nothing is written for the
+ * contractor and nothing changes until they press Add; then it is ordinary
+ * text in that box, saved by the ordinary save.
+ *
+ * When `onAddToRecord` is given (the older case-study editor), the notes are
+ * instead kept as this example's own saved fields, still only on an explicit
+ * press and still in the contractor's words. They stay editable in these
+ * boxes, are saved by the ordinary save, and are read back into the boxes.
  */
-export default function ChallengeResolution({ text, notes, onNotes, onAdd, idPrefix, target, labelCls, inputCls, hintCls, buttonCls }: {
+export default function ChallengeResolution({ text, notes, onNotes, onAdd, onAddToRecord, savedNotes, idPrefix, target, labelCls, inputCls, hintCls, buttonCls }: {
     /** The "what we delivered" text as it is now. */
     text: string;
     notes: StoryNotes;
     onNotes: (notes: StoryNotes) => void;
     /** Receives the whole new text for that one box. */
     onAdd: (text: string) => void;
+    /** When given, Add keeps the notes as this example's own fields instead of appending them to ‘target’. */
+    onAddToRecord?: (notes: StoryNotes) => void;
+    /** What is already kept as this example's own fields, for the "not kept yet" warning. */
+    savedNotes?: StoryNotes;
     idPrefix: string;
     /** How that box is named on this screen. */
     target: string;
@@ -63,6 +72,9 @@ export default function ChallengeResolution({ text, notes, onNotes, onAdd, idPre
     const challengeOpen = !present(text, "challenge") || noteThere(notes.challenge);
     const responseOpen = !present(text, "response") || noteThere(notes.response);
     const typed = storyTyped(notes);
+    const differsFromSaved = onAddToRecord && savedNotes
+        ? notes.challenge !== savedNotes.challenge || notes.response !== savedNotes.response
+        : typed;
 
     const type = (key: "challenge" | "response", value: string) => {
         if (chars(value) > NOTE_MAX) { setNotice(DEPTH_MESSAGES.noteTooLong); return; }
@@ -70,6 +82,21 @@ export default function ChallengeResolution({ text, notes, onNotes, onAdd, idPre
         onNotes({ ...notes, [key]: value });
     };
     const addNow = () => {
+        if (onAddToRecord) {
+            // Keeping empty notes is how a kept story is withdrawn: the press is
+            // refused only when the boxes hold the saved story unchanged.
+            if (!differsFromSaved) {
+                setNotice(typed
+                    ? "Nothing changed. The story kept with this example stays as it is."
+                    : "Type the challenge or how you resolved it first. Nothing was kept.");
+                return;
+            }
+            onAddToRecord(notes);
+            setNotice(typed
+                ? "Kept with this example, in your words. It is saved with your past work and stays editable here."
+                : "Cleared for this example. Save removes it from this example. Future proposals won't show it; proposals already issued keep exactly what they carry.");
+            return;
+        }
         const result = withChallengeAndResolution(text, notes);
         if (!result.ok) { setNotice(refusal(result.key, result.status, target)); return; }
         onAdd(result.text);
@@ -80,7 +107,11 @@ export default function ChallengeResolution({ text, notes, onNotes, onAdd, idPre
     return (
         <fieldset data-challenge-resolution className="space-y-3 rounded-lg border border-slate-600 p-4">
             <legend className={labelCls}>A challenge and how you resolved it <span className="font-normal text-slate-300">(optional)</span></legend>
-            <p id={`${idPrefix}-story-help`} className={hintCls}>If something on this job was tricky, say what it was and how you sorted it. Skip this if nothing was. Add puts it on the end of ‘{target}’, as you typed it.</p>
+            <p id={`${idPrefix}-story-help`} className={hintCls}>
+                {onAddToRecord
+                    ? `If something on this job was tricky, say what it was and how you sorted it. Skip this if nothing was. Keep saves it with this example as its own fields, in your words.`
+                    : `If something on this job was tricky, say what it was and how you sorted it. Skip this if nothing was. Add puts it on the end of ‘${target}’, as you typed it.`}
+            </p>
             {!challengeOpen && !responseOpen ? (
                 <p className={hintCls} data-challenge-present>Your text already has a challenge and how you resolved it. Change it in ‘{target}’.</p>
             ) : (
@@ -97,10 +128,10 @@ export default function ChallengeResolution({ text, notes, onNotes, onAdd, idPre
                             <textarea id={`${idPrefix}-resolution`} className={inputCls} rows={3} aria-label="How did you resolve it?" aria-describedby={`${idPrefix}-story-help`} value={notes.response} placeholder={depthOf("response").help} onChange={(event) => type("response", event.target.value)} />
                         </div>
                     )}
-                    <button type="button" className={buttonCls} onClick={addNow}>Add to ‘{target}’</button>
+                    <button type="button" className={buttonCls} onClick={addNow}>{onAddToRecord ? "Keep with this example" : `Add to ‘${target}’`}</button>
                 </>
             )}
-            {typed && <p className={hintCls} data-challenge-unadded>Not added yet. Saving doesn&apos;t include this until you press Add.</p>}
+            {differsFromSaved && <p className={hintCls} data-challenge-unadded>{onAddToRecord ? "Changed but not kept yet. Saving doesn't include this until you press Keep with this example." : "Not added yet. Saving doesn't include this until you press Add."}</p>}
             <p role="status" aria-live="polite" data-challenge-notice className={notice ? hintCls : "sr-only"}>{notice ?? ""}</p>
         </fieldset>
     );

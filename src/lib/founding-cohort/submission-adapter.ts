@@ -1,23 +1,17 @@
+import { isPublicApplyFormCollectionReady } from "@/lib/marketing/public-form-collection";
+import { submitPublicMarketingForm } from "@/lib/marketing/public-marketing-form-submission";
 import type { FoundingCohortApplication } from "./application-schema";
 
 /**
- * True only after a real persistence destination is approved and wired (database, CRM,
- * inbox automation, etc.). While false the public apply form must not submit.
+ * True only when public apply collection is explicitly enabled and a destination env
+ * value is present. While false the public apply form must not submit.
  */
 export function hasFoundingCohortApplicationStorageAdapter(): boolean {
-  return false;
+  return isPublicApplyFormCollectionReady();
 }
 
-/**
- * TODO(A109 — Rob to decide): Persist or route founding cohort applications to the
- * chosen destination (e.g. Supabase table, CRM, Resend notification, spreadsheet).
- * This adapter is intentionally a no-op: it must not write to a database, send email,
- * or call third-party services until that destination is approved.
- */
 export async function submitFoundingCohortApplication(
-  _application: FoundingCohortApplication,
+  application: FoundingCohortApplication,
 ): Promise<void> {
-  if (!hasFoundingCohortApplicationStorageAdapter()) {
-    throw new Error("Founding cohort application storage is not wired.");
-  }
+  await submitPublicMarketingForm("apply", application);
 }

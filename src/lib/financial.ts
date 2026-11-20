@@ -40,9 +40,9 @@
  *             a percentage of Total Construction Cost. They add; the order
  *             does not matter.
  *   compound  Overhead on net, Risk on (net + Overhead), Profit on
- *             (net + Overhead + Risk). The total is the same whichever order
- *             the percentages are applied, but the amount shown against each
- *             line depends on the order, so the order is fixed.
+ *             (net + Overhead + Risk). Under compound, the percentages do
+ *             NOT commute; prelims-then-compound is the correct RICS
+ *             hierarchy for legacy estimates.
  *
  * An estimate with no stored method predates the choice and was always
  * compounded, so a missing value MUST read as compound. Anything else would
@@ -162,6 +162,11 @@ export function computeContractSum(
     estimate: EstimateInput,
     lines: EstimateLineInput[]
 ): ContractSumBreakdown {
+    // 1. Direct cost — everything that isn't a Preliminaries line or a
+    // face-value (PC / provisional sum) line. Credit (negative) lines reduce
+    // the total just as positive lines increase it; zero-value lines are
+    // ignored. Face-value lines are counted separately below and are never
+    // part of the marked-up base.
     const directLines = lines.filter(
         (l) =>
             (l.trade_section ?? "General") !== "Preliminaries" &&
@@ -173,6 +178,8 @@ export function computeContractSum(
         0
     );
 
+    // Prime-cost and provisional sums — carried at exactly the typed value,
+    // before any adjustment, so the client reads the allowance, not a mark-up.
     const faceValueLines = lines.filter(
         (l) => isFaceValueLineType(l.line_type) && toNumber(l.line_total) !== 0
     );
@@ -181,12 +188,21 @@ export function computeContractSum(
         0
     );
 
+    // 2. Preliminaries — explicit lines take precedence over the percentage,
+    // but only when at least one carries a non-zero value. A zero-total
+    // Preliminaries placeholder (e.g. an auto-scaffolded row) must not
+    // suppress the percentage allowance. Negative prelims lines count as
+    // explicit values, symmetric with positive ones. A face-value line is
+    // governed by its type, so it is never also treated as a prelims line.
     const explicitPrelimsLines = lines.filter(isPricedPreliminariesLine);
     const explicitPrelimsTotal = explicitPrelimsLines.reduce(
         (sum, l) => sum + toNumber(l.line_total),
         0
     );
 
+    // Fallback base for prelims when there are no priced direct lines
+    // (legacy estimates with only a total_cost value). Face-value lines do
+    // not trigger the fallback: they are not construction cost.
     const constructionBase =
         directLines.length > 0 || explicitPrelimsLines.length > 0 || faceValueLines.length > 0
             ? directCost

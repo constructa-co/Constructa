@@ -6,6 +6,7 @@ import { MarketingFooter } from '@/components/marketing/phase-one';
 import { GuideArticleView } from '@/components/marketing/guide-article-view';
 import {
   GUIDE_ARTICLE_ATTRIBUTION,
+  GUIDE_ARTICLES,
   getAllGuideSlugs,
   getGuideArticle,
 } from '@/lib/marketing-guides';
@@ -51,6 +52,20 @@ describe('guides hub and articles', () => {
     expect(markup).toContain('existing review account');
     expect(markup).not.toContain('<form');
     expect(markup).not.toMatch(/Plausible|Formspree|Google Analytics|<iframe/i);
+  });
+
+  it('presents the hub as an editorial index with numbered entries and updated dates', () => {
+    const markup = hubMarkup();
+    expect(markup).toContain('The review guide');
+    expect(markup.match(/aria-hidden="true">0[12]</g)).toHaveLength(2);
+    expect(markup.match(/Review checklist · Updated/g)).toHaveLength(2);
+    for (const article of GUIDE_ARTICLES) {
+      expect(markup).toMatch(
+        new RegExp(`<time dateTime="${article.contentUpdatedIso}">${article.contentUpdatedDisplay}</time>`, 'i'),
+      );
+    }
+    const headings = [...markup.matchAll(/<h([1-6])\b/g)].map(match => Number(match[1]));
+    expect(headings).toEqual([1, 2, 3, 3]);
   });
 
   it('renders each article with navigation, qualifications and preview-access handoff', async () => {

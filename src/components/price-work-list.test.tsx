@@ -18,7 +18,7 @@ vi.mock("react", async original => ({ ...await original<typeof import("react")>(
         return replay.slots[index];
     },
 }));
-import PriceWorkList, { reviewWorkDescriptionList } from "./price-work-list";
+import PriceWorkList, { filterUniqueWorkListRanges, reviewWorkDescriptionList } from "./price-work-list";
 type Element = ReactElement<Record<string, unknown>>;
 function nodes(value: unknown): Element[] {
     if (Array.isArray(value)) return value.flatMap(nodes);
@@ -31,7 +31,7 @@ function view(blocked = false) {
     const context = buildPricingReviewContext({ id: "job", brief_scope: "Saved work" }, null);
     if (!context.ok) throw Error(context.error);
     return PriceWorkList({ context: { ...context.value, existingWork: [{ description: "Paint walls", section: "General" }] }, blocked,
-        blockedHelp: "Finish or cancel the open work.", styles: workspaceStyles(false), onOpen: replay.open, onWorkChange: replay.work });
+        blockedHelp: "Finish or cancel the open work.", styles: workspaceStyles(false), onOpen: replay.open, onOpenAll: replay.open, onWorkChange: replay.work });
 }
 function click(name: string, blocked = false) {
     const button = nodes(view(blocked)).find(n => n.type === "button" && n.props.children === name)!;
@@ -43,6 +43,15 @@ function type(value: string) {
 beforeEach(() => { replay.slots = []; replay.cursor = 0; replay.open.mockReset().mockReturnValue({ ok: true }); replay.work.mockReset(); });
 
 describe("plain work-description review", () => {
+    it("filters saved and within-list duplicates while keeping first occurrences", () => {
+        const source = "Paint walls\nFit doors\nPaint walls";
+        const reviewed = reviewWorkDescriptionList(source);
+        expect(reviewed.ok).toBe(true); if (!reviewed.ok) throw Error(reviewed.error);
+        const filtered = filterUniqueWorkListRanges(source, reviewed.items, ["Paint walls"]);
+        expect(filtered.skippedDuplicates).toBe(2);
+        expect(filtered.ranges).toHaveLength(1);
+        expect(source.slice(filtered.ranges[0].start, filtered.ranges[0].end)).toBe("Fit doors");
+    });
     it("keeps CRLF, CR and LF offsets exact, preserves duplicates and ignores blank rows", () => {
         const source = "\r\n Paint walls \rFit doors\n\nPaint walls";
         const result = reviewWorkDescriptionList(source);
@@ -89,6 +98,30 @@ describe("plain work-description review", () => {
         click("Review descriptions"); click("Clear list"); (old.props.onClick as () => void)();
         expect(replay.work).toHaveBeenLastCalledWith(false); expect(replay.open).not.toHaveBeenCalled();
         expect(nodes(view()).some(n => n.type === "li")).toBe(false);
+    });
+    it("calls onQueueClear when Clear list is used", () => {
+        const onQueueClear = vi.fn();
+        replay.cursor = 0;
+        const context = buildPricingReviewContext({ id: "job", brief_scope: "Saved work" }, null);
+        if (!context.ok) throw Error(context.error);
+        const element = PriceWorkList({
+            context: context.value, blocked: false, blockedHelp: "Blocked.", styles: workspaceStyles(false),
+            onOpen: replay.open, onOpenAll: replay.open, onWorkChange: replay.work, onQueueClear,
+        });
+        const tree = nodes(element);
+        (tree.find(n => n.type === "textarea")!.props.onChange as (event: unknown) => void)({ currentTarget: { value: "Paint walls" } });
+        (tree.find(n => n.type === "button" && n.props.children === "Clear list")!.props.onClick as () => void)();
+        expect(onQueueClear).toHaveBeenCalledOnce();
+    });
+    it("shows queued remaining copy when a bulk queue is active", () => {
+        replay.cursor = 0;
+        const context = buildPricingReviewContext({ id: "job", brief_scope: "Saved work" }, null);
+        if (!context.ok) throw Error(context.error);
+        const html = renderToStaticMarkup(PriceWorkList({
+            context: context.value, blocked: false, blockedHelp: "Blocked.", styles: workspaceStyles(false),
+            onOpen: replay.open, onOpenAll: replay.open, onWorkChange: replay.work, queuedRemaining: 2,
+        }));
+        expect(html).toContain("2 more descriptions queued");
     });
     it("escapes markup, preserves qualifiers and previews existing description whitespace normalization", () => {
         type("<script>bad()</script>\nPaint  walls, excluding  beams"); click("Review descriptions");

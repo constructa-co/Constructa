@@ -64,6 +64,25 @@ describe("case study photo journey seams", () => {
         ]);
     });
 
+    it("puts the chosen main photograph first on legacy past work, and leaves the legacy tail out of proposals", () => {
+        const row = {
+            id: "legacy-2",
+            projectName: "Extension",
+            whatWeDelivered: "Built an extension.",
+            primaryPhotoIndex: 1,
+            photos: [
+                "https://images.example.test/one.jpg",
+                "https://images.example.test/two.jpg",
+                "",
+                "https://images.example.test/fourth.jpg",
+            ],
+        };
+        expect(selectCaseStudies([row], ["legacy-2"])[0]?.photos).toEqual([
+            "https://images.example.test/two.jpg",
+            "https://images.example.test/one.jpg",
+        ]);
+    });
+
     it("ticked case-study photographs reach the generated proposal document", () => {
         const snapshot = buildProposalPublicationSnapshot(representativeInput());
         const experience = buildProposalDocument(snapshot).sections.find((section) => section.id === "experience");

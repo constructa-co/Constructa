@@ -5,6 +5,7 @@
 // the simple pricing screen, which owns the estimates and the running total.
 
 import { useState, useTransition, useRef, useCallback, useId, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -28,10 +29,14 @@ import { isCapabilityEnabled } from "@/lib/launch-profile";
 import { formatGBP, parseAdvancedQuantityDraft, type AdvancedRunningTotalDraft } from "@/lib/simple-estimate";
 import { computeAdvancedRunningTotalDraft } from "@/lib/advanced-running-total-draft";
 import ui from "@/components/estimating.module.css";
+import { catalogueDropdownPanel } from "./catalogue-library-dropdown";
 import type { EstimateLineComponent, EstimateLine, Estimate, CostLibraryItem, LabourRate, RateBuildup } from "./types";
 import { savePriceLineActivityAction } from "./activity-actions";
 import { workspaceStyles } from "@/lib/workspace-styles";
 import { MARKUP_METHOD_NOTE, resolveMarkupMethod } from "@/lib/financial";
+import { evaluateDiscountSubmitGate, discountNeedsConfirmation } from "@/lib/discount-confirm";
+import { HighDiscountConfirmDialog } from "./discount-confirm-dialog";
+import { groupLinesBySection, orderedEstimateSections } from "@/lib/estimate-batch-sections";
 import type { ComponentProps } from "react";
 
 interface Props {
@@ -79,7 +84,21 @@ const TRADE_SECTIONS = [
 
 const UNITS = ["m", "m2", "m3", "nr", "item", "day", "week", "tonne", "kg", "lm"];
 
-const LINE_TYPES = ["general", "labour", "plant", "material", "subcontract", "consultancy"];
+const LINE_TYPES = ["general", "labour", "plant", "material", "subcontract", "consultancy", "pc_sum", "provisional_sum"];
+const LINE_TYPE_LABELS: Record<string, string> = {
+    general: "General",
+    labour: "Labour",
+    plant: "Plant",
+    material: "Material",
+    subcontract: "Subcontract",
+    consultancy: "Consultancy",
+    pc_sum: "PC sum",
+    provisional_sum: "Provisional sum",
+};
+const lineTypeLabel = (type: string) => LINE_TYPE_LABELS[type] ?? type.charAt(0).toUpperCase() + type.slice(1);
+type PercentField = "overhead_pct" | "profit_pct" | "risk_pct" | "prelims_pct" | "discount_pct";
+const PERCENTAGE_RANGE_ERROR = "Enter a percentage between 0 and 100. The saved value has been kept.";
+const isPercentage = (value: number) => Number.isFinite(value) && value >= 0 && value <= 100;
 type CatalogueReview = { line: EstimateLine; item: CostLibraryItem; context: string };
 type QuantityDraft = { line: EstimateLine; raw: string; context: string };
 type RateDraft = QuantityDraft & { projectId: string; orgId: string };
@@ -265,6 +284,15 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     const addingSectionsRef = useRef(new Set<string>());
     const deleteReceiptRef = useRef<DeleteLineReceipt | null>(null);
     const [deleteReceipt, setDeleteReceipt] = useState<DeleteLineReceipt | null>(null);
+    const percentBaselineRef = useRef<({ id: string; discount_reason: string } & Record<PercentField, number>) | null>(null);
+    const acknowledgedDiscountRef = useRef<{ id: string; discount_pct: number; discount_reason: string } | null>(null);
+    const [highDiscountPending, setHighDiscountPending] = useState<{
+        discountPct: number;
+        reason: string;
+        savedDiscount: number;
+        savedReason: string;
+        showWarning: boolean;
+    } | null>(null);
     const deleteBlocked = () => (!!deleteReceiptRef.current && deleteReceiptRef.current.phase !== "confirmed") ||
         Object.keys(catalogueView.current.resourceSaveStates ?? {}).some(key => key.startsWith("delete:"));
     const retainedDeletes = Object.entries(resourceSaveStates ?? {}).filter(([key]) => key.startsWith("delete:"));
@@ -359,25 +387,80 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
         });
     };
 
+    const acknowledgedDiscount = useCallback((est: Estimate) => {
+        const stored = acknowledgedDiscountRef.current;
+        if (stored && stored.id === est.id) return stored;
+        return { discount_pct: est.discount_pct, discount_reason: est.discount_reason || "" };
+    }, []);
+
+    const captureAcknowledgedDiscount = () => {
+        if (!currentEstimate) return;
+        acknowledgedDiscountRef.current = {
+            id: currentEstimate.id,
+            discount_pct: currentEstimate.discount_pct,
+            discount_reason: currentEstimate.discount_reason || "",
+        };
+    };
+
+    useEffect(() => {
+        if (acknowledgedDiscountRef.current?.id === activeTab) return;
+        const est = estimates.find((e) => e.id === activeTab);
+        if (!est) return;
+        acknowledgedDiscountRef.current = {
+            id: est.id,
+            discount_pct: est.discount_pct,
+            discount_reason: est.discount_reason || "",
+        };
+    }, [activeTab, estimates]);
+
     // ─── Margin updates ─────────────────────────────────
+    const capturePercentBaseline = () => {
+        if (!currentEstimate) return;
+        const { id, overhead_pct, profit_pct, risk_pct, prelims_pct } = currentEstimate;
+        const ack = acknowledgedDiscount(currentEstimate);
+        percentBaselineRef.current = {
+            id,
+            overhead_pct,
+            profit_pct,
+            risk_pct,
+            prelims_pct,
+            discount_pct: ack.discount_pct,
+            discount_reason: ack.discount_reason,
+        };
+    };
+    const savedPercent = (est: Estimate, field: PercentField): number => {
+        if (field === "discount_pct") return acknowledgedDiscount(est).discount_pct;
+        const baseline = percentBaselineRef.current;
+        return baseline && baseline.id === est.id ? baseline[field] : est[field];
+    };
+    const savedDiscountReason = (est: Estimate): string => acknowledgedDiscount(est).discount_reason;
+    const restorePercent = (estimateId: string, field: PercentField, saved: number) =>
+        setEstimates((prev) => prev.map((e) => (e.id === estimateId ? { ...e, [field]: saved } : e)));
+    const restoreDiscountFields = (estimateId: string, savedDiscount: number, savedReason: string) =>
+        setEstimates((prev) => prev.map((e) => (e.id === estimateId ? { ...e, discount_pct: savedDiscount, discount_reason: savedReason } : e)));
+
     const handleMarginChange = (field: "overhead_pct" | "profit_pct" | "risk_pct" | "prelims_pct", value: number) => {
         if (deleteBlocked()) return;
         if (!currentEstimate) return;
-        const updated = { ...currentEstimate, [field]: value };
-        setEstimates((prev) => prev.map((e) => (e.id === currentEstimate.id ? updated : e)));
+        setEstimates((prev) => prev.map((e) => (e.id === currentEstimate.id ? { ...e, [field]: value } : e)));
     };
     const handleMarginBlur = (field: "overhead_pct" | "profit_pct" | "risk_pct" | "prelims_pct", value: number) => {
         if (deleteBlocked()) return;
         if (!currentEstimate) return;
+        const estimateId = currentEstimate.id;
+        const saved = savedPercent(currentEstimate, field);
+        if (!isPercentage(value)) {
+            restorePercent(estimateId, field, saved);
+            showSaveError(PERCENTAGE_RANGE_ERROR);
+            return;
+        }
         const updated = { ...currentEstimate, [field]: value };
-        setEstimates((prev) => prev.map((e) => (e.id === currentEstimate.id ? updated : e)));
+        setEstimates((prev) => prev.map((e) => (e.id === estimateId ? updated : e)));
         showSaving();
-        updateEstimateMarginsAction(currentEstimate.id, updated.overhead_pct, updated.profit_pct, updated.risk_pct, updated.prelims_pct)
+        updateEstimateMarginsAction(estimateId, updated.overhead_pct, updated.profit_pct, updated.risk_pct, updated.prelims_pct)
             .then((result) => {
                 if (result && !result.success) {
-                    // P1-3 — roll the optimistic update back if the server
-                    // rejected the change (most likely the project is locked).
-                    setEstimates((prev) => prev.map((e) => (e.id === currentEstimate.id ? currentEstimate : e)));
+                    restorePercent(estimateId, field, saved);
                     showSaveError(result.error ?? "Failed to save margins");
                     return;
                 }
@@ -387,6 +470,118 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                 console.error(err);
                 showSaveError("Failed to save margins");
             });
+    };
+
+    const persistDiscount = (estimateId: string, value: number, reason: string, savedDiscount: number, savedReason: string) => {
+        showSaving();
+        saveDiscountAction(estimateId, value, reason)
+            .then((result) => {
+                if (result && !result.success) {
+                    restoreDiscountFields(estimateId, savedDiscount, savedReason);
+                    showSaveError(result.error ?? "Failed to save discount");
+                    setHighDiscountPending(null);
+                    return;
+                }
+                acknowledgedDiscountRef.current = {
+                    id: estimateId,
+                    discount_pct: value,
+                    discount_reason: reason,
+                };
+                showSaved();
+                setHighDiscountPending(null);
+            })
+            .catch((err) => {
+                console.error(err);
+                restoreDiscountFields(estimateId, savedDiscount, savedReason);
+                setHighDiscountPending(null);
+                showSaveError("Failed to save discount");
+            });
+    };
+
+    const beginHighDiscountConfirm = (
+        estimateId: string,
+        value: number,
+        reason: string,
+        savedDiscount: number,
+        savedReason: string,
+    ) => {
+        const gate = evaluateDiscountSubmitGate(value, reason, false);
+        if (!gate.ok && gate.needsConfirm) {
+            setHighDiscountPending({
+                discountPct: value,
+                reason,
+                savedDiscount,
+                savedReason,
+                showWarning: gate.showWarning,
+            });
+            return;
+        }
+        if (!gate.ok && gate.fieldErrors?.discountReason) {
+            restoreDiscountFields(estimateId, savedDiscount, savedReason);
+            showSaveError(gate.fieldErrors.discountReason);
+            return;
+        }
+        persistDiscount(estimateId, value, reason, savedDiscount, savedReason);
+    };
+
+    const handleDiscountBlur = (value: number) => {
+        if (deleteBlocked() || !currentEstimate) return;
+        const estimateId = currentEstimate.id;
+        const savedDiscount = savedPercent(currentEstimate, "discount_pct");
+        const savedReason = savedDiscountReason(currentEstimate);
+        if (!isPercentage(value)) {
+            restoreDiscountFields(estimateId, savedDiscount, savedReason);
+            showSaveError(PERCENTAGE_RANGE_ERROR);
+            return;
+        }
+        const reason = currentEstimate.discount_reason || "";
+        if (!discountNeedsConfirmation(value)) {
+            setEstimates((prev) => prev.map((est) => (est.id === estimateId ? { ...est, discount_pct: value } : est)));
+            persistDiscount(estimateId, value, reason, savedDiscount, savedReason);
+            return;
+        }
+        const gate = evaluateDiscountSubmitGate(value, reason, false);
+        if (!gate.ok && "fieldErrors" in gate && gate.fieldErrors?.discountReason) {
+            restoreDiscountFields(estimateId, savedDiscount, savedReason);
+            showSaveError(gate.fieldErrors.discountReason);
+            return;
+        }
+        setEstimates((prev) => prev.map((est) => (est.id === estimateId ? { ...est, discount_pct: value } : est)));
+        beginHighDiscountConfirm(estimateId, value, reason, savedDiscount, savedReason);
+    };
+
+    const handleDiscountReasonBlur = (reason: string) => {
+        if (deleteBlocked() || !currentEstimate) return;
+        const estimateId = currentEstimate.id;
+        const savedDiscount = savedPercent(currentEstimate, "discount_pct");
+        const savedReason = savedDiscountReason(currentEstimate);
+        const discountPct = currentEstimate.discount_pct;
+        if (!discountNeedsConfirmation(discountPct)) {
+            setEstimates((prev) => prev.map((est) => (est.id === estimateId ? { ...est, discount_reason: reason } : est)));
+            persistDiscount(estimateId, discountPct, reason, savedDiscount, savedReason);
+            return;
+        }
+        const gate = evaluateDiscountSubmitGate(discountPct, reason, false);
+        if (!gate.ok && "fieldErrors" in gate && gate.fieldErrors?.discountReason) {
+            restoreDiscountFields(estimateId, savedDiscount, savedReason);
+            showSaveError(gate.fieldErrors.discountReason);
+            return;
+        }
+        setEstimates((prev) => prev.map((est) => (est.id === estimateId ? { ...est, discount_reason: reason } : est)));
+        beginHighDiscountConfirm(estimateId, discountPct, reason, savedDiscount, savedReason);
+    };
+
+    const cancelHighDiscountConfirm = () => {
+        if (!highDiscountPending || !currentEstimate) {
+            setHighDiscountPending(null);
+            return;
+        }
+        restoreDiscountFields(
+            currentEstimate.id,
+            highDiscountPending.savedDiscount,
+            highDiscountPending.savedReason,
+        );
+        setHighDiscountPending(null);
     };
 
     const handleNameBlur = (name: string) => {
@@ -1198,8 +1393,9 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
             lineUncertainRef.current.size || pendingResourceLinesRef.current.size || applyingResourceLinesRef.current.size ||
             !currentEstimate || currentEstimate.project_id !== projectId || currentEstimate.is_client_boq ||
             line.estimate_id !== currentEstimate.id || line.pricing_mode !== "simple" || line.trade_section === "Preliminaries" ||
-            !currentEstimate.estimate_lines.includes(line)) return false;
-        const review: ActivityReview = { line, context: catalogueContext, projectId, orgId, raw: line.trade_section ?? "", phase: "editing", message: "" };
+            !currentEstimate.estimate_lines.some((row) => row.id === line.id)) return false;
+        const owned = currentEstimate.estimate_lines.find((row) => row.id === line.id)!;
+        const review: ActivityReview = { line: owned, context: catalogueContext, projectId, orgId, raw: owned.trade_section ?? "", phase: "editing", message: "" };
         activityReviewRef.current = review; setActivityReview(review);
         draftResourceLinesRef.current.add(line.id); setDraftResourceLines(new Set(draftResourceLinesRef.current));
         onResourceSaveStateChanged?.(`activity:${line.id}`, "draft");
@@ -1329,22 +1525,12 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
     // Filter out blank lines for display
     const displayLines = lines.filter(l => l.description && l.description !== "" && l.description !== "\u2014");
 
-    // Group lines by trade section (only display lines with descriptions)
-    // Contractor names must not collide with inherited object keys.
-    const sectionGroups: Record<string, EstimateLine[]> = Object.create(null);
-    lines.forEach((l) => {
-        // Keep the open editor mounted if an external activity change moves its row.
-        const sec = (activityReview?.line.id === l.id ? activityReview.line.trade_section : l.trade_section) || "General";
-        if (!sectionGroups[sec]) sectionGroups[sec] = [];
-        sectionGroups[sec].push(l);
-    });
-
-    // All sections that have lines, plus keep order from TRADE_SECTIONS
-    const activeSections = TRADE_SECTIONS.filter((s) => sectionGroups[s]?.length);
-    // Add any custom sections not in the predefined list
-    Object.keys(sectionGroups).forEach((s) => {
-        if (!activeSections.includes(s)) activeSections.push(s);
-    });
+    const sectionSource = lines.map((l) => ({
+        ...l,
+        trade_section: activityReview?.line.id === l.id ? activityReview.line.trade_section : l.trade_section,
+    }));
+    const sectionGroups = groupLinesBySection(sectionSource);
+    const activeSections = orderedEstimateSections(sectionSource);
 
     return (
         <>
@@ -1584,7 +1770,10 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                     aria-label="Prelims %"
                                     type="number"
                                     step="0.5"
+                                    min={0}
+                                    max={100}
                                     value={currentEstimate.prelims_pct}
+                                    onFocus={capturePercentBaseline}
                                     onChange={(e) => handleMarginChange("prelims_pct", parseFloat(e.target.value) || 0)}
                                     onBlur={(e) => handleMarginBlur("prelims_pct", parseFloat(e.target.value) || 0)}
                                     className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
@@ -1596,7 +1785,10 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                     aria-label="Overhead %"
                                     type="number"
                                     step="0.5"
+                                    min={0}
+                                    max={100}
                                     value={currentEstimate.overhead_pct}
+                                    onFocus={capturePercentBaseline}
                                     onChange={(e) => handleMarginChange("overhead_pct", parseFloat(e.target.value) || 0)}
                                     onBlur={(e) => handleMarginBlur("overhead_pct", parseFloat(e.target.value) || 0)}
                                     className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
@@ -1608,7 +1800,10 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                     aria-label="Risk %"
                                     type="number"
                                     step="0.5"
+                                    min={0}
+                                    max={100}
                                     value={currentEstimate.risk_pct}
+                                    onFocus={capturePercentBaseline}
                                     onChange={(e) => handleMarginChange("risk_pct", parseFloat(e.target.value) || 0)}
                                     onBlur={(e) => handleMarginBlur("risk_pct", parseFloat(e.target.value) || 0)}
                                     className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
@@ -1620,7 +1815,10 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                     aria-label="Profit %"
                                     type="number"
                                     step="0.5"
+                                    min={0}
+                                    max={100}
                                     value={currentEstimate.profit_pct}
+                                    onFocus={capturePercentBaseline}
                                     onChange={(e) => handleMarginChange("profit_pct", parseFloat(e.target.value) || 0)}
                                     onBlur={(e) => handleMarginBlur("profit_pct", parseFloat(e.target.value) || 0)}
                                     className="w-full h-10 px-3 border border-slate-700 rounded-lg bg-slate-900/50 text-slate-100 text-sm text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
@@ -1632,57 +1830,55 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                     aria-label="Discount %"
                                     type="number"
                                     step="0.5"
+                                    min={0}
+                                    max={100}
                                     value={currentEstimate.discount_pct}
+                                    onFocus={captureAcknowledgedDiscount}
                                     onChange={(e) => {
                                         const val = parseFloat(e.target.value) || 0;
-                                        setEstimates(prev => prev.map(est => est.id === currentEstimate.id ? { ...est, discount_pct: val } : est));
+                                        setEstimates((prev) => prev.map((est) => (est.id === currentEstimate.id ? { ...est, discount_pct: val } : est)));
                                     }}
-                                    onBlur={(e) => {
-                                        const val = parseFloat(e.target.value) || 0;
-                                        const prevDiscount = currentEstimate.discount_pct;
-                                        setEstimates(prev => prev.map(est => est.id === currentEstimate.id ? { ...est, discount_pct: val } : est));
-                                        showSaving();
-                                        saveDiscountAction(currentEstimate.id, val, currentEstimate.discount_reason || "")
-                                            .then((result) => {
-                                                if (result && !result.success) {
-                                                    setEstimates(prev => prev.map(est => est.id === currentEstimate.id ? { ...est, discount_pct: prevDiscount } : est));
-                                                    showSaveError(result.error ?? "Failed to save discount");
-                                                    return;
-                                                }
-                                                showSaved();
-                                            })
-                                            .catch((err) => { console.error(err); showSaveError("Failed to save discount"); });
-                                    }}
+                                    onBlur={(e) => handleDiscountBlur(parseFloat(e.target.value) || 0)}
                                     className="w-full h-10 px-3 border border-emerald-700/50 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
                                 />
                             </div>
                         </div>
-                        {currentEstimate.discount_pct > 0 && (
+                        {(currentEstimate.discount_pct > 0 || discountNeedsConfirmation(currentEstimate.discount_pct)) && (
                             <div className="flex items-center gap-3">
                                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 whitespace-nowrap">Discount Reason</label>
                                 <input
                                     aria-label="Discount Reason"
                                     type="text"
+                                    maxLength={500}
                                     value={currentEstimate.discount_reason || ""}
+                                    onFocus={captureAcknowledgedDiscount}
                                     onChange={(e) => {
-                                        setEstimates(prev => prev.map(est => est.id === currentEstimate.id ? { ...est, discount_reason: e.target.value } : est));
+                                        setEstimates((prev) => prev.map((est) => (est.id === currentEstimate.id ? { ...est, discount_reason: e.target.value } : est)));
                                     }}
-                                    onBlur={(e) => {
-                                        showSaving();
-                                        saveDiscountAction(currentEstimate.id, currentEstimate.discount_pct, e.target.value)
-                                            .then((result) => {
-                                                if (result && !result.success) {
-                                                    showSaveError(result.error ?? "Failed to save discount");
-                                                    return;
-                                                }
-                                                showSaved();
-                                            })
-                                            .catch((err) => { console.error(err); showSaveError("Failed to save discount"); });
-                                    }}
+                                    onBlur={(e) => handleDiscountReasonBlur(e.target.value)}
                                     className="flex-1 h-10 px-3 border border-emerald-700/50 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
                                     placeholder="e.g. Returning client, early payment, etc."
                                 />
                             </div>
+                        )}
+                        {highDiscountPending && (
+                            <HighDiscountConfirmDialog
+                                open
+                                discountPct={highDiscountPending.discountPct}
+                                showWarning={highDiscountPending.showWarning}
+                                s={activityStyles}
+                                onConfirm={() => {
+                                    if (!currentEstimate) return;
+                                    persistDiscount(
+                                        currentEstimate.id,
+                                        highDiscountPending.discountPct,
+                                        highDiscountPending.reason,
+                                        highDiscountPending.savedDiscount,
+                                        highDiscountPending.savedReason,
+                                    );
+                                }}
+                                onCancel={cancelHighDiscountConfirm}
+                            />
                         )}
                     </div>
 
@@ -1714,7 +1910,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                         );
 
                         return (
-                            <div key={section} role="group" aria-label={section} className="bg-slate-800/50 border border-slate-700/50 rounded-xl" style={{ overflow: "visible" }}>
+                            <div key={section} role="group" aria-label={section} className={`${ui.advancedSectionCard} bg-slate-800/50 border border-slate-700/50 rounded-xl`}>
                                 {/* Section header */}
                                 <div className="flex items-center justify-between px-5 py-3 bg-slate-900/50 border-b border-slate-700/50 rounded-t-xl">
                                     <h3 className="font-bold text-sm uppercase tracking-wide text-slate-200">{section}</h3>
@@ -1836,7 +2032,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                                         helpText: "Use your own activity name or a current estimate activity, up to 100 characters. Only this line's activity changes; its price and resources stay unchanged. Client BoQ, built-up and Preliminaries lines are not assigned by this control.",
                                                     } : undefined}
                                                 />
-                                                {activityReview?.line.id === line.id && line.trade_section !== activityReview.line.trade_section && <p role="status" className="px-5 py-2 text-sm text-amber-200">The saved activity changed. This review stays in its original group to retain your text; Cancel and review the current activity before saving.</p>}
+                                                {activityReview?.line.id === line.id && (lines.find((l) => l.id === line.id)?.trade_section ?? line.trade_section) !== activityReview.line.trade_section && <p role="status" className="px-5 py-2 text-sm text-amber-200">The saved activity changed. This review stays in its original group to retain your text; Cancel and review the current activity before saving.</p>}
                                                 {catalogueReview?.line.id === line.id && <section data-catalogue-review={line.id} aria-label="Review catalogue rate" className="m-3 rounded-lg border border-emerald-700 p-4 space-y-2 text-sm text-slate-200">
                                                     <h4 className="font-semibold">Review catalogue rate before saving</h4>
                                                     <p>{catalogueReview.item.code}: {catalogueReview.item.description}</p>
@@ -2061,7 +2257,16 @@ function LineItemRow({
     const proposedRate = rateDraft ? parseAdvancedQuantityDraft(rateDraft.raw) : null;
     const rateValid = proposedRate !== null && Number.isFinite(line.quantity * proposedRate);
     const [showDropdown, setShowDropdown] = useState(false);
+    const [dropdownCoords, setDropdownCoords] = useState<{ top: number; left: number; width: number } | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const syncDropdownCoords = () => {
+        if (typeof window === "undefined") {
+            setDropdownCoords(null);
+            return;
+        }
+        const rect = dropdownRef.current?.getBoundingClientRect();
+        setDropdownCoords(rect ? { top: rect.bottom + 4, left: rect.left, width: rect.width } : null);
+    };
     const blurEpoch = useRef(0);
     const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const rowMounted = useRef(false);
@@ -2094,6 +2299,7 @@ function LineItemRow({
             })
             .slice(0, 15)
         : [];
+    const dropdownOpen = showDropdown && filtered.length > 0;
 
     return (
         <div className={`grid gap-2 px-5 py-2 border-b border-slate-700/30 items-center hover:bg-slate-700/20 transition-colors ${
@@ -2111,7 +2317,7 @@ function LineItemRow({
                     }} className="w-full h-8 px-1 border border-slate-700 rounded text-xs text-slate-400 bg-slate-900/50">
                     {!LINE_TYPES.includes(line.line_type) && <option value={typeof line.line_type === "string" ? line.line_type : ""}>Saved: {JSON.stringify(line.line_type) ?? "not supplied"}</option>}
                     {lineTypeDraft && !LINE_TYPES.includes(lineTypeDraft.raw) && lineTypeDraft.raw !== line.line_type && <option value={lineTypeDraft.raw}>Reviewed: {JSON.stringify(lineTypeDraft.raw)}</option>}
-                    {LINE_TYPES.map(type => <option key={type} value={type}>{type.charAt(0).toUpperCase() + type.slice(1)}</option>)}
+                    {LINE_TYPES.map(type => <option key={type} value={type}>{lineTypeLabel(type)}</option>)}
                 </select>
                 {typeof line.line_type !== "string" && <p role="status" className="text-xs">The stored type is not text. Review this source before changing it.</p>}
                 {lineTypeDraft && <>
@@ -2134,7 +2340,7 @@ function LineItemRow({
                 >
                     {LINE_TYPES.map((t) => (
                         <option key={t} value={t}>
-                            {t.charAt(0).toUpperCase() + t.slice(1)}
+                            {lineTypeLabel(t)}
                         </option>
                     ))}
                 </select>
@@ -2169,12 +2375,17 @@ function LineItemRow({
                         setSearchDraft({ source: line.description, value: e.target.value });
                         if (e.target.value.length > 0) {
                             setShowDropdown(true);
+                            syncDropdownCoords();
                         } else {
                             setShowDropdown(false);
+                            setDropdownCoords(null);
                         }
                     }}
                     onFocus={() => {
-                        if (search.length > 0) setShowDropdown(true);
+                        if (search.length > 0) {
+                            setShowDropdown(true);
+                            syncDropdownCoords();
+                        }
                     }}
                     onBlur={() => {
                         // Delay so click on dropdown registers
@@ -2208,12 +2419,17 @@ function LineItemRow({
                         setSearchDraft({ source: line.description, value: e.target.value });
                         if (e.target.value.length > 0) {
                             setShowDropdown(true);
+                            syncDropdownCoords();
                         } else {
                             setShowDropdown(false);
+                            setDropdownCoords(null);
                         }
                     }}
                     onFocus={() => {
-                        if (search.length > 0) setShowDropdown(true);
+                        if (search.length > 0) {
+                            setShowDropdown(true);
+                            syncDropdownCoords();
+                        }
                     }}
                     onBlur={() => {
                         // Delay so click on dropdown registers
@@ -2241,41 +2457,42 @@ function LineItemRow({
                         setShowDropdown(false);
                         return activity.onBegin();
                     }} />}
-                {showDropdown && filtered.length > 0 && (
-                    <div className="absolute z-50 w-full bg-slate-800 border border-slate-700 rounded-lg shadow-xl mt-1 max-h-48 overflow-y-auto">
-                        {filtered.map((item) => (
-                            <button
-                                type="button"
-                                disabled={saveBlocked || savePending || isClientBoQ || line.pricing_mode !== "simple" || section === "Preliminaries"}
-                                title="Review a catalogue rate for a simple non-BoQ line; quantities are not converted."
-                                key={item.id}
-                                onMouseDown={(e) => {
-                                    e.preventDefault();
-                                }}
-                                onFocus={() => {
-                                    blurEpoch.current++;
-                                    if (blurTimer.current) clearTimeout(blurTimer.current);
-                                }}
-                                onClick={() => {
-                                    blurEpoch.current++;
-                                    if (blurTimer.current) clearTimeout(blurTimer.current);
-                                    setSearchDraft(current => ({ ...current }));
-                                    setShowDropdown(false);
-                                    onLibrarySelect(line.id, item.id, section);
-                                }}
-                                className="w-full text-left px-3 py-1.5 hover:bg-slate-700/50 flex items-center justify-between text-sm transition-colors"
-                            >
-                                <span className="text-slate-200 truncate">
-                                    <span className="text-slate-500 text-xs mr-1.5">{item.code}</span>
-                                    {item.description}
-                                </span>
-                                <span className="text-slate-400 text-xs ml-2 whitespace-nowrap">
-                                    {formatGBP(item.base_rate)}/{item.unit}
-                                </span>
-                            </button>
-                        ))}
-                    </div>
-                )}
+                {dropdownOpen && (() => {
+                    const pick = (itemId: string) => {
+                        blurEpoch.current++;
+                        if (blurTimer.current) clearTimeout(blurTimer.current);
+                        setSearchDraft((current) => ({ ...current }));
+                        setShowDropdown(false);
+                        onLibrarySelect(line.id, itemId, section);
+                    };
+                    const disabled = saveBlocked || savePending || isClientBoQ || line.pricing_mode !== "simple" || section === "Preliminaries";
+                    const panelProps = {
+                        items: filtered,
+                        disabled,
+                        onPick: pick,
+                        onOptionFocus: () => {
+                            blurEpoch.current++;
+                            if (blurTimer.current) clearTimeout(blurTimer.current);
+                        },
+                    };
+                    if (dropdownCoords && typeof document !== "undefined") {
+                        const fixedPanel = catalogueDropdownPanel({
+                            ...panelProps,
+                            className: "fixed z-[60] max-h-48 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800 shadow-xl",
+                            style: {
+                                top: dropdownCoords.top,
+                                left: dropdownCoords.left,
+                                width: dropdownCoords.width,
+                                maxWidth: "min(100vw - 16px, 480px)",
+                            },
+                        });
+                        return createPortal(fixedPanel, document.body);
+                    }
+                    return catalogueDropdownPanel({
+                        ...panelProps,
+                        className: "absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800 shadow-xl",
+                    });
+                })()}
             </div>
 
             {/* Qty */}

@@ -155,7 +155,7 @@ export interface PlausibleMetrics {
     pageviews30d: number;
     bounceRate: number;
     visitDuration: number;   // seconds
-    signupConversionRate: number;  // calendar-month signups ÷ rolling 30d visitors; not session-attributed
+    signupConversionRate: number;  // rolling 30d signups ÷ rolling 30d visitors; not session-attributed
     topPages: Array<{ page: string; visitors: number }>;
     topSources: Array<{ source: string; visitors: number }>;
 }

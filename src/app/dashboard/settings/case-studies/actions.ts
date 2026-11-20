@@ -6,32 +6,23 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { enhanceCaseStudy, type CaseStudyResult } from "@/lib/cohort-ai/case-study-enhance";
 import { caseStudyTextEnhanceEnabled } from "@/lib/cohort-ai/case-study-enhance-enabled";
 import { COHORT_AI_OFF, COHORT_AI_UNAVAILABLE } from "@/lib/cohort-ai/shared";
+import { legacyCaseStudiesStoredFingerprint, legacyCaseStudiesStoredIsKnown } from "@/lib/server/legacy-case-studies-fingerprint";
 import { legacyCaseStudiesPhotosProblem, LEGACY_CASE_STUDY_PHOTOS_MESSAGE } from "./legacy-save-photos";
 import { SAVE_MESSAGES, type SaveCaseStudiesResult } from "./save-state";
 
+const FINGERPRINT = /^[0-9a-f]{32}$/;
+
 /**
- * Saves the whole list of older case studies, and says honestly what happened.
- *
- * This is NOT protection against two tabs. The write replaces whatever list is
- * stored, with no condition on what that was, so a tab that loaded an older
- * list still overwrites a newer one and is still told "saved", because it was.
- *
- * In order: who is asking; is it a list; ONE update of the caller's own row
- * with their own session, asking for the changed row's id back. No read first,
- * no privileged client, no retry.
- *
- *   - "saved" only when exactly one row comes back and its id is the caller's.
- *   - No row back: the save is not confirmed. Missing and not-theirs are not told apart.
- *   - Anything else at the write (an error of any kind, a thrown call, a reply
- *     that is not understood): NOT KNOWN. An error after a write is possible,
- *     so no error is taken as proof that nothing was written.
- *
- * Apart from photographs on each entry (up to three safe urls, checked with the
- * same rules as the library journey), nothing in the list is capped, tidied or
- * reshaped: every entry and every key is sent as it was given. No other column
- * is named. The database's own words never reach the result or the log.
+ * Saves the whole list of older case studies when the stored list is one the
+ * tab knows about: the list it last knew to be stored, or one of `unconfirmed`,
+ * the lists it sent itself in saves whose answer never came back. A list put
+ * there from anywhere else is a conflict.
  */
-export async function saveCaseStudiesAction(caseStudies: unknown): Promise<SaveCaseStudiesResult> {
+export async function saveCaseStudiesAction(
+    caseStudies: unknown,
+    expectedFingerprint: unknown,
+    unconfirmed?: unknown,
+): Promise<SaveCaseStudiesResult> {
     let auth: Awaited<ReturnType<typeof requireAuth>>;
     try {
         auth = await requireAuth();
@@ -39,35 +30,63 @@ export async function saveCaseStudiesAction(caseStudies: unknown): Promise<SaveC
         return { status: "signed-out", message: SAVE_MESSAGES.signedOut };
     }
     if (!Array.isArray(caseStudies)) return { status: "refused", message: SAVE_MESSAGES.refused };
+    if (typeof expectedFingerprint !== "string" || !FINGERPRINT.test(expectedFingerprint)) {
+        return { status: "refused", message: SAVE_MESSAGES.refused };
+    }
     if (legacyCaseStudiesPhotosProblem(caseStudies) !== null) {
         return { status: "refused", message: LEGACY_CASE_STUDY_PHOTOS_MESSAGE };
     }
     const { user, supabase } = auth;
 
-    const unknown = (kind: "error-returned" | "threw" | "reply-not-understood" | "row-not-own"): SaveCaseStudiesResult => {
+    const unknown = (kind: "error-returned" | "threw" | "reply-not-understood" | "row-not-own" | "read-failed"): SaveCaseStudiesResult => {
         console.error("case studies save: outcome not known", { kind });
         return { status: "unknown", message: SAVE_MESSAGES.unknown };
     };
 
+    let stored: unknown;
+    try {
+        const { data: row, error: readError } = await supabase
+            .from("profiles")
+            .select("case_studies")
+            .eq("id", user.id)
+            .maybeSingle();
+        if (readError || !row) return unknown("read-failed");
+        stored = row.case_studies;
+    } catch {
+        return unknown("threw");
+    }
+
+    if (!legacyCaseStudiesStoredIsKnown(stored, expectedFingerprint, unconfirmed)) {
+        return { status: "conflict", message: SAVE_MESSAGES.conflict };
+    }
+
     let reply: { data: unknown; error: unknown };
     try {
-        reply = await supabase
+        let update = supabase
             .from("profiles")
             .update({ case_studies: caseStudies })
-            .eq("id", user.id)
-            .select("id");
+            .eq("id", user.id);
+        if (stored === null) update = update.is("case_studies", null);
+        else update = update.eq("case_studies", JSON.stringify(stored));
+        reply = await update.select("id, case_studies");
     } catch {
         return unknown("threw");
     }
     if (!reply || typeof reply !== "object") return unknown("reply-not-understood");
     if (reply.error) return unknown("error-returned");
     if (!Array.isArray(reply.data)) return unknown("reply-not-understood");
-    if (reply.data.length === 0) return { status: "no-row", message: SAVE_MESSAGES.noRow };
+    if (reply.data.length === 0) {
+        const stillThere = await supabase.from("profiles").select("case_studies").eq("id", user.id).maybeSingle();
+        if (!stillThere.error && stillThere.data
+            && !legacyCaseStudiesStoredIsKnown(stillThere.data.case_studies, expectedFingerprint, unconfirmed)) {
+            return { status: "conflict", message: SAVE_MESSAGES.conflict };
+        }
+        return { status: "no-row", message: SAVE_MESSAGES.noRow };
+    }
     if (reply.data.length !== 1) return unknown("reply-not-understood");
-    const row = reply.data[0] as { id?: unknown } | null;
+    const row = reply.data[0] as { id?: unknown; case_studies?: unknown } | null;
     if (!row || typeof row !== "object" || row.id !== user.id) return unknown("row-not-own");
 
-    // The write is confirmed. Telling other pages to reload is a separate thing: if it fails, the save still happened.
     let refreshed = true;
     try {
         revalidatePath("/dashboard/settings/case-studies");
@@ -75,17 +94,17 @@ export async function saveCaseStudiesAction(caseStudies: unknown): Promise<SaveC
         refreshed = false;
         console.error("case studies save: saved, but other pages could not be told to reload");
     }
-    return { status: "saved", refreshed };
+    return {
+        status: "saved",
+        refreshed,
+        fingerprint: legacyCaseStudiesStoredFingerprint(row.case_studies),
+    };
 }
 
 /**
  * Suggests clearer wording for a case study's two sections. Saves nothing and
  * changes nothing: the reply is returned for the screen to show as a pending
  * suggestion, which the contractor uses or discards.
- *
- * The result always carries both sections. If nothing usable was produced,
- * for any reason, they are the contractor's own text, `suggested` is false
- * and `message` says why. It is never a success that changed nothing.
  */
 export async function enhanceCaseStudyAction(
     whatWeDelivered: string,
@@ -100,11 +119,6 @@ export async function enhanceCaseStudyAction(
         message,
     });
 
-    // Who is asking, first: before any input is read, trimmed or sent, and
-    // before the budget or the provider. A signed-out caller gets their own
-    // words back unchanged and reaches neither. (The dashboard proxy also
-    // redirects unsigned requests; this is the action's own check, the same
-    // defence-in-depth every other AI action carries.)
     let userId: string;
     try {
         userId = (await requireAuth()).user.id;
@@ -117,7 +131,6 @@ export async function enhanceCaseStudyAction(
     }
 
     try {
-        // One call for both sections, through the usage budget. No second call.
         return await enhanceCaseStudy({ admin: createAdminClient(), userId }, { whatWeDelivered, valueAdded, projectName, projectType });
     } catch (error) {
         console.error("enhanceCaseStudyAction failed", { message: error instanceof Error ? error.message : "unknown" });

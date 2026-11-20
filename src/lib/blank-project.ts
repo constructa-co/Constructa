@@ -51,9 +51,25 @@ export type BlankProjectField = keyof BlankProjectForm;
 
 const optionalText = (max: number, message: string) => z.string().trim().max(max, message);
 
+/** The longest job name the form, this schema and the creation RPC all accept. */
+export const PROJECT_NAME_MAX_LENGTH = 200;
+const PROJECT_NAME_WARN_FROM = PROJECT_NAME_MAX_LENGTH - 20;
+
+/**
+ * What to say beside the job name as it nears its limit. The field stops
+ * taking characters at the limit, so without this a long or pasted name is
+ * cut short with no sign that anything happened.
+ */
+export function projectNameLimitNotice(name: string): string | null {
+    if (name.length < PROJECT_NAME_WARN_FROM) return null;
+    const left = PROJECT_NAME_MAX_LENGTH - name.length;
+    if (left > 0) return `${left} ${left === 1 ? "character" : "characters"} left for the job name.`;
+    return `That's the ${PROJECT_NAME_MAX_LENGTH}-character limit for a job name. Nothing more will fit, so check the end hasn't been cut off, or shorten it.`;
+}
+
 const BlankProjectSchema = z.object({
     requestId: z.string().uuid("Something went wrong preparing this form. Refresh the page and try again."),
-    name: z.string().trim().min(1, "Give the job a name.").max(200, "Keep the job name under 200 characters."),
+    name: z.string().trim().min(1, "Give the job a name.").max(PROJECT_NAME_MAX_LENGTH, `Keep the job name to ${PROJECT_NAME_MAX_LENGTH} characters or fewer.`),
     client: z.string().trim().min(1, "Add the client's name.").max(200, "Keep the client name under 200 characters."),
     clientEmail: z.union([
         z.literal(""),

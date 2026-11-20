@@ -8,7 +8,7 @@ import ui from "@/components/project-chooser.module.css";
 import { pipelineStageDisplayLabel } from "./pipeline-stage-display";
 import { corePipelineTextLinkSmThemed } from "@/lib/core-editing-palette";
 
-type SortKey = "name" | "client_name" | "project_type" | "status" | "value" | "proposal_sent_at" | "days_open";
+type SortKey = "name" | "client_name" | "project_type" | "status" | "value" | "proposal_sent_at";
 type SortDir = "asc" | "desc";
 
 function getStatusBadgeClass(status: string | null, isDark: boolean): string {
@@ -50,13 +50,6 @@ function getStatusBadgeClass(status: string | null, isDark: boolean): string {
         default:
             return "bg-slate-50 text-slate-500 border-slate-200";
     }
-}
-
-function getDaysOpen(createdAt: string | null): number {
-    if (!createdAt) return 0;
-    const created = new Date(createdAt);
-    const now = new Date();
-    return Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 function formatDate(dateStr: string | null): string {
@@ -150,10 +143,6 @@ export default function ProjectList({ projects, financials }: { projects: any[],
                 aVal = a.proposal_sent_at ? new Date(a.proposal_sent_at).getTime() : 0;
                 bVal = b.proposal_sent_at ? new Date(b.proposal_sent_at).getTime() : 0;
                 break;
-            case "days_open":
-                aVal = getDaysOpen(a.created_at);
-                bVal = getDaysOpen(b.created_at);
-                break;
         }
 
         if (aVal < bVal) return sortDir === "asc" ? -1 : 1;
@@ -180,14 +169,12 @@ export default function ProjectList({ projects, financials }: { projects: any[],
                         <SortHeader label="Status" sortKey="status" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} isDark={isDark} />
                         <SortHeader label="Value" sortKey="value" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} align="right" isDark={isDark} />
                         <SortHeader label="Sent Date" sortKey="proposal_sent_at" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} isDark={isDark} />
-                        <SortHeader label="Days Open" sortKey="days_open" currentSort={sortKey} currentDir={sortDir} onSort={handleSort} align="right" isDark={isDark} />
                         <th className={`px-4 py-3 font-medium text-right ${isDark ? "text-[#a0a0a0]" : ""}`}>Actions</th>
                     </tr>
                 </thead>
                 <tbody className={`divide-y ${isDark ? "divide-[#2a2a2a]" : "divide-gray-100"}`}>
                     {sorted.map((p) => {
                         const value = getValue(p);
-                        const days = getDaysOpen(p.created_at);
                         return (
                             <tr
                                 key={p.id}
@@ -214,11 +201,6 @@ export default function ProjectList({ projects, financials }: { projects: any[],
                                 <td className={`px-4 py-3 text-xs ${isDark ? "text-[#a0a0a0]" : "text-gray-500"}`}>
                                     {formatDate(p.proposal_sent_at)}
                                 </td>
-                                <td className="px-4 py-3 text-right">
-                                    <span className={`text-xs font-semibold ${days > 30 ? "text-amber-500" : isDark ? "text-[#a0a0a0]" : "text-gray-400"}`}>
-                                        {days}d
-                                    </span>
-                                </td>
                                 <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
                                     <Link
                                         href={`/dashboard/projects/proposal?projectId=${p.id}`}
@@ -232,7 +214,7 @@ export default function ProjectList({ projects, financials }: { projects: any[],
                     })}
                     {sorted.length === 0 && (
                         <tr>
-                            <td colSpan={8} className={`p-8 text-center text-sm ${isDark ? "text-[#a0a0a0]" : "text-gray-400"}`}>
+                            <td colSpan={7} className={`p-8 text-center text-sm ${isDark ? "text-[#a0a0a0]" : "text-gray-400"}`}>
                                 No projects match your filters.
                             </td>
                         </tr>

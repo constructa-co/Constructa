@@ -228,7 +228,7 @@ describe("saveSimpleProgrammeAction", () => {
         expect(saved.programme_phases).toEqual([
             { name: "Works on site", calculatedDays: 15, manualDays: 15, manhours: 0, startOffset: 0, duration_unit: "Weeks" },
         ]);
-        expect(computeProgrammePlan(MONDAY, saved.programme_phases as unknown[])).toMatchObject({ end_date: "2026-10-30", duration_label: "3 weeks" });
+        expect(computeProgrammePlan(MONDAY, saved.programme_phases as unknown[])).toMatchObject({ end_date: "2026-10-30", duration_label: "15 working days (3 weeks)" });
         // Scoped to the owner as well as the project.
         expect(db.updates[0].filters).toEqual({ id: PROJECT_ID, user_id: USER_ID, programme_phases: JSON.stringify([]) });
     });

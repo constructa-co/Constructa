@@ -12,7 +12,7 @@ describe("planner display plan", () => {
         const before = JSON.stringify(phases);
         const plan = plannerDisplayPlan("2026-10-19", phases, 5);
         expect(plan).toEqual(computeProgrammePlan("2026-10-19", phases));
-        expect(plan).toMatchObject({ end_date: "2026-11-06", working_days: 15, calendar_days: 19, duration_label: "3 weeks" });
+        expect(plan).toMatchObject({ end_date: "2026-11-06", working_days: 15, calendar_days: 19, duration_label: "15 working days (3 weeks)" });
         expect(JSON.stringify(phases)).toBe(before);
     });
 

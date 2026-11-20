@@ -27,6 +27,7 @@ import { evaluateProposalReadiness } from "@/lib/proposal-readiness";
 import { validatePercentagePaymentStagesForPersist } from "@/lib/proposal-payment-percentages";
 import { isProposalResponseKind, responseKindOfSnapshot, type ProposalResponseKind } from "@/lib/proposal-response";
 import { isProposalCoverPhotoEnabled, parseProposalCoverPhotoChoice } from "@/lib/proposal-cover-photo";
+import { SITE_PHOTO_ELSEWHERE_ERROR, sitePhotoOrigin } from "@/lib/proposal-site-photos";
 import {
     AI_UNAVAILABLE_ERROR,
     DELIVERY_ERROR,
@@ -131,6 +132,13 @@ export async function saveProposalDraftAction(projectId: string, payload: Propos
     const { access, error: accessError } = await editableAccess(input.projectId, "You can't change this proposal.");
     if (!access) return { success: false, error: accessError };
     const { user, supabase } = access;
+
+    // A photo stored for another job, or as branding or a case study, is not
+    // a photograph of this site and is not saved as one.
+    const job = { projectId: input.projectId, userId: user.id };
+    if (photos.some((photo) => sitePhotoOrigin(photo.url ?? "", job) === "elsewhere")) {
+        return { success: false, error: SITE_PHOTO_ELSEWHERE_ERROR };
+    }
 
     if (guardPayments) {
         const { data: current, error } = await supabase.from("projects").select("id, payment_schedule")
@@ -469,7 +477,7 @@ export async function publishProposalAction(
 
     const { data: estimates, error: estimateError } = await supabase
         .from("estimates")
-        .select("*, estimate_lines(id, trade_section, description, quantity, unit, line_total)")
+        .select("*, estimate_lines(id, trade_section, description, quantity, unit, line_total, line_type)")
         .eq("project_id", projectId)
         .eq("is_active", true);
     if (estimateError || !estimates || estimates.length !== 1) {

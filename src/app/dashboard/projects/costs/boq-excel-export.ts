@@ -4,6 +4,7 @@
 import type { Estimate, EstimateLine } from "./types";
 import { requireLaunchCapability } from "@/lib/launch-profile";
 import { computeContractSum, MARKUP_METHOD_NOTE } from "@/lib/financial";
+import { groupLinesBySection, orderedEstimateSections } from "@/lib/estimate-batch-sections";
 
 function formatGBP(n: number): string {
     return n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -16,17 +17,8 @@ export async function exportBoQToExcel(estimate: Estimate): Promise<void> {
     const isClientBoQ = !!estimate.is_client_boq;
     const lines = estimate.estimate_lines.filter(l => l.description?.trim());
 
-    // Group by section preserving order
-    const sectionOrder: string[] = [];
-    const sectionGroups: Record<string, EstimateLine[]> = {};
-    for (const line of lines) {
-        const sec = line.trade_section || "General";
-        if (!sectionGroups[sec]) {
-            sectionGroups[sec] = [];
-            sectionOrder.push(sec);
-        }
-        sectionGroups[sec].push(line);
-    }
+    const sectionOrder = orderedEstimateSections(lines);
+    const sectionGroups = groupLinesBySection(lines);
 
     type Row = (string | number)[];
 

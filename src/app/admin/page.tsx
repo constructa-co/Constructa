@@ -4,6 +4,7 @@ export const revalidate = 0;
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/supabase/admin-auth";
 import AdminClient from "./admin-client";
+import { signupConversionRatePct, sumSignupPoints } from "@/lib/admin-dashboard-metrics";
 import {
     PLAN_PRICE_GBP,
     AdminData,
@@ -882,12 +883,11 @@ export default async function AdminPage() {
 
     // ── 17. Website — calendar-month signups vs rolling 30d visitors (not attributed) ─
 
+    const signupsLast30d = sumSignupPoints(dailySignups);
+
     const website: PlausibleMetrics = {
         ...plausibleResult,
-        signupConversionRate:
-            plausibleResult.visitors30d > 0
-                ? (signupsThisMonth / plausibleResult.visitors30d) * 100
-                : 0,
+        signupConversionRate: signupConversionRatePct(signupsLast30d, plausibleResult.visitors30d),
     };
 
     // ── 18. Assemble AdminData ────────────────────────────────────────────────

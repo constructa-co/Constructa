@@ -114,7 +114,7 @@ export default async function ContractAdminPage(
   // everything downstream.
   const { data: activeEstimate } = await supabase
     .from("estimates")
-    .select("id, total_cost, prelims_pct, overhead_pct, profit_pct, risk_pct, discount_pct, estimate_lines(trade_section, line_total)")
+    .select("id, total_cost, prelims_pct, overhead_pct, profit_pct, risk_pct, discount_pct, estimate_lines(trade_section, line_total, line_type)")
     .eq("project_id", projectId)
     .eq("is_active", true)
     .maybeSingle();

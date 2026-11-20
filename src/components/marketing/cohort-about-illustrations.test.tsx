@@ -4,11 +4,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PhaseOneAbout } from './cohort-about';
 import { FullAboutPage } from './full-about';
+import {
+  aboutCaptures,
+  removedUnverifiedIllustrations,
+} from './about-image-provenance';
 
 vi.mock('next/image', () => ({
   default: (props: { src: string; alt: string; width?: number; height?: number; className?: string }) => (
     <img
-      src={props.src}
+      src={typeof props.src === 'string' ? props.src : '[imported-capture]'}
       alt={props.alt}
       width={props.width}
       height={props.height}
@@ -18,22 +22,26 @@ vi.mock('next/image', () => ({
   ),
 }));
 
-const captionedSources = [
-  {
-    src: '/images/about-hero.png',
-    caption: 'AI-generated illustration. The people shown are not Constructa staff or clients.',
-    width: '2048',
-    height: '2048',
-  },
-  {
-    src: '/images/founder-message.png',
-    caption: 'AI-generated illustration. The person shown is not Robert Smith.',
-    width: '1024',
-    height: '1024',
-  },
+const aiPeopleSources = [
+  '/images/about-hero.png',
+  '/images/about-problem1.png',
+  '/images/about-solution.png',
+  '/images/founder-message.png',
+  '/images/about-whats-next.png',
 ] as const;
 
-describe('About captioned illustration panels (cohort + full)', () => {
+const renderers = [
+  ['cohort', () => renderToStaticMarkup(<PhaseOneAbout />)],
+  ['full', () => renderToStaticMarkup(<FullAboutPage />)],
+] as const;
+
+function sectionContaining(html: string, text: string) {
+  const match = html.match(new RegExp(`<section\\b[^>]*>(?:(?!</section>).)*${text}(?:(?!</section>).)*</section>`, 'is'));
+  expect(match?.[0], `section containing: ${text}`).toBeTruthy();
+  return match?.[0] ?? '';
+}
+
+describe('About illustration panels without AI-generated people (cohort + full)', () => {
   beforeEach(() => {
     vi.stubEnv('NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE', 'cohort');
   });
@@ -41,36 +49,82 @@ describe('About captioned illustration panels (cohort + full)', () => {
     vi.unstubAllEnvs();
   });
 
-  it.each([
-    ['cohort', () => renderToStaticMarkup(<PhaseOneAbout />)],
-    ['full', () => renderToStaticMarkup(<FullAboutPage />)],
-  ])('%s exposes captioned hero and founder images with figure styling', (_profile, markup) => {
+  it.each(renderers)('%s renders no AI-generated people image or people disclaimer', (_profile, markup) => {
     const html = markup();
-    for (const { src, caption, width, height } of captionedSources) {
-      expect(html).toContain(caption);
-      const img = html.match(new RegExp(`<img[^>]*src="${src.replace('/', '\\/')}"[^>]*>`, 'i'))?.[0] ?? '';
-      expect(img, caption).toContain('data-next-image="true"');
-      expect(img).toContain(`width="${width}"`);
-      expect(img).toContain(`height="${height}"`);
-      expect(cohortOrFullHasFigureClass(html, src), src).toBe(true);
-    }
+    for (const src of aiPeopleSources) expect(html, src).not.toContain(src);
+    expect(html).not.toContain('AI-generated illustration');
+    expect(html).not.toContain('not Constructa staff');
+    expect(html).not.toContain('not Robert Smith');
   });
 
-  it('keeps the original problem illustration path', () => {
-    const html = renderToStaticMarkup(<PhaseOneAbout />);
-    expect(html).toContain('/images/about-problem1.png');
-    expect(html).not.toContain('/images/about-problem.png');
+  it.each(renderers)('%s references none of the removed unverified illustrations (#191)', (_profile, markup) => {
+    const html = markup();
+    for (const { src } of removedUnverifiedIllustrations) expect(html, src).not.toContain(src);
+    expect(html).not.toContain('Illustration of a cluster of small construction buildings');
+    expect(html).not.toContain('Illustration of a spreadsheet grid with warning and error symbols');
   });
 
-  it('keeps committed public PNGs for captioned panels', () => {
-    for (const { src } of captionedSources) {
+  it.each(renderers)(
+    '%s shows the verified programme capture in the built-by panel with its synthetic disclosure',
+    (_profile, markup) => {
+      const html = markup();
+      const panel = sectionContaining(html, 'Built by people who know the job');
+      expect(panel).toContain(aboutCaptures.programmeSavedStages.sourcePath);
+      expect(panel).toContain('synthetic journey fixture capture from 15 November 2026');
+      expect(panel).toContain('made-up job');
+      expect(panel).toContain('simulated saves');
+      expect(panel).toContain('saved stages named Strip out and First fix');
+      expect(panel).toMatch(/data-next-image="true"/);
+    },
+  );
+
+  it.each(renderers)('%s keeps the problem panel text-only with no image', (_profile, markup) => {
+    const html = markup();
+    const panel = sectionContaining(html, 'The problem we saw');
+    expect(panel).toContain('Proposals get rushed');
+    expect(panel).not.toContain('<img');
+    expect(panel).not.toContain('data-next-image');
+  });
+
+  it.each(renderers)('%s keeps the founder quote without a portrait figure', (_profile, markup) => {
+    const html = markup();
+    expect(html).toContain('A message from the founder');
+    expect(html).toContain('— Robert Smith');
+    const founderSection = html.split('A message from the founder')[1] ?? '';
+    expect(founderSection.split('Why now?')[0]).not.toContain('<img');
+  });
+
+  it.each(renderers)('%s captions the real review capture as a synthetic journey fixture', (_profile, markup) => {
+    const html = markup();
+    expect(html).toContain(aboutCaptures.estimatePriceAdjustments.sourcePath);
+    expect(html).toContain('synthetic journey fixture capture from 15 November 2026');
+    expect(html).toContain('made-up job');
+    expect(html).toContain('simulated saves');
+    expect(html).toContain('Price adjustments panel');
+  });
+
+  it.each(renderers)(
+    '%s renders only provenance-registered imagery',
+    (_profile, markup) => {
+      const html = markup();
+      const registeredSources = [
+        ...Object.values(aboutCaptures).map((capture) => capture.sourcePath),
+      ];
+      const imgSrcs = [...html.matchAll(/<img[^>]*src="([^"]+)"/g)].map((match) => match[1]);
+      expect(imgSrcs.length).toBe(2);
+      for (const src of imgSrcs) {
+        expect(
+          registeredSources.some((registered) => src.includes(registered)),
+          `unregistered image src: ${src}`,
+        ).toBe(true);
+      }
+    },
+  );
+
+  it('keeps the removed illustration files on disk without referencing them', () => {
+    for (const { src } of removedUnverifiedIllustrations) {
       const bytes = readFileSync(`public${src}`);
       expect(bytes.byteLength).toBeGreaterThan(10_000);
     }
   });
 });
-
-function cohortOrFullHasFigureClass(html: string, src: string) {
-  const img = html.match(new RegExp(`<img[^>]*src="${src.replace('/', '\\/')}"[^>]*>`, 'i'))?.[0] ?? '';
-  return src === '/images/about-hero.png' ? /class="/.test(img) : /class="w-full h-auto/.test(img) || /class="/.test(img);
-}

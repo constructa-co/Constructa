@@ -1,0 +1,16 @@
+{
+  "theme": "dark",
+  "monthMeasure": {
+    "state": "solid",
+    "ratio": 6.0214041488169,
+    "color": "rgb(243, 255, 242)",
+    "background": "rgb(61, 107, 69)"
+  },
+  "listMeasure": {
+    "state": "solid",
+    "ratio": 6.0214041488169,
+    "color": "rgb(243, 255, 242)",
+    "background": "rgb(61, 107, 69)"
+  },
+  "axeViolations": []
+}

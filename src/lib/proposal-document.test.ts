@@ -146,7 +146,7 @@ describe("document order and content", () => {
             { label: "Price including VAT", value: "£9,062.46" },
             { label: "Start on site", value: "2 Nov 2026" },
             { label: "Finish", value: "20 Nov 2026" },
-            { label: "Duration", value: "3 weeks" },
+            { label: "Duration", value: "15 working days (3 weeks)" },
         ]);
     });
 });
@@ -191,6 +191,74 @@ describe("price", () => {
         expect(doc.keyFacts.some((fact) => fact.label === "Price including VAT")).toBe(true);
         const price = blockOf(doc, "price", "price")!;
         expect(price.totals).toEqual(vatLines(legacy.commercial));
+    });
+
+    describe("D51 grouping, order and quantity wording", () => {
+        const line = (id: string, trade_section: string, description: string, quantity = 1, unit = "item") =>
+            ({ id, trade_section, description, quantity, unit, line_total: 500 });
+        const mixed = () => {
+            const input = representativeInput();
+            input.estimate.estimate_lines = [
+                line("a", "Preliminaries", "Skips and welfare"),
+                line("b", "Plumbing", "First fix", 3, "day"),
+                line("c", "General", "Making good", 2, "item"),
+                line("d", "plumbing", "Second fix", 1, "day"),
+                line("e", "Finishes", "Tiling", 24, "m2"),
+                line("f", "General", "Clean down", 0.5, "week"),
+            ];
+            return buildProposalPublicationSnapshot(input);
+        };
+        const groupsOf = (source: ProposalPublicationSnapshot) => blockOf(buildProposalDocument(source), "price", "price")!.groups;
+
+        it("leads with the unheaded general lines, merges a section typed in two cases and closes with preliminaries", () => {
+            const groups = groupsOf(mixed());
+            expect(groups.map((group) => group.title)).toEqual([null, "Plumbing", "Finishes", "Preliminaries"]);
+            expect(groups.map((group) => group.items.map((item) => item.description))).toEqual([
+                ["Making good", "Clean down"],
+                ["First fix", "Second fix"],
+                ["Tiling"],
+                ["Skips and welfare"],
+            ]);
+        });
+
+        it("never prints the General filing label beside percentage preliminaries", () => {
+            const input = minimalInput();
+            input.estimate.prelims_pct = 10;
+            const source = buildProposalPublicationSnapshot(input);
+            const groups = groupsOf(source);
+            expect(groups.map((group) => group.title)).toEqual([null, "Preliminaries"]);
+            expect(groups[1].items.map((item) => item.description)).toEqual(["Project preliminaries"]);
+            const doc = buildProposalDocument(source);
+            expect(htmlText(doc)).not.toContain("General");
+            expect(pdfStrings(doc)).not.toContain("GENERAL");
+        });
+
+        it("words counted units in the plural and leaves unit symbols alone", () => {
+            const quantities = groupsOf(mixed()).flatMap((group) => group.items.map((item) => item.quantity));
+            expect(quantities).toEqual(["2 items", "0.5 weeks", "3 days", "1 day", "24 m2", ""]);
+        });
+
+        it("moves no money: the regrouped lines still add up to the price", () => {
+            const source = mixed();
+            const pence = groupsOf(source).flatMap((group) => group.items)
+                .reduce((sum, item) => sum + Math.round(Number(item.amount.replace(/[£,]/g, "")) * 100), 0);
+            expect(pence).toBe(Math.round(source.commercial.contract_sum_ex_vat * 100));
+        });
+
+        it("stamps new snapshots with the current presentation", () => {
+            expect(snapshot.document_presentation_version).toBe(6);
+        });
+
+        it.each([2, 3, 4, undefined] as const)("re-exports a snapshot issued under presentation %s with the grouping and wording it was issued with", (version) => {
+            const issued = mixed();
+            if (version) issued.document_presentation_version = version;
+            else delete issued.document_presentation_version;
+            const groups = groupsOf(issued);
+            expect(groups.map((group) => group.title)).toEqual(["Preliminaries", "Plumbing", "General", "plumbing", "Finishes"]);
+            expect(groups.flatMap((group) => group.items.map((item) => item.quantity))).toEqual(["", "3 day", "2 item", "0.5 week", "1 day", "24 m2"]);
+            // A stored snapshot is read, never rewritten.
+            expect(issued.commercial.fee_items.map((item) => item.trade_section)).toEqual(["Preliminaries", "Plumbing", "General", "plumbing", "Finishes", "General"]);
+        });
     });
 
     it("makes payment stages add up to the price exactly", () => {
@@ -397,5 +465,89 @@ describe("truthful content", () => {
         expect(draft.reference).toBe("Draft");
         expect(htmlText(draft)).toContain("Draft preview. This has not been sent to the client.");
         expect(pdfStrings(draft)).toContain("DRAFT PREVIEW - NOT SENT TO THE CLIENT");
+    });
+});
+
+describe("D51 director's message is shown once", () => {
+    const MESSAGE = "I visit every job at the start and at the end.";
+    const usedAsClosing = (closing: string) => buildProposalPublicationSnapshot({
+        ...representativeInput(),
+        project: { ...representativeInput().project, closing_statement: closing },
+    });
+    const quoteOf = (doc: ProposalDocument) => blockOf(doc, "about", "quote");
+    const count = (text: string) => text.split(MESSAGE).length - 1;
+
+    it("leaves the message out of About when it is the closing wording, on the page and in the PDF", () => {
+        const doc = buildProposalDocument(usedAsClosing(MESSAGE));
+        expect(quoteOf(doc)).toBeUndefined();
+        expect(blocksOf(doc, "closing")[0]).toEqual({ type: "paragraphs", paragraphs: [MESSAGE] });
+        expect(count(htmlText(doc))).toBe(1);
+        expect(count(pdfStrings(doc).replace(/\n/g, " "))).toBe(1);
+        // The rest of About is untouched.
+        expect(blocksOf(doc, "about").map((block) => block.type)).toEqual(["facts", "paragraphs"]);
+    });
+
+    it("treats the copied message as the same words after edits around it or to its spacing", () => {
+        expect(quoteOf(buildProposalDocument(usedAsClosing(`Thank you for your time.\n  ${MESSAGE.replace("every job", "every  job")}\nRing me any time.`)))).toBeUndefined();
+    });
+
+    it("keeps the message in About when the closing says something else, or nothing", () => {
+        expect(quoteOf(document)).toEqual({ type: "quote", paragraphs: [MESSAGE], attribution: "Sam Builder" });
+        const noClosing = buildProposalDocument(usedAsClosing(""));
+        expect(quoteOf(noClosing)).toBeDefined();
+        expect(noClosing.sections.map((section) => section.id)).not.toContain("closing");
+    });
+
+    it.each([2, 3, undefined] as const)("draws a proposal issued at presentation %s as it was issued, with both", (version) => {
+        const issued = structuredClone(usedAsClosing(MESSAGE));
+        if (version) issued.document_presentation_version = version;
+        else delete issued.document_presentation_version;
+        const before = structuredClone(issued);
+        const doc = buildProposalDocument(issued, { snapshotHash: "cd".repeat(32) });
+        expect(quoteOf(doc)).toEqual({ type: "quote", paragraphs: [MESSAGE], attribution: "Sam Builder" });
+        expect(count(htmlText(doc))).toBe(2);
+        expect(count(pdfStrings(doc).replace(/\n/g, " "))).toBe(2);
+        expect(issued).toEqual(before);
+    });
+});
+
+describe("D51 programme stage names in the PDF", () => {
+    const LONG_NAME = "First fix plumbing and electrics to the kitchen, utility and downstairs cloakroom including boxing in, pressure testing and sign off ENDMARKER";
+    const input = representativeInput();
+    const longSnapshot = buildProposalPublicationSnapshot({
+        ...input,
+        project: {
+            ...input.project,
+            programme_phases: (input.project.programme_phases ?? []).map((phase, index) => (index === 1 ? { ...(phase as object), name: LONG_NAME } : phase)),
+        },
+    });
+    const programmeRows = (doc: ProposalDocument) => renderProposalBrochure(doc, stubImages(doc)).layout
+        .filter((entry) => entry.section === "programme" && entry.kind === "row").slice(1);
+
+    it("prints a long stage name in full and gives its row the room", () => {
+        expect(longSnapshot.programme_plan!.stages[1].name).toBe(LONG_NAME);
+        const doc = buildProposalDocument(longSnapshot);
+        expect(doc.presentationVersion).toBe(6);
+        expect(pdfStrings(doc).replace(/\n/g, " ")).toContain(LONG_NAME);
+        const rows = programmeRows(doc);
+        expect(rows).toHaveLength(4);
+        const heights = rows.map((row) => Math.round((row.bottom - row.top) * 100) / 100);
+        expect(heights[0]).toBe(13);
+        expect(heights[1]).toBeGreaterThan(13);
+        expect(heights.slice(2)).toEqual([13, 13]);
+        expect(rows.every((row) => row.bottom <= 274.01)).toBe(true);
+    });
+
+    it("says the same stage name on the page", () => {
+        expect(htmlText(buildProposalDocument(longSnapshot))).toContain(LONG_NAME);
+    });
+
+    it.each([2, 3] as const)("draws a proposal issued at presentation %s with the layout it was issued in", (version) => {
+        const issued = { ...longSnapshot, document_presentation_version: version };
+        const doc = buildProposalDocument(issued);
+        const pdf = pdfStrings(doc).replace(/\n/g, " ");
+        expect(pdf).toContain("First fix plumbing and electrics");
+        expect(pdf).not.toContain("ENDMARKER");
+        expect(programmeRows(doc).map((row) => Math.round((row.bottom - row.top) * 100) / 100)).toEqual([13, 13, 13, 13]);
     });
 });

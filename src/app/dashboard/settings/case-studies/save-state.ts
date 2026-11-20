@@ -2,11 +2,10 @@
  * The older case-study editor: what is known to be saved, what is on the
  * screen, and what a save said. Pure.
  *
- * This makes saving HONEST. It is NOT protection against two tabs. A save
- * still replaces the whole stored list, so a tab that loaded an older list
- * will still overwrite a newer one, and that write will still be
- * acknowledged, because it will have been made. Nothing here detects,
- * refuses, merges or warns about that. It is a known, open residual.
+ * This makes saving HONEST and refuses a stale tab: the server compares a
+ * fingerprint of what this tab last knew to be stored with what is stored
+ * now, and only replaces the list when they still match, or when what is
+ * stored is a list this tab sent itself and never heard back about.
  *
  * The rules:
  *
@@ -28,7 +27,7 @@
 
 export type SaveCaseStudiesResult =
     /** Exactly one row came back and it is the caller's own. `refreshed` is false if other pages could not be told to reload. */
-    | { status: "saved"; refreshed: boolean }
+    | { status: "saved"; refreshed: boolean; fingerprint: string }
     /** Nobody is signed in. No write was attempted. */
     | { status: "signed-out"; message: string }
     /** What was sent is not a list. No write was attempted. */
@@ -36,13 +35,16 @@ export type SaveCaseStudiesResult =
     /** The write ran and no row came back. Whether the profile is missing or not the caller's to change is not known. */
     | { status: "no-row"; message: string }
     /** The write may or may not have been made. */
-    | { status: "unknown"; message: string };
+    | { status: "unknown"; message: string }
+    /** Another tab saved since this tab loaded. Nothing was written. */
+    | { status: "conflict"; message: string };
 
 export const SAVE_MESSAGES = {
     signedOut: "You're signed out, so nothing was sent. Sign in again to save. Your case studies are still on this page.",
     refused: "That couldn't be sent as it is, so nothing was sent.",
     noRow: "The save wasn't confirmed: your company profile wasn't available to save to. Your changes are still on this page.",
-    unknown: "We couldn't confirm whether that was saved. Your changes are still on this page. Saving again sends this whole list and replaces whatever is stored, including anything changed in another tab or window.",
+    unknown: "We couldn't confirm whether that was saved. Your changes are still on this page. Save again to retry.",
+    conflict: "Another tab or window changed your case studies after this page loaded. Reload to see the latest list, then save your changes again.",
     saved: "Saved.",
     savedNotRefreshed: "Saved. Other pages may show the older list until they are reloaded.",
     nothingToSave: "There's nothing new to save.",
@@ -59,14 +61,30 @@ export type SaveNotice =
     | { kind: "failed"; message: string }
     | { kind: "unknown"; message: string };
 
+export interface SaveRequest<T> {
+    token: number;
+    sent: T[];
+    expectedFingerprint: string;
+    /** The lists this tab sent before without learning the outcome. */
+    unconfirmed: T[][];
+}
+
 export interface SaveState<T> {
     saved: T[];
     draft: T[];
-    /** The save in flight: its number and a copy of exactly what it sent. */
-    saving: { token: number; sent: T[] } | null;
+    /** Fingerprint of the list last known to match storage. */
+    storedFingerprint: string;
+    /** The save in flight: its number, a copy of exactly what it sent, and what it tells the server this tab knows. */
+    saving: SaveRequest<T> | null;
     nextToken: number;
     /** A save may have been made, and it is not known whether it was. Cleared only by an acknowledged save. */
     uncertain: boolean;
+    /**
+     * Each list sent in a save whose outcome is not known, since the last
+     * acknowledged save. Storage may hold any of them, put there by this tab,
+     * so the next save names them: finding one stored is not another tab's work.
+     */
+    unconfirmed: T[][];
     notice: SaveNotice;
 }
 
@@ -78,8 +96,8 @@ export type SaveAction<T> =
 /** A copy that shares nothing with the original, so later typing cannot alter what was sent or acknowledged. */
 const copyOf = <T,>(list: T[]): T[] => structuredClone(list);
 
-export function initialSaveState<T>(loaded: T[]): SaveState<T> {
-    return { saved: copyOf(loaded), draft: copyOf(loaded), saving: null, nextToken: 1, uncertain: false, notice: { kind: "none" } };
+export function initialSaveState<T>(loaded: T[], storedFingerprint: string): SaveState<T> {
+    return { saved: copyOf(loaded), draft: copyOf(loaded), storedFingerprint, saving: null, nextToken: 1, uncertain: false, unconfirmed: [], notice: { kind: "none" } };
 }
 
 /**
@@ -110,7 +128,7 @@ export const needsLeaveWarning = <T,>(state: SaveState<T>): boolean => isDirty(s
 export const nothingToSave = <T,>(state: SaveState<T>): boolean => state.saving === null && !state.uncertain && !isDirty(state);
 
 /** The save now running, as the screen must send it: once, and exactly this list. Null when none is running. */
-export function requestOf<T>(state: SaveState<T>): { token: number; sent: T[] } | null {
+export function requestOf<T>(state: SaveState<T>): SaveRequest<T> | null {
     return state.saving;
 }
 
@@ -134,7 +152,12 @@ export function saveReducer<T>(state: SaveState<T>, action: SaveAction<T>): Save
             // One at a time.
             if (state.saving) return state;
             if (nothingToSave(state)) return { ...state, notice: { kind: "nothing-to-save", message: SAVE_MESSAGES.nothingToSave } };
-            return { ...state, saving: { token: state.nextToken, sent: copyOf(state.draft) }, nextToken: state.nextToken + 1, notice: { kind: "none" } };
+            return {
+                ...state,
+                saving: { token: state.nextToken, sent: copyOf(state.draft), expectedFingerprint: state.storedFingerprint, unconfirmed: state.unconfirmed },
+                nextToken: state.nextToken + 1,
+                notice: { kind: "none" },
+            };
 
         case "save/reply": {
             // Not the save now running: an old reply. It changes nothing.
@@ -145,10 +168,25 @@ export function saveReducer<T>(state: SaveState<T>, action: SaveAction<T>): Save
             switch (result.status) {
                 case "saved":
                     // What was SENT is what is saved. Anything typed since is still on the screen, and still unsaved.
-                    return { ...base, saved: sent, uncertain: false, notice: { kind: "saved", message: result.refreshed ? SAVE_MESSAGES.saved : SAVE_MESSAGES.savedNotRefreshed } };
+                    return {
+                        ...base,
+                        saved: sent,
+                        storedFingerprint: result.fingerprint,
+                        uncertain: false,
+                        unconfirmed: [],
+                        notice: { kind: "saved", message: result.refreshed ? SAVE_MESSAGES.saved : SAVE_MESSAGES.savedNotRefreshed },
+                    };
+                case "conflict":
+                    return { ...base, notice: { kind: "failed", message: result.message } };
                 case "unknown":
                     // It may have been written. What is stored is now not known, and stays so until a save is acknowledged.
-                    return { ...base, uncertain: true, notice: { kind: "unknown", message: result.message } };
+                    // What was sent is kept, so a later save is not refused for finding this tab's own list stored.
+                    return {
+                        ...base,
+                        uncertain: true,
+                        unconfirmed: state.unconfirmed.some((earlier) => sameData(earlier, sent)) ? state.unconfirmed : [...state.unconfirmed, sent],
+                        notice: { kind: "unknown", message: result.message },
+                    };
                 default:
                     // No write was attempted, or none was confirmed. Nothing known has changed; an earlier uncertainty remains.
                     return { ...base, notice: { kind: "failed", message: result.message } };

@@ -52,7 +52,7 @@ export async function archiveProjectAction(
     // contract_value into archive_snapshots.
     supabase
       .from("estimates")
-      .select("total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, discount_pct, estimate_lines(trade_section, line_total)")
+      .select("total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, discount_pct, estimate_lines(trade_section, line_total, line_type)")
       .eq("project_id", projectId)
       .eq("is_active", true)
       .maybeSingle(),

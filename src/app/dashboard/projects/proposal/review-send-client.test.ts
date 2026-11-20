@@ -107,6 +107,14 @@ describe("Review and Send", () => {
         expect(html).toContain("12 terms are shown to the client");
     });
 
+    it("surfaces inconsistent £ figures between the brief and the priced proposal", () => {
+        const mismatch = review({
+            context: context({ brief_scope: "Client discussed a fixed price of £50,000.00 for the full refurbishment." }),
+        });
+        expect(mismatch).toContain("data-figure-consistency-warning");
+        expect(mismatch).toMatch(/£50,000\.00 appears/);
+    });
+
     it("shows a saved all-week working pattern in the programme section, not the default Monday–Friday finish", () => {
         const weekend = review({
             context: context({
@@ -200,6 +208,13 @@ describe("Review and Send", () => {
         expect(button).toContain("disabled");
         expect(html).toContain('data-send-block="not-confirmed"');
         expect(html).toContain("I have read the preview and it is right. Send version 1 to Alex Client.");
+    });
+
+    it("warns about a past programme start without blocking proposal readiness", () => {
+        const past = review({ context: context({ start_date: "2026-09-28" }) });
+        expect(past).toContain("data-proposal-past-start");
+        expect(past).toContain('data-readiness="ready"');
+        expect(html).not.toContain("data-proposal-past-start");
     });
 
     it("separates what is needed from what would improve it", () => {
@@ -428,7 +443,9 @@ describe("CON-040 draft versus issued reference", () => {
 describe("programme step", () => {
     const project = { id: "p", name: "14 Example Road bathroom refit", client_name: "Alex Client", start_date: null, programme_phases: [] };
     const render = (props: Partial<Parameters<typeof SimpleProgrammeClient>[0]> = {}) =>
-        renderToStaticMarkup(createElement(SimpleProgrammeClient, { project, lockReason: null, estimate: null, ...props }));
+        renderToStaticMarkup(createElement(SimpleProgrammeClient, {
+            project, lockReason: null, estimate: null, plannerDraftViewerScope: "review-test-viewer", ...props,
+        }));
 
     it("opens on the simple editor: start date, duration, optional stages", () => {
         const html = render();

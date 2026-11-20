@@ -26,7 +26,20 @@ function context(stored: unknown, selected: unknown, lib?: ProposalLibrary): Rev
 const draftOf = (ctx: ReviewContext) => draftFromProject(ctx.project, () => "key");
 
 describe("older-only proposals are exactly as they were", () => {
-    // Hashes of the representative fixture's snapshot as built by the accepted code at 63ca10f, before this wiring.
+    // The a93712a baseline includes the regional bank-holiday division in the programme plan.
+    // CON-058 only changes programme_plan.duration_label ("3 weeks" → "15 working days (3 weeks)");
+    // case-study wiring unchanged; reverting that field alone restores the pre-CON-058 hashes (CI con058).
+    it("pins the representative legacy selection with the regional calendar fields", async () => {
+        const snapshot = buildProposalPublicationSnapshot(representativeInput());
+        expect(snapshot.programme_plan?.duration_label).toBe("15 working days (3 weeks)");
+        expect(await hashProposalContent(snapshot)).toBe("e769bc4faf2b82be3efd1fcb605ce094802767f1ddf59f76c8c4312aa7cc88ce");
+        expect(await hashProposalPublication(snapshot)).toBe("3a92756f10b0134472e71753affa785b927f6e880046481446a433e78d15cb48");
+        const legacyLabel = { ...snapshot, programme_plan: { ...snapshot.programme_plan!, duration_label: "3 weeks" } };
+        expect(await hashProposalContent(legacyLabel)).toBe("2b0185bf6355f113239781dd87aaf9025648babacb72257a567a76c68161f8e4");
+        expect(await hashProposalPublication(legacyLabel)).toBe("87b47a6df37223f114ac39b0c0aec56718554ebfe260f67aac11ab9a2895b314");
+    });
+
+    // D36: legacy compounded estimates gain only `calculation_note`; remainder of the snapshot is unchanged.
     it("the representative proposal changes only by adding the calculation method", async () => {
         const snapshot = buildProposalPublicationSnapshot(representativeInput());
         expect(snapshot.commercial.calculation_note).toContain("are compounded");

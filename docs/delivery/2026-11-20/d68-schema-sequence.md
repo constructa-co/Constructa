@@ -11,7 +11,7 @@ Authority: `CTO-20261120-2120-D68-AUTHORITY.md`. **Source-only in this worktree.
 | 3 | #185 | `20261116103000_con018_profile_vat_settings.sql` | `afaaaa2c37ace7ca99199db8cedbbe634562f6fac45cc06841f56ab9ae7a9d63` |
 | 4 | #222 | `20261118003000_con044_programme_planner_draft.sql` | `1232660aa53def945db250a9bc09c097e1fa2a6df8c814837b642e39b9e90e8f` |
 | 5 | #223 | `20261120032000_con073_pipeline_stage_history.sql` | `282c3d3098b5fa738e92057bc1c5ecc0c2c27be402d9d82d2b493979396bb567` |
-| 6 | #224 | `20261120040000_con068_estimate_line_included.sql` | `242d79788b7c8b0baf2561d6372ff804cadb9966dfece7c4c67e061a119b00b2` |
+| 6 | #224 | `20261120040000_con068_estimate_line_included.sql` | `242d79778b7c8b0baf2561d6372ff804cadb9966dfece7c4c67e061a119b00b2` |
 
 Canonical order and hashes: `manifest.tsv` (container-friendly) and `manifest.json`. These files are **CI fixtures only** — never copy into `supabase/migrations/` on main until each PR merges.
 

@@ -80,7 +80,7 @@ export default function PrivacyPolicyPage() {
                 {APPLICATION_DATA_HANDLING}
               </li>
               <li data-privacy-analytics-note>
-                Analytics: this site can include Vercel Web Analytics. When it is on, it counts
+                Analytics: This site can include Vercel Web Analytics. When it is on, it counts
                 visits to public pages for signed-out visitors. Constructa removes query strings from
                 page addresses before page views are sent. It does not collect your name, email or
                 project details.

@@ -42,7 +42,7 @@ check "the database is the same localhost test database in every step" "[[ \$(gr
 check "no step is allowed to fail quietly" "! grep -qE 'continue-on-error|\|\| true|if: .*always' '$WORKFLOW'"
 check "the job timeout is unchanged" "grep -qF 'timeout-minutes: 15' '$WORKFLOW'"
 check "a change to the bootstrap triggers the replay" "grep -qF '\"scripts/ci-replay-in-container.sh\"' '$WORKFLOW' && grep -qF '\"scripts/test-replay-bootstrap.sh\"' '$WORKFLOW'"
-check "the replay script still stops on the first SQL error" "[[ \$(grep -cF -- '-X -v ON_ERROR_STOP=1' '$REPLAY') -eq 2 ]]"
+check "the replay script still stops on the first SQL error" "[[ \$(grep -cF -- '-X -v ON_ERROR_STOP=1' '$REPLAY') -eq 3 ]]"
 check "the replay script still checks the first migration" "grep -qF 'to remain the first migration' '$REPLAY'"
 check "the replay script still discovers committed migrations in sorted order" "grep -qF \"find supabase/migrations -maxdepth 1 -type f -name '*.sql' -print | LC_ALL=C sort\" '$REPLAY'"
 check "the replay script still refuses anything but localhost" "grep -qF 'must be an isolated localhost database' '$REPLAY'"
@@ -75,7 +75,7 @@ if [[ "${1:-}" == "--version" ]]; then echo "${FAKE_PSQL_VERSION:-psql (PostgreS
 file=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -c) [[ "$2" == "SHOW server_version_num" ]] && echo "${FAKE_SERVER_NUM-170004}"; shift 2 ;;
+    -c) if [[ "$2" == "SHOW server_version_num" ]]; then echo "${FAKE_SERVER_NUM-170004}"; else echo "${FAKE_STAGE_RESULT-0}"; fi; shift 2 ;;
     -f) file="$2"; shift 2 ;;
     *) shift ;;
   esac
@@ -206,7 +206,7 @@ check "nothing from .git, node_modules or an env file is copied" \
   "! find '$FAKE_ROOT' \( -name '.git' -o -name 'node_modules' -o -name '.env*' -o -name 'config' -o -name 'index.js' \) | grep -q ."
 if [[ "$D68_ACTIVE" -eq 1 ]]; then
   check "the named replay paths copied include the D68 fixture directory" \
-    "[[ \"\$(grep '^cp ' '$FAKE_DOCKER_LOG' | awk '{print \$2}' | tr '\n' ' ')\" == 'scripts/verify-migration-replay.sh scripts/verify-phase1-smoke.sql scripts/fixtures/supabase-storage.sql scripts/fixtures/d68-schema-sequence supabase/migrations ' ]]"
+    "[[ \"\$(grep '^cp ' '$FAKE_DOCKER_LOG' | awk '{print \$2}' | tr '\n' ' ')\" == 'scripts/verify-migration-replay.sh scripts/verify-phase1-smoke.sql scripts/fixtures/supabase-storage.sql scripts/fixtures/d68-schema-sequence/. supabase/migrations ' ]]"
 else
   check "the only things copied are the four named paths" \
     "[[ \"\$(grep '^cp ' '$FAKE_DOCKER_LOG' | awk '{print \$2}' | tr '\n' ' ')\" == 'scripts/verify-migration-replay.sh scripts/verify-phase1-smoke.sql scripts/fixtures/supabase-storage.sql supabase/migrations ' ]]"

@@ -107,38 +107,22 @@ afterEach(() => {
 });
 
 describe("marketing measurement handler wiring", () => {
-  it("fires ContactFormSubmit only when the home contact form receives response.ok", async () => {
+  it("does not fetch or record ContactFormSubmit while home contact collection stays off", async () => {
     const events: string[] = [];
     __setPublicMeasurementTestSink((event) => {
       events.push(event);
     });
 
     const form = contactForm(renderHome())!;
-    const formEl = {
-      reset: vi.fn(),
-    };
+    const prevented = vi.fn();
 
-    fetchMock.mockResolvedValueOnce({ ok: true });
     await (form.props.onSubmit as (event: unknown) => Promise<void>)({
-      preventDefault: vi.fn(),
-      currentTarget: formEl,
+      preventDefault: prevented,
+      currentTarget: document.createElement("form"),
     });
-    expect(events).toEqual(["ContactFormSubmit"]);
 
-    events.length = 0;
-    fetchMock.mockResolvedValueOnce({ ok: false });
-    await (form.props.onSubmit as (event: unknown) => Promise<void>)({
-      preventDefault: vi.fn(),
-      currentTarget: formEl,
-    });
-    expect(events).toEqual([]);
-
-    events.length = 0;
-    fetchMock.mockRejectedValueOnce(new Error("network"));
-    await (form.props.onSubmit as (event: unknown) => Promise<void>)({
-      preventDefault: vi.fn(),
-      currentTarget: formEl,
-    });
+    expect(prevented).toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(events).toEqual([]);
   });
 
@@ -154,11 +138,11 @@ describe("marketing measurement handler wiring", () => {
     });
 
     const form = contactForm(renderHome())!;
-    fetchMock.mockResolvedValueOnce({ ok: true });
     await (form.props.onSubmit as (event: unknown) => Promise<void>)({
       preventDefault: vi.fn(),
-      currentTarget: { reset: vi.fn() },
+      currentTarget: document.createElement("form"),
     });
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(events).toEqual([]);
   });
 

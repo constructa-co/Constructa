@@ -35,7 +35,10 @@ export function loadMarketingAuditTarget() {
   const originReturns = originFnBody
     ? [...originFnBody.matchAll(/return\s+"([^"]+)"/g)].map((m) => m[1])
     : [];
-  const publicOrigin = originReturns.at(-1);
+  const canonicalOrigin = originReturns.at(-1);
+  const override = process.env.CONSTRUCTA_MARKETING_AUDIT_ORIGIN;
+  if (override && !["https://www.constructa.co", "https://constructa-nu.vercel.app"].includes(override)) throw new Error("Audit origin is outside verified public allowlist");
+  const publicOrigin = override || canonicalOrigin;
   if (!publicOrigin) {
     throw new Error(
       `Could not resolve marketingSiteOrigin() fallback URL in ${MARKETING_SEO_PATH}`,
@@ -45,7 +48,7 @@ export function loadMarketingAuditTarget() {
   return {
     publicOrigin: publicOrigin.replace(/\/+$/, ""),
     publicOriginSource:
-      "src/lib/marketing-seo.ts → marketingSiteOrigin() repository fallback (NEXT_PUBLIC_APP_URL unset in CI)",
+      override ? "Vercel production deployment dpl_dJDnp75QhNkkVzHyruoi5km6gFSs alias verified by R1 authenticated MCP" : "src/lib/marketing-seo.ts canonical fallback",
     marketingSeoPath: path.relative(REPO_ROOT, MARKETING_SEO_PATH),
     sitemapPaths,
     disallowPrefixes,

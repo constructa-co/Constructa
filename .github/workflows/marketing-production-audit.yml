@@ -19,6 +19,8 @@ jobs:
     timeout-minutes: 15
     env:
       NEXT_TELEMETRY_DISABLED: "1"
+      # Authenticated Vercel deployment alias for exact main53167bc.
+      CONSTRUCTA_MARKETING_AUDIT_ORIGIN: "https://constructa-nu.vercel.app"
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

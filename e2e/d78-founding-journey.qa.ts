@@ -76,7 +76,7 @@ test("D78: a founding user signs up, briefs, prices, plans and downloads the pro
             await use.fill(page.getByLabel(/Your name/), COMPANY.owner);
             await use.activate(button(/Save and continue|Try again/));
             await expect(page).toHaveURL(/\/dashboard\/settings\/profile\/readiness$/);
-            await use.activate(main.getByRole("link", { name: "Create first project" }));
+            await use.activate(main.getByRole("link", { name: /Build your first proposal/ }));
             await expect(page).toHaveURL(/\/dashboard\/projects\/new$/);
         });
 
@@ -155,6 +155,7 @@ test("D78: a founding user signs up, briefs, prices, plans and downloads the pro
             recorder.step("programme: start on site and three weeks");
             await page.goto(`/dashboard/projects/schedule?projectId=${encodeURIComponent(projectId)}`);
             await expect(page.getByRole("heading", { level: 1, name: "Programme" })).toBeVisible();
+            await use.select(page.getByLabel("Programme timing"), "dated");
             await use.fillDate(page.getByLabel("Start on site"), programme.startIso);
             await use.fill(page.getByLabel("How long it takes"), "3");
             await expect(page.getByRole("region", { name: "When does the job run?" })).toContainText(`Finishes ${programme.simpleFinish}`);

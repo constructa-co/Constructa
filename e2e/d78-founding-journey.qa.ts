@@ -112,23 +112,24 @@ test("D78: a founding user signs up, briefs, prices, plans and downloads the pro
 
         await test.step("estimate: three lines, explicit preliminaries, adjusted percentages", async () => {
             recorder.step("estimate: priced lines and adjustments");
-            const lines = page.getByRole("region", { name: "Price lines" });
-            const total = page.getByRole("region", { name: "Running total" });
+            const lines = page.locator("#price-line-table");
+            const lineDraft = page.locator("[data-new-price-line]");
+            const total = page.locator("[data-price-total]");
 
             await use.activate(button("Add the first price line"));
-            await use.fill(page.getByLabel("What is this price for?"), PRICE.onePrice.description);
-            await use.fill(page.getByLabel("Price (£)"), String(PRICE.onePrice.amount));
+            await use.fill(lineDraft.getByLabel("New work description"), PRICE.onePrice.description);
+            await use.fill(lineDraft.getByLabel("New line price in pounds"), String(PRICE.onePrice.amount));
             await use.activate(button("Save line"));
-            await expect(lines.getByRole("listitem")).toHaveCount(1);
+            await expect(lines.locator("[data-price-line]")).toHaveCount(1);
 
             await use.activate(button("Add a price line"));
-            await use.fill(page.getByLabel("What is this price for?"), PRICE.measured.description);
+            await use.fill(lineDraft.getByLabel("New work description"), PRICE.measured.description);
             await use.activate(button("Quantity and rate"));
-            await use.fill(page.getByLabel("Quantity"), String(PRICE.measured.quantity));
-            await use.select(page.getByLabel("Unit"), PRICE.measured.unit);
-            await use.fill(page.getByLabel("Rate (£)"), String(PRICE.measured.rate));
+            await use.fill(lineDraft.getByLabel("New priced quantity"), String(PRICE.measured.quantity));
+            await lineDraft.getByLabel("New priced unit").selectOption(PRICE.measured.unit);
+            await use.fill(lineDraft.getByLabel("New unit rate in pounds"), String(PRICE.measured.rate));
             await use.activate(button("Save line"));
-            await expect(lines.getByRole("listitem")).toHaveCount(2);
+            await expect(lines.locator("[data-price-line]")).toHaveCount(2);
 
             const advanced = page.getByRole("region", { name: "Advanced estimating" });
             await use.activate(button(/^Advanced estimating/, advanced));
@@ -137,7 +138,7 @@ test("D78: a founding user signs up, briefs, prices, plans and downloads the pro
             await use.fill(prelims.getByLabel("Description"), PRICE.preliminaries.description);
             await use.fill(prelims.getByLabel("Rate (£)"), String(PRICE.preliminaries.amount));
             await use.activate(button(/^Advanced estimating/, advanced));
-            await expect(lines.getByRole("listitem")).toHaveCount(3);
+            await expect(lines.locator("[data-price-line]")).toHaveCount(3);
 
             await use.activate(button(/^Price adjustments/));
             await use.fill(page.getByLabel("Overhead (%)"), String(PRICE.overheadPct));
@@ -155,7 +156,7 @@ test("D78: a founding user signs up, briefs, prices, plans and downloads the pro
             recorder.step("programme: start on site and three weeks");
             await page.goto(`/dashboard/projects/schedule?projectId=${encodeURIComponent(projectId)}`);
             await expect(page.getByRole("heading", { level: 1, name: "Programme" })).toBeVisible();
-            await use.select(page.getByLabel("Programme timing"), "dated");
+            await page.getByLabel("Programme timing").selectOption("dated");
             await use.fillDate(page.getByLabel("Start on site"), programme.startIso);
             await use.fill(page.getByLabel("How long it takes"), "3");
             await expect(page.getByRole("region", { name: "When does the job run?" })).toContainText(`Finishes ${programme.simpleFinish}`);

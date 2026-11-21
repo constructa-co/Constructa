@@ -5,7 +5,7 @@
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import chromeLauncher from "chrome-launcher";
+import * as chromeLauncher from "chrome-launcher";
 import lighthouse from "lighthouse";
 import { chromium } from "@playwright/test";
 import { loadMarketingAuditTarget, toAbsoluteMarketingUrl } from "./load-audit-target.mjs";
@@ -128,6 +128,7 @@ async function main() {
   };
 
   const chrome = await chromeLauncher.launch({
+    chromePath: chromium.executablePath(),
     chromeFlags: ["--headless", "--no-sandbox", "--disable-gpu"],
   });
 

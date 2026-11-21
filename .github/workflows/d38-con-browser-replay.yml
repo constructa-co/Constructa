@@ -9,6 +9,8 @@ on:
       - "scripts/test-ephemeral-replay-guards.sh"
       - "scripts/verify-phase1-smoke.sql"
       - "e2e/d38-con-001-002-browser.qa.ts"
+      - "e2e/d78-founding-journey.qa.ts"
+      - "e2e/support/**"
       - "e2e/support/ephemeral-replay-*.ts"
       - "playwright.d38-ephemeral-replay.config.ts"
       - "src/lib/deployment/supabase-target.mjs"
@@ -59,3 +61,12 @@ jobs:
           E2E_D38_AUTH: seed
           E2E_EVIDENCE: "0"
         run: bash scripts/ephemeral-replay/d38-ephemeral-browser.sh
+
+      - name: Preserve disposable journey results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d78-disposable-journey
+          if-no-files-found: warn
+          retention-days: 7
+          path: d38-replay/test-results/d38-ephemeral-replay/**

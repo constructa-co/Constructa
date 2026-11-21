@@ -72,8 +72,8 @@ export interface PublicationRecord {
 }
 
 /** What the database recorded for each sent version, oldest first. */
-export async function publicationRecords(projectId: string): Promise<PublicationRecord[]> {
-    const supabase = admin(readE2EEnv());
+export async function publicationRecords(projectId: string, env: E2EEnv = readE2EEnv()): Promise<PublicationRecord[]> {
+    const supabase = admin(env);
     const { data: publications, error } = await supabase
         .from("proposal_publications")
         .select("id, version_number, status, snapshot")

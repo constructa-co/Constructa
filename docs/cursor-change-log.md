@@ -1,5 +1,15 @@
 # Cursor change log
 
+## 2026-11-21 — D78 founding-user browser journey on the disposable replay stack (draft, unverified in CI)
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `e2e/d78-founding-journey.qa.ts` | (new) | Synthetic signup → company setup → project → brief → estimate → programme → proposal review → pre-send PDF download | Finish the D38 ephemeral harness into the founding journey; publishes and emails nothing |
+| `playwright.d38-ephemeral-replay.config.ts` | `testMatch` | Also matches the D78 spec | Reuse the existing local-only config, stubs and guards |
+| `.github/workflows/d38-con-browser-replay.yml` | `paths` | Trigger on the D78 spec and `e2e/support/**` | Existing disposable CI job runs the journey |
+| `e2e/support/backend.ts` | `publicationRecords` | Optional `env` argument | Read publications from the ephemeral stack, not only the hosted disposable project |
+| `e2e/support/journey-data.ts` | `expectedProgramme` | Optional fixed Monday | Keep expected dates clear of UK bank holidays that the programme now skips |
+
 ## 2026-11-21 — D69 read-only production marketing audit (CI only)
 
 | File | Lines (approx.) | Change | Intent |

@@ -113,8 +113,11 @@ function nextWorkingDay(date: Date): Date {
 }
 
 /** A Monday comfortably in the future, with the finish dates the programme must show. */
-export function expectedProgramme(today = new Date()) {
-    const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 28));
+export function expectedProgramme(today = new Date(), fixedMonday?: string) {
+    // A fixed Monday lets a run avoid UK bank holidays, which the programme skips and this helper does not model.
+    const start = fixedMonday
+        ? new Date(`${fixedMonday}T00:00:00Z`)
+        : new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 28));
     while (start.getUTCDay() !== 1) start.setUTCDate(start.getUTCDate() + 1);
     const stagedDays = STAGES.reduce((total, stage) => total + stage.workingDays, 0);
     // Each stage starts on the working day after the one before it finishes.

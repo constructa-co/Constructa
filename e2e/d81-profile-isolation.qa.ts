@@ -94,7 +94,11 @@ test("D81: profile prefill and save stay isolated across two synthetic accounts"
     const button = (name: string | RegExp) => page.getByRole("button", { name, exact: typeof name === "string" });
 
     const allowed = new Set([new URL(env.baseUrl).host, new URL(env.supabaseUrl).host]);
-    await context.route((url) => /^https?:$/.test(url.protocol) && !allowed.has(url.host), (route) => route.abort());
+    const blockedHosts = new Set<string>();
+    await context.route((url) => /^https?:$/.test(url.protocol) && !allowed.has(url.host), (route) => {
+        blockedHosts.add(new URL(route.request().url()).host);
+        return route.abort();
+    });
 
     const alphaId = (await syntheticUserIdByEmail(IDENTITY_A.email, env)) ?? "";
     const betaId = (await syntheticUserIdByEmail(IDENTITY_B.email, env)) ?? "";
@@ -105,6 +109,7 @@ test("D81: profile prefill and save stay isolated across two synthetic accounts"
     let sessionA: Session | null = null;
     let sessionB: Session | null = null;
 
+    let completed = false;
     try {
         await test.step("account A: empty onboarding fields, then save distinctive profile", async () => {
             recorder.step("sign in as alpha; onboarding must not show beta data");
@@ -190,8 +195,9 @@ test("D81: profile prefill and save stay isolated across two synthetic accounts"
             expect(alphaAfter).toMatchObject({ companyName: IDENTITY_A.company, fullName: IDENTITY_A.owner, phone: IDENTITY_A.phone });
             expect(betaAfter).toMatchObject({ companyName: IDENTITY_B.company, fullName: IDENTITY_B.owner, phone: IDENTITY_B.phone });
         });
+        completed = true;
     } finally {
-        recorder.results.blockedThirdPartyHosts = [];
-        recorder.write(testInfo.errors.length === 0 ? "passed" : "failed");
+        recorder.results.blockedThirdPartyHosts = [...blockedHosts].sort();
+        recorder.write(completed ? "passed" : "failed");
     }
 });

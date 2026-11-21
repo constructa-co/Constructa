@@ -12,3 +12,4 @@ Replace mock-only profile isolation qualification with a bounded Playwright jour
 - Not run in this session (CI-only lane).
 - Does not modify product behaviour, signup policy (except existing D78 archived fixture), or hosted settings.
 - Passwords live in repo as labelled disposable replay constants (same pattern as D38 seed); never logged from browser responses in artifacts beyond standard Playwright traces on failure.
+Independent Sonnet review PASS (bounded source only); R1 fixed the recorder outcome flag and recorded actual blocked hosts, rather than inferring success from propagating Playwright errors. Original CI and disposable browser results remain pending.

@@ -148,7 +148,7 @@ const renderBrief = (id: string) => {
 const renderPricing = (id: string) => {
     const project = fixture.project!;
     fixture.view = "pricing";
-    root.render(<EstimateClient key={id} estimates={[...createdGraph().estimates]}
+    root.render(<EstimateClient key={id} estimates={[]}
         project={{ id: project.id, name: project.name, client_name: project.client_name, brief_scope: project.brief_scope ?? "", brief_trade_sections: project.brief_trade_sections }}
         server={server}
         loadAdvancedData={async () => ({ ok: false, error: "Advanced tools are outside this fixture." })} />);

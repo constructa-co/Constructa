@@ -21,5 +21,14 @@ export default async function CompanyInterviewPage() {
         // Without the server's own client the answer is no.
     }
 
-    return <InterviewClient initialState={await loadInterview({ supabase, userId: user.id })} aiOffered={aiOffered} />;
+    let initialState: Awaited<ReturnType<typeof loadInterview>> = null;
+    try {
+        initialState = await loadInterview({ supabase, userId: user.id });
+    } catch (error) {
+        console.error("CompanyInterviewPage load failed", {
+            message: error instanceof Error ? error.message : String(error),
+        });
+    }
+
+    return <InterviewClient initialState={initialState} aiOffered={aiOffered} />;
 }

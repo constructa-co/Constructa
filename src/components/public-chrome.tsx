@@ -16,7 +16,8 @@ export default function PublicChrome({ children }: { children: ReactNode }) {
   const isPublicProposal = pathname.startsWith('/proposal/');
   const showMarketing = !isApplication && !isPublicProposal;
   const landingHasOwnFooter = pathname === '/landing' && getLaunchProfile() === 'full';
-  const marketingBypass = showMarketing && getLaunchProfile() !== 'full';
+  const marketingBypass = showMarketing;
+  const cohortMarketingTheme = showMarketing && getLaunchProfile() !== 'full';
 
   // Restrained section-entry motion for marketing pages: sections opt in with
   // data-reveal. Hidden states only apply once this effect arms the document,
@@ -51,12 +52,21 @@ export default function PublicChrome({ children }: { children: ReactNode }) {
     };
   }, [pathname]);
 
+  const skipClassName = cohortMarketingTheme
+    ? `${ui.theme} ${ui.skip}`
+    : 'sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-black focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-white';
+  const mainClassName = cohortMarketingTheme
+    ? `${ui.theme} ${ui.marketingMain}`
+    : marketingBypass
+      ? 'outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white'
+      : undefined;
+
   return <>
-    {marketingBypass && <a href="#public-marketing-content" className={`${ui.theme} ${ui.skip}`}>Skip to content</a>}
+    {marketingBypass && <a href="#public-marketing-content" className={skipClassName}>Skip to content</a>}
     {showMarketing && <Header />}
     <main
       id={marketingBypass ? 'public-marketing-content' : undefined}
-      className={marketingBypass ? `${ui.theme} ${ui.marketingMain}` : undefined}
+      className={mainClassName}
       tabIndex={marketingBypass ? -1 : undefined}
     >{children}</main>
     {showMarketing && !landingHasOwnFooter && <Footer />}

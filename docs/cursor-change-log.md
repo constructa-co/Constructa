@@ -9,6 +9,22 @@
 | `.github/workflows/d38-con-browser-replay.yml` | `paths` | Trigger on the D78 spec and `e2e/support/**` | Existing disposable CI job runs the journey |
 | `e2e/support/backend.ts` | `publicationRecords` | Optional `env` argument | Read publications from the ephemeral stack, not only the hosted disposable project |
 | `e2e/support/journey-data.ts` | `expectedProgramme` | Optional fixed Monday | Keep expected dates clear of UK bank holidays that the programme now skips |
+## 2026-11-21 — D79 marketing a11y + speed (read-only CI)
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `e2e/readonly-marketing-audit/audit-harness.mjs` | new | Shared GET/HEAD guards, blocked hosts/paths, `createGuardedBrowserContext` | D79 reuses D69 write guards without duplicating policy |
+| `e2e/readonly-marketing-audit/run-production-marketing-a11y.mjs` | new | Playwright + axe WCAG 2.x tags; fail on serious/critical | Production a11y evidence |
+| `e2e/readonly-marketing-audit/run-production-marketing-lighthouse.mjs` | new | Lighthouse mobile+desktop per sitemap URL; metrics/opportunities as lab baseline, no invented score gate | Speed + a11y scores without form interaction |
+| `.github/workflows/marketing-a11y-speed-audit.yml` | new | Read-only PR job including drafts; `CONSTRUCTA_MARKETING_AUDIT_ORIGIN`; artifacts | Guarded GET/HEAD baseline; separate hosted write journey stays draft-blocked |
+| `package.json` / `package-lock.json` | devDeps | Pin `lighthouse@12.8.2`, `chrome-launcher@1.2.1` | Node 24 CI install |
+| `src/components/public-chrome.tsx` | 19–66 | Skip link + `#public-marketing-content` on all marketing profiles | WCAG bypass on full launch profile |
+| `src/components/Header.tsx` | logo/nav | `aria-label` on home + main nav; `text-gray-400` links | Contrast + discernible name (full profile) |
+| `src/components/marketing/phase-one.test.tsx` | ~288 | Full profile expects skip + focusable main | Match a11y chrome |
+| `readonlyaudit/README.md` | header | D79 artifact names | Handoff |
+| `docs/delivery/2026-11-21/d79-marketing-a11y-speed.md` | new | Bounded delivery note | R1 / PR context |
+
+**Checks:** NOT RUN locally (D79 lane). Validation is GitHub Actions; current-production axe findings remain an explicitly advisory baseline until the deployed fixes are rescanned.
 
 ## 2026-11-21 — D69 read-only production marketing audit (CI only)
 

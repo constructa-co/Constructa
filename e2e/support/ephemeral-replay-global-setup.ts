@@ -1,8 +1,8 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
-import { PRODUCTION_SUPABASE_PROJECT_REF } from "../../src/lib/deployment/supabase-target.mjs";
+import { checkCompiledTarget, PRODUCTION_SUPABASE_PROJECT_REF } from "../../src/lib/deployment/supabase-target.mjs";
 import { E2EConfigurationError } from "./env";
-import { EPHEMERAL_REPLAY_PROJECT_REF, readEphemeralReplayEnv } from "./ephemeral-replay-env";
+import { readEphemeralReplayEnv } from "./ephemeral-replay-env";
 
 const SUPABASE_HOST = /\b([a-z0-9]{20})\.supabase\.co\b/g;
 
@@ -24,18 +24,19 @@ function supabaseRefsInBuild(dir: string, found = new Set<string>()): Set<string
  */
 export default async function globalSetup() {
     const env = readEphemeralReplayEnv();
-    const approved = EPHEMERAL_REPLAY_PROJECT_REF;
     const refs = [...supabaseRefsInBuild(path.resolve(".next"))];
 
     if (refs.includes(PRODUCTION_SUPABASE_PROJECT_REF)) {
         throw new E2EConfigurationError(["The build under test names the production Supabase project. Rebuild with ephemeral env."]);
     }
-    const foreign = refs.filter((ref) => ref !== approved);
-    if (foreign.length > 0) {
-        throw new E2EConfigurationError([
-            `The build embeds hosted Supabase project(s) other than ephemeral replay: ${foreign.join(", ")}.`,
-        ]);
-    }
+    const compiled = checkCompiledTarget({ ...process.env,
+        CONSTRUCTA_DEPLOY_CONTEXT: "e2e-replay",
+        CONSTRUCTA_NONPROD_SUPABASE_PROJECT_REF: env.projectRef,
+        NEXT_PUBLIC_SUPABASE_URL: env.supabaseUrl,
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: env.supabaseAnonKey,
+        SUPABASE_SERVICE_ROLE_KEY: env.supabaseServiceRoleKey,
+    }, refs);
+    if (!compiled.ok) throw new E2EConfigurationError(compiled.problems);
 
     const health = await fetch(`${env.supabaseUrl}/auth/v1/settings`, { headers: { apikey: env.supabaseAnonKey } });
     if (!health.ok) {

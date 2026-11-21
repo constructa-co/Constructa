@@ -325,6 +325,26 @@ describe("the compiled build", () => {
         expect(checkCompiledTarget(replay, [PRODUCTION]).ok).toBe(false);
     });
 
+    it("distinguishes the disabled review-policy literal from a valid loopback backend only", () => {
+        const replay = {
+            [DEPLOY_CONTEXT_VARIABLE]: EPHEMERAL_REPLAY_CONTEXT,
+            [NONPROD_REF_VARIABLE]: EPHEMERAL,
+            NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
+            NEXT_PUBLIC_SUPABASE_ANON_KEY: key(EPHEMERAL, "anon"),
+            SUPABASE_SERVICE_ROLE_KEY: key(EPHEMERAL, "service_role"),
+        };
+        const review = "umqtzfsnyoofmgfbnrgv";
+        expect(checkCompiledTarget(replay, [review]).ok).toBe(true);
+        for (const ref of [PRODUCTION, OTHER]) expect(checkCompiledTarget(replay, [review, ref]).ok).toBe(false);
+        for (const overrides of [
+            { CONSTRUCTA_REVIEW_ONLY: "1" }, { VERCEL: "1" }, { VERCEL_ENV: "preview" },
+            { NEXT_PUBLIC_SUPABASE_URL: `https://${DISPOSABLE}.supabase.co` },
+            { NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:59999" },
+            { NEXT_PUBLIC_SUPABASE_ANON_KEY: key(PRODUCTION, "anon") },
+        ]) expect(checkCompiledTarget({ ...replay, ...overrides }, [review]).ok).toBe(false);
+        expect(checkCompiledTarget(preview(), [DISPOSABLE, review]).ok).toBe(false);
+    });
+
     it("leaves a production build alone", () => {
         expect(checkCompiledTarget(production(), [PRODUCTION])).toMatchObject({ ok: true, guarded: false });
     });

@@ -1,4 +1,5 @@
 // @ts-check
+import { REVIEW_PROJECT } from "./review-project.mjs";
 /**
  * Supabase target guard.
  *
@@ -365,7 +366,17 @@ export function checkCompiledTarget(env, refs) {
     if (refs.length === 0 && context !== EPHEMERAL_REPLAY_CONTEXT) {
         problems.push("The compiled build names no Supabase project, so its backend cannot be proved.");
     }
-    const others = refs.filter((ref) => ref !== expected && ref !== PRODUCTION_SUPABASE_PROJECT_REF);
+    // The app bundles an existing read-only review-policy origin even when that
+    // mode is disabled. It is metadata, not the configured backend, ONLY for a
+    // fully validated local replay. Hosted/preview/E2E and production checks
+    // retain their existing refusal of additional project references.
+    const inactiveReviewMetadata = context === EPHEMERAL_REPLAY_CONTEXT
+        && checkSupabaseTarget(env).ok
+        && loopbackSupabaseApiUrl(text(env.NEXT_PUBLIC_SUPABASE_URL))
+        && text(env.CONSTRUCTA_REVIEW_ONLY) !== "1"
+        && text(env.VERCEL) !== "1" && text(env.VERCEL_ENV) === "";
+    const others = refs.filter((ref) => ref !== expected && ref !== PRODUCTION_SUPABASE_PROJECT_REF
+        && !(inactiveReviewMetadata && ref === REVIEW_PROJECT));
     if (expected && others.length > 0) {
         problems.push(`The compiled build names a project other than the declared disposable one: ${others.join(", ")}.`);
     }

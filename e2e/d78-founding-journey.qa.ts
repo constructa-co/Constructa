@@ -45,7 +45,7 @@ test("D78: a founding user signs up, briefs, prices, plans and downloads the pro
         await test.step("sign up and sign in with a synthetic identity", async () => {
             recorder.step("sign up on the ephemeral stack, then sign in");
             await page.goto("/login");
-            await use.activate(button("Sign up"));
+            await use.activate(button("Get started"));
             await use.fill(page.getByLabel("Email address"), email);
             await use.fill(page.getByLabel("Password", { exact: true }), password);
             await use.fill(page.getByLabel("Confirm password"), password);
@@ -59,7 +59,7 @@ test("D78: a founding user signs up, briefs, prices, plans and downloads the pro
             await use.fill(page.getByLabel("Email address"), email);
             await use.fill(page.getByLabel("Password", { exact: true }), password);
             const login = page.waitForResponse((response) => response.url().startsWith(`${env.supabaseUrl}/auth/v1/token`));
-            await use.activate(button("Sign in"));
+            await use.activate(button("Sign in", page.locator("form")));
             const signedIn = await login;
             expect(signedIn.status()).toBe(200);
             const session = await signedIn.json();

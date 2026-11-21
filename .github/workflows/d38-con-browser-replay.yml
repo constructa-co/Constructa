@@ -36,6 +36,7 @@ jobs:
           mkdir d38-replay
           git archive HEAD | tar --exclude=supabase/.temp -xf - -C d38-replay
           test ! -e d38-replay/supabase/.temp
+          echo 'D78 archived source; disposable CI only' > d38-replay/.d78-disposable-source
 
       - uses: actions/setup-node@v4
         with:
@@ -59,6 +60,7 @@ jobs:
         env:
           SUPABASE_CLI_VERSION: 2.75.0
           E2E_D38_AUTH: seed
+          E2E_D78_SIGNUP_FIXTURE: "1"
           E2E_EVIDENCE: "0"
         run: bash scripts/ephemeral-replay/d38-ephemeral-browser.sh
 

@@ -151,6 +151,8 @@ test("CON-001 and CON-002: new project and brief persist after reload", async ({
             await page.goto(`/dashboard/projects/brief?projectId=${encodeURIComponent(projectId)}`);
             await expect(page.getByLabel("Describe the job in your own words")).toHaveValue(JOB.description);
             await expect(main.getByRole("status").filter({ hasText: /^Saved$/ })).toBeVisible();
+            // Reload opens the first step; inspect saved activities on their own step.
+            await use.activate(main.getByRole("button", { name: /Step 2.*Activities/ }));
             for (const activity of BRIEF_ACTIVITIES) {
                 await expect(main).toContainText(activity);
             }

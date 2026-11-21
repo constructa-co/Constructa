@@ -63,5 +63,10 @@ if [[ "$E2E_D38_AUTH" == "seed" ]]; then
   node scripts/ephemeral-replay/seed-disposable-auth.mjs
 fi
 
+if [[ "${E2E_D78_SIGNUP_FIXTURE:-0}" == "1" ]]; then
+  export DB_URL
+  node scripts/ephemeral-replay/enable-disposable-signup-fixture.mjs
+fi
+
 echo "Running Playwright D38 ephemeral replay…"
 npm run e2e:d38-ephemeral-replay

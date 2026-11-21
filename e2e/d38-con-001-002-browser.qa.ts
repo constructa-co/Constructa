@@ -88,7 +88,7 @@ test("CON-001 and CON-002: new project and brief persist after reload", async ({
                 await use.fill(page.getByLabel("Email address"), accountEmail);
                 await use.fill(page.getByLabel("Password", { exact: true }), accountPassword);
                 const login = page.waitForResponse((response) => response.url().includes("/auth/v1/token"));
-                await use.activate(button("Sign in"));
+                await use.activate(button("Sign in", page.locator("form")));
                 const loginResponse = await login;
                 expect(new URL(loginResponse.url()).host).toBe(authHostFor(env));
                 if (!isEphemeral) {

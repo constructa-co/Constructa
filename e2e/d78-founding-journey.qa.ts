@@ -84,6 +84,9 @@ test("D78: a founding user signs up, briefs, prices, plans and downloads the pro
             recorder.step("create the first blank project");
             await use.fill(page.getByLabel("Job name"), JOB.name);
             await use.fill(page.getByLabel("Client name"), JOB.client);
+            await use.activate(button(/Add more details/));
+            await use.fill(page.getByLabel("Client email"), JOB.clientEmail);
+            await use.fill(page.getByLabel("Where is the job?"), JOB.site);
             await use.activate(button("Create project and start the brief"));
             await expect(page).toHaveURL(/\/dashboard\/projects\/brief\?projectId=/);
             projectId = new URL(page.url()).searchParams.get("projectId") ?? "";
@@ -178,13 +181,16 @@ test("D78: a founding user signs up, briefs, prices, plans and downloads the pro
         await test.step("proposal review and the pre-send PDF", async () => {
             recorder.step("proposal: payment preset, draft saved, draft PDF downloaded, nothing published");
             await expect(page.getByRole("heading", { level: 1, name: "Your proposal" })).toBeVisible();
-            const send = page.getByRole("region", { name: "Send to your client" });
-            const blocker = send.locator('[data-send-block="not-ready"]');
-            await use.activate(button("Use a deposit and balance", blocker));
+            const preparation = page.locator("#proposal-preparation");
+            const payments = preparation.locator("[data-review-payments]");
+            await payments.getByRole("radio", { name: /Deposit and balance/ }).check();
+            await expect(payments.getByRole("radio", { name: /Deposit and balance/ })).toBeChecked();
             await expect(page.getByRole("heading", { level: 2, name: "Everything needed is in place" })).toBeVisible();
             await use.fill(page.getByRole("textbox", { name: "Closing message" }), JOB.closing);
             await use.activate(button("Save draft"));
-            await expect(main.getByRole("status").filter({ hasText: /^Saved$/ })).toBeVisible();
+            await expect(page.locator("[data-save-draft]")).toHaveText("Saved");
+            await use.activate(button("2. Review document"));
+            await expect(page.locator("#proposal-final-review")).toBeVisible();
 
             const presend = page.locator("[data-presend-pdf]");
             const download = page.waitForEvent("download");

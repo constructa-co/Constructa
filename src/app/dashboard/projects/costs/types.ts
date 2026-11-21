@@ -26,6 +26,8 @@ export interface EstimateLine {
     mom_item_code?: string | null;
     notes?: string | null;
     pricing_mode: "simple" | "buildup";
+    /** True when a £0 simple line is deliberately in scope but not charged (CON-068). */
+    included?: boolean;
     estimate_line_components: EstimateLineComponent[];
     client_ref?: string | null;
 }
@@ -40,6 +42,8 @@ export interface Estimate {
     prelims_pct: number;
     discount_pct: number;
     discount_reason: string;
+    /** Null or absent = predates the choice = compounded. Read via resolveMarkupMethod. */
+    markup_method?: string | null;
     total_cost: number;
     is_active: boolean;
     is_client_boq?: boolean;

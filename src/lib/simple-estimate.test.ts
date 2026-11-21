@@ -52,6 +52,7 @@ function line(overrides: Partial<EstimateLine> = {}): EstimateLine {
         trade_section: "General",
         line_type: "general",
         pricing_mode: "simple",
+        included: false,
         estimate_line_components: [],
         ...overrides,
     };
@@ -117,13 +118,13 @@ function fakeServer(): EstimatingServer & { saveLine: ReturnType<typeof vi.fn<Es
 describe("line calculations", () => {
     it("prices a line from one amount", () => {
         const built = buildPriceLine({ ...EMPTY_PRICE_LINE_DRAFT, description: " Bathroom refit ", mode: "amount", amount: "£2,500" });
-        expect(built).toEqual({ ok: true, line: { description: "Bathroom refit", quantity: 1, unit: "item", unit_rate: 2500 } });
+        expect(built).toEqual({ ok: true, line: { description: "Bathroom refit", quantity: 1, unit: "item", unit_rate: 2500, included: false } });
         expect(draftLineTotal({ ...EMPTY_PRICE_LINE_DRAFT, mode: "amount", amount: "2500" })).toBe(2500);
     });
 
     it("prices a line from quantity, unit and rate", () => {
         const draft: PriceLineDraft = { description: "Wall tiling", mode: "rate", amount: "", quantity: "12.5", unit: "m2", rate: "45.50" };
-        expect(buildPriceLine(draft)).toEqual({ ok: true, line: { description: "Wall tiling", quantity: 12.5, unit: "m2", unit_rate: 45.5 } });
+        expect(buildPriceLine(draft)).toEqual({ ok: true, line: { description: "Wall tiling", quantity: 12.5, unit: "m2", unit_rate: 45.5, included: false } });
         expect(draftLineTotal(draft)).toBe(568.75);
     });
 
@@ -146,7 +147,7 @@ describe("line calculations", () => {
         expect(draft).toMatchObject({ mode: "rate", unit: "hr" });
         expect(unitOptions("hr")).toContain("hr");
         expect(unitOptions("m2")).not.toContain("hr");
-        expect(buildPriceLine(draft)).toEqual({ ok: true, line: { description: "Labour", quantity: 16, unit: "hr", unit_rate: 35 } });
+        expect(buildPriceLine(draft)).toEqual({ ok: true, line: { description: "Labour", quantity: 16, unit: "hr", unit_rate: 35, included: false } });
     });
 
     it("accepts a decimal comma and rejects malformed grouping", () => {
@@ -163,9 +164,35 @@ describe("line calculations", () => {
     });
 
     it("rejects zero, negative, exponent and hex prices", () => {
-        for (const amount of ["0", "-50", "1e5", "0x10", "12.345"]) {
+        for (const amount of ["-50", "1e5", "0x10", "12.345"]) {
             expect(buildPriceLine({ ...EMPTY_PRICE_LINE_DRAFT, description: "x", mode: "amount", amount }).ok, amount).toBe(false);
         }
+        expect(buildPriceLine({ ...EMPTY_PRICE_LINE_DRAFT, description: "x", mode: "amount", amount: "0" }).ok).toBe(false);
+    });
+
+    it("allows a deliberate £0 simple line when Included is ticked (CON-068)", () => {
+        expect(buildPriceLine({
+            ...EMPTY_PRICE_LINE_DRAFT,
+            description: "Client-supplied tiles",
+            mode: "rate",
+            quantity: "12",
+            unit: "m2",
+            rate: "",
+            included: true,
+        })).toEqual({
+            ok: true,
+            line: {
+                description: "Client-supplied tiles",
+                quantity: 12,
+                unit: "m2",
+                unit_rate: 0,
+                included: true,
+            },
+        });
+        expect(draftFromLine(line({ unit_rate: 0, line_total: 0, quantity: 12, unit: "m2", included: true }))).toMatchObject({
+            included: true,
+            rate: "",
+        });
     });
 
     it("reopens a saved line in the form it was entered", () => {
@@ -175,7 +202,7 @@ describe("line calculations", () => {
         const original = line({ description: "Tiling", quantity: 12, unit: "m2", unit_rate: 45 });
         expect(buildPriceLine(draftFromLine(original))).toEqual({
             ok: true,
-            line: { description: "Tiling", quantity: 12, unit: "m2", unit_rate: 45 },
+            line: { description: "Tiling", quantity: 12, unit: "m2", unit_rate: 45, included: false },
         });
     });
 });
@@ -391,7 +418,7 @@ describe("blank project with no estimate", () => {
             estimateId: null,
             newEstimateId: PENDING_ESTIMATE_ID,
             lineId: "new-line-id",
-            line: { description: "Bathroom refit", quantity: 1, unit: "item", unit_rate: 2500 },
+            line: { description: "Bathroom refit", quantity: 1, unit: "item", unit_rate: 2500, included: false },
         });
         const est = currentEstimate(store.getState())!;
         expect(est.id).toBe(PENDING_ESTIMATE_ID);

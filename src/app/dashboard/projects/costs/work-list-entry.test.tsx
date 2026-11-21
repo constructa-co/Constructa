@@ -74,7 +74,7 @@ describe("reviewed work list in the real estimating parent", () => {
         current.server.mockImplementationOnce(async request => ({ ok: true, estimateId: "estimate", line: { id: request.lineId, estimate_id: "estimate", ...request.line, line_total: 100 } }));
         (row().props.onSave as () => void)(); await Promise.resolve(); await Promise.resolve();
         expect(current.server).toHaveBeenCalledOnce();
-        expect(current.server.mock.calls[0][0].line).toEqual({ description: "Fit doors", quantity: 1, unit: "item", unit_rate: 100 });
+        expect(current.server.mock.calls[0][0].line).toEqual({ description: "Fit doors", quantity: 1, unit: "item", unit_rate: 100, included: false });
         expect(current.state!.ops[NEW_LINE_KEY]).toBeUndefined();
         expect(current.state!.estimates[0].total_cost).toBe(877);
         expect(open(chooser(), "Fit doors\nPaint walls", 10, 21).ok).toBe(true);

@@ -39,7 +39,7 @@ describe("reviewed saved line continuation", () => {
     it("saves just the current row then opens the next row's OWN saved draft", async () => {
         const reviewed = review(), next = state.estimates[0].estimate_lines[1], savedNext = JSON.stringify(next);
         expect(await run(reviewed)).toBe(next);
-        expect(update).toHaveBeenCalledExactlyOnceWith("estimate", "one", { description: "Saved one", quantity: 3, unit: "m2", unit_rate: 30 });
+        expect(update).toHaveBeenCalledExactlyOnceWith("estimate", "one", { description: "Saved one", quantity: 3, unit: "m2", unit_rate: 30, included: false });
         expect(insert).not.toHaveBeenCalled(); expect(state.ops.one).toBeUndefined();
         expect(state.ops.two).toMatchObject({ kind: "edit", lineId: "two", draft: draftFromLine(next) });
         expect(JSON.stringify(next)).toBe(savedNext); expect(currentSummary(state).contractSum).toBe(210);

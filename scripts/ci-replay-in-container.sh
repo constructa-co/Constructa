@@ -11,8 +11,9 @@
 # scripts/verify-phase1-smoke.sql run, unmodified, with the same psql flags,
 # against the same localhost database URL. Only where psql comes from changes.
 #
-# Only four things are copied into the container, into a fresh directory:
-# the replay script, the smoke SQL, the storage fixture and the migrations.
+# Only these paths are copied into the container (plus optional D68 fixtures):
+# the replay script, the smoke SQL, the storage fixture, the migrations, and
+# scripts/fixtures/d68-schema-sequence when manifest.tsv is present.
 #
 #   REPLAY_POSTGRES_CONTAINER   the service container id (job.services.postgres.id)
 #   MIGRATION_DATABASE_URL      the isolated localhost database
@@ -63,7 +64,7 @@ prepare() {
   [[ "$EXPECTED_MAJOR" =~ ^[0-9]+$ ]] || die "REPLAY_EXPECTED_PG_MAJOR must be a number."
 
   local tool
-  for tool in bash psql find sed sort mktemp; do
+  for tool in bash psql find sed sort mktemp awk; do
     docker exec "$container" sh -c "command -v $tool >/dev/null" \
       || die "the Postgres container has no '$tool'. The replay cannot run in this image."
   done
@@ -84,7 +85,7 @@ prepare() {
     || die "the container's psql is PostgreSQL $client_major; PostgreSQL $EXPECTED_MAJOR is required. ($client_version)"
 
   # A fresh workspace holding only what the replay needs.
-  docker exec --user 0 "$container" sh -c "rm -rf '$WORKSPACE' && mkdir -p '$WORKSPACE/scripts/fixtures' '$WORKSPACE/supabase'"
+  docker exec --user 0 "$container" sh -c "rm -rf '$WORKSPACE' && mkdir -p '$WORKSPACE/scripts/fixtures' '$WORKSPACE/scripts/fixtures/d68-schema-sequence' '$WORKSPACE/supabase'"
 
   local required
   for required in scripts/verify-migration-replay.sh scripts/verify-phase1-smoke.sql scripts/fixtures/supabase-storage.sql; do
@@ -100,6 +101,17 @@ prepare() {
   docker cp scripts/verify-migration-replay.sh "$container:$WORKSPACE/scripts/verify-migration-replay.sh"
   docker cp scripts/verify-phase1-smoke.sql "$container:$WORKSPACE/scripts/verify-phase1-smoke.sql"
   docker cp scripts/fixtures/supabase-storage.sql "$container:$WORKSPACE/scripts/fixtures/supabase-storage.sql"
+  if [[ -f scripts/fixtures/d68-schema-sequence/manifest.tsv ]]; then
+    for required in scripts/fixtures/d68-schema-sequence/manifest.tsv scripts/fixtures/d68-schema-sequence/manifest.json; do
+      [[ -f "$required" ]] || die "$required is missing from the checkout."
+    done
+    while IFS= read -r fixture_name; do
+      [[ -z "$fixture_name" || "$fixture_name" == pr ]] && continue
+      [[ -f "scripts/fixtures/d68-schema-sequence/$fixture_name" ]] \
+        || die "D68 fixture SQL missing: scripts/fixtures/d68-schema-sequence/$fixture_name"
+    done < <(awk -F '\t' 'NR>1 {print $2}' scripts/fixtures/d68-schema-sequence/manifest.tsv)
+    docker cp scripts/fixtures/d68-schema-sequence/. "$container:$WORKSPACE/scripts/fixtures/d68-schema-sequence"
+  fi
   docker cp supabase/migrations "$container:$WORKSPACE/supabase/migrations"
   docker exec --user 0 "$container" chmod -R a+rX "$WORKSPACE"
 

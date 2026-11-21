@@ -165,7 +165,7 @@ describe("area result and existing save controller", () => {
         (inputs().find(node => node.type === "button")!.props.onClick as () => void)();
         expect(current.state!.ops.one.draft.quantity).toBe("0.02"); expect(current.update).not.toHaveBeenCalled();
         await submit();
-        expect(current.update).toHaveBeenCalledExactlyOnceWith("estimate", "one", { description: "Walls one", quantity: 0.02, unit: "m2", unit_rate: 20 });
+        expect(current.update).toHaveBeenCalledExactlyOnceWith("estimate", "one", { description: "Walls one", quantity: 0.02, unit: "m2", unit_rate: 20, included: false });
         expect(currentSummary(current.state!).contractSum).toBe(200.4);
     });
     it("retains failed same-ID add drafts,and Save-and-add-next clears the area quantity", async () => {

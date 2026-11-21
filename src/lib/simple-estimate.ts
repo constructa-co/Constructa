@@ -13,7 +13,7 @@
 
 import type { Estimate, EstimateLine } from "@/app/dashboard/projects/costs/types";
 import { evaluateDiscountSubmitGate } from "@/lib/discount-confirm";
-import { computeContractSum, isPricedPreliminariesLine, roundMoney, toNumber } from "./financial";
+import { computeContractSum, isPricedPreliminariesLine, roundMoney, toNumber, type MarkupMethod } from "./financial";
 import type { LaunchProfile } from "./launch-profile";
 import { getLaunchProfile, isCapabilityEnabled } from "./launch-profile";
 
@@ -52,6 +52,8 @@ export interface PriceLineDraft {
     quantity: string;
     unit: string;
     rate: string;
+    /** Deliberate £0 in scope but not charged (CON-068). */
+    included?: boolean;
 }
 
 export const EMPTY_PRICE_LINE_DRAFT: PriceLineDraft = {
@@ -61,9 +63,10 @@ export const EMPTY_PRICE_LINE_DRAFT: PriceLineDraft = {
     quantity: "",
     unit: "item",
     rate: "",
+    included: false,
 };
 
-export type PriceLineField = "description" | "amount" | "quantity" | "unit" | "rate" | "activity";
+export type PriceLineField = "description" | "amount" | "quantity" | "unit" | "rate" | "activity" | "included";
 export type PriceLineFieldErrors = Partial<Record<PriceLineField, string>>;
 
 /** What is sent to the server for one line. */
@@ -72,6 +75,14 @@ export interface PriceLineInput {
     quantity: number;
     unit: string;
     unit_rate: number;
+    included: boolean;
+}
+
+/** Saved simple line deliberately at £0 and flagged as in scope. */
+export function isIncludedNotChargedLine(
+    line: Pick<EstimateLine, "included" | "unit_rate" | "pricing_mode">,
+): boolean {
+    return line.pricing_mode !== "buildup" && line.included === true && toNumber(line.unit_rate) === 0;
 }
 
 /** Same finite-decimal parse used by Advanced quantity and rate drafts before save. */
@@ -130,34 +141,63 @@ export type BuildPriceLineResult =
 export function buildPriceLine(draft: PriceLineDraft): BuildPriceLineResult {
     const fieldErrors: PriceLineFieldErrors = {};
     const description = draft.description.trim();
+    const flaggedIncluded = draft.included === true;
     if (!description) fieldErrors.description = "Say what this price is for.";
     else if (description.length > MAX_DESCRIPTION_LENGTH) fieldErrors.description = "Keep the description under 500 characters.";
 
     if (draft.mode === "amount") {
-        const amount = parseDecimal(draft.amount, 2);
+        const trimmedAmount = draft.amount.trim();
+        let amount = parseDecimal(draft.amount, 2);
+        if (amount === null && flaggedIncluded && !trimmedAmount) amount = 0;
         if (amount === null) fieldErrors.amount = "Enter the price as a number, for example 2500.";
-        else if (amount <= 0) fieldErrors.amount = "Enter a price above £0.";
-        else if (amount > MAX_LINE_AMOUNT) fieldErrors.amount = "That price is too large.";
+        else if (amount < 0) fieldErrors.amount = "Enter a price above £0.";
+        else if (amount === 0 && !flaggedIncluded) {
+            fieldErrors.amount = "Enter a price above £0, or tick Included (not charged) for a deliberate £0 line.";
+        } else if (amount > MAX_LINE_AMOUNT) fieldErrors.amount = "That price is too large.";
         if (Object.keys(fieldErrors).length > 0 || amount === null) return { ok: false, fieldErrors };
-        return { ok: true, line: { description, quantity: 1, unit: "item", unit_rate: amount } };
+        return {
+            ok: true,
+            line: {
+                description,
+                quantity: 1,
+                unit: "item",
+                unit_rate: amount,
+                included: amount === 0 && flaggedIncluded,
+            },
+        };
     }
 
     const quantity = parseDecimal(draft.quantity, 3);
-    const rate = parseDecimal(draft.rate, 2);
+    const trimmedRate = draft.rate.trim();
+    let rate = parseDecimal(draft.rate, 2);
+    if (rate === null && flaggedIncluded && !trimmedRate) rate = 0;
     if (quantity === null) fieldErrors.quantity = isNegativeNumberText(draft.quantity)
         ? "Quantity must be more than 0."
         : "Enter the quantity as a number.";
     else if (quantity <= 0) fieldErrors.quantity = "Quantity must be more than 0.";
     else if (quantity > MAX_LINE_QUANTITY) fieldErrors.quantity = "That quantity is too large.";
-    if (rate === null) fieldErrors.rate = "Enter the rate as a number.";
-    else if (rate <= 0) fieldErrors.rate = "Enter a rate above £0.";
+    if (rate === null && !flaggedIncluded) fieldErrors.rate = "Enter the rate as a number.";
+    else if (rate === null && flaggedIncluded && trimmedRate) fieldErrors.rate = "Enter the rate as a number.";
+    else if (rate !== null && rate < 0) fieldErrors.rate = "Enter a rate above £0.";
+    else if (rate === 0 && !flaggedIncluded) {
+        fieldErrors.rate = "Enter a rate above £0, or tick Included (not charged) for a deliberate £0 line.";
+    }
     const unit = draft.unit.trim();
     if (!unit || unit.length > MAX_UNIT_LENGTH) fieldErrors.unit = "Choose a unit.";
     if (quantity !== null && rate !== null && lineTotal(quantity, rate) > MAX_LINE_AMOUNT) {
         fieldErrors.rate = "That line total is too large.";
     }
     if (Object.keys(fieldErrors).length > 0 || quantity === null || rate === null) return { ok: false, fieldErrors };
-    return { ok: true, line: { description, quantity, unit, unit_rate: rate } };
+    return {
+        ok: true,
+        line: {
+            description,
+            quantity,
+            unit,
+            unit_rate: rate,
+            included: rate === 0 && flaggedIncluded,
+        },
+    };
 }
 
 const plain = (n: number): string => (Number.isFinite(n) && n !== 0 ? String(n) : "");
@@ -187,7 +227,9 @@ export function storedLineRateLabel(line: Pick<EstimateLine, "unit_rate">): stri
 }
 
 /** Opens an existing line for editing in the form it was most likely entered. */
-export function draftFromLine(line: Pick<EstimateLine, "description" | "quantity" | "unit" | "unit_rate">): PriceLineDraft {
+export function draftFromLine(
+    line: Pick<EstimateLine, "description" | "quantity" | "unit" | "unit_rate" | "included">,
+): PriceLineDraft {
     const quantity = toNumber(line.quantity);
     const rate = toNumber(line.unit_rate);
     const isAmount = isStoredOnePriceLine(line);
@@ -199,6 +241,7 @@ export function draftFromLine(line: Pick<EstimateLine, "description" | "quantity
         // A unit from the advanced workspace or an imported BoQ is kept as it is.
         unit: line.unit || "item",
         rate: isAmount ? "" : plain(rate),
+        included: line.included === true,
     };
 }
 
@@ -235,11 +278,13 @@ export interface PriceSummary {
     contractSum: number;
     vat: number;
     totalIncVat: number;
+    /** How overhead, risk and profit were calculated. Printed beside the total. */
+    markupMethod: MarkupMethod;
     /** True when preliminaries come from the contractor's own lines, not a percentage. */
     prelimsFromLines: boolean;
 }
 
-type EstimatePercentages = Pick<Estimate, "prelims_pct" | "overhead_pct" | "risk_pct" | "profit_pct" | "discount_pct" | "total_cost">;
+type EstimatePercentages = Pick<Estimate, "prelims_pct" | "overhead_pct" | "risk_pct" | "profit_pct" | "discount_pct" | "total_cost" | "markup_method">;
 
 /**
  * The running total. Every figure is read from the canonical contract-sum
@@ -284,6 +329,7 @@ export function summarisePrice(
         contractSum,
         vat,
         totalIncVat: roundMoney(contractSum + vat),
+        markupMethod: sum.markupMethod,
         prelimsFromLines,
     };
 }
@@ -789,7 +835,7 @@ export type SavePriceLineResult =
     | { ok: true; estimateId: string; createdEstimate: Estimate | null; line: EstimateLine; warning?: string }
     | { ok: false; error: string };
 
-export type UpdatePriceLineResult = { ok: true; line: Pick<EstimateLine, "id" | "description" | "quantity" | "unit" | "unit_rate" | "line_total">; warning?: string } | { ok: false; error: string };
+export type UpdatePriceLineResult = { ok: true; line: Pick<EstimateLine, "id" | "description" | "quantity" | "unit" | "unit_rate" | "line_total" | "included">; warning?: string } | { ok: false; error: string };
 export type SimpleResult = { ok: true; warning?: string } | { ok: false; error: string };
 
 export interface EstimatingStore {

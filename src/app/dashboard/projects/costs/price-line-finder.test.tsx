@@ -126,7 +126,7 @@ describe("price finder in the actual main pricing workspace", () => {
         query("Walls two"); targets(); (button("Next match").props.onClick as () => void)();
         expect(JSON.stringify(current.state!.ops)).toBe(before); expect(current.update).not.toHaveBeenCalled();
         save(); await Promise.resolve(); await Promise.resolve();
-        expect(current.update).toHaveBeenCalledExactlyOnceWith("estimate", "one", { description: "Revised unsaved work", quantity: 10, unit: "m2", unit_rate: 30 });
+        expect(current.update).toHaveBeenCalledExactlyOnceWith("estimate", "one", { description: "Revised unsaved work", quantity: 10, unit: "m2", unit_rate: 30, included: false });
     });
     it.each(["failed", "saving"] as const)("never clears or confirms a %s price draft", status => {
         current.dispatch({ type: "op/open", key: "one", kind: "edit", lineId: "one", draft: draftFromLine(line("one")) });

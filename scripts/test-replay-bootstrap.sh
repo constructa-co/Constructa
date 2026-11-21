@@ -42,12 +42,26 @@ check "the database is the same localhost test database in every step" "[[ \$(gr
 check "no step is allowed to fail quietly" "! grep -qE 'continue-on-error|\|\| true|if: .*always' '$WORKFLOW'"
 check "the job timeout is unchanged" "grep -qF 'timeout-minutes: 15' '$WORKFLOW'"
 check "a change to the bootstrap triggers the replay" "grep -qF '\"scripts/ci-replay-in-container.sh\"' '$WORKFLOW' && grep -qF '\"scripts/test-replay-bootstrap.sh\"' '$WORKFLOW'"
-check "the replay script still stops on the first SQL error" "[[ \$(grep -cF -- '-X -v ON_ERROR_STOP=1' '$REPLAY') -eq 2 ]]"
+check "the replay script still stops on the first SQL error" "[[ \$(grep -cF -- '-X -v ON_ERROR_STOP=1' '$REPLAY') -eq 3 ]]"
 check "the replay script still checks the first migration" "grep -qF 'to remain the first migration' '$REPLAY'"
-check "the replay script still replays the sorted full chain" "grep -qF \"find supabase/migrations -maxdepth 1 -type f -name '*.sql' -print | LC_ALL=C sort\" '$REPLAY'"
+check "the replay script still discovers committed migrations in sorted order" "grep -qF \"find supabase/migrations -maxdepth 1 -type f -name '*.sql' -print | LC_ALL=C sort\" '$REPLAY'"
 check "the replay script still refuses anything but localhost" "grep -qF 'must be an isolated localhost database' '$REPLAY'"
 check "the smoke step runs the whole smoke file with the same flags" "grep -qF 'psql \"\$url\" -X -v ON_ERROR_STOP=1 -f scripts/verify-phase1-smoke.sql' '$BOOTSTRAP'"
-check "the bootstrap copies exactly four things" "[[ \$(grep -c '^  docker cp ' '$BOOTSTRAP') -eq 4 ]]"
+D68_MANIFEST="$ROOT_DIR/scripts/fixtures/d68-schema-sequence/manifest.tsv"
+D68_ACTIVE=0
+D68_FILES=()
+if [[ -f "$D68_MANIFEST" ]]; then
+  D68_ACTIVE=1
+  mapfile -t D68_FILES < <(awk -F '\t' 'NR>1 && $2 != "" {print $2}' "$D68_MANIFEST")
+  check "the replay script excludes D68 manifest filenames from baseline replay" "grep -qF 'is_d68_excluded' '$REPLAY'"
+  check "D68 apply receipts are emitted only after psql and stage checks" \
+    "grep -qF 'd68-apply-receipt' '$REPLAY' && grep -qF 'stage=verified' '$REPLAY' && grep -qF 'd68_stage_check' '$REPLAY'"
+  check "the bootstrap copies D68 fixtures when manifest.tsv exists" \
+    "grep -qF 'scripts/fixtures/d68-schema-sequence' '$BOOTSTRAP'"
+  check "the bootstrap still copies the four core replay paths" "[[ \$(grep -c '^  docker cp ' '$BOOTSTRAP') -ge 4 ]]"
+else
+  check "the bootstrap copies exactly four things when no D68 manifest" "[[ \$(grep -c '^  docker cp ' '$BOOTSTRAP') -eq 4 ]]"
+fi
 
 # ── Stand-ins ─────────────────────────────────────────────────────────────────
 BIN="$WORK/bin"
@@ -61,7 +75,7 @@ if [[ "${1:-}" == "--version" ]]; then echo "${FAKE_PSQL_VERSION:-psql (PostgreS
 file=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -c) [[ "$2" == "SHOW server_version_num" ]] && echo "${FAKE_SERVER_NUM-170004}"; shift 2 ;;
+    -c) if [[ "$2" == "SHOW server_version_num" ]]; then echo "${FAKE_SERVER_NUM-170004}"; else echo "${FAKE_STAGE_RESULT-0}"; fi; shift 2 ;;
     -f) file="$2"; shift 2 ;;
     *) shift ;;
   esac
@@ -121,6 +135,10 @@ new_checkout() {
   mkdir -p "$CHECKOUT/scripts/fixtures" "$CHECKOUT/supabase" "$CHECKOUT/.git" "$CHECKOUT/node_modules/x"
   cp "$ROOT_DIR/scripts/ci-replay-in-container.sh" "$ROOT_DIR/scripts/verify-migration-replay.sh" "$ROOT_DIR/scripts/verify-phase1-smoke.sql" "$CHECKOUT/scripts/"
   cp "$ROOT_DIR/scripts/fixtures/supabase-storage.sql" "$CHECKOUT/scripts/fixtures/"
+  if [[ -d "$ROOT_DIR/scripts/fixtures/d68-schema-sequence" ]]; then
+    mkdir -p "$CHECKOUT/scripts/fixtures/d68-schema-sequence"
+    cp -R "$ROOT_DIR/scripts/fixtures/d68-schema-sequence/." "$CHECKOUT/scripts/fixtures/d68-schema-sequence/"
+  fi
   cp -R "$ROOT_DIR/supabase/migrations" "$CHECKOUT/supabase/migrations"
   echo "SECRET=1" > "$CHECKOUT/.env.local"
   echo "secret" > "$CHECKOUT/.git/config"
@@ -146,18 +164,53 @@ refused() { # name, subcommand, expected message
 reset() { unset FAKE_PSQL_VERSION FAKE_SERVER_NUM FAKE_MISSING_TOOL FAKE_BASH_MAJOR FAKE_DROP_MIGRATION FAKE_PSQL_FAIL_ON CONTAINER DB_URL; new_checkout; }
 
 MIGRATION_COUNT="$(find "$ROOT_DIR/supabase/migrations" -maxdepth 1 -type f -name '*.sql' | wc -l | tr -d '[:space:]')"
+D68_FILE_COUNT=0
+if [[ "$D68_ACTIVE" -eq 1 ]]; then
+  D68_FILE_COUNT="$(find "$ROOT_DIR/scripts/fixtures/d68-schema-sequence" -type f | wc -l | tr -d '[:space:]')"
+fi
+WORKSPACE_FILE_COUNT=$((MIGRATION_COUNT + 3 + D68_FILE_COUNT))
 SPACE_REL="tmp/constructa-replay"
+
+expected_replay_sql_paths() {
+  local root="$1"
+  (
+    echo "scripts/fixtures/supabase-storage.sql"
+    if [[ "$D68_ACTIVE" -eq 1 ]]; then
+      while IFS= read -r migration; do
+        base="${migration##*/}"
+        skip=0
+        for ex in "${D68_FILES[@]}"; do
+          [[ "$base" == "$ex" ]] && skip=1 && break
+        done
+        [[ "$skip" -eq 0 ]] && echo "$migration"
+      done < <(cd "$root" && find supabase/migrations -maxdepth 1 -type f -name '*.sql' -print | LC_ALL=C sort)
+      for ex in "${D68_FILES[@]}"; do
+        echo "scripts/fixtures/d68-schema-sequence/$ex"
+      done
+    else
+      cd "$root" && find supabase/migrations -maxdepth 1 -type f -name '*.sql' -print | LC_ALL=C sort
+    fi
+  )
+}
+if [[ "$D68_ACTIVE" -eq 1 ]]; then
+  export -f expected_replay_sql_paths 2>/dev/null || true
+fi
 
 echo "Prepare"
 reset
 check "prepare succeeds with a PostgreSQL 17 client and server" "run prepare"
 check "it reports the client, the server and the number of migrations" "grep -qF 'psql (PostgreSQL) 17.4, server 17, $MIGRATION_COUNT migrations' '$WORK/out'"
 check "the workspace holds the two scripts, the fixture and every migration, and nothing else" \
-  "[[ \$(find '$FAKE_ROOT/$SPACE_REL' -type f | wc -l | tr -d '[:space:]') -eq $((MIGRATION_COUNT + 3)) ]]"
+  "[[ \$(find '$FAKE_ROOT/$SPACE_REL' -type f | wc -l | tr -d '[:space:]') -eq $WORKSPACE_FILE_COUNT ]]"
 check "nothing from .git, node_modules or an env file is copied" \
   "! find '$FAKE_ROOT' \( -name '.git' -o -name 'node_modules' -o -name '.env*' -o -name 'config' -o -name 'index.js' \) | grep -q ."
-check "the only things copied are the four named paths" \
-  "[[ \"\$(grep '^cp ' '$FAKE_DOCKER_LOG' | awk '{print \$2}' | tr '\n' ' ')\" == 'scripts/verify-migration-replay.sh scripts/verify-phase1-smoke.sql scripts/fixtures/supabase-storage.sql supabase/migrations ' ]]"
+if [[ "$D68_ACTIVE" -eq 1 ]]; then
+  check "the named replay paths copied include the D68 fixture directory" \
+    "[[ \"\$(grep '^cp ' '$FAKE_DOCKER_LOG' | awk '{print \$2}' | tr '\n' ' ')\" == 'scripts/verify-migration-replay.sh scripts/verify-phase1-smoke.sql scripts/fixtures/supabase-storage.sql scripts/fixtures/d68-schema-sequence/. supabase/migrations ' ]]"
+else
+  check "the only things copied are the four named paths" \
+    "[[ \"\$(grep '^cp ' '$FAKE_DOCKER_LOG' | awk '{print \$2}' | tr '\n' ' ')\" == 'scripts/verify-migration-replay.sh scripts/verify-phase1-smoke.sql scripts/fixtures/supabase-storage.sql supabase/migrations ' ]]"
+fi
 check "the copied replay script is byte-for-byte the committed one" "cmp -s '$REPLAY' '$FAKE_ROOT/$SPACE_REL/scripts/verify-migration-replay.sh'"
 check "the copied smoke file is byte-for-byte the committed one" "cmp -s '$ROOT_DIR/scripts/verify-phase1-smoke.sql' '$FAKE_ROOT/$SPACE_REL/scripts/verify-phase1-smoke.sql'"
 check "the client version was asked of the container" "grep -qF 'pg_service_1 psql --version' '$FAKE_DOCKER_LOG'"
@@ -171,9 +224,21 @@ if grep -q '^RECORDED' "$FAKE_PSQL_LOG"; then
 else
   check "the storage fixture is applied first" "sed -n '3p' '$FAKE_PSQL_LOG' | grep -qF -- '-f scripts/fixtures/supabase-storage.sql'"
   check "every migration is replayed, in sorted order, starting with the repaired first one" \
-    "diff <(grep -oE 'supabase/migrations/[^ ]+\.sql' '$FAKE_PSQL_LOG') <(cd '$ROOT_DIR' && find supabase/migrations -maxdepth 1 -type f -name '*.sql' -print | LC_ALL=C sort) >/dev/null"
+    "diff <(grep -oE '(supabase/migrations|scripts/fixtures/d68-schema-sequence)/[^ ]+\.sql' '$FAKE_PSQL_LOG') <(expected_replay_sql_paths '$ROOT_DIR' | tail -n +2) >/dev/null"
   check "every SQL file is run with -X and ON_ERROR_STOP" "! grep -- ' -f ' '$FAKE_PSQL_LOG' | grep -vqF -- '$URL -X -v ON_ERROR_STOP=1 -f '"
-  check "the replay script reports the full count" "grep -qF 'all $MIGRATION_COUNT migrations replayed successfully' '$WORK/out'"
+  if [[ "$D68_ACTIVE" -eq 1 ]]; then
+    d68_exclude_present=0
+    for ex in "${D68_FILES[@]}"; do
+      [[ -f "$ROOT_DIR/supabase/migrations/$ex" ]] && d68_exclude_present=$((d68_exclude_present + 1))
+    done
+    baseline_count=$((MIGRATION_COUNT - d68_exclude_present))
+    d68_fixture_count=${#D68_FILES[@]}
+    total_sql=$((baseline_count + d68_fixture_count))
+    check "the replay script reports baseline and D68 fixture counts" \
+      "grep -qF 'baseline $baseline_count + d68 fixtures $d68_fixture_count = $total_sql SQL files replayed successfully' '$WORK/out'"
+  else
+    check "the replay script reports the full count" "grep -qF 'all $MIGRATION_COUNT migrations replayed successfully' '$WORK/out'"
+  fi
   export FAKE_PSQL_FAIL_ON="$(cd "$ROOT_DIR" && find supabase/migrations -maxdepth 1 -type f -name '*.sql' -print | LC_ALL=C sort | sed -n '5p' | sed 's#.*/##')"
   check "a failing migration fails the step" "! run replay && grep -qF 'Migration replay failed after 4 successful migrations' '$WORK/out'"
   unset FAKE_PSQL_FAIL_ON

@@ -109,7 +109,14 @@ async function main() {
     };
 
     try {
+      await page.emulateMedia({ reducedMotion: "reduce" });
       await page.goto(url, { waitUntil: "load", timeout: 60_000 });
+      // Scan settled text, not a partially transparent entrance-animation frame.
+      await page.evaluate(async () => {
+        await document.fonts.ready;
+        const finite = document.getAnimations().filter((a) => Number.isFinite(a.effect?.getComputedTiming().iterations));
+        await Promise.all(finite.map((a) => a.finished.catch(() => {})));
+      });
       const axe = await new AxeBuilder({ page })
         .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
         .analyze();

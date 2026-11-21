@@ -101,7 +101,7 @@ async function runOne(url, options) {
     accessibilityScore,
     pass: !lhr.runtimeError && performanceScore != null && accessibilityScore != null,
     metrics: Object.fromEntries(METRICS.map((id) => [id, { value: lhr.audits[id]?.numericValue ?? null, display: lhr.audits[id]?.displayValue ?? null }])),
-    findings: Object.values(lhr.audits).filter((a) => a.score != null && a.score < 1 && a.details?.type === "opportunity").map((a) => ({ id: a.id, title: a.title, savingsMs: a.details.overallSavingsMs ?? null, display: a.displayValue ?? null })),
+    findings: Object.values(lhr.audits).filter((a) => a.score != null && a.score < 1 && a.details?.type === "opportunity").map((a) => ({ id: a.id, title: a.title, savingsMs: a.details.overallSavingsMs ?? null, display: a.displayValue ?? null, items: (a.details.items ?? []).map((item) => ({ url: item.url ? new URL(item.url).pathname : null, wastedBytes: item.wastedBytes ?? null, totalBytes: item.totalBytes ?? null })) })),
     fetchFailure: lhr.runtimeError?.message ?? null,
   };
 }

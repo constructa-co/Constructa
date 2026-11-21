@@ -181,7 +181,7 @@ describe('phase-one marketing integration', () => {
     expect(html).not.toContain('Centralised Cost Tracking');
   });
 
-  it.each([['home', Home, 'Apply to the founding cohort'], ['landing', Landing, 'Apply to the founding cohort'], ['pricing', Pricing, 'Enterprise'], ['features', Features, 'Centralised Cost Tracking'], ['product', Product, 'Deliver it']] as const)('retains the original %s view under the existing full profile', (_name, Page, marker) => {
+  it.each([['home', Home, 'Apply to the founding cohort'], ['landing', Landing, 'Apply to the founding cohort'], ['pricing', Pricing, 'Founding cohort pricing'], ['features', Features, 'Centralised Cost Tracking'], ['product', Product, 'Deliver it']] as const)('retains the original %s view under the existing full profile', (_name, Page, marker) => {
     vi.stubEnv('NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE', 'full');
     const html = renderToStaticMarkup(<Page />);
     expect(html).toContain(marker);

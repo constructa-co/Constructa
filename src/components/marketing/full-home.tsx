@@ -11,54 +11,7 @@ import { PUBLIC_FORM_COLLECTION_NOTICE_ID_CONTACT } from '@/components/marketing
 import { isPublicContactFormCollectionReady } from '@/lib/marketing/public-form-collection';
 import { trackTryConstructaClick } from '@/lib/public-measurement';
 import { ProjectCoverRender } from '@/components/marketing/project-cover-render';
-
-// Add these price calculations at the top of the file, after imports
-const PLANS = {
-  basic: {
-    monthly: 20,
-    name: 'Basic',
-    description: 'Essential tools for individual contractors starting their journey.',
-    features: [
-      'Up to 2 projects/quarter',
-      'Basic proposal templates',
-      '1 team member',
-      'Standard support'
-    ]
-  },
-  standard: {
-    monthly: 40,
-    name: 'Standard',
-    description: 'Enhanced features for growing construction businesses.',
-    features: [
-      'Up to 10 projects/quarter',
-      'Advanced proposal templates',
-      '2 team members',
-      'Priority support'
-    ]
-  },
-  professional: {
-    monthly: 80,
-    name: 'Professional',
-    description: 'Advanced tools and privacy for professional contractors.',
-    features: [
-      'Unlimited projects',
-      'Custom proposal templates',
-      '5 team members',
-      '24/7 priority support'
-    ]
-  }
-};
-
-const calculatePrice = (basePrice: number, billingPeriod: 'monthly' | 'quarterly' | 'annual') => {
-  switch (billingPeriod) {
-    case 'quarterly':
-      return Math.round(basePrice * 3 * 0.85); // 15% discount
-    case 'annual':
-      return Math.round(basePrice * 12 * 0.7); // 30% discount
-    default:
-      return basePrice;
-  }
-};
+import { FoundingCohortPricingPanel } from '@/components/marketing/founding-cohort-pricing-panel';
 
 // Feature section component with sticky scroll
 const FeatureSection = () => {
@@ -169,30 +122,7 @@ const FeatureSection = () => {
 };
 
 export default function Home() {
-  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'quarterly' | 'annual'>('monthly');
   const contactCollectionReady = false; // Collection remains off for the client-only home panel.
-
-  const getBillingText = (price: number) => {
-    switch (billingPeriod) {
-      case 'quarterly':
-        return `£${Math.round(price / 3)}/month`;
-      case 'annual':
-        return `£${Math.round(price / 12)}/month`;
-      default:
-        return `£${price}/month`;
-    }
-  };
-
-  const getBillingSubtext = () => {
-    switch (billingPeriod) {
-      case 'quarterly':
-        return 'Billed quarterly';
-      case 'annual':
-        return 'Billed annually';
-      default:
-        return 'Billed monthly';
-    }
-  };
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -421,136 +351,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section className="relative bg-black text-white py-16 text-center overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_100%)]"></div>
-        <div className="relative max-w-7xl mx-auto px-8">
-          <div className="text-center mb-12">
-            <span className="text-sm font-medium tracking-wider uppercase text-white/40">OUR PRICING</span>
-            <h2 className="text-4xl font-bold mt-4 mb-4">Get Started with Constructa</h2>
-            <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
-              We&apos;re offering flexible plans with everything you need to quote, plan, and deliver jobs with confidence.
-            </p>
-          </div>
-
-          {/* Billing Toggle */}
-          <div className="flex items-center justify-center gap-4 mb-12">
-            <button 
-              onClick={() => setBillingPeriod('monthly')}
-              className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                billingPeriod === 'monthly' 
-                  ? 'bg-white text-black' 
-                  : 'text-gray-400 hover:text-white bg-white/5'
-              }`}
-            >
-              Monthly
-            </button>
-            <button 
-              onClick={() => setBillingPeriod('quarterly')}
-              className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                billingPeriod === 'quarterly' 
-                  ? 'bg-white text-black' 
-                  : 'text-gray-400 hover:text-white bg-white/5'
-              }`}
-            >
-              Quarterly
-              <span className={`ml-2 text-[10px] px-2 py-0.5 rounded-full ${billingPeriod === 'quarterly' ? 'bg-black text-white' : 'bg-white/10 text-white'}`}>15% OFF</span>
-            </button>
-            <button 
-              onClick={() => setBillingPeriod('annual')}
-              className={`px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                billingPeriod === 'annual' 
-                  ? 'bg-white text-black' 
-                  : 'text-gray-400 hover:text-white bg-white/5'
-              }`}
-            >
-              Yearly
-              <span className={`ml-2 text-[10px] px-2 py-0.5 rounded-full ${billingPeriod === 'annual' ? 'bg-black text-white' : 'bg-white/10 text-white'}`}>30% OFF</span>
-            </button>
-          </div>
-
-          {/* Pricing Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16 px-4 md:px-0">
-            {[PLANS.basic, PLANS.standard, PLANS.professional].map((plan, idx) => {
-              const isPro = plan.name === 'Professional';
-              const price = calculatePrice(plan.monthly, billingPeriod);
-              return (
-                <div key={idx} className={`relative p-8 rounded-2xl border transition-all duration-300 flex flex-col ${
-                  isPro 
-                    ? 'border-white bg-white text-black shadow-2xl z-10' 
-                    : 'border-white/10 bg-white/5 text-white hover:border-white/30'
-                }`}>
-                  {isPro && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-3 py-1 bg-black text-white text-[10px] font-bold uppercase rounded-full">
-                      Best Value
-                    </div>
-                  )}
-                  <div className="text-left flex-1">
-                    <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
-                    <p className={`text-sm mb-6 ${isPro ? 'text-black/60' : 'text-white/40'}`}>{plan.description}</p>
-                    <div className="mb-6">
-                      <span className="text-3xl font-bold">{getBillingText(price)}</span>
-                      <div className={`text-[10px] mt-1 ${isPro ? 'text-black/40' : 'text-white/20'}`}>{getBillingSubtext()}</div>
-                    </div>
-                    <a
-                      href="/apply"
-                      className={`block w-full py-3 px-4 rounded-xl text-sm font-medium text-center transition-colors mb-8 ${
-                        isPro ? 'bg-black text-white hover:bg-black/90' : 'bg-white/10 text-white hover:bg-white/20'
-                      }`}
-                    >
-                      Apply
-                    </a>
-                    <div className="space-y-4">
-                      <div className={`text-xs font-bold uppercase tracking-wider mb-2 ${isPro ? 'text-black/40' : 'text-white/20'}`}>What&apos;s included</div>
-                      {plan.features.map((feature, fIdx) => (
-                        <div key={fIdx} className="flex items-center gap-2 text-sm">
-                          <svg className={`w-5 h-5 ${isPro ? 'text-black' : 'text-white'}`} viewBox="0 0 20 20" fill="none">
-                            <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5" />
-                          </svg>
-                          <span>{feature}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Enterprise Card */}
-            <div className="relative p-8 rounded-2xl border border-white/10 bg-white/5 text-white hover:border-white/30 transition-all duration-300 flex flex-col">
-              <div className="text-left flex-1">
-                <h3 className="text-xl font-bold mb-2">Enterprise</h3>
-                <p className="text-sm text-white/40 mb-6">Custom solutions for large construction companies.</p>
-                <div className="mb-6">
-                  <span className="text-3xl font-bold">Custom</span>
-                  <div className="text-[10px] text-white/20 mt-1">Contact for pricing</div>
-                </div>
-                <button className="w-full py-3 px-4 rounded-xl bg-white/10 text-white text-sm font-medium hover:bg-white/20 transition-colors mb-8">
-                  Contact Sales
-                </button>
-                <div className="space-y-4">
-                  <div className="text-xs font-bold uppercase tracking-wider mb-2 text-white/20">What&apos;s included</div>
-                  {[
-                    "Unlimited projects",
-                    "Custom integrations",
-                    "Unlimited team members",
-                    "Dedicated support"
-                  ].map((feature, fIdx) => (
-                    <div key={fIdx} className="flex items-center gap-2 text-sm">
-                      <svg className="w-5 h-5 text-white" viewBox="0 0 20 20" fill="none">
-                        <path d="M7 10l2 2 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        <path d="M10 18a8 8 0 100-16 8 8 0 000 16z" stroke="currentColor" strokeWidth="1.5" />
-                      </svg>
-                      <span>{feature}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <FoundingCohortPricingPanel variant="embedded" />
 
       {/* About Section */}
       <section className="relative py-40 px-4 md:px-8 overflow-hidden">
@@ -660,8 +461,10 @@ export default function Home() {
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-1">Response Time</h3>
-                    <p className="text-lg font-bold text-white tracking-tight">Within 1 working day</p>
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-1">Response</h3>
+                    <p className="text-lg font-bold text-white tracking-tight" data-response-time-unconfirmed>
+                      [ROB TO CONFIRM: response-time commitment]
+                    </p>
                   </div>
                 </div>
               </div>

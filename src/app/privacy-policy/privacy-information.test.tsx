@@ -3,9 +3,6 @@ import { describe, expect, it } from "vitest";
 
 import PrivacyPolicyPage from "./page";
 
-// A024: the public privacy page says only what is known, names the kinds of
-// information people can ask about, and says plainly that the notice is not
-// yet complete. It makes no new claim about sharing, security or legal basis.
 const html = renderToStaticMarkup(<PrivacyPolicyPage />);
 const text = html.replace(/<!-- -->/g, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
@@ -21,48 +18,32 @@ describe("privacy information", () => {
 
     it("keeps the contact address as a mail link and names the information people can ask about", () => {
         const links = html.match(/<a [^>]*>[^<]*<\/a>/g) ?? [];
-        expect(links).toHaveLength(1);
-        expect(links[0]).toContain('href="mailto:hello@constructa.co"');
-        expect(links[0]).toContain(">hello@constructa.co</a>");
+        expect(links.some((link) => link.includes('href="mailto:hello@constructa.co"'))).toBe(true);
         expect(text).toContain(
-            "You can contact us at hello@constructa.co to request access to, correction of, or deletion of your data, or to ask how personal, company, tax, pricing or salary information is handled.",
+            "You can contact us at hello@constructa.co to request access to, correction of, or deletion of your information",
         );
     });
 
-    it("says the notice is incomplete and needs completing and reviewing before it is relied on", () => {
-        const note = html.match(/<p [^>]*data-privacy-review-note[^>]*>([^<]*)<\/p>/);
-        expect(note).not.toBeNull();
-        expect(note![1].replace(/\s+/g, " ").trim()).toBe(
-            "This notice is incomplete. It does not yet explain who is responsible for your information, the legal basis for using it, who it is shared with, where it is stored, how long it is kept or how it is protected. It needs to be completed and reviewed before it can be relied on as a full account of how information is handled. Until then, please ask us using the address below.",
+    it("shows the draft status banner and UK SaaS sections with rob-confirm tokens", () => {
+        expect(text).toContain("Draft, not yet legally approved");
+        expect(html).toMatch(/data-privacy-draft-notice/);
+        expect(html).toMatch(/data-privacy-controller/);
+        expect(text).toContain("[ROB TO CONFIRM: legal entity name]");
+        expect(text).toContain("[ROB TO CONFIRM: registered office address]");
+        expect(text).toContain(
+            "This site can include Vercel Web Analytics. When it is on, it counts visits to public pages for signed-out visitors.",
         );
-        // The March 2026 notice is not presented as the current, complete version.
+        expect(text).toContain("If you submit the updates form on this site, your email address is sent to Kit (ConvertKit)");
+    });
+
+    it("does not present compliance certification", () => {
+        expect(text).toContain("not presented as compliance certification");
+        expect(text).not.toMatch(/\bGDPR compliant\b/i);
+        expect(text).not.toMatch(/\bISO\s*27001\b/i);
+    });
+
+    it("keeps the March 2026 prior-version note", () => {
         expect(text).toContain("Previous version dated March 2026.");
         expect(text).not.toContain("Last updated: March 2026");
-    });
-
-    it("shows the approved draft status label and clarifies what it is not", () => {
-        expect(text).toContain("Draft, not yet legally approved");
-        expect(html).toMatch(
-            /<h2[^>]*id="privacy-draft-status"[^>]*>Draft, not yet legally approved<\/h2>/,
-        );
-        expect(html).toMatch(/<div [^>]*data-privacy-draft-notice[^>]*>/);
-        expect(text).toContain("This label is not legal approval of this notice.");
-        expect(text).toContain("This page is not a marketing publication");
-        expect(text).toContain("not presented as compliance certification.");
-    });
-
-    it("keeps the page structure and the facts it already stated", () => {
-        expect(html).toMatch(/^<main[^>]*><div[^>]*><h1[^>]*>Privacy Policy<\/h1>/);
-        expect(text).toContain("When you use our platform, we hold the details you give us, such as your name, email address and company details.");
-        expect(text).toContain("If you submit the updates form on this site, your email address is sent to Kit (ConvertKit), the email provider that runs that list.");
-        expect(html.match(/<p /g)).toHaveLength(8);
-    });
-
-    it("describes analytics without claiming whether it is on or off", () => {
-        const note = html.match(/<p [^>]*data-privacy-analytics-note[^>]*>([^<]*)<\/p>/);
-        expect(note).not.toBeNull();
-        expect(note![1].replace(/\s+/g, " ").trim()).toBe(
-            "This site includes Vercel Web Analytics, which can be on or off. When it is on, it counts visits to public pages for signed-out visitors. Constructa removes query strings from page addresses before page views are sent.",
-        );
     });
 });

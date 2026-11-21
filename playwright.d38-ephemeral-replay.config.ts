@@ -16,7 +16,11 @@ const appCommand = process.env.E2E_SKIP_BUILD === "1" ? startApp : `npx next bui
 
 export default defineConfig({
     testDir: "./e2e",
-    testMatch: ["**/d38-con-001-002-browser.qa.ts", "**/d78-founding-journey.qa.ts"],
+    testMatch: [
+        "**/d38-con-001-002-browser.qa.ts",
+        "**/d78-founding-journey.qa.ts",
+        "**/d81-profile-isolation.qa.ts",
+    ],
     outputDir: "./test-results/d38-ephemeral-replay",
     globalSetup: "./e2e/support/ephemeral-replay-global-setup.ts",
     fullyParallel: false,

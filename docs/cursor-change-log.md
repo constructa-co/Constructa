@@ -1,5 +1,20 @@
 # Cursor change log
 
+## 2026-11-21 — D81 CON-012 profile isolation (ephemeral replay, draft unverified in CI)
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `e2e/d81-profile-isolation.qa.ts` | (new) | Two seeded accounts: onboarding + profile phone save/reload; cross-account DB read; JWT RLS probe | Real browser/DB proof for profile prefill/save isolation on loopback only |
+| `scripts/ephemeral-replay/seed-d81-profile-isolation.mjs` | (new) | Seed alpha/beta synthetic auth when `E2E_D81_PROFILE_ISOLATION=1` | Disposable identities after guarded `db reset` |
+| `e2e/support/ephemeral-replay-env.ts` | ~15–20 | `D81_PROFILE_*` email/password constants | Labelled replay identities |
+| `e2e/support/backend.ts` | ~56–130 | `savedProfileFields`, `syntheticUserIdByEmail`, `clientProfileIsolationProbe` | Read-only verification without widening admin usage |
+| `playwright.d38-ephemeral-replay.config.ts` | `testMatch` | Include D81 spec | Same harness as D38/D78 |
+| `scripts/ephemeral-replay/d38-ephemeral-browser.sh` | seed block | Conditional D81 seed | No seed without env flag |
+| `.github/workflows/d38-con-browser-replay.yml` | `paths`, `env` | Trigger on D81; set `E2E_D81_PROFILE_ISOLATION` | CI orchestration |
+| `e2e/D81-PROFILE-ISOLATION.md` | (new) | Scope/limitations note | R1 handoff |
+
+**Checks:** NOT RUN locally (CI-only). Does not claim P0 closed or hosted QA.
+
 ## 2026-11-21 — D78 founding-user browser journey on the disposable replay stack (draft, unverified in CI)
 
 | File | Lines (approx.) | Change | Intent |

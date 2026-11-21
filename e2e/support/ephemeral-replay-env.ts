@@ -15,6 +15,12 @@ export const DEFAULT_EPHEMERAL_API_URL = "http://127.0.0.1:54321";
 export const EPHEMERAL_SEED_EMAIL = "d38-ephemeral@example.com";
 export const EPHEMERAL_SEED_PASSWORD = "Ephemeral-D38-Replay-Only-Not-Production";
 
+/** D81 CON-012: two labelled synthetic accounts for profile prefill/save isolation (loopback seed only). */
+export const D81_PROFILE_ALPHA_EMAIL = "d81-profile-alpha@example.com";
+export const D81_PROFILE_ALPHA_PASSWORD = "D81-Alpha-Ephemeral-Replay-Only";
+export const D81_PROFILE_BETA_EMAIL = "d81-profile-beta@example.com";
+export const D81_PROFILE_BETA_PASSWORD = "D81-Beta-Ephemeral-Replay-Only";
+
 const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
 
 export type EphemeralAuthMode = "signup" | "seed";

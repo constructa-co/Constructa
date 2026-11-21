@@ -63,6 +63,10 @@ if [[ "$E2E_D38_AUTH" == "seed" ]]; then
   node scripts/ephemeral-replay/seed-disposable-auth.mjs
 fi
 
+if [[ "${E2E_D81_PROFILE_ISOLATION:-0}" == "1" ]]; then
+  node scripts/ephemeral-replay/seed-d81-profile-isolation.mjs
+fi
+
 if [[ "${E2E_D78_SIGNUP_FIXTURE:-0}" == "1" ]]; then
   export DB_URL
   node scripts/ephemeral-replay/enable-disposable-signup-fixture.mjs

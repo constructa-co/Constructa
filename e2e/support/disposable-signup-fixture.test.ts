@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const root = path.resolve(import.meta.dirname, "../..");
 const script = path.join(root, "scripts/ephemeral-replay/enable-disposable-signup-fixture.mjs");
 const policy = readFileSync(path.join(root, "src/lib/platform-signup-policy.ts"), "utf8");
-function fixture(overrides: Record<string, string> = {}, alter?: (dir: string) => void) {
+function fixture(overrides: Record<string, string | undefined> = {}, alter?: (dir: string) => void) {
   const dir = mkdtempSync(path.join(tmpdir(), "d78-signup-fixture-"));
   mkdirSync(path.join(dir, "src/lib"), { recursive: true });
   const file = path.join(dir, "src/lib/platform-signup-policy.ts");
@@ -14,7 +14,7 @@ function fixture(overrides: Record<string, string> = {}, alter?: (dir: string) =
   writeFileSync(path.join(dir, ".d78-disposable-source"), "D78 archived source; disposable CI only");
   alter?.(dir);
   const result = spawnSync(process.execPath, [script], { cwd: dir, encoding: "utf8", env: {
-    PATH: process.env.PATH, E2E_D78_SIGNUP_FIXTURE: "1", CONSTRUCTA_DEPLOY_CONTEXT: "e2e-replay",
+    PATH: process.env.PATH, NODE_ENV: "test", E2E_D78_SIGNUP_FIXTURE: "1", CONSTRUCTA_DEPLOY_CONTEXT: "e2e-replay",
     NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321", DB_URL: "postgresql://localhost:54322/disposable", ...overrides,
   } });
   const after = readFileSync(file, "utf8");

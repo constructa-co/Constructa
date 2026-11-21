@@ -133,10 +133,17 @@ test("D78: a founding user signs up, briefs, prices, plans and downloads the pro
 
             const advanced = page.getByRole("region", { name: "Advanced estimating" });
             await use.activate(button(/^Advanced estimating/, advanced));
-            await use.activate(button("+ Preliminaries", advanced));
+            await use.fill(advanced.getByLabel("Add a work activity"), "Preliminaries");
+            await use.activate(button("Add activity", advanced));
             const prelims = advanced.getByRole("group", { name: "Preliminaries" });
             await use.fill(prelims.getByLabel("Description"), PRICE.preliminaries.description);
+            // Special-line free text saves on blur. Wait for each acknowledgement
+            // before the next edit, then verify the confirmed line amount.
+            const priceSave = () => page.waitForResponse(response => response.request().method() === "POST" && new URL(response.url()).pathname === "/dashboard/projects/costs");
+            await Promise.all([priceSave(), prelims.getByLabel("Description").press("Tab")]);
             await use.fill(prelims.getByLabel("Rate (£)"), String(PRICE.preliminaries.amount));
+            await Promise.all([priceSave(), prelims.getByLabel("Rate (£)").press("Tab")]);
+            await expect(prelims).toContainText("£450.00");
             await use.activate(button(/^Advanced estimating/, advanced));
             await expect(lines.locator("[data-price-line]")).toHaveCount(3);
 

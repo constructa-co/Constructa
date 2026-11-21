@@ -1,0 +1,61 @@
+name: Marketing a11y and speed (read-only)
+
+# D79: axe + Lighthouse against verified production https://constructa-nu.vercel.app
+# Reuses D69 target loader, 11 sitemap paths, and GET/HEAD write guards.
+# No secrets, credentials, or live writes.
+
+on:
+  pull_request:
+
+concurrency:
+  group: marketing-a11y-speed-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  marketing-a11y-speed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      CONSTRUCTA_MARKETING_AUDIT_ORIGIN: "https://constructa-nu.vercel.app"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium for axe audit
+        run: npx playwright install chromium --with-deps
+      - name: Collect current-production axe baseline (findings retained, not candidate validation)
+        id: axe-baseline
+        continue-on-error: true
+        run: node e2e/readonly-marketing-audit/run-production-marketing-a11y.mjs
+      - name: D79 Lighthouse performance and accessibility (read-only)
+        run: node e2e/readonly-marketing-audit/run-production-marketing-lighthouse.mjs
+      - name: Upload marketing audit artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d79-marketing-a11y-speed
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            readonlyaudit/marketing-production-a11y.json
+            readonlyaudit/marketing-production-a11y.md
+            readonlyaudit/marketing-production-lighthouse.json
+            readonlyaudit/marketing-production-lighthouse.md
+            readonlyaudit/screenshots/**
+      - name: Summarise audit outcome
+        if: always()
+        run: |
+          for f in marketing-production-a11y.md marketing-production-lighthouse.md; do
+            if [ -f "readonlyaudit/$f" ]; then
+              echo "## $f" >> "$GITHUB_STEP_SUMMARY"
+              head -n 24 "readonlyaudit/$f" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done

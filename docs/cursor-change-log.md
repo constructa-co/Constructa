@@ -1,5 +1,22 @@
 # Cursor change log
 
+## 2026-11-21 — D79 marketing a11y + speed (read-only CI)
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `e2e/readonly-marketing-audit/audit-harness.mjs` | new | Shared GET/HEAD guards, blocked hosts/paths, `createGuardedBrowserContext` | D79 reuses D69 write guards without duplicating policy |
+| `e2e/readonly-marketing-audit/run-production-marketing-a11y.mjs` | new | Playwright + axe WCAG 2.x tags; fail on serious/critical | Production a11y evidence |
+| `e2e/readonly-marketing-audit/run-production-marketing-lighthouse.mjs` | new | Lighthouse mobile+desktop per sitemap URL; a11y score ≥ 0.9 gate | Speed + a11y scores without form interaction |
+| `.github/workflows/marketing-a11y-speed-audit.yml` | new | Non-draft PR job; `CONSTRUCTA_MARKETING_AUDIT_ORIGIN`; artifacts | Isolated CI; draft blocks hosted prod audit |
+| `package.json` / `package-lock.json` | devDeps | Pin `lighthouse@12.8.2`, `chrome-launcher@1.2.1` | Node 24 CI install |
+| `src/components/public-chrome.tsx` | 19–66 | Skip link + `#public-marketing-content` on all marketing profiles | WCAG bypass on full launch profile |
+| `src/components/Header.tsx` | logo/nav | `aria-label` on home + main nav; `text-gray-400` links | Contrast + discernible name (full profile) |
+| `src/components/marketing/phase-one.test.tsx` | ~288 | Full profile expects skip + focusable main | Match a11y chrome |
+| `readonlyaudit/README.md` | header | D79 artifact names | Handoff |
+| `docs/delivery/2026-11-21/d79-marketing-a11y-speed.md` | new | Bounded delivery note | R1 / PR context |
+
+**Checks:** NOT RUN locally (D79 lane). Validation is GitHub Actions on a ready (non-draft) PR.
+
 ## 2026-11-21 — D69 read-only production marketing audit (CI only)
 
 | File | Lines (approx.) | Change | Intent |

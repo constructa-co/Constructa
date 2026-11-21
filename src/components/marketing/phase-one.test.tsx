@@ -285,16 +285,17 @@ describe('phase-one marketing integration', () => {
     expect(html.indexOf('Skip to content')).toBeLessThan(html.indexOf('<header'));
   });
 
-  it('renders no bypass, main id or main tabindex under the full profile', () => {
+  it('renders one bypass and focusable main under the full profile', () => {
     vi.stubEnv('NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE', 'full');
     route.pathname = '/';
     const html = renderToStaticMarkup(<PublicChrome><p>Full home</p></PublicChrome>);
-    expect(html).not.toContain('Skip to content');
-    expect(html).not.toContain('public-marketing-content');
+    const anchors = html.match(/<a\b[^>]*href="#public-marketing-content"[^>]*>Skip to content<\/a>/g) ?? [];
+    expect(anchors).toHaveLength(1);
+    expect(html.indexOf('Skip to content')).toBeLessThan(html.indexOf('<header'));
     const mains = html.match(/<main\b[^>]*>/g) ?? [];
     expect(mains).toHaveLength(1);
-    expect(mains[0]).not.toContain('id=');
-    expect(mains[0]).not.toContain('tabindex');
+    expect(mains[0]).toContain('id="public-marketing-content"');
+    expect(mains[0]).toContain('tabindex="-1"');
   });
 
   it.each(['/login', '/onboarding', '/auth/confirm', '/dashboard', '/dashboard/settings/profile', '/admin', '/proposal/example'])('adds no bypass, main id or main tabindex on %s', pathname => {

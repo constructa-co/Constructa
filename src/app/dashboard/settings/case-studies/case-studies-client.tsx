@@ -10,8 +10,17 @@ import { caseStudyTextEnhanceEnabled } from "@/lib/cohort-ai/case-study-enhance-
 import { COHORT_AI_OFF } from "@/lib/cohort-ai/shared";
 import { pendingFrom, sectionState, settle, type PendingCaseStudySuggestion } from "@/lib/cohort-ai/case-study-suggestion";
 import { uploadProfileImageAction } from "@/app/storage/actions";
+import { PUBLIC_IMAGE_LIMITS_HINT, publicImageProblem } from "@/lib/storage/public-image";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
-import { keepFirstThreePhotos, legacyExtraPhotoCount } from "./legacy-save-photos";
+import {
+    CASE_STUDY_DUPLICATE_PHOTO_MESSAGE,
+    CASE_STUDY_PRIMARY_LABEL,
+    caseStudyPhotoContentHash,
+    legacyTailPhotoCount,
+    resolvePrimaryPhotoSlot,
+    mergeLegacyProfilePhotoUrls,
+    splitLegacyProfilePhotoUrls,
+} from "@/lib/case-library/case-study-photo-behaviour";
 import { SAVE_MESSAGES, initialSaveState, needsLeaveWarning, requestOf, saveReducer, statusLine, type SaveAction, type SaveCaseStudiesResult, type SaveState } from "./save-state";
 import { JOB_TYPE_EXAMPLES } from "@/lib/job-type-options";
 import type { CaseStudySectorId } from "@/lib/case-study-example-tags";
@@ -24,10 +33,11 @@ import {
     coreProfileTextarea,
     coreSuggestionPrimary,
 } from "@/lib/core-editing-palette";
-import ChallengeResolution, { NO_STORY, storyTyped, type StoryNotes } from "./challenge-resolution";
+import ChallengeResolution, { type StoryNotes } from "./challenge-resolution";
+import { typedValueAmount } from "@/lib/case-study-value";
 
 type Enhance = (whatWeDelivered: string, valueAdded: string, projectName: string, projectType: string) => Promise<CaseStudyResult>;
-type Save = (caseStudies: unknown) => Promise<SaveCaseStudiesResult>;
+type Save = (caseStudies: unknown, expectedFingerprint: string, unconfirmed: unknown[][]) => Promise<SaveCaseStudiesResult>;
 
 interface CaseStudy {
     id: string;
@@ -40,30 +50,42 @@ interface CaseStudy {
     whatWeDelivered: string;
     valueAdded: string;
     photos: string[];
+    /** Which of the three active slots is the main picture on proposals (0–2). */
+    primaryPhotoIndex?: number | null;
     disciplineTags?: string[];
     sectorTags?: CaseStudySectorId[];
     disciplineTagsExplicit?: boolean;
     sectorTagsExplicit?: boolean;
+    /** CON-062: an optional client quote and who said it, shown as an attributed pull quote on new proposals. */
+    clientQuote?: string;
+    clientQuoteAttribution?: string;
+    /** CON-063: the challenge and its solution, kept as their own fields once kept; older entries may still hold both inside `whatWeDelivered`. */
+    challenge?: string;
+    solution?: string;
+    /** CON-064: a numeric contract value with its VAT basis. Absent on older entries, whose free-text `contractValue` is shown as typed. */
+    contractValueAmount?: number | null;
+    contractValueVatBasis?: string;
 }
 
 /**
- * The older case-study editor. Saving here replaces the whole stored list and
- * is NOT protected against another tab: a tab that loaded an older list still
- * overwrites a newer one. What this screen does guarantee is narrower: it
- * says "saved" only when a save was confirmed, it never clears what was typed
- * because a save failed, was slow or was not confirmed, and it warns before
- * leaving by reload or by a link. It does not cover navigation made by code
- * or the browser's Back and Forward buttons.
+ * The older case-study editor. A save is confirmed only when storage still
+ * holds what this tab last knew, or a list this tab sent itself; stale tabs
+ * are refused rather than overwriting a newer list.
  */
-export default function CaseStudiesClient({ initialCaseStudies, userId, enhance = enhanceCaseStudyAction, save = saveCaseStudiesAction }: {
+export default function CaseStudiesClient({ initialCaseStudies, initialStoredFingerprint, userId, enhance = enhanceCaseStudyAction, save = saveCaseStudiesAction }: {
     initialCaseStudies: CaseStudy[];
+    initialStoredFingerprint: string;
     userId: string;
     /** Defaults to the real server action; replaced only by tests and the fixture harness. */
     enhance?: Enhance;
     /** Defaults to the real server action; replaced only by tests and the fixture harness. */
     save?: Save;
 }) {
-    const [state, dispatch] = useReducer(saveReducer as Reducer<SaveState<CaseStudy>, SaveAction<CaseStudy>>, initialCaseStudies, initialSaveState<CaseStudy>);
+    const [state, dispatch] = useReducer(
+        saveReducer as Reducer<SaveState<CaseStudy>, SaveAction<CaseStudy>>,
+        initialCaseStudies,
+        (loaded) => initialSaveState(loaded, initialStoredFingerprint),
+    );
     const caseStudies = state.draft;
     const isPending = state.saving !== null;
     const sentToken = useRef(0);
@@ -89,7 +111,12 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
         void (async () => {
             let result: SaveCaseStudiesResult;
             try {
-                result = await save(request.sent.map((entry) => legacyCaseStudyForSave(entry)));
+                result = await save(
+                    request.sent.map((entry) => legacyCaseStudyForSave(entry)),
+                    request.expectedFingerprint,
+                    // Earlier saves that were never answered, as they were sent: one of them may be what is stored now.
+                    request.unconfirmed.map((sent) => sent.map((entry) => legacyCaseStudyForSave(entry))),
+                );
             } catch {
                 // The request itself failed. Whether it reached the server is not known.
                 result = { status: "unknown", message: SAVE_MESSAGES.unknown };
@@ -113,10 +140,14 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
             whatWeDelivered: "",
             valueAdded: "",
             photos: ["", "", ""],
+            clientQuote: "",
+            clientQuoteAttribution: "",
+            challenge: "",
+            solution: "",
         }]);
     };
 
-    const updateCaseStudy = (index: number, field: keyof CaseStudy, value: string | string[] | CaseStudySectorId[] | boolean) => {
+    const updateCaseStudy = (index: number, field: keyof CaseStudy, value: string | string[] | CaseStudySectorId[] | boolean | number | null) => {
         setCaseStudies(prev => prev.map((cs, i) => {
             if (i !== index) return cs;
             const next = { ...cs, [field]: value } as CaseStudy;
@@ -143,9 +174,13 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
     const status = statusLine(state);
     const trouble = state.notice.kind === "failed" || state.notice.kind === "unknown" || state.uncertain;
 
-    const handlePhotoUpload = async (csIndex: number, slot: number, file: File) => {
+    /** Resolves true only when the picture was put on the example. */
+    const handlePhotoUpload = async (row: number, slot: number, file: File, existingPhotos: readonly string[]): Promise<boolean> => {
         // Rows and photos can change while this waits, so the reply is placed from what is there when it arrives.
-        const row = rowHandles.current[csIndex];
+        if (!rowHandles.current.includes(row)) {
+            toast.error("That past work was removed, so its photo was not added.");
+            return false;
+        }
         const pickKey = `${row}:${slot}`;
         const pick = Symbol();
         latestPhotoPick.current.set(pickKey, pick);
@@ -162,21 +197,32 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
         const rowIndex = rowHandles.current.indexOf(row);
         if (rowIndex === -1) {
             toast.error("That past work was removed, so its photo wasn't added.");
-            return;
+            return false;
         }
-        if (latestPhotoPick.current.get(pickKey) !== pick) return;
+        if (latestPhotoPick.current.get(pickKey) !== pick) return false;
         const { url } = result;
         if (url) {
+            if (existingPhotos.some((photo, index) => photo === url && index !== slot)) {
+                toast.error(CASE_STUDY_DUPLICATE_PHOTO_MESSAGE);
+                return false;
+            }
             setCaseStudies(prev => prev.map((cs, i) => {
                 if (i !== rowIndex) return cs;
-                const newPhotos = [...(cs.photos || ["", "", ""])];
-                newPhotos[slot] = url;
-                return { ...cs, photos: newPhotos };
+                const { active, legacyTail } = splitLegacyProfilePhotoUrls(cs.photos);
+                const hadNone = active.every((entry) => entry.trim() === "");
+                const nextActive = [...active] as [string, string, string];
+                nextActive[slot] = url;
+                return {
+                    ...cs,
+                    photos: mergeLegacyProfilePhotoUrls(nextActive, legacyTail),
+                    primaryPhotoIndex: hadNone && cs.primaryPhotoIndex == null ? slot : cs.primaryPhotoIndex,
+                };
             }));
             toast.success("Photo uploaded");
-        } else {
-            toast.error(result.error || "Upload failed");
+            return true;
         }
+        toast.error(result.error || "Upload failed");
+        return false;
     };
 
     /** Takes a photo off the screen copy only. The file stays in storage; a pick still on its way for this slot no longer counts. */
@@ -184,9 +230,10 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
         latestPhotoPick.current.set(`${rowHandles.current[csIndex]}:${slot}`, Symbol());
         setCaseStudies(prev => prev.map((cs, i) => {
             if (i !== csIndex) return cs;
-            const newPhotos = [...(cs.photos || ["", "", ""])];
-            newPhotos[slot] = "";
-            return { ...cs, photos: newPhotos };
+            const { active, legacyTail } = splitLegacyProfilePhotoUrls(cs.photos);
+            const nextActive = [...active] as [string, string, string];
+            nextActive[slot] = "";
+            return { ...cs, photos: mergeLegacyProfilePhotoUrls(nextActive, legacyTail), primaryPhotoIndex: cs.primaryPhotoIndex === slot ? null : cs.primaryPhotoIndex };
         }));
     };
 
@@ -225,21 +272,24 @@ export default function CaseStudiesClient({ initialCaseStudies, userId, enhance 
                 </div>
             )}
 
-            {caseStudies.map((cs, index) => (
+            {caseStudies.map((cs, index) => {
+                const row = rowHandles.current[index];
+                return (
                 <CaseStudyCard
-                    key={cs.id}
+                    key={row}
                     cs={cs}
                     index={index}
                     onChange={(field, value) => updateCaseStudy(index, field, value)}
                     onRemove={() => removeCaseStudy(index)}
-                    onPhotoUpload={(slot, file) => handlePhotoUpload(index, slot, file)}
+                    onPhotoUpload={(slot, file) => handlePhotoUpload(row, slot, file, Array.isArray(cs.photos) ? cs.photos : [])}
                     onPhotoRemove={(slot) => handlePhotoRemove(index, slot)}
                     onStoryTyped={(typed) => markStory(index, typed)}
                     inputCls={inputCls}
                     labelCls={labelCls}
                     enhance={enhance}
                 />
-            ))}
+                );
+            })}
 
             <div className={ui.saveBar}>
                 <button
@@ -280,9 +330,9 @@ function CaseStudyCard({
     enhance: Enhance;
     cs: CaseStudy;
     index: number;
-    onChange: (field: keyof CaseStudy, value: string | string[] | CaseStudySectorId[] | boolean) => void;
+    onChange: (field: keyof CaseStudy, value: string | string[] | CaseStudySectorId[] | boolean | number | null) => void;
     onRemove: () => void;
-    onPhotoUpload: (slot: number, file: File) => void;
+    onPhotoUpload: (slot: number, file: File) => Promise<boolean>;
     onPhotoRemove: (slot: number) => void;
     onStoryTyped: (typed: boolean) => void;
     inputCls: string;
@@ -290,14 +340,83 @@ function CaseStudyCard({
 }) {
     const [expanded, setExpanded] = useState(true);
     const [enhancing, setEnhancing] = useState(false);
-    const extraPhotos = legacyExtraPhotoCount(cs.photos);
+    const { active: activePhotoUrls, legacyTail } = splitLegacyProfilePhotoUrls(cs.photos);
+    const legacyTailCount = legacyTailPhotoCount(cs.photos);
+    const primarySlot = resolvePrimaryPhotoSlot(activePhotoUrls, cs.primaryPhotoIndex);
+
+    // Which slots have a picture on its way, so the slot says so until its reply is in. Never saved.
+    const [uploading, setUploading] = useState<boolean[]>([false, false, false]);
+    const [photoNote, setPhotoNote] = useState<string | null>(null);
+    /** The latest pick for each slot on this card. Only its reply ends that slot's "uploading". */
+    const latestPick = useRef<(symbol | null)[]>([null, null, null]);
+    /** Content hashes for files placed on each slot this session. Never saved. */
+    const slotHashes = useRef<(string | null)[]>([null, null, null]);
+    const markUploading = (slot: number, on: boolean) => setUploading(prev => prev.map((value, i) => (i === slot ? on : value)));
+
+    const pickPhoto = async (slot: number, input: HTMLInputElement) => {
+        const file = input.files?.[0];
+        // Cleared so choosing the same file again, after a failure for one, is still a change the browser reports.
+        input.value = "";
+        if (!file) return;
+        // Refused here, in the words the upload would use, before anything is sent. A pick already on its way is left alone.
+        const problem = publicImageProblem(file);
+        if (problem) {
+            toast.error(problem);
+            return;
+        }
+        const pick = Symbol();
+        latestPick.current[slot] = pick;
+        let hash: string;
+        try {
+            hash = await caseStudyPhotoContentHash(file);
+        } catch {
+            toast.error("That picture could not be checked, so it was not added.");
+            return;
+        }
+        if (slotHashes.current.some((entry, index) => entry === hash && index !== slot)) {
+            toast.error(CASE_STUDY_DUPLICATE_PHOTO_MESSAGE);
+            return;
+        }
+        if (latestPick.current[slot] !== pick) return;
+        const previousHash = slotHashes.current[slot];
+        slotHashes.current[slot] = hash;
+        setPhotoNote(null);
+        markUploading(slot, true);
+        const added = await onPhotoUpload(slot, file);
+        if (latestPick.current[slot] !== pick) return;
+        markUploading(slot, false);
+        if (!added) { slotHashes.current[slot] = previousHash; return; }
+    };
+
+    const removePhoto = (slot: number) => {
+        latestPick.current[slot] = null;
+        slotHashes.current[slot] = null;
+        markUploading(slot, false);
+        setPhotoNote(null);
+        onPhotoRemove(slot);
+    };
+
+    const makePrimary = (slot: number) => {
+        if (!(activePhotoUrls[slot] ?? "").trim()) return;
+        onChange("primaryPhotoIndex", slot);
+    };
+
+    const uploadingSlots = uploading.flatMap((on, slot) => (on ? [slot + 1] : []));
+    const photoStatus = uploadingSlots.length > 0
+        ? `Uploading ${uploadingSlots.length === 1 ? "photo" : "photos"} ${uploadingSlots.join(" and ")}…`
+        : photoNote ?? "";
 
     // A reply is held here until the contractor decides. It never replaces what is in the form by arriving.
     const [pending, setPending] = useState<PendingCaseStudySuggestion | null>(null);
     const [notice, setNotice] = useState<string | null>(null);
-    // A challenge and how it was resolved, as typed. Held by the card so closing it keeps them; never saved until added.
-    const [story, setStory] = useState<StoryNotes>(NO_STORY);
-    const changeStory = (next: StoryNotes) => { setStory(next); onStoryTyped(storyTyped(next)); };
+    // A challenge and how it was resolved, as typed. Held by the card so closing it keeps them; kept
+    // to the example's own fields only on an explicit press, then saved by the ordinary save.
+    const savedStory: StoryNotes = { challenge: cs.challenge ?? "", response: cs.solution ?? "" };
+    const [story, setStory] = useState<StoryNotes>(savedStory);
+    const differsFromSaved = (next: StoryNotes): boolean => next.challenge !== savedStory.challenge || next.response !== savedStory.response;
+    // The warning stays on while the boxes differ from what is saved, including
+    // cleared boxes: an emptied story is still an unsaved change until it is kept.
+    const changeStory = (next: StoryNotes) => { setStory(next); onStoryTyped(differsFromSaved(next)); };
     const tagSuggestions = exampleTagSuggestions({ projectType: cs.projectType, client: cs.client });
 
     const handleEnhance = async () => {
@@ -403,7 +522,53 @@ function CaseStudyCard({
                         </div>
                         <div>
                             <label htmlFor={`${fieldId}-value`} className={labelCls}>Contract Value</label>
-                            <input id={`${fieldId}-value`} className={inputCls} value={cs.contractValue} onChange={e => onChange("contractValue", e.target.value)} placeholder="e.g. £85,000" />
+                            {cs.contractValueAmount != null ? (
+                                <div className="flex gap-2">
+                                    <input
+                                        id={`${fieldId}-value`}
+                                        type="number"
+                                        inputMode="decimal"
+                                        min="0"
+                                        step="any"
+                                        className={inputCls}
+                                        value={cs.contractValueAmount}
+                                        onChange={e => {
+                                            const next = e.target.value === "" ? null : Number(e.target.value);
+                                            onChange("contractValueAmount", next !== null && (!Number.isFinite(next) || next < 0) ? null : next);
+                                        }}
+                                        placeholder="85000"
+                                        aria-label="Contract Value"
+                                    />
+                                    <select
+                                        id={`${fieldId}-value-vat`}
+                                        className={inputCls}
+                                        value={cs.contractValueVatBasis ?? "ex_vat"}
+                                        onChange={e => onChange("contractValueVatBasis", e.target.value)}
+                                        aria-label="VAT basis"
+                                    >
+                                        <option value="ex_vat">ex VAT</option>
+                                        <option value="inc_vat">inc VAT</option>
+                                    </select>
+                                </div>
+                            ) : (
+                                <>
+                                    <input id={`${fieldId}-value`} className={inputCls} value={cs.contractValue} onChange={e => onChange("contractValue", e.target.value)} placeholder="e.g. £85,000" />
+                                    {typedValueAmount(cs.contractValue) !== null && (
+                                        // A plain figure can be kept as a number with its VAT basis, and prints
+                                        // like the proposal's other figures. The typed words stay on the record.
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                onChange("contractValueAmount", typedValueAmount(cs.contractValue));
+                                                onChange("contractValueVatBasis", "ex_vat");
+                                            }}
+                                            className={`mt-1 min-h-11 px-3 rounded-lg border border-slate-400 text-sm font-semibold text-slate-100 hover:bg-white/5 ${coreFocusVisibleRing}`}
+                                        >
+                                            Keep as exact figure with VAT basis
+                                        </button>
+                                    )}
+                                </>
+                            )}
                         </div>
                         <div>
                             <label htmlFor={`${fieldId}-duration`} className={labelCls}>Programme Duration</label>
@@ -449,6 +614,12 @@ function CaseStudyCard({
                         notes={story}
                         onNotes={changeStory}
                         onAdd={next => onChange("whatWeDelivered", next)}
+                        onAddToRecord={next => {
+                            onChange("challenge", next.challenge);
+                            onChange("solution", next.response);
+                            onStoryTyped(false);
+                        }}
+                        savedNotes={savedStory}
                         idPrefix={fieldId}
                         target="What We Delivered"
                         labelCls={labelCls}
@@ -456,6 +627,24 @@ function CaseStudyCard({
                         hintCls="text-xs text-slate-300"
                         buttonCls={`min-h-11 px-3 rounded-lg border border-slate-400 text-sm font-semibold text-slate-100 hover:bg-white/5 ${coreFocusVisibleRing}`}
                     />
+
+                    <div>
+                        <label htmlFor={`${fieldId}-quote`} className={labelCls}>What did the client say? <span className="font-normal text-slate-300">(optional)</span></label>
+                        <textarea
+                            id={`${fieldId}-quote`}
+                            className={coreProfileTextarea}
+                            rows={2}
+                            maxLength={1000}
+                            aria-label="What did the client say?"
+                            value={cs.clientQuote ?? ""}
+                            onChange={e => onChange("clientQuote", e.target.value)}
+                            placeholder="A line or two in the client's own words. Only quote what they actually said."
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor={`${fieldId}-quote-by`} className={labelCls}>Who said it <span className="font-normal text-slate-300">(optional)</span></label>
+                        <input id={`${fieldId}-quote-by`} className={inputCls} maxLength={200} value={cs.clientQuoteAttribution ?? ""} onChange={e => onChange("clientQuoteAttribution", e.target.value)} placeholder="e.g. Mrs Smith" />
+                    </div>
 
                     <div>
                         <label htmlFor={`${fieldId}-added`} className={labelCls}>Value Added</label>
@@ -473,19 +662,27 @@ function CaseStudyCard({
 
                     {/* Photos */}
                     <div>
-                        <label className={labelCls}>Photos (up to 3)</label>
+                        <label className={labelCls}>{`Photos (up to 3. ${PUBLIC_IMAGE_LIMITS_HINT})`}</label>
                         <div className={ui.photos}>
                             {[0, 1, 2].map(slot => (
                                 <div key={slot} className={`${ui.photoSlot} border rounded-lg overflow-hidden relative group`}>
-                                    {(cs.photos || [])[slot] ? (
+                                    {(activePhotoUrls[slot] ?? "").trim() ? (
                                         <>
                                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img src={cs.photos[slot]} alt={`Photo ${slot + 1}`} className="w-full h-full object-cover" />
+                                            <img src={activePhotoUrls[slot]} alt={`Photo ${slot + 1}`} className="w-full h-full object-cover" />
+                                            {primarySlot === slot && (
+                                                <span className="absolute top-1 left-1 z-10 rounded bg-emerald-900/90 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-100">{CASE_STUDY_PRIMARY_LABEL}</span>
+                                            )}
+                                            {primarySlot !== slot && (
+                                                <button type="button" aria-label={`Use photo ${slot + 1} as main for past work ${index + 1}`} onClick={() => makePrimary(slot)} className={`absolute top-1 left-1 z-10 min-h-8 px-2 rounded-lg bg-black/70 text-[10px] font-semibold text-white hover:bg-black ${coreFocusVisibleRing}`}>
+                                                    Use as main
+                                                </button>
+                                            )}
                                             <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
                                                 <Upload className="w-5 h-5 text-white" />
-                                                <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={`Replace photo ${slot + 1} for past work ${index + 1}`} className="sr-only" onChange={e => e.target.files?.[0] && onPhotoUpload(slot, e.target.files[0])} />
+                                                <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={`Replace photo ${slot + 1} for past work ${index + 1}`} className="sr-only" onChange={e => pickPhoto(slot, e.target)} />
                                             </label>
-                                            <button type="button" aria-label={`Remove photo ${slot + 1} for past work ${index + 1}`} onClick={() => onPhotoRemove(slot)} className={`absolute top-1 right-1 z-10 flex h-11 w-11 items-center justify-center rounded-lg bg-black/70 text-white hover:bg-black ${coreFocusVisibleRing}`}>
+                                            <button type="button" aria-label={`Remove photo ${slot + 1} for past work ${index + 1}`} onClick={() => removePhoto(slot)} className={`absolute top-1 right-1 z-10 flex h-11 w-11 items-center justify-center rounded-lg bg-black/70 text-white hover:bg-black ${coreFocusVisibleRing}`}>
                                                 <Trash2 className="w-4 h-4" aria-hidden />
                                             </button>
                                         </>
@@ -493,26 +690,32 @@ function CaseStudyCard({
                                         <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-slate-700 transition-colors">
                                             <Upload className="w-5 h-5 text-slate-500 mb-1" />
                                             <span className="text-[10px] text-slate-500">Upload</span>
-                                            <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={`Upload photo ${slot + 1} for past work ${index + 1}`} className="sr-only" onChange={e => e.target.files?.[0] && onPhotoUpload(slot, e.target.files[0])} />
+                                            <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={`Upload photo ${slot + 1} for past work ${index + 1}`} className="sr-only" onChange={e => pickPhoto(slot, e.target)} />
                                         </label>
+                                    )}
+                                    {uploading[slot] && (
+                                        // Shown over the slot, without blocking it: a newer pick or a removal still works, and the latest one stands.
+                                        <div data-photo-uploading={slot + 1} aria-hidden className="absolute inset-0 flex items-center justify-center gap-1.5 bg-black/70 text-xs font-semibold text-white pointer-events-none">
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Uploading…
+                                        </div>
                                     )}
                                 </div>
                             ))}
                         </div>
-                        {extraPhotos > 0 && (
-                            // Older data can hold more than three. They are not shown and cannot be removed slot by slot, and a save with them is refused, so the choice is offered here. Nothing is dropped until it is pressed.
-                            <div data-extra-photos role="status" className="mt-2 flex flex-wrap items-center gap-3 rounded-lg border border-amber-500/50 bg-amber-950/40 p-3 text-xs text-amber-100">
-                                <p className="flex-1 min-w-[12rem]">
-                                    This example has {extraPhotos} more {extraPhotos === 1 ? "picture" : "pictures"} saved than the three allowed. Only the first three are shown, and saving is held until you keep just those three.
-                                </p>
-                                <button
-                                    type="button"
-                                    onClick={() => onChange("photos", keepFirstThreePhotos(cs.photos))}
-                                    aria-label={`Keep the first three pictures for past work ${index + 1}`}
-                                    className={`min-h-11 px-3 rounded-lg border border-amber-400 text-sm font-semibold text-amber-50 hover:bg-white/5 ${coreFocusVisibleRing}`}
-                                >
-                                    Keep the first three
-                                </button>
+                        {/* Says a picture is on its way, or that the same picture was added twice. A failure is said where failures already are. */}
+                        <p data-photo-status role="status" aria-live="polite" className={photoStatus ? "mt-2 text-xs font-semibold text-slate-200" : "sr-only"}>{photoStatus}</p>
+                        {legacyTailCount > 0 && (
+                            <div data-legacy-photos className="mt-3 space-y-2">
+                                <p className="text-xs font-semibold text-slate-300">Older saved pictures (kept after your three active slots)</p>
+                                <div className={`${ui.photos} opacity-90`}>
+                                    {legacyTail.map((url, legacyIndex) => (
+                                        <div key={`${legacyIndex}-${url}`} className={`${ui.photoSlot} border border-slate-600 rounded-lg overflow-hidden`}>
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={url} alt={`Older saved photo ${legacyIndex + 1}`} className="w-full h-full object-cover" />
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </div>

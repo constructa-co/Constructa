@@ -1,7 +1,10 @@
 import { NewsletterSignup } from './newsletter-signup';
 import Link from 'next/link';
 import { ArrowDown, ArrowRight, Check, Plus } from 'lucide-react';
+import { BrandMark } from '../brand-mark';
 import { HomeBusinessVisual } from './home-business-visual';
+import { HomeReviewCaptures } from './home-review-captures';
+import { MarketingMobileMenu } from './marketing-mobile-menu';
 import { ProductReviewGuide } from './product-review-guide';
 import { ProductScreenshots } from './product-screenshots';
 import ui from './phase-one.module.css';
@@ -17,16 +20,17 @@ export function MarketingHeader() {
   return (
     <header className={`${ui.theme} ${ui.header}`}>
       <div className={ui.headerInner}>
-        <Link className={ui.brand} href="/" aria-label="Constructa home"><span aria-hidden="true">C</span>constructa</Link>
+        <Link className={ui.brand} href="/" aria-label="Constructa home"><span aria-hidden="true"><BrandMark /></span>constructa</Link>
         <nav aria-label="Main navigation" className={ui.nav}>
-          <Link href="/#how-it-works">How it works</Link>
-          <Link href="/features">The product</Link>
-          <Link href="/about">About</Link>
+          <Link href="/features">Product</Link>
           <Link href="/pricing">Preview access</Link>
+          <Link href="/about">About</Link>
+          <Link href="/guides">Guides</Link>
         </nav>
         <div className={ui.headerActions}>
-          <Link className={ui.applyCta} href="/apply">Apply to the founding cohort <ArrowRight size={16} aria-hidden="true" /></Link>
+          <Link className={ui.applyCta} href="/apply" aria-label="Apply to the founding cohort">Apply <ArrowRight size={16} aria-hidden="true" /></Link>
           <Link className={ui.signIn} href="/login">Sign in <ArrowRight size={16} aria-hidden="true" /></Link>
+          <MarketingMobileMenu />
         </div>
       </div>
     </header>
@@ -37,7 +41,7 @@ export function MarketingFooter() {
   return (
     <footer className={`${ui.theme} ${ui.footer}`}>
       <div className={ui.footerTop}>
-        <Link className={ui.brand} href="/" aria-label="Constructa home"><span aria-hidden="true">C</span>constructa</Link>
+        <Link className={ui.brand} href="/" aria-label="Constructa home"><span aria-hidden="true"><BrandMark /></span>constructa</Link>
         <p>Built around your business.<br />Not the other way around.</p>
         <nav aria-label="Footer navigation">
           <Link href="/features">The product</Link><Link href="/guides">Guides</Link>
@@ -85,7 +89,7 @@ function ProposalIllustration() {
 
 function Journey() {
   return (
-    <section id="how-it-works" className={ui.section}>
+    <section id="how-it-works" className={ui.section} data-reveal>
       <div className={ui.sectionIntro}><p className={ui.eyebrow}>One connected journey</p><h2>Less starting again.<br />More moving forward.</h2><p>From who you are to what you will deliver. Keep the company story, the job and the proposal connected.</p></div>
       <ol className={ui.journey}>
         {stages.map(stage => <li key={stage.number}>
@@ -99,8 +103,8 @@ function Journey() {
 
 function Scope({ showAccessLink = true }: { showAccessLink?: boolean }) {
   return (
-    <section id="phase-one" className={`${ui.section} ${ui.scope}`}>
-      <div><p className={ui.eyebrow}>A focused first release</p><h2>The work-winning essentials.<br />Not a catalogue of add-ons.</h2><p>This phase-one preview brings together company profiles, estimating, programmes and proposals. It is a working review, not a claim that every part is ready for release.</p></div>
+    <section id="phase-one" className={`${ui.section} ${ui.scope}`} data-reveal>
+      <div><p className={ui.eyebrow}>A focused first release</p><h2>The work-winning essentials.<br />Not a catalogue of add-ons.</h2><p>This phase-one preview brings together company profiles, estimating, programmes and proposals — the essentials for winning work, in one connected flow. It is a working review, not a claim that every part is ready for release.</p></div>
       <div className={ui.scopeList}>
         {['Company profile and past work', 'Job brief and estimating', 'Programme and proposal preparation'].map(item => <p key={item}><Check size={18} aria-hidden="true" />{item}</p>)}
         <p className={ui.scopeNote}>Later-phase delivery, finance and resource tools are outside this preview. No add-on checkout is offered here.</p>
@@ -116,14 +120,14 @@ function Questions() {
     ['Can I use my own prices and company details?', 'Yes. Add your business details and past work, describe the job and enter your price lines. Check the scope, programme and terms for each proposal before sharing it.'],
     ['Is the AI chat assistant available?', 'A contextual assistant for estimating and planning is part of the development work. It is not available as a live chatbot in this preview. Existing assisted-writing controls are separate and depend on their own availability.'],
     ['Can I buy the later-phase tools here?', 'No. This preview focuses on the work-winning journey. Later-phase workflows and commercial plans are not being offered for purchase here.'],
-    ['Is this ready for live customer work?', 'This is a phase-one review. Authentication, data handling, commercial terms and the complete proposal journey need release verification before live customer use.'],
+    ['Is this ready for live customer work?', 'This is a pre-release review. Authentication, data handling, commercial terms and the complete proposal journey are being verified before live customer use.'],
   ];
-  return <section className={`${ui.section} ${ui.questions}`}><div><p className={ui.eyebrow}>A few useful answers</p><h2>Before you<br />get started.</h2></div><div>{questions.map(([question, answer]) => <details key={question}><summary>{question}<Plus size={18} aria-hidden="true" /></summary><p>{answer}</p></details>)}</div></section>;
+  return <section id="questions" className={`${ui.section} ${ui.questions}`} data-reveal><div><p className={ui.eyebrow}>A few useful answers</p><h2>Before you<br />get started.</h2></div><div>{questions.map(([question, answer]) => <details key={question}><summary>{question}<Plus size={18} aria-hidden="true" /></summary><p>{answer}</p></details>)}</div></section>;
 }
 
 function Invitation() {
   return (
-    <section className={ui.invitation}>
+    <section className={ui.invitation} data-reveal>
       <p className={ui.eyebrow}>Your next chapter</p>
       <h2>Good work deserves<br />a good introduction.</h2>
       <p>Start with your business. Bring the next job into focus.</p>
@@ -155,7 +159,8 @@ export function PhaseOneHome() {
       </section>
       <div className={ui.chapterLine}><span>Built around your business</span><span>Company <i /> Price <i /> Programme <i /> Proposal</span></div>
       <Journey />
-      <section className={`${ui.section} ${ui.story}`}>
+      <HomeReviewCaptures />
+      <section className={`${ui.section} ${ui.story}`} data-reveal>
         <div className={ui.photo}><HomeBusinessVisual /><span>Construction is a people business.</span></div>
         <div><p className={ui.eyebrow}>The experience behind the estimate</p><h2>Your business.<br />Not another<br />blank template.</h2><p>Your experience, the challenges you have solved and the quality of your work belong alongside the numbers. Put them in a company profile and reuse the right examples when you prepare a proposal.</p><p>Whether you fit kitchens, refurbish workplaces or run a multi-trade team, the story should be yours.</p><FoundingCohortApplyLink>Apply for the founding cohort</FoundingCohortApplyLink></div>
       </section>
@@ -167,16 +172,18 @@ export function PhaseOneHome() {
 export function PhaseOneFeatures() {
   return (
     <div className={`${ui.theme} ${ui.root}`}>
-      <section className={ui.pageIntro}>
+      <section className={ui.pageIntro} data-reveal>
         <p className={ui.eyebrow}>The phase-one product</p>
         <h1>From first hello.<br /><em>To a considered proposal.</em></h1>
         <p>One connected work-winning journey. Company profile, brief, price, programme and proposal, with room for your own experience and judgement.</p>
+        <p>The contextual assistant is not available as a live chatbot in this preview.</p>
         <div className={ui.actions}>
           <FoundingCohortApplyLink />
           <SignInLink />
+          <Link className={ui.textLink} href="/#how-it-works">See how the journey connects <ArrowDown size={17} aria-hidden="true" /></Link>
         </div>
       </section>
-      <Journey /><ProductReviewGuide /><ProductScreenshots /><Scope /><Questions /><Invitation />
+      <ProductReviewGuide /><ProductScreenshots /><Invitation />
     </div>
   );
 }
@@ -184,10 +191,11 @@ export function PhaseOneFeatures() {
 export function PhaseOnePricing() {
   return (
     <div className={`${ui.theme} ${ui.root}`}>
-      <section className={ui.pageIntro}>
+      <section className={ui.pageIntro} data-reveal>
         <p className={ui.eyebrow}>Preview access</p>
         <h1>A focused first phase.<br /><em>No add-on checkout.</em></h1>
-        <p>We are reviewing the complete work-winning journey before release. This page does not sell a subscription, promise a free trial or take payment for later-phase features.</p>
+        <p>We are reviewing the complete work-winning journey before release. Preview access is part of the founding-cohort review — no subscription, free trial or payment is offered here.</p>
+        <p>Preview access remains on hold for new accounts. This review is not ready for live customer work.</p>
         <p>This preview is for people using an existing review account. Sign in with the details you were given, then start with your company profile.</p>
         <div className={ui.actions}>
           <FoundingCohortApplyLink />
@@ -197,11 +205,15 @@ export function PhaseOnePricing() {
         <p>
           Want access but not signed in yet? <Link href="/apply" className={ui.textLink}>Apply to the founding cohort <ArrowRight size={16} aria-hidden="true" /></Link>
           {' · '}
-          <Link href="/contact" className={ui.textLink}>Neutral preview-access questions <ArrowRight size={16} aria-hidden="true" /></Link>
+          <Link href="/contact" className={ui.textLink}>Questions about preview access <ArrowRight size={16} aria-hidden="true" /></Link>
+        </p>
+        <p>
+          The full picture lives on the home page:{' '}
+          <Link href="/#phase-one" className={ui.textLink}>the work-winning essentials <ArrowRight size={16} aria-hidden="true" /></Link>
+          {' · '}
+          <Link href="/#questions" className={ui.textLink}>preview questions <ArrowRight size={16} aria-hidden="true" /></Link>
         </p>
       </section>
-      <Scope showAccessLink={false} />
-      <Questions />
     </div>
   );
 }

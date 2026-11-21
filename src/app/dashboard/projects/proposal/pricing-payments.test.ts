@@ -8,7 +8,8 @@ import { savePricingPaymentStagesAction, saveProposalDraftAction } from "./actio
 import { buildProposalPayload, draftFromProject } from "@/lib/proposal-review";
 
 const id = "22222222-2222-4222-8222-222222222222", userId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-const stages = [{ id: "stage-1", stage: "First agreed stage", description: "At the agreed milestone", percentage: 40 }];
+const stages = [{ id: "stage-1", stage: "First agreed stage", description: "At the agreed milestone", percentage: 100 }];
+const partialStages = [{ id: "stage-1", stage: "Deposit", description: "On agreement", percentage: 40 }];
 let db: ReturnType<typeof fakeSupabase>;
 beforeEach(() => {
     db = fakeSupabase({ projects: [{ id, user_id: userId, payment_schedule: null, scope_text: "Keep scope", tc_overrides: [{ body: "Keep terms" }], programme_phases: [{ name: "Keep programme" }] }] });
@@ -30,7 +31,7 @@ describe("payment-only save from pricing", () => {
         db.tables.projects[0].payment_schedule = stages;
         const built = buildProposalPayload(draftFromProject({ id, name: "Job", payment_schedule: stages }, () => "draft-stage"));
         if (!built.ok) throw Error("Invalid fixture");
-        const next = [{ ...stages[0], percentage: 55 }];
+        const next = [{ ...stages[0], percentage: 60 }, { id: "stage-2", stage: "Completion", description: "On finish", percentage: 40 }];
         expect(await saveProposalDraftAction(id, { ...built.payload, paymentSchedule: next }, stages)).toEqual({ success: true });
         expect(db.updates[0].filters).toEqual({ id, user_id: userId, payment_schedule: JSON.stringify(stages) });
         expect(db.tables.projects[0].payment_schedule).toEqual(next);
@@ -67,22 +68,23 @@ describe("payment-only save from pricing", () => {
     });
     it("reopens the exact saved stages and uses the existing JSON compare-and-set for later edits", async () => {
         db.tables.projects[0].payment_schedule = stages;
-        const next = [{ ...stages[0], percentage: 55 }];
+        const next = [{ ...stages[0], percentage: 60 }, { id: "stage-2", stage: "Completion", description: "On finish", percentage: 40 }];
         expect(await savePricingPaymentStagesAction(id, stages, next)).toEqual({ success: true, paymentSchedule: next });
         expect(db.updates[0].filters.payment_schedule).toBe(JSON.stringify(stages));
     });
-    it("allows an explicit empty draft save but never invents a stage or a 100% requirement", async () => {
+    it("allows an explicit empty save and requires non-empty schedules to total 100%", async () => {
         expect(await savePricingPaymentStagesAction(id, null, [])).toEqual({ success: true, paymentSchedule: [] });
         db.tables.projects[0].payment_schedule = null;
         expect((await savePricingPaymentStagesAction(id, null, stages)).success).toBe(true);
-    });
-    it.each([[], [{ ...stages[0], percentage: 1 }]].map(rows => ({ rows })))("preserves the existing draft readiness policy for $rows", async ({ rows }) => {
-        expect((await savePricingPaymentStagesAction(id, null, rows)).success).toBe(true);
+        access.mockClear();
+        expect((await savePricingPaymentStagesAction(id, null, partialStages)).success).toBe(false);
+        expect(access).not.toHaveBeenCalled();
     });
     it.each([
         [{ ...stages[0], percentage: 0 }], [{ ...stages[0], percentage: 101 }], [{ ...stages[0], stage: " " }],
         [{ ...stages[0], description: "x".repeat(1001) }], Array.from({ length: 13 }, (_, n) => ({ ...stages[0], id: String(n) })),
         [{ ...stages[0], percentage: 60 }, { ...stages[0], id: "s2", percentage: 50 }],
+        partialStages,
     ].map(rows => ({ rows })))("refuses invalid stage payload before access or write: $rows", async ({ rows }) => {
         expect((await savePricingPaymentStagesAction(id, null, rows)).success).toBe(false);
         expect(access).not.toHaveBeenCalled(); expect(db.updates).toEqual([]);

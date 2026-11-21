@@ -35,7 +35,7 @@ export default async function ManagementAccountsPage() {
     // prelims split work correctly.
     supabase
       .from("estimates")
-      .select("project_id, total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, discount_pct, is_active, estimate_lines(trade_section, line_total)")
+      .select("project_id, total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, discount_pct, is_active, estimate_lines(trade_section, line_total, line_type)")
       .eq("user_id", user.id)
       .eq("is_active", true),
     supabase

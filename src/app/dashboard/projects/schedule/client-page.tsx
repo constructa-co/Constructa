@@ -1,7 +1,27 @@
 "use client";
 
-import { useState, useTransition, useMemo, useEffect, useRef, useCallback } from "react";
-import { updatePhasesAction, getEstimatePhasesAction, saveProgrammePhasesAction } from "./actions";
+import { useState, useTransition, useMemo, useEffect, useRef } from "react";
+import { MAX_WORKING_DAYS, startDateInPastWarning } from "@/lib/simple-programme";
+import {
+    autosaveProgrammePlannerDraftAction,
+    clearProgrammePlannerDraftAction,
+    getEstimatePhasesAction,
+    saveProgrammePhasesAction,
+    updatePhasesAction,
+} from "./actions";
+import {
+    clearLocalPlannerDraft,
+    mergeTrackingOntoPublishedPlanning,
+    overlayPublishedTrackingOnDraftPhases,
+    parseProgrammePlannerDraft,
+    phasesWithoutTrackingFields,
+    programmePlanningChanged,
+    programmeTrackingAssociationError,
+    programmeTrackingFieldsChanged,
+    PROGRAMME_PLANNER_DRAFT_UNAVAILABLE,
+    readLocalPlannerDraft,
+    writeLocalPlannerDraft,
+} from "@/lib/programme-planner-draft";
 import ProgrammeAiUpdate from "./programme-ai-update";
 import { toast } from "sonner";
 import { createLatestWriteQueue } from "@/lib/latest-write-queue";
@@ -17,8 +37,15 @@ import {
     sequencePlannerPhases,
     type PlannerPhase,
 } from "@/lib/planner-phases";
-import { addJobWorkingDays, jobCalendarOffset, jobProductiveMinutesPerDay, nextJobWorkingDayAfter, resolveJobWorkingPattern } from "@/lib/job-working-pattern";
+import { addJobWorkingDays, jobCalendarOffset, jobProductiveMinutesPerDay, nextJobWorkingDayAfter, resolveJobWorkingPattern, resolveProgrammeCalendar } from "@/lib/job-working-pattern";
+import { resolveUkBankHolidayDivision } from "@/lib/uk-bank-holidays";
 import { programmeBasisNote } from "@/lib/relative-programme";
+import {
+    PROGRAMME_CIRCULAR_DEPENDENCY_ERROR,
+    reconcileDependenciesAfterMove,
+    wouldCreateCircularDependency,
+} from "@/lib/programme-phase-dependencies";
+import { formatWorkingDuration } from "@/lib/programme-plan";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 // Working days for lengths, calendar days from the project start for offsets.
@@ -31,8 +58,12 @@ type ProgrammeWrite = {
     context: string;
     workingPattern?: unknown;
 };
+// `warning` marks a committed write whose page refresh failed; it is not a failure.
+type ProgrammeWriteResult = { success: true; warning?: string } | { success: false; error: string };
 type ProgrammeSaveStatus = {
     state: "idle" | "saving" | "saved" | "error" | "uncertain";
+    savedAt?: string;
+    warning?: string;
     kind: ProgrammeWrite["kind"];
     operation: symbol | null;
     context: string;
@@ -58,14 +89,19 @@ interface Estimate {
 interface Props {
     project: {
         id: string;
+        user_id?: string;
         name: string;
         start_date?: string;
+        region?: string | null;
         timeline_phases?: Phase[];
         programme_phases?: Phase[];
+        programme_planner_draft?: unknown;
         programme_working_pattern?: unknown;
     };
     estimate: Estimate | null;
     projectId: string;
+    /** Authenticated viewer id — scopes browser draft fallback per signed-in account. */
+    plannerDraftViewerScope: string;
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -140,11 +176,14 @@ interface DragState {
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
-export default function ClientSchedulePage({ project, estimate, projectId }: Props) {
+export default function ClientSchedulePage({ project, estimate, projectId, plannerDraftViewerScope }: Props) {
     const workingPattern = resolveJobWorkingPattern(project.programme_working_pattern);
+    const bankHolidayDivision = resolveUkBankHolidayDivision(project.region);
+    const programmeCalendar = resolveProgrammeCalendar(project.programme_working_pattern, bankHolidayDivision);
     const usesSavedCalendar = project.programme_working_pattern != null;
     const daysPerWeek = workingPattern?.weekdays.length ?? 5;
     const expectedWorkingPattern = project.programme_working_pattern == null ? undefined : workingPattern;
+    const plannerDraftStorageScope = plannerDraftViewerScope;
     const [isPending, startTransition] = useTransition();
     const [isDragging, setIsDragging] = useState(false);
     const [showLiveTracking, setShowLiveTracking] = useState(false);
@@ -167,16 +206,103 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
             return result;
         };
     });
-    const [persistPhases] = useState(() => createLatestWriteQueue(
-        (input: ProgrammeWrite) => serializeProgrammeWrite(async () => ({
-            input,
-            result: await updatePhasesAction(project.id, input.phases, input.startDate, ...(input.workingPattern === undefined ? [] : [input.workingPattern])),
-        })),
+    const proposalPhasesRef = useRef<Phase[]>([]);
+    const proposalStartRef = useRef<string>("");
+    const [persistProgrammeWrite] = useState(() => createLatestWriteQueue(
+        (input: ProgrammeWrite) => serializeProgrammeWrite(async (): Promise<{ input: ProgrammeWrite; result: ProgrammeWriteResult }> => {
+            if (input.kind === "manual") {
+                const associationError = programmeTrackingAssociationError(
+                    proposalPhasesRef.current, input.phases,
+                );
+                if (associationError) {
+                    return { input, result: { success: false, error: associationError } };
+                }
+                const saved = await saveProgrammePhasesAction(
+                    project.id,
+                    input.phases,
+                    input.workingPattern,
+                    input.startDate,
+                );
+                clearLocalPlannerDraft(project.id, plannerDraftStorageScope);
+                proposalPhasesRef.current = input.phases;
+                proposalStartRef.current = input.startDate;
+                return { input, result: { success: true as const, ...(saved?.warning ? { warning: saved.warning } : {}) } };
+            }
+            const published = proposalPhasesRef.current;
+            const publishedStart = proposalStartRef.current;
+            const publishedStartForWrite = publishedStart || undefined;
+            const planningDelta = programmePlanningChanged(
+                published, input.phases, publishedStart, input.startDate,
+            );
+            const trackingDelta = programmeTrackingFieldsChanged(
+                published, input.phases, publishedStart, input.startDate,
+            );
+            const draftPlanning = phasesWithoutTrackingFields(input.phases);
+
+            async function savePlannerDraft() {
+                const draftResult = await autosaveProgrammePlannerDraftAction(
+                    project.id, draftPlanning as Phase[], input.startDate,
+                    ...(input.workingPattern === undefined ? [] : [input.workingPattern]),
+                );
+                if (!draftResult.success && draftResult.error === PROGRAMME_PLANNER_DRAFT_UNAVAILABLE) {
+                    const stored = writeLocalPlannerDraft(
+                        project.id, draftPlanning, input.startDate, plannerDraftStorageScope,
+                    );
+                    return stored
+                        ? { success: true as const }
+                        : { success: false as const, error: "Planner draft could not be stored in this browser session." };
+                }
+                return draftResult;
+            }
+
+            if (trackingDelta) {
+                const associationError = programmeTrackingAssociationError(published, input.phases);
+                if (associationError) {
+                    if (planningDelta) {
+                        const draftResult = await savePlannerDraft();
+                        if (!draftResult.success) {
+                            return { input, result: draftResult };
+                        }
+                        return { input, result: { success: false, error: associationError } };
+                    }
+                    return { input, result: { success: false, error: associationError } };
+                }
+                const phasesForPublished = mergeTrackingOntoPublishedPlanning(
+                    published, input.phases,
+                ) as Phase[];
+                const trackResult = await updatePhasesAction(
+                    project.id, phasesForPublished, publishedStartForWrite,
+                    ...(input.workingPattern === undefined ? [] : [input.workingPattern]),
+                );
+                if (!trackResult.success) return { input, result: trackResult };
+                proposalPhasesRef.current = phasesForPublished;
+
+                if (planningDelta) {
+                    return { input, result: await savePlannerDraft() };
+                }
+                clearLocalPlannerDraft(project.id, plannerDraftStorageScope);
+                const cleared = await clearProgrammePlannerDraftAction(
+                    project.id, phasesForPublished, publishedStart,
+                );
+                return { input, result: cleared.success ? trackResult : cleared };
+            }
+
+            if (!planningDelta) {
+                return { input, result: { success: true as const } };
+            }
+            return { input, result: await savePlannerDraft() };
+        }),
     ));
+
+    const storedPlannerDraft = useMemo(() => {
+        const fromServer = parseProgrammePlannerDraft(project.programme_planner_draft);
+        return fromServer ?? readLocalPlannerDraft(project.id, plannerDraftStorageScope);
+    }, [project.id, project.programme_planner_draft, plannerDraftStorageScope]);
 
     // Working days come from the saved job, never a browser-only override.
     const [programmeStart, setProgrammeStart] = useState<Date>(() => {
-        const base = project.start_date ? new Date(project.start_date + "T00:00:00") : new Date();
+        const draftStart = storedPlannerDraft?.start_date ?? project.start_date;
+        const base = draftStart ? new Date(draftStart + "T00:00:00") : new Date();
         // Retain the legacy opening convention until a job explicitly saves its calendar.
         return usesSavedCalendar ? base : addDays(axisMonday(base), base.getDay() === 1 ? 0 : 7);
     });
@@ -198,14 +324,37 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     // column exists on projects. Kept in the fallback chain so legacy
     // selects elsewhere don't regress silently.)
     const existingPhases = savedPlannerPhases((project.programme_phases ?? project.timeline_phases) as unknown);
+    const publishedProgrammeFingerprint = useMemo(
+        () => JSON.stringify({ phases: existingPhases, start: project.start_date ?? "" }),
+        [existingPhases, project.start_date],
+    );
+    useEffect(() => {
+        proposalPhasesRef.current = savedPlannerPhases(
+            (project.programme_phases ?? project.timeline_phases) as unknown,
+        );
+        proposalStartRef.current = project.start_date ?? "";
+    }, [publishedProgrammeFingerprint, project.programme_phases, project.timeline_phases, project.start_date]);
+
+    const rawDraftPhases = storedPlannerDraft ? savedPlannerPhases(storedPlannerDraft.phases) : null;
+    const trackingOverlayError = rawDraftPhases?.length
+        ? programmeTrackingAssociationError(existingPhases, rawDraftPhases)
+        : null;
+    const draftPhases = rawDraftPhases?.length
+        ? savedPlannerPhases(trackingOverlayError
+            ? rawDraftPhases
+            : overlayPublishedTrackingOnDraftPhases(existingPhases, rawDraftPhases))
+        : null;
 
     // The saved programme opens exactly as it was saved. Stages worked out
     // from the estimate are only ever a starting point for a job that has
     // no programme, and are not saved by being shown.
     const opening = useMemo(
-        () => plannerPhasesOnOpen(existingPhases, estimate, daysPerWeek, toInputDate(programmeStart), workingPattern),
+        () => {
+            if (draftPhases?.length) return { phases: draftPhases, origin: "saved" as const };
+            return plannerPhasesOnOpen(existingPhases, estimate, daysPerWeek, toInputDate(programmeStart), workingPattern);
+        },
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        []
+        [],
     );
     const [phases, setPhases] = useState<Phase[]>(opening.phases);
     const [isSuggestion, setIsSuggestion] = useState(opening.origin === "suggested");
@@ -252,7 +401,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
         const isCurrent = () => regenerationMounted.current && regenerationProject.current === projectId &&
             latestSaveOperation.current === input.operation && saveContextRef.current === input.context;
         try {
-            const receipt = await persistPhases(input);
+            const receipt = await persistProgrammeWrite(input);
             // Coalesced callers receive the last attempted write, not necessarily their own.
             if (!isCurrent() || receipt.input.operation !== input.operation) return;
             if (!receipt.result.success) {
@@ -260,13 +409,11 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 toast.error(receipt.result.error);
                 return;
             }
-            setSaveStatus({ ...input, state: "saved" });
+            const savedAt = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            const warning = receipt.result.warning;
+            setSaveStatus({ ...input, state: "saved", savedAt, warning });
             if (kind === "manual") toast.success("Programme saved to proposal");
-            setTimeout(() => {
-                if (!isCurrent()) return;
-                setSaveStatus(previous => previous.operation === input.operation && previous.state === "saved"
-                    ? { ...previous, state: "idle" } : previous);
-            }, kind === "manual" ? 2500 : 2000);
+            if (warning) toast.warning(warning);
         } catch {
             if (!isCurrent()) return;
             setSaveStatus({ ...input, state: "uncertain" });
@@ -277,10 +424,14 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     const saveMessage = currentSaveState === "saving"
         ? (saveStatus.kind === "manual" ? "Saving programme to proposal..." : "Auto-saving changes...")
         : currentSaveState === "saved"
-            ? (saveStatus.kind === "manual" ? "Programme saved to proposal" : "Changes auto-saved")
+            ? (saveStatus.kind === "manual"
+                ? `Programme saved to proposal at ${saveStatus.savedAt}${saveStatus.warning ? `. ${saveStatus.warning}` : ""}`
+                : `Changes auto-saved at ${saveStatus.savedAt}`)
             : currentSaveState === "error" ? "Save not confirmed. Current stages remain on screen."
                 : currentSaveState === "uncertain" ? "Save uncertain: it may already have completed. Review before retrying."
                     : currentSaveState === "changed" ? "Current changes are not yet confirmed saved." : "";
+
+    const pastStartWarning = startDateInPastWarning(toInputDate(programmeStart), toInputDate(new Date()));
 
     // ── Auto-save phases whenever they change (debounced 500ms) ──────────
     // 500ms is fast enough that normal navigation won't lose changes.
@@ -320,7 +471,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 autoSaveTimer.current = null;
                 const startDateStr = toInputDate(programmeStartRef.current || new Date());
                 // Fire-and-forget — best-effort save on unmount
-                persistPhases({
+                persistProgrammeWrite({
                     phases: phasesRef.current, startDate: startDateStr, kind: "auto",
                     operation: Symbol("unmount"), context: "unmount",
                     workingPattern: expectedWorkingPattern,
@@ -350,11 +501,11 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     // ── Computed values ───────────────────────────────────────────────────
     const gridStart = axisMonday(programmeStart);
     const axisLead = jobCalendarOffset(toInputDate(gridStart), toInputDate(programmeStart)) ?? 0;
-    const phaseSpan = (phase: Phase) => (usesSavedCalendar ? plannerPhaseSpan(toInputDate(programmeStart), phase, workingPattern) : null)
+    const phaseSpan = (phase: Phase) => (usesSavedCalendar ? plannerPhaseSpan(toInputDate(programmeStart), phase, workingPattern, bankHolidayDivision) : null)
         ?? { startOffset: phase.startOffset, calendarDays: toCalendarDays(phase.manualDays ?? phase.calculatedDays, daysPerWeek) };
     const nextOffset = (phase: Phase) => {
-        const plan = plannerDisplayPlan(toInputDate(programmeStart), [phase], daysPerWeek, workingPattern);
-        const next = plan && nextJobWorkingDayAfter(plan.end_date, workingPattern);
+        const plan = plannerDisplayPlan(toInputDate(programmeStart), [phase], daysPerWeek, workingPattern, bankHolidayDivision);
+        const next = plan && nextJobWorkingDayAfter(plan.end_date, programmeCalendar ?? workingPattern);
         return next ? jobCalendarOffset(toInputDate(programmeStart), next) ?? 0
             : phase.startOffset + toCalendarDays(phase.manualDays ?? phase.calculatedDays, daysPerWeek);
     };
@@ -373,7 +524,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     useEffect(() => { axisDaysRef.current = axisDays; }, [axisDays]);
 
     const totalManhours = phases.reduce((s, p) => s + p.manhours, 0);
-    const displayPlan = plannerDisplayPlan(toInputDate(programmeStart), phases, daysPerWeek, workingPattern);
+    const displayPlan = plannerDisplayPlan(toInputDate(programmeStart), phases, daysPerWeek, workingPattern, bankHolidayDivision);
     const reviewStages = plannerReviewStageIndexes(phases);
     // Stage offsets are relative to the plan's first activity, not the weekly axis.
     const planAxisOffset = displayPlan
@@ -426,7 +577,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     );
 
     // ── Drag system ───────────────────────────────────────────────────────
-    const handleBarMouseDown = useCallback((e: React.MouseEvent, idx: number, type: DragType) => {
+    const handleBarMouseDown = (e: React.MouseEvent, idx: number, type: DragType) => {
         e.preventDefault();
         e.stopPropagation();
         const track = ganttRef.current;
@@ -442,12 +593,12 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 : (phase.manualDays ?? phase.calculatedDays),
             originalPhase: phase,
             ownDateOffset: type === "move" && usesSavedCalendar && "start_date" in phase && typeof phase.start_date === "string"
-                ? plannerPhaseSpan(toInputDate(programmeStart), phase, workingPattern)?.startOffset ?? null : null,
+                ? plannerPhaseSpan(toInputDate(programmeStart), phase, expectedWorkingPattern, bankHolidayDivision)?.startOffset ?? null : null,
             trackWidth: rect.width,
             capturedTotalDays: axisDaysRef.current,
         };
         setIsDragging(true);
-    }, [programmeStart, setIsDragging, usesSavedCalendar, workingPattern]);
+    };
 
     useEffect(() => {
         const onMouseMove = (e: MouseEvent) => {
@@ -493,10 +644,23 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
         };
 
         const onMouseUp = () => {
-            if (dragStateRef.current) {
-                dragStateRef.current = null;
-                setIsDragging(false);
-            }
+            const drag = dragStateRef.current;
+            if (!drag) return;
+            dragStateRef.current = null;
+            setIsDragging(false);
+            if (drag.type !== "move") return;
+            const currentOffset = phasesRef.current[drag.phaseIndex]?.startOffset;
+            if (currentOffset === undefined || currentOffset === drag.originalValue) return;
+            const before = phasesRef.current;
+            setPhases(() => {
+                const reconciled = reconcileDependenciesAfterMove(before, drag.phaseIndex, daysPerWeek);
+                return reconciled.map((p, i) => {
+                    if (p.startOffset === before[i].startOffset) return p;
+                    return ("start_date" in p
+                        ? { ...p, start_date: toInputDate(addDays(programmeStart, p.startOffset)) }
+                        : p);
+                });
+            });
         };
 
         document.addEventListener("mousemove", onMouseMove);
@@ -511,14 +675,28 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
     const updatePhaseName = (idx: number, name: string) =>
         setPhases((prev) => { const u = [...prev]; u[idx] = { ...u[idx], name }; return u; });
 
-    const handleManualDuration = (idx: number, val: string) => {
-        const days = val === "" ? null : parseInt(val, 10);
-        if (days !== null && (isNaN(days) || days < 1)) return;
+    const [durationError, setDurationError] = useState<{ phase: Phase; message: string } | null>(null);
+
+    const handleManualDuration = (idx: number, input: HTMLInputElement) => {
+        const days = input.validity.badInput ? NaN : input.value === "" ? null : input.valueAsNumber;
+        if (days !== null && (!Number.isInteger(days) || days < 1)) {
+            setDurationError({ phase: phases[idx], message: "Whole days ≥1" });
+            return;
+        }
+        if (days !== null && days > MAX_WORKING_DAYS) {
+            setDurationError({ phase: phases[idx], message: `Max ${MAX_WORKING_DAYS} days` });
+            return;
+        }
+        setDurationError(null);
         setPhases((prev) => { const u = [...prev]; u[idx] = { ...u[idx], manualDays: days }; return u; });
     };
 
     const handleSetDependency = (idx: number, val: string) => {
         const depIdx = val === "" ? -1 : parseInt(val, 10);
+        if (depIdx >= 0 && wouldCreateCircularDependency(phases, idx, depIdx)) {
+            toast.error(PROGRAMME_CIRCULAR_DEPENDENCY_ERROR);
+            return;
+        }
         setPhases((prev) => {
             const u = [...prev];
             u[idx] = { ...u[idx], dependsOn: depIdx >= 0 ? [depIdx] : [] };
@@ -603,11 +781,13 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 if (!isCurrent()) return;
                 if (serverPhases.length > 0) {
                     const resequenced = sequenceSuggestedPhases(serverPhases, daysPerWeek, toInputDate(programmeStart), workingPattern);
+                    let refreshWarning: string | undefined;
                     const saved = await serializeProgrammeWrite(async () => {
                         if (!isCurrent()) return false;
                         attemptedSave = true;
                         // This existing action resolves only after its guarded write; refusals throw.
-                        await saveProgrammePhasesAction(projectId, resequenced, expectedWorkingPattern, toInputDate(programmeStart));
+                        const outcome = await saveProgrammePhasesAction(projectId, resequenced, expectedWorkingPattern, toInputDate(programmeStart));
+                        refreshWarning = outcome?.warning;
                         return true;
                     });
                     if (!saved) return;
@@ -625,6 +805,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                     setPhases(previous => previous === phases ? resequenced : previous);
                     setIsSuggestion(false);
                     toast.success("Programme regenerated from estimate and saved");
+                    if (refreshWarning) toast.warning(refreshWarning);
                 } else {
                     const regenerated = estimateSuggestedPhases(estimate, daysPerWeek, toInputDate(programmeStart), workingPattern);
                     if (regenerated.length > 0) {
@@ -687,7 +868,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                         Regenerate from estimate
                     </button>
                     <button type="button" onClick={handleSave} disabled={isPending} aria-label="Save programme to proposal"
-                        title="Save this programme to the proposal. Edited stages also use the existing automatic save."
+                        title="Copy this programme into the proposal. Edits are auto-saved as a draft until you press this."
                         className="px-4 py-2 rounded-lg text-sm font-semibold bg-[#a5e8b8] text-[#10291b] disabled:opacity-50 transition-colors">
                         Save to Proposal
                     </button>
@@ -695,12 +876,15 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
             </div>
 
             {regenerationNotice && <p role="status" className="text-sm text-amber-400">{regenerationNotice}</p>}
+            {trackingOverlayError && (
+                <p role="status" className="text-sm text-amber-400">{trackingOverlayError}</p>
+            )}
 
             {/* ── Programme settings (start date + working week) ── */}
             <div className="flex items-center gap-4 flex-wrap bg-slate-800/40 border border-slate-700/50 rounded-xl px-4 py-3">
                 {/* Start date */}
                 <div className="flex items-center gap-2.5">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Start date</span>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Start date</span>
                     <div className="relative">
                         <input
                             type="date"
@@ -709,7 +893,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                             onChange={(e) => handleStartDateChange(e.target.value)}
                         />
                     </div>
-                    <span className="text-[10px] text-slate-600">
+                    <span className="text-[10px] text-slate-400">
                         {fmtDate(programmeStart)}
                     </span>
                 </div>
@@ -718,7 +902,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
                 {/* Working week */}
                 <div className="flex items-center gap-2.5">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Working week</span>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Working week</span>
                     <span className="text-xs text-slate-300" data-planner-saved-working-days>
                         {workingPattern?.weekdays.map(day => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][day]).join(", ")}
                     </span>
@@ -726,6 +910,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 </div>
             </div>
 
+            {pastStartWarning && <p role="note" className="text-xs text-amber-300" data-planner-past-start>{pastStartWarning}</p>}
             {displayPlan && <p className="text-xs text-slate-400" data-planner-calendar-basis>{programmeBasisNote(displayPlan)}</p>}
             {/* ── Summary strip ── */}
             {phases.length > 0 && (
@@ -741,9 +926,9 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                         },
                     ].map(({ label, value, sub }) => (
                         <div key={label} className="bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-3">
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">{label}</p>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">{label}</p>
                             <p className="text-base font-bold text-white">{value}</p>
-                            <p className="text-[10px] text-slate-500 mt-0.5">{sub}</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">{sub}</p>
                         </div>
                     ))}
                 </div>
@@ -751,7 +936,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
 
             {/* ── Drag hint ── */}
             {phases.length > 0 && (
-                <div className="flex items-center gap-4 text-[11px] text-slate-500 flex-wrap">
+                <div className="hidden lg:flex items-center gap-4 text-[11px] text-slate-400 flex-wrap">
                     <span>Drag bar to move · Drag right edge to resize · Snaps to week</span>
                     {weekHeaders[0].weeks > 1 && (
                         <span>Grid columns group up to {weekHeaders[0].weeks} calendar weeks; the last column may be shorter. Weekly move and resize snapping is unchanged.</span>
@@ -801,7 +986,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                             </svg>
                         </div>
                         <p className="text-sm font-medium text-slate-300">No programme phases yet</p>
-                        <p className="text-xs text-slate-500 max-w-xs">
+                        <p className="text-xs text-slate-400 max-w-xs">
                             {estimate
                                 ? "Add labour components with manhours to estimate lines, then click Regenerate."
                                 : "Set an estimate as active to auto-generate the programme."}
@@ -814,35 +999,46 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 </div>
             )}
 
+            {phases.length > 0 && displayPlan && (
+                <PlannerPhonePhaseList
+                    phases={phases}
+                    displayPlan={displayPlan}
+                    reviewStages={reviewStages}
+                    criticalSet={criticalSet}
+                    toneOf={toneOf}
+                />
+            )}
+
             {/* ── Gantt ── */}
             {phases.length > 0 && (
                 // Desktop (lg+): a long programme scrolls inside the card under a fixed header, and the
-                // stage columns stay in view while the timeline scrolls sideways. Below lg nothing changes.
-                <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-x-auto lg:max-h-[75vh]">
-
+                // stage columns stay in view while the timeline scrolls sideways. Below lg, stages edit
+                // here without the chart; dates sit in the phone phase list from the same displayPlan.
+                <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl lg:overflow-x-auto lg:max-h-[75vh]">
+                    <div data-planner-editing-table-scroll className="overflow-x-auto lg:overflow-x-visible">
                     {/* Column headers */}
-                    <div className="flex min-w-[900px] border-b border-slate-700/50 bg-slate-900/40 lg:sticky lg:top-0 lg:z-40 lg:bg-slate-900">
-                        <div className="flex shrink-0 lg:sticky lg:left-0 lg:z-10 lg:bg-slate-900">
+                    <div className="flex min-w-[444px] lg:min-w-[900px] border-b border-slate-700/50 bg-slate-900/40 lg:sticky lg:top-0 lg:z-40 lg:bg-slate-900">
+                        <div className="flex shrink-0 w-full lg:w-auto lg:sticky lg:left-0 lg:z-10 lg:bg-slate-900">
                             <div className="w-[216px] shrink-0 border-r border-slate-700/50 px-3 py-2.5">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Phase / Trade</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Phase / Trade</span>
                             </div>
                             <div className="w-14 shrink-0 border-r border-slate-700/50 text-center py-2.5">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Calc</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Calc</span>
                             </div>
                             <div className="w-16 shrink-0 border-r border-slate-700/50 text-center py-2.5">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Days</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Days</span>
                             </div>
                             <div className="w-[108px] shrink-0 border-r border-slate-700/50 text-center py-2.5">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Starts After</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Starts After</span>
                             </div>
                         </div>
-                        <div className="flex-1 flex">
+                        <div className="hidden lg:flex flex-1">
                             {weekHeaders.map(wk => (
                                 <div key={wk.weekIndex} data-planner-week-start={wk.weekIndex + 1} data-planner-week-span={wk.weeks}
                                     title={wk.range} aria-label={wk.range}
                                     className="shrink-0 min-w-0 text-center py-1.5 border-r border-slate-700/20 last:border-0" style={{ width: `${wk.weeks / totalWeeks * 100}%` }}>
-                                    <div className="text-[9px] font-bold text-slate-500 leading-tight truncate">{wk.label}</div>
-                                    <div className="text-[8px] text-slate-600 leading-tight truncate hidden md:block">{wk.date}</div>
+                                    <div className="text-[9px] font-bold text-slate-400 leading-tight truncate">{wk.label}</div>
+                                    <div className="text-[8px] text-slate-400 leading-tight truncate hidden md:block">{wk.date}</div>
                                     {wk.weeks === 1 && <div className="grid grid-cols-7 mt-1" aria-label="Calendar days Monday to Sunday">
                                         {[1, 2, 3, 4, 5, 6, 0].map(day => <span key={day} data-planner-calendar-day={day}
                                             data-working-day={workingPattern?.weekdays.includes(day) ? "true" : "false"}
@@ -855,12 +1051,14 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                     </div>
 
                     {/* Body */}
-                    <div className="flex min-w-[900px]">
+                    <div className="flex min-w-[444px] lg:min-w-[900px]">
 
                         {/* Left panel */}
-                        <div className="shrink-0 border-r border-slate-700/50 lg:sticky lg:left-0 lg:z-30 lg:bg-slate-900">
+                        <div className="shrink-0 w-full lg:w-auto border-slate-700/50 lg:border-r lg:sticky lg:left-0 lg:z-30 lg:bg-slate-900">
                             {phases.map((phase, idx) => {
                                 const workingDur = phase.manualDays ?? phase.calculatedDays;
+                                const calculatedDays = phase.manhours > 0 ? phase.calculatedDays : null;
+                                const showDurationWarning = workingDur > 120;
                                 const calDur     = toCalendarDays(workingDur, daysPerWeek);
                                 const displayStage = displayPlan?.stages[idx];
                                 const phaseStart = displayStage ? new Date(displayStage.start_date + "T00:00:00") : addDays(programmeStart, phase.startOffset);
@@ -882,11 +1080,11 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                                     onChange={(e) => updatePhaseName(idx, e.target.value)}
                                                 />
                                                 <button type="button" onClick={() => deletePhase(idx)}
-                                                    className="shrink-0 w-4 text-slate-600 hover:text-red-400 transition-colors text-lg leading-none" title="Remove phase">
+                                                    className="shrink-0 w-4 text-slate-400 hover:text-red-400 transition-colors text-lg leading-none" title="Remove phase">
                                                     ×
                                                 </button>
                                             </div>
-                                            <div className="text-[9px] text-slate-500 pl-[14px] mt-0.5 flex items-center gap-1.5">
+                                            <div className="hidden lg:flex text-[9px] text-slate-400 pl-[14px] mt-0.5 items-center gap-1.5">
                                                 <span>{fmtDate(phaseStart)} – {fmtDate(phaseEnd)}</span>
                                                 {phase.manhours > 0 && <span>· {Math.round(phase.manhours)}h</span>}
                                                 {isCritical && <span className="text-yellow-500">★</span>}
@@ -894,21 +1092,38 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                                             </div>
                                         </div>
 
-                                        {/* Calc days (working) */}
-                                        <div className="w-14 flex items-center justify-center border-r border-slate-700/30 text-xs text-slate-400">
-                                            {phase.calculatedDays}d
+                                        {/* Calc days (working): only a length worked out from the stage's own labour hours is a calculation */}
+                                        <div data-planner-calculated={idx} className="w-14 flex items-center justify-center border-r border-slate-700/30 text-xs text-slate-400"
+                                            title={calculatedDays === null ? "No recorded labour hours for a calculation" : undefined}>
+                                            {calculatedDays === null ? "—" : `${calculatedDays}d`}
                                         </div>
 
                                         {/* Manual override (working days) */}
-                                        <div className="w-16 flex items-center justify-center border-r border-slate-700/30">
+                                        <div className="w-16 flex flex-col items-center justify-center border-r border-slate-700/30">
                                             <input
                                                 type="number"
                                                 min={1}
+                                                max={MAX_WORKING_DAYS}
+                                                aria-invalid={durationError?.phase === phase || undefined}
+                                                aria-describedby={durationError?.phase === phase || showDurationWarning
+                                                    ? `phase-duration-feedback-${idx}` : undefined}
                                                 className="w-12 h-7 px-1 text-center text-xs border border-slate-700 rounded bg-slate-900/50 text-slate-100 focus:outline-none focus:border-emerald-500/50"
                                                 value={phase.manualDays ?? ""}
-                                                onChange={(e) => handleManualDuration(idx, e.target.value)}
-                                                placeholder="—"
+                                                onChange={(e) => handleManualDuration(idx, e.currentTarget)}
+                                                onBlur={() => setDurationError(null)}
+                                                placeholder={workingDur > 0 ? String(workingDur) : "—"}
+                                                title={calculatedDays === null && phase.manualDays == null && workingDur > 0
+                                                    ? "Duration from the saved programme" : undefined}
                                             />
+                                            {durationError?.phase === phase ? (
+                                                <span id={`phase-duration-feedback-${idx}`} role="alert" className="whitespace-nowrap text-[9px] text-red-300">
+                                                    {durationError.message}
+                                                </span>
+                                            ) : showDurationWarning && (
+                                                <span id={`phase-duration-feedback-${idx}`} className="whitespace-nowrap text-[9px] text-amber-300">
+                                                    Over 120 days
+                                                </span>
+                                            )}
                                         </div>
 
                                         {/* Starts After */}
@@ -936,7 +1151,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                         {/* ── Gantt track ── */}
                         <div
                             ref={ganttRef}
-                            className={`flex-1 relative overflow-hidden select-none${isDragging ? " cursor-grabbing" : ""}`}
+                            className={`hidden lg:block flex-1 relative overflow-hidden select-none${isDragging ? " cursor-grabbing" : ""}`}
                             style={{ height: totalHeight }}
                         >
                             {/* Alternating row stripes */}
@@ -1050,6 +1265,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                             })}
                         </div>
                     </div>
+                    </div>
                 </div>
             )}
 
@@ -1061,7 +1277,7 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                         + Add Phase
                     </button>
                     <div className="flex items-center gap-3">
-                        <p className="text-[11px] text-slate-500">
+                        <p className="text-[11px] text-slate-400">
                             Days = working days ({daysPerWeek}d/wk). Coloured bar = calendar span; ticks and grips are controls, not extra days. ★ = critical path.
                         </p>
                         <button
@@ -1088,6 +1304,59 @@ export default function ClientSchedulePage({ project, estimate, projectId }: Pro
                 />
             )}
         </div>
+    );
+}
+
+// ─── Phone phase list (canonical dates from displayPlan; chart is lg+ only) ───
+function PlannerPhonePhaseList({
+    phases,
+    displayPlan,
+    reviewStages,
+    criticalSet,
+    toneOf,
+}: {
+    phases: Phase[];
+    displayPlan: NonNullable<ReturnType<typeof plannerDisplayPlan>>;
+    reviewStages: number[];
+    criticalSet: Set<number>;
+    toneOf: (phase: Phase, index: number) => (typeof ACTIVITY_TONES)[ActivityTone];
+}) {
+    return (
+        <ol
+            data-planner-phone-phase-list
+            className="lg:hidden space-y-3 rounded-xl border border-slate-700/50 bg-slate-800/50 p-4"
+            aria-label="Programme stages by date"
+        >
+            {phases.map((phase, idx) => {
+                const stage = displayPlan.stages[idx];
+                if (!stage) return null;
+                const tone = toneOf(phase, idx);
+                const start = new Date(stage.start_date + "T00:00:00");
+                const end = new Date(stage.end_date + "T00:00:00");
+                const pattern = displayPlan.basis === "job_working_days" ? displayPlan.working_pattern : undefined;
+                return (
+                    <li key={idx} data-planner-phone-phase={idx} className="min-w-0">
+                        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <span className={`h-2 w-2 rounded-full shrink-0 ${tone.dot}`} aria-hidden="true" />
+                                <span className="text-sm font-semibold text-slate-100 break-words">{phase.name}</span>
+                                {criticalSet.has(idx) && <span className="text-yellow-500 text-xs" aria-hidden="true">★</span>}
+                                {reviewStages.includes(idx) && (
+                                    <span data-planner-review-flag className="text-amber-400 text-xs font-semibold">Check days</span>
+                                )}
+                            </div>
+                            <span className="text-xs text-slate-400 shrink-0" data-planner-phone-phase-duration>
+                                {formatWorkingDuration(stage.working_days, pattern)}
+                            </span>
+                        </div>
+                        <p className="mt-1 text-xs text-slate-400 pl-4" data-planner-phone-phase-dates>
+                            {fmtDate(start)} – {fmtDate(end)}
+                            {phase.manhours > 0 && <span> · {Math.round(phase.manhours)}h</span>}
+                        </p>
+                    </li>
+                );
+            })}
+        </ol>
     );
 }
 
@@ -1143,29 +1412,29 @@ function LiveTrackingPanel({
         <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl overflow-hidden">
             {/* Header */}
             <div className="px-5 py-4 border-b border-slate-700/50">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
                     <div>
                         <h2 className="text-sm font-semibold text-white">Live Programme Tracking</h2>
-                        <p className="text-xs text-slate-500 mt-0.5">Update % complete and actual dates — saves automatically with the Gantt</p>
+                        <p className="text-xs text-slate-400 mt-0.5">Update % complete and actual dates — saves automatically with the Gantt</p>
                     </div>
-                    <div className="flex items-center gap-6">
+                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
                         <div className="text-right">
-                            <p className="text-[11px] text-slate-500 uppercase tracking-wider">Overall</p>
+                            <p className="text-[11px] text-slate-400 uppercase tracking-wider">Overall</p>
                             <p className={`text-xl font-bold ${overallPct === 100 ? "text-emerald-400" : overallPct > 0 ? "text-blue-400" : "text-slate-400"}`}>{overallPct}%</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-[11px] text-slate-500 uppercase tracking-wider">Complete</p>
+                            <p className="text-[11px] text-slate-400 uppercase tracking-wider">Complete</p>
                             <p className="text-xl font-bold text-emerald-400">{complete}</p>
                         </div>
                         {inProgress > 0 && (
                             <div className="text-right">
-                                <p className="text-[11px] text-slate-500 uppercase tracking-wider">In Progress</p>
+                                <p className="text-[11px] text-slate-400 uppercase tracking-wider">In Progress</p>
                                 <p className="text-xl font-bold text-blue-400">{inProgress}</p>
                             </div>
                         )}
                         {delayed > 0 && (
                             <div className="text-right">
-                                <p className="text-[11px] text-slate-500 uppercase tracking-wider">Delayed</p>
+                                <p className="text-[11px] text-slate-400 uppercase tracking-wider">Delayed</p>
                                 <p className="text-xl font-bold text-red-400">{delayed}</p>
                             </div>
                         )}
@@ -1180,12 +1449,13 @@ function LiveTrackingPanel({
                 </div>
             </div>
 
-            {/* Phase table */}
-            <table className="w-full text-sm">
+            {/* Phase table: scrolls sideways inside the card on a narrow screen */}
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] text-sm">
                 <thead>
                     <tr className="border-b border-slate-700/50">
                         {["Phase", "Planned Dates", "% Complete", "Actual Start", "Actual Finish", "Status"].map(h => (
-                            <th key={h} className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 ${h === "% Complete" ? "text-center" : "text-left"}`}>{h}</th>
+                            <th key={h} className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 ${h === "% Complete" ? "text-center" : "text-left"}`}>{h}</th>
                         ))}
                     </tr>
                 </thead>
@@ -1224,7 +1494,7 @@ function LiveTrackingPanel({
                                         {" → "}
                                         {plannedEnd.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                                     </p>
-                                    <p className="text-[10px] text-slate-600 mt-0.5">{phase.manualDays ?? phase.calculatedDays}d working</p>
+                                    <p className="text-[10px] text-slate-400 mt-0.5">{phase.manualDays ?? phase.calculatedDays}d working</p>
                                 </td>
                                 <td className="px-4 py-3">
                                     <div className="flex items-center gap-2">
@@ -1266,6 +1536,7 @@ function LiveTrackingPanel({
                     })}
                 </tbody>
             </table>
+            </div>
 
             {/* AI Update section */}
             <div className="border-t border-slate-700/50 p-5">

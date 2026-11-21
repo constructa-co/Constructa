@@ -23,6 +23,8 @@ import * as programmeStorage from "@/lib/server/programme-storage";
 import { PROGRAMME_ADDED, PROGRAMME_NO_PHASES, PROGRAMME_NOT_SAVED, PROGRAMME_TOO_MANY } from "@/lib/cohort-ai/programme-update";
 import { COHORT_AI_NOT_USABLE, COHORT_AI_OFF, COHORT_AI_UNAVAILABLE } from "@/lib/cohort-ai/shared";
 import { AiResponseError } from "@/lib/ai";
+import { PROGRAMME_CIRCULAR_DEPENDENCY_ERROR } from "@/lib/programme-phase-dependencies";
+import { PROGRAMME_REFRESH_WARNING } from "@/lib/programme-planner-draft";
 import { generateWeeklyUpdateAction, saveProgrammePhasesAction, updatePhasesAction } from "./actions";
 
 const PROJECT_ID = "11111111-1111-4111-8111-111111111111";
@@ -214,14 +216,40 @@ describe("detailed programme calendar storage", () => {
         const result = saveProgrammePhasesAction(PROJECT_ID, phases, SIX_DAYS, startDate);
         if (readback === "matching") await expect(result).resolves.toBeUndefined();
         else await expect(result).rejects.toThrow(programmeStorage.PROGRAMME_CHOICE_UNCONFIRMED);
-        expect(db.log).toEqual(["select:projects", "update:projects"]);
+        expect(db.log).toEqual(readback === "matching"
+            ? ["select:projects", "update:projects", "select:projects"]
+            : ["select:projects", "update:projects"]);
         expect(db.updates).toEqual([{ table: "projects", values: { programme_phases: phases, start_date: startDate }, filters: {
             id: PROJECT_ID, user_id: USER_ID, programme_phases: JSON.stringify(DETAILED_PHASES),
             programme_working_pattern: JSON.stringify(SIX_DAYS),
         } }]);
-        expect(selections).toEqual(["*", "programme_phases,programme_working_pattern,start_date"]);
+        expect(selections).toEqual(readback === "matching"
+            ? ["*", "programme_phases,programme_working_pattern,start_date", "programme_planner_draft"]
+            : ["*", "programme_phases,programme_working_pattern,start_date"]);
         expect(db.tables.projects[0]).toMatchObject({ programme_phases: phases, start_date: startDate, programme_working_pattern: SIX_DAYS });
-        expect(mocks.revalidatePath).toHaveBeenCalledTimes(readback === "matching" ? 1 : 0);
+        expect(mocks.revalidatePath).toHaveBeenCalledTimes(readback === "matching" ? 3 : 0);
+    });
+
+    it("CON-044 acknowledges a committed write with a warning when only the cache refresh throws", async () => {
+        const db = arrangeProgramme({ programme_working_pattern: SIX_DAYS });
+        vi.spyOn(console, "error").mockImplementation(() => {});
+        mocks.revalidatePath.mockImplementationOnce(() => { throw new Error("cache unavailable"); });
+        const next = [{ ...DETAILED_PHASES[0], manualDays: 3 }];
+        await expect(saveProgrammePhasesAction(PROJECT_ID, next, SIX_DAYS))
+            .resolves.toEqual({ warning: PROGRAMME_REFRESH_WARNING });
+        expect(db.tables.projects[0].programme_phases).toEqual(next);
+        expect(db.updates).toHaveLength(1);
+    });
+
+    it("CON-044 still rejects when the write itself fails, even if the refresh would also fail", async () => {
+        const db = arrangeProgramme({ programme_working_pattern: SIX_DAYS });
+        mocks.revalidatePath.mockImplementation(() => { throw new Error("cache unavailable"); });
+        const stale = { version: 1, weekdays: [1, 2, 3] };
+        await expect(saveProgrammePhasesAction(PROJECT_ID, [{ ...DETAILED_PHASES[0], manualDays: 3 }], stale)).rejects.toThrow();
+        expect(db.updates).toEqual([]);
+        expect(db.tables.projects[0].programme_phases).toEqual(DETAILED_PHASES);
+        expect(mocks.revalidatePath).not.toHaveBeenCalled();
+        mocks.revalidatePath.mockReset();
     });
 
     it.each(["", "19/10/2026"])("refuses a malformed supplied regeneration date %j before storage", async startDate => {
@@ -244,6 +272,29 @@ describe("detailed programme calendar storage", () => {
         expect(db.updates).toEqual([]);
         expect(db.tables.projects[0].programme_phases).toEqual(DETAILED_PHASES);
         expect(mocks.revalidatePath).not.toHaveBeenCalled();
+    });
+
+    it("CON-029 refuses a self-loop with the cycle error and no writes", async () => {
+        const db = arrangeProgramme();
+        const selfLoop = [{
+            name: "A", calculatedDays: 2, manualDays: null, manhours: 16, startOffset: 0, dependsOn: [0],
+        }];
+        const result = await updatePhasesAction(PROJECT_ID, selfLoop);
+        expect(result).toEqual({ success: false, error: PROGRAMME_CIRCULAR_DEPENDENCY_ERROR });
+        await expect(saveProgrammePhasesAction(PROJECT_ID, selfLoop)).rejects.toThrow(PROGRAMME_CIRCULAR_DEPENDENCY_ERROR);
+        expect(db.updates).toEqual([]);
+        expect(mocks.revalidatePath).not.toHaveBeenCalled();
+    });
+
+    it("CON-029 refuses circular dependencies before programme storage", async () => {
+        const db = arrangeProgramme();
+        const cycle = [
+            { name: "A", calculatedDays: 2, manualDays: null, manhours: 16, startOffset: 0, dependsOn: [1] },
+            { name: "B", calculatedDays: 2, manualDays: null, manhours: 16, startOffset: 7, dependsOn: [0] },
+        ];
+        expect((await updatePhasesAction(PROJECT_ID, cycle)).success).toBe(false);
+        await expect(saveProgrammePhasesAction(PROJECT_ID, cycle)).rejects.toThrow(PROGRAMME_CIRCULAR_DEPENDENCY_ERROR);
+        expect(db.updates).toEqual([]);
     });
 
     it("keeps old action request shapes and legacy saves when the calendar column is absent", async () => {

@@ -39,7 +39,7 @@ export default function BriefPriceExcerpt({ context, blocked, blockedHelp, style
                     <blockquote className={`mt-1 whitespace-pre-wrap break-words border-l-2 border-emerald-600 pl-3 text-base ${styles.body}`}>{pending.suggestions[0].description}</blockquote>
                 </div>
             )}
-            <p className={`mt-2 text-sm ${styles.muted}`}>Choose up to 500 characters for one line. Nothing is truncated. Opening a draft does not save, assign a price or add other activities.</p>
+            <p className={`mt-2 text-sm ${styles.muted}`}>Choose up to 500 characters for one line. Nothing is truncated. No rates or quantities are suggested — you enter every price yourself. Opening a draft does not save or assign a price.</p>
             {blocked && <p className={`mt-2 text-sm ${styles.muted}`}>{blockedHelp || PRICING_REVIEW_OPEN}</p>}
             {message && <p role="alert" className={`mt-2 break-words text-sm ${styles.errorText}`}>{message}</p>}
             <button type="button" className={`${styles.secondaryButton} mt-3`} disabled={!current || blocked}

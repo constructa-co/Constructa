@@ -27,12 +27,12 @@ const pictures = () => html().match(/<picture>[\s\S]*?<\/picture>/g) ?? [];
 const srcset = (tag: string) => decodeURIComponent(tag.match(/srcset="([^"]+)"/i)?.[1] ?? '');
 
 describe('phase-one product screenshots', () => {
-  it('sits on the features view after the review guide and before the scope, exactly once', () => {
+  it('sits on the features view after the review guide, exactly once, with no repeated scope block', () => {
     const page = renderToStaticMarkup(<PhaseOneFeatures />);
     const [guide, shots, scope] = ['id="product-review-guide"', MARKER, 'id="phase-one"'].map(marker => page.indexOf(marker));
     expect(guide).toBeGreaterThan(-1);
     expect(shots).toBeGreaterThan(guide);
-    expect(scope).toBeGreaterThan(shots);
+    expect(scope).toBe(-1);
     expect(page.match(new RegExp(MARKER, 'g'))).toHaveLength(1);
   });
 
@@ -97,10 +97,9 @@ describe('phase-one product screenshots', () => {
   it('states the section qualification in visible text', () => {
     const visible = html().replace(/<img\b[^>]*>/g, '');
     for (const fact of [
-      'synthetic journey fixture captures from 15 November 2026',
-      'current review interface',
-      'simulated saves',
+      'These screens show the product with sample data from a synthetic journey fixture, captured on 15 November 2026 with simulated saving.',
       'Live signup, email and production saving require separate verification.',
+      'Controls may change before release.',
       'Example screens',
       'From the current review interface.',
     ]) expect(visible).toContain(fact);
@@ -109,7 +108,7 @@ describe('phase-one product screenshots', () => {
   it('dates and qualifies each figure in its own caption', () => {
     const captions = html().match(/<figcaption[\s\S]*?<\/figcaption>/g) ?? [];
     for (const caption of captions) expect(caption).toMatch(/<time datetime="2026-11-15">15 November 2026<\/time>/i);
-    for (const caption of captions) for (const label of ['Synthetic journey fixture capture', 'Current review interface', 'Simulated saves']) expect(caption).toContain(label);
+    for (const caption of captions) for (const label of ['Example screen', 'Sample data', 'Simulated saving']) expect(caption).toContain(label);
     expect(captions[0]).toContain('They are not prices, typical margins or a quote.');
     expect(captions[1]).toContain('not a standard programme or a promise of how long any job takes');
   });
@@ -130,6 +129,33 @@ describe('phase-one product screenshots', () => {
     expect(levels).toEqual([2, 3, 3]);
     expect(html()).toContain('aria-labelledby="product-screenshots-title"');
     expect(html()).toContain('<h2 id="product-screenshots-title">');
+  });
+
+  it('frames each capture in a device chrome with a neutral window label', () => {
+    expect(html().match(/class="[^"]*frameBar[^"]*"/g)).toHaveLength(2);
+    expect(html().match(/Constructa review interface/g)).toHaveLength(2);
+    for (const label of ['Price adjustments', 'programme at a glance']) {
+      expect(html()).toContain(label);
+    }
+  });
+
+  it('notes the zoomed desktop view and the full-length small-screen view in each caption', () => {
+    const captions = html().match(/<figcaption[\s\S]*?<\/figcaption>/g) ?? [];
+    for (const caption of captions) {
+      expect(caption).toMatch(/larger screens/i);
+      expect(caption).toMatch(/smaller screens show the full(?:-length)? capture/i);
+    }
+    expect(captions[0]).toContain('running total, price adjustments and save control');
+    expect(captions[1]).toContain('programme at a glance');
+  });
+
+  it('zooms each desktop capture into its readable band only on larger screens', () => {
+    const styles = source('./product-screenshots.module.css');
+    expect(styles).toContain('@media (min-width: 601px)');
+    expect(styles).toContain('.zoomEstimate img { transform: translateY(-40%); }');
+    expect(styles).toContain('.zoomProgramme img { transform: translateY(-29%) scale(1.6); }');
+    expect(styles).toContain('overflow: hidden');
+    expect(styles).not.toContain('@media (max-width: 600px)');
   });
 
   it('imports the unchanged committed evidence images rather than copies', () => {

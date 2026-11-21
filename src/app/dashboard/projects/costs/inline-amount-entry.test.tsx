@@ -91,10 +91,14 @@ describe("inline saved one-price editing", () => {
         expect(html).not.toContain("Calculate an area");
         expect(JSON.stringify(current.state)).toBe(before); expect(current.update).not.toHaveBeenCalled();
     });
-    it("keeps the expanded grid aligned with an explicit one-price three-column span", () => {
-        open(); details(); const tree = inline(), cells = nodes(tree).filter(node => node.type === "td");
-        expect(cells).toHaveLength(4); expect(cells[1].props.colSpan).toBe(3);
-        expect(cells[1].props.children).toBe("One price");
+    it("keeps the expanded grid aligned with stored one-price detail columns", () => {
+        open(); details();
+        const tree = inline(), cells = nodes(tree).filter(node => node.type === "td");
+        expect(cells).toHaveLength(6);
+        expect(cells[1].props["data-label"]).toBe("Quantity");
+        expect(cells[1].props.children).toBe("1");
+        expect(cells[2].props.children).toBe("item");
+        expect(String(cells[3].props.children)).toBe("£200.00");
         expect(field("quantity")).toBeUndefined(); expect(field("rate")).toBeUndefined();
     });
     it("changes only raw description/amount draft fields without implicit conversion or saved changes", () => {

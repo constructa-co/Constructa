@@ -23,6 +23,10 @@ import {
     formatGBP,
     initialEstimatingState,
     isSimpleEditable,
+    isStoredOnePriceLine,
+    storedLineQuantityLabel,
+    storedLineRateLabel,
+    storedLineUnitLabel,
     removePriceLine,
     submitAdjustments,
     submitPriceLine,
@@ -30,8 +34,10 @@ import {
     summarisePrice,
     type AdvancedRunningTotalDraft,
     unitOptions,
+    priceUnitLabel,
     type AdjustmentKey,
     type EstimatingServer,
+    type EstimatingState,
     type LineOp,
     type PriceLineDraft,
     type PriceSummary,
@@ -47,12 +53,14 @@ import {
 import type { Estimate, EstimateLine } from "./types";
 import ui from "@/components/estimating.module.css";
 import PricingFocus from "@/components/pricing-focus";
+import { discountNeedsConfirmation } from "@/lib/discount-confirm";
+import { HighDiscountConfirmDialog } from "./discount-confirm-dialog";
 import AreaQuantityAid from "@/components/area-quantity-aid";
 import { areaQuantity } from "@/lib/area-quantity";
 import { nextEditableSavedLine, savePriceAndChangeNext } from "@/lib/save-price-change-next";
 import PricingAssistantPanel from "@/components/pricing-assistant-panel";
 import BriefPriceExcerpt from "@/components/brief-price-excerpt";
-import PriceWorkList, { type WorkDescriptionRange } from "@/components/price-work-list";
+import PriceWorkList, { filterUniqueWorkListRanges, workDescriptionText, type WorkDescriptionRange } from "@/components/price-work-list";
 import LineActivity from "./line-activity";
 import type { ActivitySaveResult } from "./activity-actions";
 import type { ReactNode } from "react";
@@ -150,6 +158,32 @@ export default function EstimateClient({
     const lines = useMemo(() => estimate?.estimate_lines ?? [], [estimate]);
     const summary = useMemo(() => summarisePrice(estimate, lines), [estimate, lines]);
     const [advancedRunningDraft, setAdvancedRunningDraft] = useState<AdvancedRunningTotalDraft | null>(null);
+    const [highDiscountConfirm, setHighDiscountConfirm] = useState<{
+        discountPct: number;
+        showWarning: boolean;
+    } | null>(null);
+    const saveAdjustmentsWithGate = async (confirmed = false) => {
+        const result = await submitAdjustments(store, server, { highDiscountConfirmed: confirmed });
+        if (!result.ok && result.needsHighDiscountConfirm) {
+            setHighDiscountConfirm({
+                discountPct: result.discountPct ?? 0,
+                showWarning: result.showHighDiscountWarning ?? false,
+            });
+            return;
+        }
+        setHighDiscountConfirm(null);
+    };
+    const cancelHighDiscountConfirm = () => {
+        const savedEstimate = currentEstimate(store.getState());
+        if (savedEstimate) {
+            const saved = adjustmentsDraftFromEstimate(savedEstimate);
+            store.dispatch({
+                type: "adjustments/change",
+                patch: { discount: saved.discount, discountReason: saved.discountReason },
+            });
+        }
+        setHighDiscountConfirm(null);
+    };
     const newOp = state.ops[NEW_LINE_KEY];
     const [priceFind, setPriceFind] = useState<PriceFindState>(EMPTY_PRICE_FIND);
     const priceFindRef = useRef(EMPTY_PRICE_FIND);
@@ -269,11 +303,29 @@ export default function EstimateClient({
             store.dispatch({ type: "op/change", key: NEW_LINE_KEY, patch });
             if (patch.mode === "rate") setShowLineDetails(true);
         },
-        onCancel: () => store.dispatch({ type: "op/cancel", key: NEW_LINE_KEY }),
-        onSave: () => void submitPriceLine(store, server, project.id, NEW_LINE_KEY),
-        onSaveNext: () => submitPriceLine(store, server, project.id, NEW_LINE_KEY, { nextLineId: newClientId() }),
+        onCancel: () => {
+            store.dispatch({ type: "work-list/queue", queue: null });
+            setWorkListQueueStatus("");
+            store.dispatch({ type: "op/cancel", key: NEW_LINE_KEY });
+        },
+        onSave: () => submitNewPriceLine(),
+        onSaveNext: state.workListQueue ? undefined : () =>
+            submitPriceLine(store, server, project.id, NEW_LINE_KEY, { nextLineId: newClientId() }).then(() => undefined),
+        workListQueueActive: !!state.workListQueue,
     } : null;
     const [briefDraftError, setBriefDraftError] = useState("");
+    const [workListQueueStatus, setWorkListQueueStatus] = useState("");
+    const clearWorkListQueue = () => {
+        if (store.getState().workListQueue) store.dispatch({ type: "work-list/queue", queue: null });
+        setWorkListQueueStatus("");
+    };
+    const endWorkListQueueAfterContinueBlocked = (remainingInQueue: number, detail: string) => {
+        store.dispatch({ type: "work-list/queue", queue: null });
+        const listNote = remainingInQueue > 0
+            ? `${remainingInQueue} description(s) remain in your list above — open them again from the list when you are ready.`
+            : "Your list text is unchanged above — open descriptions from the list when you are ready.";
+        setWorkListQueueStatus(`${detail} ${listNote}`);
+    };
     const [advanced, setAdvanced] = useState<{ status: "idle" | "loading" | "failed" | "ready"; data: AdvancedEstimatingData | null; error: string }>(
         { status: "idle", data: null, error: "" },
     );
@@ -315,6 +367,7 @@ export default function EstimateClient({
             if (!context.ok) return context;
             const draft = prepareReviewedPriceDraft(pending, index, context.value, hasOpenEstimateWork(fresh) || fresh.advancedOpen);
             if (!draft.ok) return draft;
+            clearWorkListQueue();
             store.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", draft: draft.value, lineId: newClientId() });
             return { ok: true };
         }, pricingTransport,
@@ -392,17 +445,20 @@ export default function EstimateClient({
             || workListOpenRef.current || Object.keys(activityWorkRef.current).length > 0;
         const draft = prepareSavedLineReuse(reviewed, context.value, blocked);
         if (!draft.ok) return draft;
+        clearWorkListQueue();
         store.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", draft: draft.value, lineId: newClientId() });
         return { ok: true };
     };
 
     const openAdd = () => {
         if (Object.keys(activityWorkRef.current).length) return;
+        clearWorkListQueue();
         store.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", draft: EMPTY_PRICE_LINE_DRAFT, lineId: newClientId() });
     };
     const openEdit = (line: EstimateLine) => {
         if (Object.keys(activityWorkRef.current).length) return;
         if (store.getState().ops[line.id]?.status === "saving") return;
+        clearWorkListQueue();
         setNextEditFocusId(null);
         setFullAmountLineIds(current => ({ ...current, [line.id]: false }));
         store.dispatch({ type: "op/open", key: line.id, kind: "edit", draft: draftFromLine(line), lineId: line.id });
@@ -451,12 +507,15 @@ export default function EstimateClient({
     const briefReview = pricingContext.ok ? reviewPricingSuggestion(pricingContext.value, {
         message: "", suggestions: [{ source: "briefWork", start: 0, end: pricingContext.value.work.length }],
     }) : null;
+    const briefWholeTooLong = !!briefReview && !briefReview.ok && briefReview.error.includes("500-character price line");
     const briefDraftBlocked = !pricingContext.ok || !briefReview?.ok || hasOpenWork || state.advancedOpen || pricingContext.value.clientBoQ;
     const briefDraftHelp = !pricingContext.ok ? pricingContext.error
+        : briefWholeTooLong
+            ? "The whole saved brief is too long for one price line. Use Choose part of the saved brief below, or Turn a list into lines. Nothing is truncated."
         : !briefReview?.ok ? briefReview?.error
         : hasOpenWork || state.advancedOpen ? PRICING_REVIEW_OPEN
         : pricingContext.value.clientBoQ ? "Use the existing client BoQ workflow for this estimate."
-        : "Copies only your work wording into an unsaved price-line draft. Review it before entering a price; no quantities or prices are filled.";
+        : "Copies only your work wording into an unsaved price-line draft. Review it before entering a price; no rates or quantities are suggested.";
     const openReviewedBriefDraft = (pending: PendingPricingReview): { ok: true } | { ok: false; error: string } => {
         const freshState = store.getState();
         const freshContext = buildPricingReviewContext(project, currentEstimate(freshState));
@@ -464,6 +523,7 @@ export default function EstimateClient({
         const prepared = prepareReviewedPriceDraft(pending, 0, freshContext.value, hasOpenEstimateWork(freshState) || freshState.advancedOpen || Object.keys(resourceSaveStatesRef.current).length > 0 || paymentWorkRef.current || scopeNotesWorkRef.current || experienceWorkRef.current || fullScopeWorkRef.current || openingWorkRef.current || workListOpenRef.current || Object.keys(activityWorkRef.current).length > 0);
         if (!prepared.ok) return prepared;
         setBriefDraftError("");
+        clearWorkListQueue();
         store.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", draft: prepared.value, lineId: newClientId() });
         return { ok: true };
     };
@@ -472,20 +532,113 @@ export default function EstimateClient({
         const opened = openReviewedBriefDraft(briefReview.value);
         if (!opened.ok) setBriefDraftError(opened.error);
     };
-    const openWorkListDraft = (source: string, range: WorkDescriptionRange, revision: string): { ok: true } | { ok: false; error: string } => {
+    const workListBlocked = (freshState: EstimatingState) =>
+        hasOpenEstimateWork(freshState) || freshState.advancedOpen || Object.keys(resourceSaveStatesRef.current).length > 0
+        || paymentWorkRef.current || scopeNotesWorkRef.current || experienceWorkRef.current || fullScopeWorkRef.current
+        || openingWorkRef.current || Object.keys(activityWorkRef.current).length > 0;
+
+    const savedWorkDescriptions = (freshState: EstimatingState) =>
+        currentEstimate(freshState)?.estimate_lines.map(line => line.description) ?? [];
+
+    const openWorkListDraftAt = (source: string, range: WorkDescriptionRange, revision?: string): { ok: true } | { ok: false; error: string } => {
         const freshState = store.getState();
         const base = buildPricingReviewContext(project, currentEstimate(freshState));
         if (!base.ok) return base;
-        if (base.value.revision !== revision) return { ok: false, error: PRICING_REVIEW_STALE };
+        if (revision !== undefined && base.value.revision !== revision) return { ok: false, error: PRICING_REVIEW_STALE };
         const context = buildPricingReviewContext(project, currentEstimate(freshState), source);
         if (!context.ok) return context;
         const pending = reviewPricingSuggestion(context.value, { message: "", suggestions: [{ source: "contractorMessage", ...range }] });
         if (!pending.ok) return pending;
-        const draft = prepareReviewedPriceDraft(pending.value, 0, context.value, hasOpenEstimateWork(freshState) || freshState.advancedOpen || Object.keys(resourceSaveStatesRef.current).length > 0 || paymentWorkRef.current || scopeNotesWorkRef.current || experienceWorkRef.current || fullScopeWorkRef.current || openingWorkRef.current || Object.keys(activityWorkRef.current).length > 0);
+        const draft = prepareReviewedPriceDraft(pending.value, 0, context.value, workListBlocked(freshState));
         if (!draft.ok) return draft;
         store.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", draft: draft.value, lineId: newClientId() });
         return { ok: true };
     };
+
+    const continueWorkListQueue = (skippedSoFar = 0): void => {
+        while (true) {
+            const fresh = store.getState();
+            const queue = fresh.workListQueue;
+            if (!queue?.ranges.length) {
+                if (skippedSoFar > 0) setWorkListQueueStatus(`${skippedSoFar} duplicate description(s) were skipped. List finished.`);
+                return;
+            }
+            const [next, ...rest] = queue.ranges;
+            const text = workDescriptionText(queue.source, next);
+            if (savedWorkDescriptions(fresh).includes(text)) {
+                store.dispatch({
+                    type: "work-list/queue",
+                    queue: rest.length ? { source: queue.source, ranges: rest } : null,
+                });
+                skippedSoFar++;
+                continue;
+            }
+            if (workListBlocked(fresh)) {
+                endWorkListQueueAfterContinueBlocked(
+                    rest.length + 1,
+                    "Could not open the next description automatically because other estimating work is still open.",
+                );
+                return;
+            }
+            const opened = openWorkListDraftAt(queue.source, next);
+            if (!opened.ok) {
+                endWorkListQueueAfterContinueBlocked(queue.ranges.length, opened.error);
+                return;
+            }
+            store.dispatch({
+                type: "work-list/queue",
+                queue: rest.length ? { source: queue.source, ranges: rest } : null,
+            });
+            const suffix = skippedSoFar > 0 ? ` ${skippedSoFar} duplicate description(s) were skipped.` : "";
+            setWorkListQueueStatus(rest.length > 0
+                ? `${rest.length} more description(s) queued after this draft. Save each line to continue; Cancel stops the queue.${suffix}`
+                : `List finished.${suffix}`);
+            return;
+        }
+    };
+
+    const openWorkListDraft = (source: string, range: WorkDescriptionRange, revision: string): { ok: true } | { ok: false; error: string } => {
+        store.dispatch({ type: "work-list/queue", queue: null });
+        setWorkListQueueStatus("");
+        return openWorkListDraftAt(source, range, revision);
+    };
+
+    const openWorkListAllDrafts = (
+        source: string,
+        ranges: WorkDescriptionRange[],
+        revision: string,
+    ): { ok: true; skippedDuplicates?: number; queued?: number } | { ok: false; error: string } => {
+        if (!ranges.length) return { ok: false, error: "Review the list first." };
+        const { ranges: unique, skippedDuplicates } = filterUniqueWorkListRanges(source, ranges, savedWorkDescriptions(store.getState()));
+        if (!unique.length) return { ok: false, error: "Every description matches a saved line or a duplicate in this list." };
+        setWorkListQueueStatus("");
+        store.dispatch({
+            type: "work-list/queue",
+            queue: unique.length > 1 ? { source, ranges: unique.slice(1) } : null,
+        });
+        const opened = openWorkListDraftAt(source, unique[0], revision);
+        if (!opened.ok) {
+            store.dispatch({ type: "work-list/queue", queue: null });
+            return opened;
+        }
+        const queued = unique.length - 1;
+        if (queued > 0) {
+            setWorkListQueueStatus(`${queued} more description(s) queued after this draft. Save each line to continue; Cancel stops the queue.`);
+        }
+        return { ok: true, skippedDuplicates: skippedDuplicates || undefined, queued: queued || undefined };
+    };
+
+    const submitNewPriceLine = () =>
+        submitPriceLine(store, server, project.id, NEW_LINE_KEY).then(saved => {
+            if (!saved) return saved;
+            if (!store.getState().workListQueue?.ranges.length) {
+                store.dispatch({ type: "work-list/queue", queue: null });
+                setWorkListQueueStatus("");
+                return saved;
+            }
+            continueWorkListQueue();
+            return saved;
+        });
     const briefHref = `/dashboard/projects/brief?projectId=${encodeURIComponent(project.id)}`;
     const programmeHref = `/dashboard/projects/schedule?projectId=${encodeURIComponent(project.id)}`;
     const hasLines = lines.length > 0;
@@ -540,8 +693,9 @@ export default function EstimateClient({
                             </div>
                         )}
                         {advanced.status === "ready" && advanced.data && (
-                            <div data-wide-workspace className="rounded-xl bg-[#0d0d0d] p-3 sm:p-4 overflow-x-auto">
-                                <div className="min-w-[760px]">
+                            <div data-wide-workspace className={`${ui.advancedWorkspaceRoot} rounded-xl bg-[#0d0d0d] p-3 sm:p-4`}>
+                                <div className={`${ui.advancedWorkspaceScroller} min-w-0`}>
+                                <div className={ui.advancedWorkspaceWide}>
                                     <AdvancedEstimate
                                         estimates={state.estimates}
                                         setEstimates={(update) => store.dispatch({ type: "estimates/replace", update })}
@@ -558,6 +712,7 @@ export default function EstimateClient({
                                         onLineSaveStateChanged={(lineId, status) => resourceSaveStateChanged(`line:${lineId}`, status)}
                                         onRunningTotalDraftChange={setAdvancedRunningDraft}
                                     />
+                                </div>
                                 </div>
                             </div>
                         )}
@@ -602,7 +757,7 @@ export default function EstimateClient({
                     <div className="mt-3">
                         <button type="button" data-brief-price-draft aria-describedby="brief-price-draft-help"
                             disabled={briefDraftBlocked} onClick={startBriefPriceDraft} className={s.secondaryButton}>
-                            Start a price line from this brief
+                            Start from brief
                         </button>
                         <p id="brief-price-draft-help" className={`mt-2 text-sm ${s.muted}`}>{briefDraftHelp}</p>
                         {briefDraftError && <p role="alert" className={`mt-2 text-sm ${s.errorText}`}>{briefDraftError}</p>}
@@ -624,13 +779,25 @@ export default function EstimateClient({
             {project.proposal_introduction !== undefined && <PricingOpeningEditor key={project.id} projectId={project.id} source={project.proposal_introduction}
                 lockReason={project.payment_lock_reason ?? null} styles={s} onWorkChange={openingWorkChanged} />}
 
+            <p className={`text-sm ${s.muted}`} data-estimating-helpers-note>
+                Estimating helpers copy your wording into unpriced drafts. They do not suggest rates, quantities or cost-library prices — you enter every price yourself.
+            </p>
+
             <PricingAssistantPanel session={pricingAssistant} blocked={hasOpenWork || state.advancedOpen || !!estimate?.is_client_boq || !!project.payment_lock_reason} offReason={pricingAssistantOffReason}
                 blockedNote={project.payment_lock_reason ? `${project.payment_lock_reason} The pricing assistant is not available for this job.` : undefined} />
 
             {pricingContext.ok && <PriceWorkList data-price-work-list context={pricingContext.value} styles={s}
                 blocked={hasOpenEstimateWork(state) || state.advancedOpen || Object.keys(resourceSaveStates).length > 0 || paymentWork || scopeNotesWork || experienceWork || fullScopeWork || openingWork || activityBusy || pricingContext.value.clientBoQ}
                 blockedHelp={pricingContext.value.clientBoQ ? "Use the existing client BoQ workflow for this estimate." : PRICING_REVIEW_OPEN}
-                onWorkChange={workListChanged} onOpen={openWorkListDraft} />}
+                queuedRemaining={state.workListQueue?.ranges.length ?? 0}
+                onWorkChange={workListChanged} onOpen={openWorkListDraft} onOpenAll={openWorkListAllDrafts}
+                onQueueClear={clearWorkListQueue} />}
+
+            {(workListQueueStatus || state.workListQueue?.ranges.length) && (
+                <p role="status" data-work-list-queue-status className={`text-sm ${s.body}`}>
+                    {workListQueueStatus || `${state.workListQueue!.ranges.length} more description(s) queued after the open draft. Save each line to continue; Cancel stops the queue.`}
+                </p>
+            )}
 
             {/* Current version stays visible without competing with price entry. */}
             {estimate && (state.estimates.length > 1 || !estimate.is_active) && (
@@ -802,8 +969,19 @@ export default function EstimateClient({
                 s={s}
                 onToggle={() => store.dispatch({ type: "adjustments/toggle" })}
                 onChange={(patch) => store.dispatch({ type: "adjustments/change", patch })}
-                onSave={() => void submitAdjustments(store, server)}
+                onSave={() => void saveAdjustmentsWithGate()}
             />
+
+            {highDiscountConfirm && (
+                <HighDiscountConfirmDialog
+                    open
+                    discountPct={highDiscountConfirm.discountPct}
+                    showWarning={highDiscountConfirm.showWarning}
+                    s={s}
+                    onConfirm={() => void saveAdjustmentsWithGate(true)}
+                    onCancel={cancelHighDiscountConfirm}
+                />
+            )}
 
             {project.payment_schedule !== undefined && <PricingPaymentStages projectId={project.id} schedule={project.payment_schedule}
                 lockReason={project.payment_lock_reason ?? null} styles={s} onWorkChange={paymentWorkChanged} />}
@@ -873,6 +1051,26 @@ export default function EstimateClient({
 
 // ─── One price line ──────────────────────────────────────
 
+function OnePriceTypeBadge() {
+    return <span className={ui.priceLineTypeBadge} data-line-type="one-price">One price</span>;
+}
+
+function storedDetailCells(line: EstimateLine) {
+    return [
+        <td key="quantity" data-label="Quantity" className={ui.priceLineNumber}>{storedLineQuantityLabel(line)}</td>,
+        <td key="unit" data-label="Unit" className={ui.priceLineUnit}>{storedLineUnitLabel(line)}</td>,
+        <td key="rate" data-label="Rate" className={ui.priceLineNumber}>{storedLineRateLabel(line)}</td>,
+    ];
+}
+
+function missingDetailCells() {
+    return [
+        <td key="quantity" data-label="Quantity" className={ui.priceLineNumber}>—</td>,
+        <td key="unit" data-label="Unit" className={ui.priceLineUnit}>—</td>,
+        <td key="rate" data-label="Rate" className={ui.priceLineNumber}>—</td>,
+    ];
+}
+
 function PriceLineRow({
     line, editable, isClientBoQ, op, s, isDark, showDetails, onEdit, onDelete, onChange, onUseArea, onCancel, onSave, onFullForm, onInlineForm, fullAmountForm = false, onConfirmDelete, nextLine, nextBlocked = false, onSaveNext, focusDescription = false, activityControl, priceBlocked = false, finderMatch = false, finderCurrent = false,
 }: {
@@ -903,7 +1101,7 @@ function PriceLineRow({
     finderCurrent?: boolean;
 }) {
     const name = line.description?.trim() || "No description yet";
-    const isAmount = Number(line.quantity) === 1 && (line.unit === "item" || !line.unit);
+    const isAmount = isStoredOnePriceLine(line);
     const section = line.trade_section && line.trade_section !== "General" ? line.trade_section : "";
 
     if (op && op.kind === "edit") {
@@ -936,26 +1134,21 @@ function PriceLineRow({
         <tr data-price-line={line.id} tabIndex={-1} data-price-find-match={finderMatch || undefined} data-price-find-current={finderCurrent || undefined}>
                 <td className={ui.priceLineDescription}>
                     <p className={`text-base font-semibold break-words ${line.description?.trim() ? s.body : s.muted}`}>{name}</p>
-                    <p className={`text-sm ${s.muted}`}>
-                        {[
-                            section,
-                            isAmount || showDetails ? "" : `${Number(line.quantity)} ${line.unit} × ${formatGBP(Number(line.unit_rate) || 0)}`,
-                            line.pricing_mode === "buildup" ? "Rate build-up" : "",
-                            isClientBoQ ? "Client BoQ" : "",
-                        ].filter(Boolean).join(" · ")}
+                    <p className={`text-sm ${s.muted} flex flex-wrap items-center gap-x-2 gap-y-1`}>
+                        {section ? <span>{section}</span> : null}
+                        {isAmount ? <OnePriceTypeBadge /> : null}
+                        {!isAmount && !showDetails ? (
+                            <span>{`${Number(line.quantity)} ${line.unit} × ${formatGBP(Number(line.unit_rate) || 0)}`}</span>
+                        ) : null}
+                        {line.pricing_mode === "buildup" ? <span>Rate build-up</span> : null}
+                        {isClientBoQ ? <span>Client BoQ</span> : null}
                     </p>
                     {!editable && (
                         <p className={`text-sm ${s.muted}`}>Change this line in Advanced estimating.</p>
                     )}
                     {activityControl}
                 </td>
-                {showDetails && (isAmount
-                    ? <td colSpan={3} className={ui.priceOneAmount}>One price</td>
-                    : <>
-                        <td data-label="Quantity" className={ui.priceLineNumber}>{Number(line.quantity)}</td>
-                        <td data-label="Unit" className={ui.priceLineUnit}>{line.unit}</td>
-                        <td data-label="Rate" className={ui.priceLineNumber}>{formatGBP(Number(line.unit_rate) || 0)}</td>
-                    </>)}
+                {showDetails ? storedDetailCells(line) : null}
                 <td data-label="Price" className={ui.priceLineAmount}>{formatGBP(Number(line.line_total) || 0)}</td>
                 <td className={ui.priceLineActions}>
                     {!(op && op.kind === "delete") && editable && (
@@ -1038,7 +1231,7 @@ function InlineAmountEditor({ line, op, s, showDetails, onChange, onCancel, onSa
             <p className={`mt-2 text-sm ${s.muted}`}>Draft only until Save line. One price for this work.</p>
             {op.status === "failed" && <p role="alert" className={`mt-2 text-sm ${s.errorText}`}>{op.error}</p>}
         </td>
-        {showDetails && <td colSpan={3} className={ui.priceOneAmount}>One price</td>}
+        {showDetails ? storedDetailCells(line) : null}
         <td data-label="Price" className={ui.priceLineAmount}>
             <input {...field("amount", "Price in pounds")} value={draft.amount} inputMode="decimal" autoComplete="off"
                 className={s.input} onChange={event => onChange({ amount: event.target.value })} />
@@ -1108,9 +1301,9 @@ function InlineRateEditor({ line, op, s, onChange, onUseArea, onCancel, onSave, 
             {error("quantity")}
         </td>
         <td data-label="Unit" className={ui.priceLineUnit}>
-            <select {...field("unit", "Unit")} value={draft.unit} className={s.input}
+            <select {...field("unit", "Unit")} value={draft.unit} className={`${s.input} min-w-[72px]`}
                 onChange={event => onChange({ unit: event.target.value })}>
-                {unitOptions(draft.unit).map(unit => <option key={unit} value={unit}>{unit}</option>)}
+                {unitOptions(draft.unit).map(unit => <option key={unit} value={unit}>{priceUnitLabel(unit)}</option>)}
             </select>
             {error("unit")}
         </td>
@@ -1140,7 +1333,7 @@ function InlineRateEditor({ line, op, s, onChange, onUseArea, onCancel, onSave, 
 
 // ─── Add / change form ───────────────────────────────────
 
-function InlineNewPriceLine({ idPrefix, title, op, s, showDetails, onChange, onUseArea, onCancel, onSave, onSaveNext, onFullForm, activityNames }: {
+function InlineNewPriceLine({ idPrefix, title, op, s, showDetails, onChange, onUseArea, onCancel, onSave, onSaveNext, onFullForm, activityNames, workListQueueActive = false }: {
     "data-inline-add": boolean;
     idPrefix: string;
     title: string;
@@ -1151,9 +1344,10 @@ function InlineNewPriceLine({ idPrefix, title, op, s, showDetails, onChange, onU
     onUseArea: (quantity: string) => void;
     onCancel: () => void;
     onSave: () => void;
-    onSaveNext?: () => void;
+    onSaveNext?: () => void | Promise<void>;
     onFullForm: () => void;
     activityNames?: string[];
+    workListQueueActive?: boolean;
 }) {
     const { draft, fieldErrors } = op;
     const saving = op.status === "saving";
@@ -1189,20 +1383,21 @@ function InlineNewPriceLine({ idPrefix, title, op, s, showDetails, onChange, onU
             <div className={ui.newPriceMethods} role="group" aria-label="How to price the new line">
                 <button type="button" disabled={saving} aria-pressed={draft.mode === "amount"} onClick={() => onChange({ mode: "amount" })}>One price</button>
                 <button type="button" disabled={saving} aria-pressed={draft.mode === "rate"} onClick={() => onChange({ mode: "rate" })}>Quantity and rate</button>
+                {showDetails && draft.mode === "amount" ? <OnePriceTypeBadge /> : null}
             </div>
             <p className={`mt-2 text-sm ${s.muted}`}>Not saved. Tab between fields; save only when ready.</p>
             {draft.mode === "rate" && <AreaQuantityAid key={`${op.lineId}:${draft.unit}`} idPrefix={`${idPrefix}-area`} unit={draft.unit} disabled={saving} onUse={onUseArea} />}
             {op.status === "failed" && <p role="alert" className={`mt-2 text-sm ${s.errorText}`}>{op.error}</p>}
         </td>
-        {showDetails && (draft.mode === "amount" ? <td colSpan={3} className={ui.priceOneAmount}>One price</td> : <>
+        {showDetails && (draft.mode === "amount" ? missingDetailCells() : <>
             <td data-label="Quantity" className={ui.priceLineNumber}>
                 <input {...field("quantity", "New priced quantity")} value={draft.quantity} inputMode="decimal" autoComplete="off"
                     className={s.input} onChange={event => onChange({ quantity: event.target.value })} />
                 {error("quantity")}
             </td>
             <td data-label="Unit" className={ui.priceLineUnit}>
-                <select {...field("unit", "New priced unit")} value={draft.unit} className={s.input} onChange={event => onChange({ unit: event.target.value })}>
-                    {unitOptions(draft.unit).map(unit => <option key={unit} value={unit}>{unit}</option>)}
+                <select {...field("unit", "New priced unit")} value={draft.unit} className={`${s.input} min-w-[72px]`} onChange={event => onChange({ unit: event.target.value })}>
+                    {unitOptions(draft.unit).map(unit => <option key={unit} value={unit}>{priceUnitLabel(unit)}</option>)}
                 </select>
                 {error("unit")}
             </td>
@@ -1228,13 +1423,17 @@ function InlineNewPriceLine({ idPrefix, title, op, s, showDetails, onChange, onU
                 <button type="button" disabled={saving} onClick={onCancel} className={s.secondaryButton}>Cancel</button>
                 <button type="button" disabled={saving} onClick={onFullForm} className={s.quietButton}>Full line form</button>
             </div>
-            <p className={`mt-2 text-sm ${s.muted}`}>Ctrl/Command+Enter saves and adds next. Area results stay in this draft until Save line.</p>
+            <p className={`mt-2 text-sm ${s.muted}`}>
+                {workListQueueActive
+                    ? "Save and add next is off while queued list lines remain. Save this line to open the next queued description; Cancel stops the queue."
+                    : "Ctrl/Command+Enter saves and adds next. Area results stay in this draft until Save line."}
+            </p>
         </td>
     </tr>;
 }
 
 function LineForm({
-    idPrefix, title, op, s, isDark, onChange, onCancel, onSave, onSaveNext, activityNames,
+    idPrefix, title, op, s, isDark, onChange, onCancel, onSave, onSaveNext, activityNames, workListQueueActive = false,
 }: {
     idPrefix: string;
     title: string;
@@ -1244,8 +1443,9 @@ function LineForm({
     onChange: (patch: Partial<PriceLineDraft>) => void;
     onCancel: () => void;
     onSave: () => void;
-    onSaveNext?: () => void;
+    onSaveNext?: () => void | Promise<void>;
     activityNames?: string[];
+    workListQueueActive?: boolean;
 }) {
     const { draft, fieldErrors } = op;
     const saving = op.status === "saving";
@@ -1346,9 +1546,9 @@ function LineForm({
                             {...field("unit")}
                             value={draft.unit}
                             onChange={(e) => onChange({ unit: e.target.value })}
-                            className={`${s.input} mt-1.5 px-2`}
+                            className={`${s.input} mt-1.5 px-2 min-w-[72px]`}
                         >
-                            {unitOptions(draft.unit).map((unit) => <option key={unit} value={unit}>{unit}</option>)}
+                            {unitOptions(draft.unit).map((unit) => <option key={unit} value={unit}>{priceUnitLabel(unit)}</option>)}
                         </select>
                     </div>
                     <div>
@@ -1396,7 +1596,10 @@ function LineForm({
                 </button>}
                 <button type="button" onClick={onCancel} disabled={saving} className={s.secondaryButton}>Cancel</button>
             </div>
-            {onSaveNext && <p className={`text-sm ${s.muted}`}>
+            {workListQueueActive && <p className={`text-sm ${s.muted}`}>
+                Save and add next is off while queued list lines remain. Save this line to open the next queued description; Cancel stops the queue.
+            </p>}
+            {onSaveNext && !workListQueueActive && <p className={`text-sm ${s.muted}`}>
                 Ctrl+Enter or Command+Enter saves this line and opens the next unpriced draft. Pricing method and unit stay selected; description, quantity and price are cleared.
             </p>}
         </form>
@@ -1419,7 +1622,7 @@ function TotalCard({
         status: "idle" | "saving" | "failed";
         draft: ReturnType<typeof adjustmentsDraftFromEstimate> | null;
         error: string | null;
-        fieldErrors: Partial<Record<AdjustmentKey, string>>;
+        fieldErrors: Partial<Record<AdjustmentKey | "discountReason", string>>;
     };
     s: WorkspaceStyles;
     onToggle: () => void;
@@ -1429,6 +1632,8 @@ function TotalCard({
     const draft = state.draft ?? (estimate ? adjustmentsDraftFromEstimate(estimate) : null);
     const saving = state.status === "saving";
     const built = state.draft ? buildAdjustments(state.draft) : null;
+    const discountPct = built?.ok ? built.input.discount_pct : 0;
+    const reasonRequired = discountNeedsConfirmation(discountPct);
     const preview = estimate && built?.ok ? summarisePrice({ ...estimate, ...built.input }, lines) : null;
     const row = "flex items-baseline justify-between gap-3";
 
@@ -1441,9 +1646,18 @@ function TotalCard({
                     <dt className={`text-base ${s.body}`}>Your price lines</dt>
                     <dd className={`text-base font-semibold ${s.heading}`}>{formatGBP(summary.linesTotal)}</dd>
                 </div>
+                {summary.faceValueTotal !== 0 && (
+                    <div className={row} data-face-value-sums>
+                        <dt className={`text-base ${s.muted}`}>Prime cost &amp; provisional sums (face value)</dt>
+                        <dd className={`text-base ${s.body}`}>{formatGBP(summary.faceValueTotal)}</dd>
+                    </div>
+                )}
                 {summary.adjustments.map((a) => (
                     <div key={a.key} className={row}>
-                        <dt className={`text-base ${s.muted}`}>{a.label} ({a.pct}%)</dt>
+                        <dt className={`text-base ${s.muted}`}>
+                            {a.label} ({a.pct}%)
+                            {a.note && <span className={`mt-0.5 block text-sm ${s.muted}`}>{a.note}</span>}
+                        </dt>
                         <dd className={`text-base ${s.body}`}>{formatGBP(a.amount)}</dd>
                     </div>
                 ))}
@@ -1470,7 +1684,7 @@ function TotalCard({
                 </div>
             </dl>
 
-            {estimate && summary.adjustments.length === 0 && (
+            {estimate && !summary.adjustments.some((a) => a.amount !== 0) && (
                 <p className={`mt-3 text-sm ${s.muted}`}>
                     Nothing has been added on top of your lines for overhead, risk or profit. If your prices already allow for them, leave it as it is.
                 </p>
@@ -1524,9 +1738,15 @@ function TotalCard({
                                 ))}
                                 <div>
                                     <label htmlFor="adjust-discount-reason" className={s.label}>Reason for the discount</label>
-                                    <p className={`mt-0.5 text-sm ${s.muted}`}>Optional. Shown to the client with the discount.</p>
+                                    <p id="adjust-discount-reason-help" className={`mt-0.5 text-sm ${s.muted}`}>
+                                        {reasonRequired
+                                            ? "Required for discounts over 25%. Shown to the client with the discount."
+                                            : "Optional. Shown to the client with the discount."}
+                                    </p>
                                     <input
                                         id="adjust-discount-reason"
+                                        aria-describedby="adjust-discount-reason-help"
+                                        aria-invalid={state.fieldErrors.discountReason ? true : undefined}
                                         autoComplete="off"
                                         disabled={saving}
                                         maxLength={500}
@@ -1535,6 +1755,9 @@ function TotalCard({
                                         placeholder="e.g. Returning client"
                                         className={`${s.input} mt-1.5`}
                                     />
+                                    {state.fieldErrors.discountReason && (
+                                        <p className={`mt-1.5 text-sm ${s.errorText}`}>{state.fieldErrors.discountReason}</p>
+                                    )}
                                 </div>
 
                                 {state.draft && preview && (

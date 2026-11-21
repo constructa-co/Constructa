@@ -1,6 +1,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import type { StaticImageData } from 'next/image';
+import { aboutCaptures } from './about-image-provenance';
 import ui from './phase-one.module.css';
 import styles from './cohort-about.module.css';
 
@@ -11,7 +13,7 @@ function AboutFigure({
   height,
   caption,
 }: {
-  src: string;
+  src: string | StaticImageData;
   alt: string;
   width: number;
   height: number;
@@ -45,11 +47,11 @@ export function PhaseOneAbout() {
 
       <section className={styles.split}>
         <AboutFigure
-          src="/images/about-hero.png"
-          alt="Three people in hard hats gathered around a laptop"
-          width={2048}
-          height={2048}
-          caption="AI-generated illustration. The people shown are not Constructa staff or clients."
+          src={aboutCaptures.programmeSavedStages.src}
+          alt={aboutCaptures.programmeSavedStages.alt}
+          width={aboutCaptures.programmeSavedStages.width}
+          height={aboutCaptures.programmeSavedStages.height}
+          caption={aboutCaptures.programmeSavedStages.caption}
         />
         <div className={styles.copy}>
           <h2>Built by people who know the job</h2>
@@ -65,7 +67,7 @@ export function PhaseOneAbout() {
         </div>
       </section>
 
-      <section className={`${styles.split} ${styles.splitReverse}`}>
+      <section className={styles.statement}>
         <div className={styles.copy}>
           <h2>The problem we saw</h2>
           <p>
@@ -80,21 +82,20 @@ export function PhaseOneAbout() {
           </ul>
           <p>Big software platforms are overkill. Manual systems are high risk. And most tools weren&apos;t built for builders.</p>
         </div>
-        <AboutFigure
-          src="/images/about-problem1.png"
-          alt="Illustration of three colleagues discussing drawings on a building site"
-          width={1024}
-          height={1024}
-        />
       </section>
 
       <section className={styles.split}>
-        <AboutFigure
-          src="/images/about-solution.png"
-          alt="Illustration of a project team around a table with a glowing programme timeline overlaid"
-          width={1024}
-          height={1024}
-        />
+        <figure className={styles.figure}>
+          <Image
+            src={aboutCaptures.estimatePriceAdjustments.src}
+            alt={aboutCaptures.estimatePriceAdjustments.alt}
+            width={aboutCaptures.estimatePriceAdjustments.width}
+            height={aboutCaptures.estimatePriceAdjustments.height}
+            sizes="(max-width: 900px) 100vw, 42vw"
+            className={styles.figureImage}
+          />
+          <figcaption>{aboutCaptures.estimatePriceAdjustments.caption}</figcaption>
+        </figure>
         <div className={styles.copy}>
           <h2>The solution we&apos;re building</h2>
           <p>Constructa brings quoting, planning, and delivery into one clean, easy-to-use platform.</p>
@@ -108,7 +109,7 @@ export function PhaseOneAbout() {
         </div>
       </section>
 
-      <section className={`${styles.split} ${styles.splitReverse}`}>
+      <section className={styles.statement}>
         <div className={styles.copy}>
           <h2>A message from the founder</h2>
           <p>
@@ -125,16 +126,6 @@ export function PhaseOneAbout() {
           </p>
           <div className={styles.founder}>— Robert Smith</div>
         </div>
-        <figure className={styles.figure}>
-          <Image
-            src="/images/founder-message.png"
-            alt="AI-generated illustration of a man standing behind a desk at sunset"
-            width={1024}
-            height={1024}
-            className={styles.figureImage}
-          />
-          <figcaption>AI-generated illustration. The person shown is not Robert Smith.</figcaption>
-        </figure>
       </section>
 
       <section className={styles.metrics}>
@@ -142,26 +133,19 @@ export function PhaseOneAbout() {
         <div className={styles.metricGrid}>
           {[
             {
-              src: '/images/about-1m-construction-firms.png',
-              alt: 'Illustration of tower cranes and city buildings linked by a glowing network',
               title: 'Small firms are the backbone of the sector',
               body: 'Micro businesses dominate construction—but have few tools built for the way they actually work.',
             },
             {
-              src: '/images/about-weekly-admin.png',
-              alt: 'Illustration of a stopwatch with paperwork streaming past',
               title: 'Admin eats into every working week',
               body: 'Time spent chasing info and retyping quotes is time away from the job.',
             },
             {
-              src: '/images/about-spreadsheets.png',
-              alt: 'Illustration of a spreadsheet marked with errors beside a hard hat and level',
               title: 'Spreadsheets are still the default',
               body: 'Most general platforms are too complex, and manual systems are high risk.',
             },
           ].map((item) => (
             <div key={item.title} className={styles.metricCard}>
-              <Image src={item.src} alt={item.alt} width={160} height={160} />
               <h3>{item.title}</h3>
               <p>{item.body}</p>
             </div>
@@ -169,7 +153,7 @@ export function PhaseOneAbout() {
         </div>
       </section>
 
-      <section className={`${styles.split} ${styles.splitReverse} ${styles.nextRow}`}>
+      <section className={`${styles.statement} ${styles.nextRow}`}>
         <div className={styles.copy}>
           <h2>What&apos;s next</h2>
           <p>
@@ -198,12 +182,6 @@ export function PhaseOneAbout() {
             </a>
           </div>
         </div>
-        <AboutFigure
-          src="/images/about-whats-next.png"
-          alt="Illustration of colleagues reviewing drawings around a studio table"
-          width={1024}
-          height={1024}
-        />
       </section>
 
       <section className={styles.pointers}>

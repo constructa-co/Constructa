@@ -33,7 +33,7 @@ describe("working days", () => {
         [6, "2026-10-19", "the sixth day is the next Monday"],
         [10, "2026-10-23", "two weeks end on the second Friday"],
         [15, "2026-10-30", "three weeks"],
-        [260, "2027-10-08", "a year of working weeks"],
+        [260, "2027-10-20", "a year of working weeks"],
     ])("a start date and %i working days gives one end date", (days, end) => {
         expect(addWorkingDays(MONDAY, days)).toBe(end);
         // The same answer the other way round.
@@ -53,7 +53,8 @@ describe("working days", () => {
     });
 
     it("crosses a month end, a year end and a leap day", () => {
-        expect(addWorkingDays("2026-12-28", 5)).toBe("2027-01-01");
+        expect(isWorkingDay("2027-01-01")).toBe(false);
+        expect(addWorkingDays("2026-12-24", 5)).toBe("2027-01-04");
         expect(addWorkingDays("2028-02-28", 3)).toBe("2028-03-01");
     });
 
@@ -71,9 +72,9 @@ describe("working days", () => {
 });
 
 describe("wording", () => {
-    it("states whole weeks as weeks and anything else as working days", () => {
-        expect(formatWorkingDuration(5)).toBe("1 week");
-        expect(formatWorkingDuration(15)).toBe("3 weeks");
+    it("states working days first and adds whole weeks in brackets", () => {
+        expect(formatWorkingDuration(5)).toBe("5 working days (1 week)");
+        expect(formatWorkingDuration(15)).toBe("15 working days (3 weeks)");
         expect(formatWorkingDuration(8)).toBe("8 working days");
         expect(formatWorkingDuration(1)).toBe("1 working day");
     });
@@ -96,7 +97,7 @@ describe("computeProgrammePlan", () => {
             end_date: "2026-10-30",
             working_days: 15,
             calendar_days: 19,
-            duration_label: "3 weeks",
+            duration_label: "15 working days (3 weeks)",
         });
         expect(plan?.stages).toHaveLength(1);
     });

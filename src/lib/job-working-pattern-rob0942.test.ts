@@ -36,7 +36,7 @@ describe("ROB0942 recheck counterexamples (post a538272)", () => {
         expect(addJobWorkingDays(start, 12, pattern)).toBe("2026-11-03");
         expect(addJobWorkingDays(start, 10, pattern)).toBe("2026-10-30");
         expect(addJobWorkingDays(start, 30, pattern)).toBe("2026-11-27");
-        expect(addJobWorkingDays(start, 60, pattern)).toBe("2027-01-08");
+        expect(addJobWorkingDays(start, 60, pattern)).toBe("2027-01-13");
     });
 
     it("N1: refuses add when planned range hits unsupported DST capacity (daily 00:30–03:00)", () => {
@@ -64,7 +64,7 @@ describe("ROB0942 recheck counterexamples (post a538272)", () => {
         const plan = computeDisplayProgramme(start, built, pattern);
         expect(plan?.working_days).toBe(5);
         expect(plan?.end_date).toBe(expectedEnd);
-        expect(plan?.duration_label).toBe("1 week");
+        expect(plan?.duration_label).toBe("5 working days (1 week)");
     });
 
     it("P2-2: display keeps explicit four programme days at ten hours/day (not capacity-derived five)", () => {

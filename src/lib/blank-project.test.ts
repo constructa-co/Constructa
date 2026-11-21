@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
     BLANK_PROJECT_CREATE_ERROR,
     EMPTY_BLANK_PROJECT_FORM,
+    PROJECT_NAME_MAX_LENGTH,
     UNSPECIFIED_PROJECT_TYPE,
     briefPathForProject,
     buildBlankProjectGraph,
     parseBlankProjectInput,
+    projectNameLimitNotice,
     resolveBlankProjectCreation,
     validateBlankProjectForm,
 } from "./blank-project";
@@ -157,6 +159,31 @@ describe("resolveBlankProjectCreation", () => {
         expect(resolveBlankProjectCreation(null, null)).toEqual(failed);
         expect(resolveBlankProjectCreation([], null)).toEqual(failed);
         expect(resolveBlankProjectCreation({ project_id: "p1" }, { message: "boom" })).toEqual(failed);
+    });
+});
+
+describe("job name limit", () => {
+    it("says nothing until the name is close to the limit", () => {
+        expect(projectNameLimitNotice("")).toBeNull();
+        expect(projectNameLimitNotice("14 Oak Road rear extension")).toBeNull();
+        expect(projectNameLimitNotice("x".repeat(PROJECT_NAME_MAX_LENGTH - 21))).toBeNull();
+    });
+
+    it("counts down the last characters in plain words", () => {
+        expect(projectNameLimitNotice("x".repeat(PROJECT_NAME_MAX_LENGTH - 20))).toBe("20 characters left for the job name.");
+        expect(projectNameLimitNotice("x".repeat(PROJECT_NAME_MAX_LENGTH - 1))).toBe("1 character left for the job name.");
+    });
+
+    it("says so at the limit, where the field stops taking characters", () => {
+        const notice = projectNameLimitNotice("x".repeat(PROJECT_NAME_MAX_LENGTH));
+        expect(notice).toContain("200-character limit");
+        expect(notice).toContain("check the end hasn't been cut off");
+    });
+
+    it("accepts a name of exactly the limit and names the limit accurately when one is longer", () => {
+        expect(parse({ name: "x".repeat(PROJECT_NAME_MAX_LENGTH) }).name).toHaveLength(PROJECT_NAME_MAX_LENGTH);
+        const result = parseBlankProjectInput({ requestId: REQUEST_ID, name: "x".repeat(PROJECT_NAME_MAX_LENGTH + 1), client: "Client" });
+        expect(result).toMatchObject({ ok: false, fieldErrors: { name: "Keep the job name to 200 characters or fewer." } });
     });
 });
 

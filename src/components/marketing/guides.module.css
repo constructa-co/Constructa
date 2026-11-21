@@ -1,50 +1,52 @@
-.hubCards {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-  margin-top: 8px;
-}
+.measure { max-width: 680px; margin: 0 auto; padding-left: 4.5%; padding-right: 4.5%; }
+.hubIndex { margin-top: 8px; border-top: 1px solid var(--line); }
 .card {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-height: 100%;
-  padding: 28px 24px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #151a16;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 28px;
+  padding: 38px 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  background: transparent;
   text-decoration: none;
   color: inherit;
 }
-.card:hover { border-color: #526455; }
+.card:hover { border-bottom-color: #526455; background: transparent; }
+.card:hover .cardCta { color: var(--accent); }
 .card:focus-visible {
   border-color: #526455;
   outline: 3px solid var(--accent);
   outline-offset: 4px;
 }
-.card h2 {
+.cardIndex { color: var(--accent); font-size: 18px; font-weight: 400; letter-spacing: -0.5px; padding-top: 6px; }
+.cardBody { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.cardBody h3 {
   color: var(--ink);
-  font-size: 24px;
+  font-size: clamp(24px, 2.4vw, 32px);
   font-weight: 500;
   line-height: 1.15;
   letter-spacing: -.6px;
   margin: 0;
 }
-.card p {
-  flex: 1;
+.cardBody p {
   color: var(--muted);
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.7;
   margin: 0;
+  max-width: 560px;
 }
-.card span {
+.cardMeta { color: #8f9a92; font-size: 14px; }
+.cardCta {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  color: var(--accent);
+  color: var(--ink);
   font-size: 14px;
 }
-.articleSection { margin-top: 48px; }
+.measure .articleSection { margin-top: 0; padding-left: 0; padding-right: 0; }
 .articleSection h2 {
   color: var(--ink);
   font-size: clamp(28px, 3vw, 40px);
@@ -53,51 +55,29 @@
   letter-spacing: -.04em;
   margin: 0 0 18px;
 }
-.stepPanel {
-  margin-top: 28px;
-  padding: 28px 24px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--panel);
-}
-.stepPanel h3 {
-  color: var(--accent);
-  font-size: 12px;
-  font-weight: 650;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  margin: 0 0 8px;
-}
-.stepPanel > strong {
+.articleSection h2::after {
+  content: "";
   display: block;
-  color: var(--ink);
-  font-size: 24px;
-  font-weight: 500;
-  line-height: 1.15;
-  letter-spacing: -.6px;
-  margin-bottom: 22px;
+  width: 56px;
+  height: 3px;
+  margin-top: 22px;
+  border-radius: 2px;
+  background: var(--accent);
 }
-.grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 28px;
-}
-.grid dt {
+.stepBlocks { margin-top: 34px; }
+.stepBlocks h3 {
   color: var(--accent);
   font-size: 12px;
   font-weight: 650;
   letter-spacing: 1.2px;
   text-transform: uppercase;
-  margin-bottom: 12px;
+  margin: 0 0 14px;
 }
-.grid dd {
-  margin: 0;
-  color: #c0cdc3;
-  font-size: 14px;
-  line-height: 1.7;
-}
+.stepBlock { padding: 26px 0; border-top: 1px solid var(--line); }
+.stepBlock p { margin: 0; color: #c0cdc3; font-size: 15px; line-height: 1.75; }
 .list { margin: 0; padding: 0; list-style: none; }
-.list li + li { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+.list li { color: #c0cdc3; font-size: 15px; line-height: 1.75; }
+.list li + li { margin-top: 10px; }
 .note {
   margin-top: 36px;
   padding: 22px 24px;
@@ -126,5 +106,6 @@
   border-top: 1px solid var(--line);
 }
 @media (max-width: 900px) {
-  .hubCards, .grid { grid-template-columns: 1fr; }
+  .card { grid-template-columns: 1fr; gap: 16px; padding: 30px 0; }
+  .cardIndex { padding-top: 0; }
 }

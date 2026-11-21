@@ -174,6 +174,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
     // Filtered projects for pipeline board (all projects regardless of period)
     const filteredProjects = useMemo(() => {
         return projects.filter(p => {
+            if (p.is_archived) return false;
             const searchLower = search.toLowerCase();
             const matchesSearch =
                 !search ||
@@ -262,7 +263,7 @@ export default function DashboardClient({ projects, financials, metrics: serverM
     }
 
     return (
-        <div className={`${ui.workspace} ${corePipelineWorkspaceInsetClassName()} pb-12 space-y-8 ${isDark ? "bg-[#0d0d0d] text-white" : "bg-white text-gray-900"}`} data-dark={isDark}>
+        <div className={`${ui.workspace} ${corePipelineWorkspaceInsetClassName()} pb-12 space-y-8 ${isDark ? "bg-[#0d0d0d] text-white" : "bg-white text-gray-900"}`} data-dark={isDark ? "true" : undefined}>
 
             {launchNoticeBanner}
 
@@ -444,39 +445,25 @@ export default function DashboardClient({ projects, financials, metrics: serverM
                     </select>
 
                     {/* View Toggle */}
-                    <div data-project-views className={`flex items-center gap-1 rounded-lg p-1 ${isDark ? "bg-[#0d0d0d]" : "bg-gray-100"}`} role="group" aria-label="Pipeline view">
+                    <div data-project-views className={ui.viewBar} role="group" aria-label="Pipeline view">
                         <button
                             type="button"
                             onClick={() => setView("list")}
                             aria-pressed={view === "list"}
-                            className={`inline-flex items-center gap-1.5 min-h-11 lg:min-h-0 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                                view === "list"
-                                    ? isDark
-                                        ? "bg-[#2a2a2a] text-white shadow-sm"
-                                        : "bg-white text-gray-900 shadow-sm"
-                                    : isDark
-                                        ? "text-[#a0a0a0] hover:text-white"
-                                        : "text-gray-600 hover:text-gray-900"
-                            }`}
+                            data-selected={view === "list" ? "true" : "false"}
+                            className={`${ui.viewButton} lg:min-h-0`}
                         >
-                            <List className="w-3.5 h-3.5" />
+                            <List className="w-3.5 h-3.5" aria-hidden />
                             List
                         </button>
                         <button
                             type="button"
                             onClick={() => setView("board")}
                             aria-pressed={view === "board"}
-                            className={`inline-flex items-center gap-1.5 min-h-11 lg:min-h-0 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                                view === "board"
-                                    ? isDark
-                                        ? "bg-[#2a2a2a] text-white shadow-sm"
-                                        : "bg-white text-gray-900 shadow-sm"
-                                    : isDark
-                                        ? "text-[#a0a0a0] hover:text-white"
-                                        : "text-gray-600 hover:text-gray-900"
-                            }`}
+                            data-selected={view === "board" ? "true" : "false"}
+                            className={`${ui.viewButton} lg:min-h-0`}
                         >
-                            <LayoutGrid className="w-3.5 h-3.5" />
+                            <LayoutGrid className="w-3.5 h-3.5" aria-hidden />
                             Board
                         </button>
                     </div>

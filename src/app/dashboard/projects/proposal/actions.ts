@@ -24,8 +24,10 @@ import {
     type ProposalPublicationSnapshot,
 } from "@/lib/proposal-publication";
 import { evaluateProposalReadiness } from "@/lib/proposal-readiness";
+import { validatePercentagePaymentStagesForPersist } from "@/lib/proposal-payment-percentages";
 import { isProposalResponseKind, responseKindOfSnapshot, type ProposalResponseKind } from "@/lib/proposal-response";
 import { isProposalCoverPhotoEnabled, parseProposalCoverPhotoChoice } from "@/lib/proposal-cover-photo";
+import { SITE_PHOTO_ELSEWHERE_ERROR, sitePhotoOrigin } from "@/lib/proposal-site-photos";
 import {
     AI_UNAVAILABLE_ERROR,
     DELIVERY_ERROR,
@@ -117,8 +119,10 @@ export async function saveProposalDraftAction(projectId: string, payload: Propos
     if (photos.some((photo) => photo.url === null)) {
         return { success: false, error: "One of the photos can't be used. Remove it and add it again." };
     }
-    const paymentTotal = (input.paymentSchedule ?? []).reduce((sum, row) => sum + row.percentage, 0);
-    if (paymentTotal > 100.001) return { success: false, error: "The payment stages add up to more than 100%." };
+    if (input.paymentSchedule !== null) {
+        const paymentCheck = validatePercentagePaymentStagesForPersist(input.paymentSchedule);
+        if (!paymentCheck.ok) return { success: false, error: paymentCheck.error };
+    }
     const coverPhotoEnabled = isProposalCoverPhotoEnabled();
     if (coverPhotoEnabled && input.coverPhoto === "site" && photos.length === 0) {
         return { success: false, error: "Add a site photo before using it on the cover, or choose a different cover image." };
@@ -128,6 +132,13 @@ export async function saveProposalDraftAction(projectId: string, payload: Propos
     const { access, error: accessError } = await editableAccess(input.projectId, "You can't change this proposal.");
     if (!access) return { success: false, error: accessError };
     const { user, supabase } = access;
+
+    // A photo stored for another job, or as branding or a case study, is not
+    // a photograph of this site and is not saved as one.
+    const job = { projectId: input.projectId, userId: user.id };
+    if (photos.some((photo) => sitePhotoOrigin(photo.url ?? "", job) === "elsewhere")) {
+        return { success: false, error: SITE_PHOTO_ELSEWHERE_ERROR };
+    }
 
     if (guardPayments) {
         const { data: current, error } = await supabase.from("projects").select("id, payment_schedule")
@@ -186,9 +197,8 @@ export async function savePricingPaymentStagesAction(
     }).strict().safeParse({ projectId, expectedSchedule, paymentSchedule });
     if (!parsed.success) return { success: false, error: "Check the payment stage names and percentages before saving." };
     const input = parsed.data;
-    if (input.paymentSchedule.reduce((total, row) => total + row.percentage, 0) > 100.001) {
-        return { success: false, error: "The payment stages add up to more than 100%." };
-    }
+    const paymentCheck = validatePercentagePaymentStagesForPersist(input.paymentSchedule);
+    if (!paymentCheck.ok) return { success: false, error: paymentCheck.error };
     const { access, error: accessError } = await editableAccess(input.projectId, "You can't change these payment stages.");
     if (!access) return { success: false, error: accessError };
     const { user, supabase } = access;
@@ -467,7 +477,7 @@ export async function publishProposalAction(
 
     const { data: estimates, error: estimateError } = await supabase
         .from("estimates")
-        .select("*, estimate_lines(id, trade_section, description, quantity, unit, line_total)")
+        .select("*, estimate_lines(id, trade_section, description, quantity, unit, line_total, line_type)")
         .eq("project_id", projectId)
         .eq("is_active", true);
     if (estimateError || !estimates || estimates.length !== 1) {
@@ -496,6 +506,7 @@ export async function publishProposalAction(
     const readiness = evaluateProposalReadiness({
         projectName: project.name,
         clientName: project.client_name,
+        siteAddress: project.site_address,
         scope: project.scope_text,
         contractSum: contractSumOf(estimate),
         programmePhases: resolveProgrammeSource(project).phases,

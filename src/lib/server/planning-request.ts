@@ -94,7 +94,7 @@ async function verifyPlanningRequest(projectId: string, expectedRevision: string
         const { supabase, user, project: verified } = await requireEditableProjectAccess(projectId);
         if (!user.id || verified.id !== projectId || verified.user_id !== user.id) return fail(unavailable());
         const { data: project, error } = await supabase.from("projects")
-            .select("id, user_id, name, client_name, start_date, programme_phases, programme_working_pattern, status, is_archived, proposal_status, proposal_accepted_at")
+            .select("id, user_id, name, client_name, start_date, programme_phases, programme_working_pattern, region, status, is_archived, proposal_status, proposal_accepted_at")
             .eq("id", projectId).eq("user_id", user.id).single();
         if (error || !project || project.id !== projectId || project.user_id !== user.id || getPrecontractEditLockReason(project)) return fail(unavailable());
         const context = buildPlanningContext(project);

@@ -17,6 +17,7 @@ vi.mock("react", async original => ({
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ auth: { signInWithPassword: state.signIn, signUp: state.browserSignUp } }) }));
 vi.mock("@/lib/platform-signup-action", () => ({ platformSignupAction: state.signUp }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: state.push, refresh: state.refresh }) }));
+vi.mock("@/lib/platform-signup-policy", () => ({ isPlatformSignupDisabled: () => false }));
 
 import AuthCallbackNotice from "@/components/auth-callback-notice";
 import LoginPage from "./page";

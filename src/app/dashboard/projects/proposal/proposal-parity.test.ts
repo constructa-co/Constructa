@@ -70,6 +70,7 @@ const PROGRAMME: SimpleProgrammeInput = {
 /** Worked out by hand from the calendar, Monday to Friday. Not read from the application. */
 const EXPECTED_PLAN: ProgrammePlan = {
     basis: "mon_fri_working_days",
+    bank_holiday_division: "england-and-wales",
     start_date: "2026-11-02",
     end_date: "2026-11-24",
     working_days: 17,
@@ -83,7 +84,7 @@ const EXPECTED_PLAN: ProgrammePlan = {
 };
 const STAGE_LINES = [
     ["Strip out", "2 Nov to 4 Nov 2026", "3 working days"],
-    ["First fix and tiling", "5 Nov to 18 Nov 2026", "2 weeks"],
+    ["First fix and tiling", "5 Nov to 18 Nov 2026", "10 working days (2 weeks)"],
     ["Second fix and finish", "19 Nov to 24 Nov 2026", "4 working days"],
 ];
 const INTERNAL_BUILD_UP = /overhead|profit|margin|mark-?up|risk \(|risk allowance|prelims/i;

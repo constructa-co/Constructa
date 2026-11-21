@@ -150,7 +150,7 @@ describe("inline new price lines", () => {
         await (newButton("Save and add next").props.onClick as () => Promise<unknown>)();
         expect(current.other).toHaveBeenCalledTimes(2);
         expect(currentSummary(current.state!).contractSum).toBe(560);
-        expect(current.state!.ops.new.draft).toMatchObject({ description: "", quantity: "", rate: "", mode: "rate", unit: "m2" });
+        expect(current.state!.ops.new.draft).toMatchObject({ description: "", quantity: "", rate: "", mode: "rate", unit: "item" });
     });
 
     it("keeps invalid/failed rows open and retries with the same line id", async () => {

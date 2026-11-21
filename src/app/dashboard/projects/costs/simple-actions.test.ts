@@ -40,6 +40,7 @@ function fakeDb(seed: Partial<Record<string, Row[]>> = {}) {
     };
     const failures: Failure[] = [];
     const log: string[] = [];
+    let betweenReadWrite: (() => void) | null = null;
 
     const takeFailure = (table: string, op: Failure["op"]) => {
         const failure = failures.find((f) => f.table === table && f.op === op && f.times > 0);
@@ -52,14 +53,18 @@ function fakeDb(seed: Partial<Record<string, Row[]>> = {}) {
         let op: Failure["op"] = "select";
         let payload: Row | null = null;
         let wantRows = false;
-        const filters: [string, unknown][] = [];
+        const filters: [string, unknown, "eq" | "is" | undefined][] = [];
 
         const run = () => {
             log.push(`${op}:${table}`);
             const injected = takeFailure(table, op);
             if (injected) return { data: null, error: injected };
             const rows = tables[table];
-            const matches = (row: Row) => filters.every(([column, value]) => row[column] === value);
+            const matches = (row: Row) =>
+                filters.every(([column, value, kind]) => {
+                    if (kind === "is") return (row[column] === null || row[column] === undefined) && value === null;
+                    return row[column] === value;
+                });
 
             if (op === "insert") {
                 if (rows.some((row) => row.id === payload!.id)) return { data: null, error: { code: "23505", message: "duplicate key" } };
@@ -67,6 +72,8 @@ function fakeDb(seed: Partial<Record<string, Row[]>> = {}) {
                 return { data: [payload], error: null };
             }
             if (op === "update") {
+                betweenReadWrite?.();
+                betweenReadWrite = null;
                 const hit = rows.filter(matches);
                 hit.forEach((row) => Object.assign(row, payload));
                 return { data: wantRows ? hit : null, error: null };
@@ -100,7 +107,8 @@ function fakeDb(seed: Partial<Record<string, Row[]>> = {}) {
             insert: (row: Row) => { op = "insert"; payload = row; return builder; },
             update: (row: Row) => { op = "update"; payload = row; return builder; },
             delete: () => { op = "delete"; return builder; },
-            eq: (column: string, value: unknown) => { filters.push([column, value]); return builder; },
+            eq: (column: string, value: unknown) => { filters.push([column, value, "eq"]); return builder; },
+            is: (column: string, value: unknown) => { filters.push([column, value, "is"]); return builder; },
             order: () => builder,
             single: async () => one(true),
             maybeSingle: async () => one(false),
@@ -114,6 +122,9 @@ function fakeDb(seed: Partial<Record<string, Row[]>> = {}) {
         tables,
         log,
         failNext: (table: string, op: Failure["op"], code = "08006", times = 1) => failures.push({ table, op, code, times }),
+        afterReadBeforeWrite: (fn: () => void) => {
+            betweenReadWrite = fn;
+        },
         supabase: { from },
     };
 }
@@ -466,6 +477,25 @@ describe("edit, delete and adjustments", () => {
         expect(db.tables.estimate_lines[0]).toMatchObject({ description: "Bathroom refit", unit_rate: 2500 });
     });
 
+    it("refuses when guarded columns changed between read and write", async () => {
+        const db = seeded();
+        useDb(db);
+        db.afterReadBeforeWrite(() => {
+            db.tables.estimate_lines[0].quantity = 2;
+        });
+
+        const result = await updateSimplePriceLineAction(NEW_ESTIMATE_ID, LINE_ID, {
+            description: "Bathroom refit",
+            quantity: 1,
+            unit: "item",
+            unit_rate: 3000,
+        });
+
+        expect(result.ok).toBe(false);
+        if (!result.ok) expect(result.error).toMatch(/Reload the page/);
+        expect(db.tables.estimate_lines[0]).toMatchObject({ quantity: 2, unit_rate: 2500 });
+    });
+
     it("will not overwrite a rate build-up line from the simple screen", async () => {
         const db = seeded();
         useDb(db);
@@ -503,6 +533,35 @@ describe("edit, delete and adjustments", () => {
         expect(await savePriceAdjustmentsAction(NEW_ESTIMATE_ID, input)).toEqual({ ok: true });
         expect(db.tables.estimates[0]).toMatchObject(input);
         expect(db.log.filter((entry) => entry === "update:estimates")).toHaveLength(1);
+    });
+
+    it("refuses margin save when another tab changed percentages first", async () => {
+        const db = seeded();
+        useDb(db);
+        db.afterReadBeforeWrite(() => {
+            db.tables.estimates[0].overhead_pct = 12;
+        });
+        const result = await savePriceAdjustmentsAction(NEW_ESTIMATE_ID, {
+            prelims_pct: 5,
+            overhead_pct: 10,
+            risk_pct: 2.5,
+            profit_pct: 15,
+            discount_pct: 0,
+            discount_reason: "",
+        });
+        expect(result.ok).toBe(false);
+        if (!result.ok) expect(result.error).toMatch(/Reload the page/);
+        expect(db.tables.estimates[0].overhead_pct).toBe(12);
+    });
+
+    it("refuses a high discount with a blank reason before touching the database", async () => {
+        const db = seeded();
+        useDb(db);
+        const result = await savePriceAdjustmentsAction(NEW_ESTIMATE_ID, {
+            prelims_pct: 0, overhead_pct: 0, risk_pct: 0, profit_pct: 0, discount_pct: 40, discount_reason: "",
+        });
+        expect(result).toEqual({ ok: false, error: expect.stringMatching(/over 25%/) });
+        expect(db.log).toEqual([]);
     });
 
     it("rejects out-of-range adjustments before touching the database", async () => {

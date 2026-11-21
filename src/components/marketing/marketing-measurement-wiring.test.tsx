@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   PUBLIC_MEASUREMENT_EVENT_NAMES,
@@ -107,38 +108,17 @@ afterEach(() => {
 });
 
 describe("marketing measurement handler wiring", () => {
-  it("fires ContactFormSubmit only when the home contact form receives response.ok", async () => {
+  it("does not fetch or record ContactFormSubmit while home contact collection stays off", async () => {
     const events: string[] = [];
     __setPublicMeasurementTestSink((event) => {
       events.push(event);
     });
 
-    const form = contactForm(renderHome())!;
-    const formEl = {
-      reset: vi.fn(),
-    };
-
-    fetchMock.mockResolvedValueOnce({ ok: true });
-    await (form.props.onSubmit as (event: unknown) => Promise<void>)({
-      preventDefault: vi.fn(),
-      currentTarget: formEl,
-    });
-    expect(events).toEqual(["ContactFormSubmit"]);
-
-    events.length = 0;
-    fetchMock.mockResolvedValueOnce({ ok: false });
-    await (form.props.onSubmit as (event: unknown) => Promise<void>)({
-      preventDefault: vi.fn(),
-      currentTarget: formEl,
-    });
-    expect(events).toEqual([]);
-
-    events.length = 0;
-    fetchMock.mockRejectedValueOnce(new Error("network"));
-    await (form.props.onSubmit as (event: unknown) => Promise<void>)({
-      preventDefault: vi.fn(),
-      currentTarget: formEl,
-    });
+    const markup = renderToStaticMarkup(Home());
+    expect(markup).toContain("Submission unavailable");
+    expect(markup).toMatch(/<fieldset[^>]*disabled/);
+    expect(markup).not.toMatch(/action="https?:/);
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(events).toEqual([]);
   });
 
@@ -153,12 +133,10 @@ describe("marketing measurement handler wiring", () => {
       removeEventListener: vi.fn(),
     });
 
-    const form = contactForm(renderHome())!;
-    fetchMock.mockResolvedValueOnce({ ok: true });
-    await (form.props.onSubmit as (event: unknown) => Promise<void>)({
-      preventDefault: vi.fn(),
-      currentTarget: { reset: vi.fn() },
-    });
+    const markup = renderToStaticMarkup(Home());
+    expect(markup).toContain("Submission unavailable");
+    expect(markup).toMatch(/<fieldset[^>]*disabled/);
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(events).toEqual([]);
   });
 

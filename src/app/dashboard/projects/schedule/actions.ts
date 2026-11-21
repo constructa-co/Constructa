@@ -13,10 +13,16 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { PROGRAMME_NOT_SAVED, writeProgrammeUpdate } from "@/lib/cohort-ai/programme-update";
 import { COHORT_AI_UNAVAILABLE } from "@/lib/cohort-ai/shared";
 import { IsoDate, UpdatePhasesSchema, parseInput } from "@/lib/validation/schemas";
-import { writeProgrammeStorage } from "@/lib/server/programme-storage";
+import {
+    clearProgrammePlannerDraft,
+    writeProgrammePlannerDraft,
+    writeProgrammeStorage,
+} from "@/lib/server/programme-storage";
 import { resolveJobWorkingPattern } from "@/lib/job-working-pattern";
-import { estimateSuggestedPhases, type PlannerPhase } from "@/lib/planner-phases";
+import { estimateSectionsFromWork, estimateSuggestedPhases, sequenceSuggestedPhases, type PlannerPhase } from "@/lib/planner-phases";
+import { validateProgrammeDependencies } from "@/lib/programme-phase-dependencies";
 import { WORKING_DAYS_PER_WEEK } from "@/lib/programme-plan";
+import { PROGRAMME_PLANNER_DRAFT_UNAVAILABLE, PROGRAMME_REFRESH_WARNING, phasesWithoutTrackingFields } from "@/lib/programme-planner-draft";
 
 // This separate argument is deliberately not parsed by UpdatePhasesSchema, which strips unknown keys.
 function parseExpectedWorkingPattern(value: unknown) {
@@ -103,6 +109,8 @@ export async function updatePhasesAction(
     expectedWorkingPattern?: unknown,
 ): Promise<{ success: true } | { success: false; error: string }> {
     const input = parseInput(UpdatePhasesSchema, { projectId, phases, startDate }, "programme phases");
+    const dependencyCheck = validateProgrammeDependencies(input.phases);
+    if (!dependencyCheck.ok) return { success: false, error: dependencyCheck.error };
     // This shared autosave also carries post-award live tracking fields
     // (`pct_complete` and actual dates). Keep ownership enforcement here, but
     // do not apply the pre-contract lock to the whole payload or accepted jobs
@@ -122,6 +130,65 @@ export async function updatePhasesAction(
     revalidatePath("/dashboard/projects/schedule");
     revalidatePath("/dashboard/projects/proposal");
     revalidatePath("/proposal", "layout");
+    return { success: true };
+}
+
+export async function autosaveProgrammePlannerDraftAction(
+    projectId: string,
+    phases: {
+        name: string;
+        calculatedDays: number;
+        manualDays: number | null;
+        manhours: number;
+        startOffset: number;
+        color?: string;
+        dependsOn?: number[];
+        needsReview?: boolean;
+        pct_complete?: number;
+        actual_start_date?: string;
+        actual_finish_date?: string;
+        revised_planned_finish?: string;
+        delay_reason?: string;
+        delay_category?: string;
+        delay_notes?: string;
+    }[],
+    startDate: string,
+    expectedWorkingPattern?: unknown,
+): Promise<{ success: true } | { success: false; error: string }> {
+    const input = parseInput(UpdatePhasesSchema, { projectId, phases, startDate }, "programme planner draft");
+    const dependencyCheck = validateProgrammeDependencies(input.phases);
+    if (!dependencyCheck.ok) return { success: false, error: dependencyCheck.error };
+    const { user, supabase } = await requireProjectAccess(input.projectId);
+    try {
+        await writeProgrammePlannerDraft(supabase, user.id, input.projectId, {
+            phases: phasesWithoutTrackingFields(input.phases),
+            startDate: input.startDate!,
+            ...(expectedWorkingPattern !== undefined
+                ? { expectedWorkingPattern: parseExpectedWorkingPattern(expectedWorkingPattern) }
+                : {}),
+        });
+    } catch (err) {
+        const message = err instanceof Error ? err.message : "Could not save the planner draft.";
+        return { success: false, error: message };
+    }
+    revalidatePath("/dashboard/projects/schedule");
+    return { success: true };
+}
+
+export async function clearProgrammePlannerDraftAction(
+    projectId: string,
+    publishedPhases: unknown[],
+    publishedStartDate: string,
+): Promise<{ success: true } | { success: false; error: string }> {
+    const { user, supabase } = await requireProjectAccess(projectId);
+    try {
+        await clearProgrammePlannerDraft(supabase, user.id, projectId, publishedPhases, publishedStartDate);
+    } catch (err) {
+        const message = err instanceof Error ? err.message : "Could not clear the planner draft.";
+        if (message === PROGRAMME_PLANNER_DRAFT_UNAVAILABLE) return { success: true };
+        return { success: false, error: message };
+    }
+    revalidatePath("/dashboard/projects/schedule");
     return { success: true };
 }
 
@@ -163,50 +230,28 @@ export async function getEstimatePhasesAction(
         (line.estimate_line_components || []).some((c: any) => (c.total_manhours || 0) > 0));
     if (hasLabourHours) throw new Error("Could not place the estimate stages. Check the programme start date and working days.");
 
-    // From here no line carries labour hours, so every section is a placeholder.
-    const sectionManhours: Record<string, number> = {};
-    const sectionHasLines: Record<string, boolean> = {};
-
-    (estimate.estimate_lines || []).forEach((line: any) => {
-        sectionHasLines[line.trade_section || "General"] = true;
-    });
-
-    // Include all sections that have lines — not just those with calculated manhours.
-    // Lines added from Drawing AI Takeoff (and other simple lines) have no components
-    // so their manhours = 0, but they should still appear as programme phases.
-    // For sections with no manhour data, default to 5 working days as a placeholder.
-    const allSections = Object.keys(sectionHasLines);
-    const sections = allSections.length > 0
-        ? allSections
-        : Object.keys(sectionManhours).filter(s => sectionManhours[s] > 0);
-
-    if (sections.length === 0) {
-        const { data: proj } = await supabase
-            .from("projects")
-            .select("brief_trade_sections, start_date")
-            .eq("id", projectId)
-            .single();
-
-        if (proj?.brief_trade_sections && (proj.brief_trade_sections as string[]).length > 0) {
-            let briefOffset = 0;
-            return (proj.brief_trade_sections as string[]).map((trade: string) => {
-                const phase = { name: trade, calculatedDays: 10, manualDays: null, manhours: 0, startOffset: briefOffset };
-                briefOffset += 14; // 2 calendar weeks at 5-day week default
-                return phase;
-            });
-        }
+    const estimateLines = estimate.estimate_lines || [];
+    if (estimateLines.length > 0) {
+        const sections = estimateSectionsFromWork(estimate, pattern);
+        if (sections.length === 0) return [];
+        return sequenceSuggestedPhases(sections, WORKING_DAYS_PER_WEEK, undefined, pattern);
     }
 
-    // Return working days; client converts to calendar days using daysPerWeek
-    let offset = 0;
-    return sections.map(section => {
-        // No manhour data (e.g. simple lines from Drawing AI Takeoff):
-        // default to 5 working days so the phase still appears on the Gantt
-        const calculatedDays = 5;
-        const phase = { name: section, calculatedDays, manualDays: null, manhours: 0, startOffset: offset };
-        offset += calculatedDays;
-        return phase;
-    });
+    const { data: proj } = await supabase
+        .from("projects")
+        .select("brief_trade_sections, start_date")
+        .eq("id", projectId)
+        .single();
+
+    if (proj?.brief_trade_sections && (proj.brief_trade_sections as string[]).length > 0) {
+        let briefOffset = 0;
+        return (proj.brief_trade_sections as string[]).map((trade: string) => {
+            const phase = { name: trade, calculatedDays: 10, manualDays: null, manhours: 0, startOffset: briefOffset };
+            briefOffset += 14; // 2 calendar weeks at 5-day week default
+            return phase;
+        });
+    }
+    return [];
 }
 
 export async function saveProgrammePhasesAction(
@@ -214,14 +259,31 @@ export async function saveProgrammePhasesAction(
     phases: any[],
     expectedWorkingPattern?: unknown,
     startDate?: string,
-): Promise<void> {
+): Promise<{ warning: string } | undefined> {
+    const dependencyCheck = validateProgrammeDependencies(phases);
+    if (!dependencyCheck.ok) throw new Error(dependencyCheck.error);
     const { user, supabase } = await requireEditableProjectAccess(projectId);
     await writeProgrammeStorage(supabase, user.id, projectId, {
         phases,
         ...(expectedWorkingPattern !== undefined ? { expectedWorkingPattern: parseExpectedWorkingPattern(expectedWorkingPattern) } : {}),
         ...(startDate !== undefined ? { startDate: parseInput(IsoDate, startDate, "programme start date") } : {}),
     });
-    revalidatePath("/dashboard/projects/schedule");
+    try {
+        await clearProgrammePlannerDraft(supabase, user.id, projectId, phases, startDate);
+    } catch {
+        // Published programme is saved; draft clear is best-effort when the column exists.
+    }
+    // The write above is committed. A cache-refresh failure must not be reported
+    // as a failed save, or the client would show an error for stored planning.
+    try {
+        revalidatePath("/dashboard/projects/schedule");
+        revalidatePath("/dashboard/projects/proposal");
+        revalidatePath("/proposal", "layout");
+    } catch (err) {
+        console.error("saveProgrammePhasesAction: programme stored but cache refresh failed", { projectId, err });
+        return { warning: PROGRAMME_REFRESH_WARNING };
+    }
+    return undefined;
 }
 
 // ── Sprint 31: Live Programme Tracking ───────────────────────────────────────

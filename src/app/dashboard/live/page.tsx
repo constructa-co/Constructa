@@ -7,7 +7,8 @@ import ProjectLiveClient from "./project-live-client";
 // Preliminaries from directCost, prefers explicit prelims lines, falls
 // back to prelims_pct) but it duplicated the canonical helper. Swapped
 // so any future change to contract-sum semantics lands in one place.
-import { computeContractSumValue } from "@/lib/financial";
+import { computeBudgetCost, computeContractSumValue } from "@/lib/financial";
+import { isFaceValueLineType } from "@/lib/estimate-line-type";
 
 export default async function LiveProjectsPage(props: { searchParams: Promise<{ projectId?: string }> }) {
     const searchParams = await props.searchParams;
@@ -44,7 +45,9 @@ export default async function LiveProjectsPage(props: { searchParams: Promise<{ 
         const prelimsTotal = prelimsLines.length > 0
             ? prelimsLines.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0)
             : directCost * ((Number(activeEstimate?.prelims_pct) || 0) / 100);
-        const budgetCost = directCost + prelimsTotal;
+        const budgetCost = activeEstimate && lines.some((line) => isFaceValueLineType(line.line_type))
+            ? computeBudgetCost(activeEstimate, lines)
+            : directCost + prelimsTotal;
         const contractValue = activeEstimate ? computeContractSumValue(activeEstimate, lines) : 0;
 
         const costsPosted      = (expenses ?? []).reduce((s: number, e: any) => s + Number(e.amount), 0);
@@ -112,7 +115,7 @@ export default async function LiveProjectsPage(props: { searchParams: Promise<{ 
         supabase.from("invoices").select("project_id, amount, status").in("project_id", projectIds),
         supabase.from("variations").select("project_id, amount, status").in("project_id", projectIds),
         supabase.from("estimates")
-            .select("project_id, total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, discount_pct, is_active, estimate_lines(trade_section, line_total)")
+            .select("project_id, total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, discount_pct, is_active, estimate_lines(trade_section, line_total, line_type)")
             .in("project_id", projectIds),
     ]);
 
@@ -133,7 +136,9 @@ export default async function LiveProjectsPage(props: { searchParams: Promise<{ 
             const prelims = pl.length > 0
                 ? pl.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0)
                 : dc * ((Number(activeEst.prelims_pct) || 0) / 100);
-            budgetCost = dc + prelims;
+            budgetCost = lines.some((line) => isFaceValueLineType(line.line_type))
+                ? computeBudgetCost(activeEst, lines)
+                : dc + prelims;
         }
 
         const expenses    = (allExpenses ?? []).filter(e => e.project_id === proj.id);

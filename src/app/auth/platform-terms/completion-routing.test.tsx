@@ -43,6 +43,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: state.push, refres
 vi.mock("@/lib/platform-signup-action", () => ({ platformSignupAction: state.signupAction }));
 // Stands in for the browser-to-server request only, to reach the client's thrown-request path.
 vi.mock("@/lib/platform-terms-completion-action", () => ({ completePlatformTermsAcceptanceAction: state.complete }));
+vi.mock("@/lib/platform-signup-policy", () => ({ isPlatformSignupDisabled: () => false }));
 
 import { GET } from "../../auth/callback/route";
 import LoginPage from "../../login/page";

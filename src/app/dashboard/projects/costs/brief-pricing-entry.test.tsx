@@ -142,6 +142,7 @@ describe("reviewed brief-to-draft entry", () => {
     it("offers a source-reviewed excerpt when the whole brief exceeds the line limit, without copying notes or prices", () => {
         const scope = "Prepare walls. ".repeat(50) + "Paint the ceiling, excluding the beams.\n\nSite, access and assumptions:\nPrivate access notes.";
         expect(button(scope).props.disabled).toBe(true);
+        expect(visibleText(view(scope))).toContain("Turn a list into lines");
         const chooser = excerpt(scope), before = JSON.stringify(current.state!.estimates);
         expect((chooser.props.context as PricingReviewContext).work).not.toContain("Private access notes");
         expect(openSource(chooser, selectedSource(chooser, "Paint the ceiling, excluding the beams.")).ok).toBe(true);
@@ -226,11 +227,13 @@ describe("reviewed brief-to-draft entry", () => {
         expect(current.server).not.toHaveBeenCalled();
     });
     it("refuses oversized descriptions without silent truncation, leaving normal manual entry available", () => {
-        const control = button("x".repeat(501));
+        current.state!.estimates[0].estimate_lines = [];
+        const scope = "x".repeat(501);
+        const control = button(scope);
         expect(control.props.disabled).toBe(true);
         (control.props.onClick as () => void)();
         expect(current.state!.ops[NEW_LINE_KEY]).toBeUndefined();
-        expect(visibleText(view("x".repeat(501)))).toContain("nothing has been truncated");
-        expect(nodes(view("x".repeat(501))).some(e => e.type === "button" && String(e.props.children).includes("Add a price line"))).toBe(true);
+        expect(visibleText(view(scope))).toContain("Turn a list into lines");
+        expect(visibleText(view(scope))).toContain("Add the first price line");
     });
 });

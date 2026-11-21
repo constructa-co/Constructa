@@ -59,7 +59,7 @@ const Header = () => {
         <div className="h-16 grid grid-cols-3 items-center">
           {/* Left column - Logo */}
           <div className="flex items-center">
-            <a href="/" className="text-2xl font-semibold text-white hover:opacity-90 transition-opacity">
+            <a href="/" aria-label="Constructa home" className="text-2xl font-semibold text-white hover:opacity-90 transition-opacity">
               <SidebarBrand />
             </a>
           </div>

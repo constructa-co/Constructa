@@ -181,6 +181,96 @@ SELECT EXISTS (
 DO $$ BEGIN RAISE EXCEPTION 'Authenticated brief save did not persist.'; END $$;
 \endif
 
+-- CON-044: the planner draft is durable server state, scoped to its owner, and
+-- separate from the proposal baseline (programme_phases).
+UPDATE public.projects
+   SET programme_phases = '[{"name":"Published stage","manualDays":5}]'::jsonb
+ WHERE id = :'smoke_project_id'::uuid;
+
+UPDATE public.projects
+   SET programme_planner_draft = '{"phases":[{"name":"Draft stage","manualDays":9}],"start_date":"2027-02-01","saved_at":"2027-01-01T00:00:00Z"}'::jsonb
+ WHERE id = :'smoke_project_id'::uuid;
+
+RESET ROLE;
+
+-- A different signed-in user must neither read nor change the owner's draft.
+INSERT INTO auth.users (id, email, raw_user_meta_data)
+VALUES (
+  '10000000-0000-0000-0000-000000000002',
+  'phase1-smoke-other@example.test',
+  '{"full_name":"Other Smoke"}'::jsonb
+);
+
+SET LOCAL ROLE authenticated;
+SELECT set_config(
+  'request.jwt.claim.sub',
+  '10000000-0000-0000-0000-000000000002',
+  true
+);
+
+DO $$
+DECLARE
+  v_rows integer;
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM public.projects
+     WHERE creation_request_id = '20000000-0000-0000-0000-000000000001'
+  ) THEN
+    RAISE EXCEPTION 'Another user can read the owner project and its planner draft.';
+  END IF;
+  UPDATE public.projects
+     SET programme_planner_draft = NULL
+   WHERE creation_request_id = '20000000-0000-0000-0000-000000000001';
+  GET DIAGNOSTICS v_rows = ROW_COUNT;
+  IF v_rows <> 0 THEN
+    RAISE EXCEPTION 'Another user changed the owner planner draft.';
+  END IF;
+END;
+$$;
+
+RESET ROLE;
+
+-- In the same transaction, restore the owner role context and read the draft; the draft
+-- write left the published programme untouched.
+SET LOCAL ROLE authenticated;
+SELECT set_config(
+  'request.jwt.claim.sub',
+  '10000000-0000-0000-0000-000000000001',
+  true
+);
+
+SELECT EXISTS (
+  SELECT 1
+    FROM public.projects
+   WHERE id = :'smoke_project_id'::uuid
+     AND programme_planner_draft #>> '{phases,0,name}' = 'Draft stage'
+     AND programme_planner_draft ->> 'start_date' = '2027-02-01'
+     AND programme_phases #>> '{0,name}' = 'Published stage'
+) AS smoke_planner_draft_stored
+\gset
+\if :smoke_planner_draft_stored
+\else
+DO $$ BEGIN RAISE EXCEPTION 'Planner draft was not stored, owner-readable and separate from programme_phases.'; END $$;
+\endif
+
+-- Clearing the draft (as saving to proposal does) leaves the published programme.
+UPDATE public.projects
+   SET programme_planner_draft = NULL
+ WHERE id = :'smoke_project_id'::uuid;
+
+SELECT EXISTS (
+  SELECT 1
+    FROM public.projects
+   WHERE id = :'smoke_project_id'::uuid
+     AND programme_planner_draft IS NULL
+     AND programme_phases #>> '{0,name}' = 'Published stage'
+) AS smoke_planner_draft_cleared
+\gset
+\if :smoke_planner_draft_cleared
+\else
+DO $$ BEGIN RAISE EXCEPTION 'Clearing the planner draft altered programme_phases or did not clear.'; END $$;
+\endif
+
 SELECT *
   FROM public.publish_proposal_publication(
     :'smoke_project_id'::uuid,
@@ -363,6 +453,90 @@ BEGIN
   END IF;
 END;
 $$;
+
+-- Pipeline stage history: persistence, ownership isolation and append-only.
+INSERT INTO auth.users (id, email, raw_user_meta_data)
+VALUES ('10000000-0000-0000-0000-000000000003', 'phase1-other@example.test', '{}'::jsonb);
+
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000001', true);
+
+INSERT INTO public.project_pipeline_stage_events (project_id, user_id, from_status, to_status)
+SELECT id, '10000000-0000-0000-0000-000000000001', 'Estimating', 'Proposal Sent'
+  FROM public.projects
+ WHERE creation_request_id = '20000000-0000-0000-0000-000000000001';
+
+DO $$
+DECLARE
+  v_project uuid;
+  v_blocked boolean;
+BEGIN
+  SELECT id INTO v_project FROM public.projects
+   WHERE creation_request_id = '20000000-0000-0000-0000-000000000001';
+
+  IF (SELECT count(*) FROM public.project_pipeline_stage_events
+       WHERE project_id = v_project AND from_status = 'Estimating' AND to_status = 'Proposal Sent') <> 1 THEN
+    RAISE EXCEPTION 'Owner stage history did not persist or is not readable.';
+  END IF;
+
+  v_blocked := false;
+  BEGIN
+    INSERT INTO public.project_pipeline_stage_events (project_id, user_id, from_status, to_status)
+    VALUES (v_project, '10000000-0000-0000-0000-000000000003', 'Lead', 'Estimating');
+  EXCEPTION WHEN insufficient_privilege THEN v_blocked := true;
+  END;
+  IF NOT v_blocked THEN RAISE EXCEPTION 'Owner could insert history attributed to another user.'; END IF;
+
+  v_blocked := false;
+  BEGIN
+    INSERT INTO public.project_pipeline_stage_events (project_id, user_id, from_status, to_status)
+    VALUES (v_project, '10000000-0000-0000-0000-000000000001', 'Lead', 'Lead');
+  EXCEPTION WHEN check_violation THEN v_blocked := true;
+  END;
+  IF NOT v_blocked THEN RAISE EXCEPTION 'No-op stage history row was accepted.'; END IF;
+
+  v_blocked := false;
+  BEGIN
+    UPDATE public.project_pipeline_stage_events SET to_status = 'Lost';
+  EXCEPTION WHEN insufficient_privilege THEN v_blocked := true;
+  END;
+  IF NOT v_blocked THEN RAISE EXCEPTION 'Stage history is not append-only (update allowed).'; END IF;
+
+  v_blocked := false;
+  BEGIN
+    DELETE FROM public.project_pipeline_stage_events;
+  EXCEPTION WHEN insufficient_privilege THEN v_blocked := true;
+  END;
+  IF NOT v_blocked THEN RAISE EXCEPTION 'Stage history is not append-only (delete allowed).'; END IF;
+END;
+$$;
+
+-- A different signed-in user can neither read nor write this project's history.
+RESET ROLE;
+SELECT set_config('smoke.history_project_id', id::text, true)
+  FROM public.projects
+ WHERE creation_request_id = '20000000-0000-0000-0000-000000000001';
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub', '10000000-0000-0000-0000-000000000003', true);
+DO $$
+DECLARE
+  v_blocked boolean := false;
+BEGIN
+  IF (SELECT count(*) FROM public.project_pipeline_stage_events) <> 0 THEN
+    RAISE EXCEPTION 'Another user can read stage history for a project they do not own.';
+  END IF;
+  BEGIN
+    INSERT INTO public.project_pipeline_stage_events (project_id, user_id, from_status, to_status)
+    VALUES (current_setting('smoke.history_project_id')::uuid,
+            '10000000-0000-0000-0000-000000000003', 'Lead', 'Estimating');
+  EXCEPTION WHEN insufficient_privilege THEN v_blocked := true;
+  END;
+  IF NOT v_blocked THEN
+    RAISE EXCEPTION 'Another user wrote stage history for a project they do not own.';
+  END IF;
+END;
+$$;
+RESET ROLE;
 
 ROLLBACK;
 

@@ -1,6 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-/** Reserved for a future migration; writes are skipped when the relation is absent (schema gate). */
+/**
+ * Created by supabase/migrations/20261120032000_con073_pipeline_stage_history.sql (append-only,
+ * owner RLS). Until that migration is applied the relation is absent and writes hit the schema gate.
+ */
 export const PIPELINE_STAGE_HISTORY_TABLE = "project_pipeline_stage_events";
 
 export type PipelineStageHistoryAppend =

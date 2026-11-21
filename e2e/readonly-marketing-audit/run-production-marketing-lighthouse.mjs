@@ -7,6 +7,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import * as chromeLauncher from "chrome-launcher";
 import lighthouse from "lighthouse";
+import desktopConfig from "lighthouse/core/config/desktop-config.js";
 import { chromium } from "@playwright/test";
 import { loadMarketingAuditTarget, toAbsoluteMarketingUrl } from "./load-audit-target.mjs";
 import { EXTRA_BLOCKED_PATH_PREFIXES, classifyRequest } from "./audit-harness.mjs";
@@ -88,8 +89,8 @@ function renderMarkdown(report) {
   return lines.join("\n");
 }
 
-async function runOne(url, options) {
-  const result = await lighthouse(url, options);
+async function runOne(url, options, config) {
+  const result = await lighthouse(url, options, config);
   const lhr = result?.lhr;
   if (!lhr?.categories) {
     throw new Error("Lighthouse returned no categories");
@@ -164,12 +165,12 @@ async function main() {
         continue;
       }
 
-      for (const [mode, options] of [
+      for (const [mode, options, config] of [
         ["mobile", lighthouseOptions(chrome, target.publicOrigin, target.disallowPrefixes)],
-        ["desktop", desktopLighthouseOptions(chrome, target.publicOrigin, target.disallowPrefixes)],
+        ["desktop", desktopLighthouseOptions(chrome, target.publicOrigin, target.disallowPrefixes), desktopConfig],
       ]) {
         try {
-          const scores = await runOne(url, options);
+          const scores = await runOne(url, options, config);
           report.runs.push({
             path: pathname,
             mode,

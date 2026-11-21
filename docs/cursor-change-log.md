@@ -1,5 +1,21 @@
 # Cursor change log
 
+## 2026-11-20 — PR #176 main integration merge conflict resolution (`codex/approved-176-integration-20261120`)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/financial.ts` | 36–99, 172–228 | D36 `on_net` / `compound` + main CON-016 inline comments | Single canonical contract sum |
+| `src/lib/simple-estimate.ts` | 15–19 | Both `evaluateDiscountSubmitGate` and `MarkupMethod` imports | Main discount gates + D36 summary |
+| `src/lib/proposal-publication.ts` | imports, fee items, case studies, site photos | `MARKUP_METHOD_NOTE`, `contractValueVatBasis`, main comments + D36 `calculation_note` | Publication snapshot parity |
+| `src/lib/case-library/proposal-wiring.test.ts` | 28–50 | Both main programme hash pin and D36 `calculation_note` pin | Preserve main wiring + D36 additive field |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | 1688–1696 | Markup note + main zero-adjustment guard | UI merge |
+| `src/app/dashboard/projects/costs/advanced-estimate.tsx` | 36–41 | Combined D36 + main imports | Advanced workspace |
+| `src/app/dashboard/projects/costs/boq-excel-export.ts` | 6–9 | Canonical sum + section grouping imports | BoQ export |
+| `src/lib/estimate-line-type.ts`, `proposal-site-photos.ts`, `proposal-site-photos.test.ts` | conflict tail | Marker cleanup only | Trivial UU |
+| `docs/delivery/2026-11-16/changelog.md` | whole | Merged delivery sections (no duplicate CON-073) | Both D36 and main notes |
+| `docs/delivery/2026-11-20/approved-176-integration.md` | rollback § | Safer rollback semantics | No blind column drop / old app |
+
+**Checks:** NOT RUN (source-only lane; R1 owns git commit, CI, Sonnet, preview).
 ## 2026-11-21 — D69 read-only production marketing audit (CI only)
 
 | File | Lines (approx.) | Change | Intent |
@@ -388,6 +404,7 @@
 | `src/app/dashboard/projects/costs/estimate-client.tsx` | advanced wrapper classes | Apply workspace layout classes | CON-032 |
 | `src/lib/*.test.ts`, `con-032-advanced-panel-layout.test.ts` | (new) | Focused CON-022/031/032 tests | No live data |
 | `package-lock.json` | revert | Restored to `868df15` main; drop accidental npm-install churn from first push | Keep P1 diff scoped to estimate work |
+
 ## 2026-11-16 — D46 P1 proposal CON-036/037/040 (cursor/d46-p1-proposal-con-036-037-040-445c)
 
 | File | Lines (approx.) | Change | Intent |

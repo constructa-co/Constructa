@@ -12,6 +12,7 @@
  */
 
 import { z } from "zod";
+import { isMarkupMethod, type MarkupMethod } from "@/lib/financial";
 
 /**
  * The creation RPC falls back to "Extension" when no project type is sent.
@@ -137,6 +138,18 @@ export function validateBlankProjectForm(form: BlankProjectForm, requestId: stri
     return parseBlankProjectInput({ ...form, requestId });
 }
 
+export interface BlankProjectEstimateSeed {
+    version_name?: string;
+    total_cost?: number;
+    overhead_pct?: number;
+    profit_pct?: number;
+    risk_pct?: number;
+    prelims_pct?: number;
+    is_active?: boolean;
+    markup_method?: MarkupMethod;
+    lines?: unknown[];
+}
+
 export interface BlankProjectGraph {
     requestId: string;
     project: {
@@ -152,7 +165,18 @@ export interface BlankProjectGraph {
         status: "Lead";
         proposal_complexity: "full";
     };
-    estimates: [];
+    estimates: BlankProjectEstimateSeed[];
+}
+
+/** Freezes the company markup method onto each initial estimate seed sent to the RPC. */
+export function stampCompanyMarkupOnEstimateSeeds(
+    seeds: BlankProjectEstimateSeed[],
+    method: MarkupMethod,
+): BlankProjectEstimateSeed[] {
+    return seeds.map((seed) => ({
+        ...seed,
+        markup_method: isMarkupMethod(seed.markup_method) ? seed.markup_method : method,
+    }));
 }
 
 /**

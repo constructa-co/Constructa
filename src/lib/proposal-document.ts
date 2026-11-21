@@ -541,7 +541,7 @@ function priceSection(snapshot: ProposalPublicationSnapshot): DocSection | null 
         type: "price",
         groups,
         totals: priceBlockTotals(commercial, presentation),
-        note: vatNote(commercial),
+        note: [vatNote(commercial), commercial.calculation_note].filter(Boolean).join(" ") || null,
     }];
 
     // From presentation 6, typed prime-cost / provisional sums are drawn in

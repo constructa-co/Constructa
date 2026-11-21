@@ -20,6 +20,8 @@ import { createBlankProjectAction } from "@/app/dashboard/projects/new/actions";
 // function: it reads the files, it does not execute them against a database.
 const DIR = "supabase/migrations";
 const ORIGINAL_FILE = "20260930120000_atomic_phase1_project_creation.sql";
+const A069_CLOSING_FILE = "20261028183000_new_job_closing_prefill.sql";
+const D36_RPC_FILE = "20261116140000_d36_phase1_project_graph_markup_method.sql";
 const START = "CREATE OR REPLACE FUNCTION public.create_phase1_project_graph(";
 function definition(sql: string): string {
     const start = sql.indexOf(START);
@@ -135,13 +137,26 @@ describe("A069 creation RPC source contract (static, no database)", () => {
         expect(latest).not.toMatch(/p_project->>'closing_statement'|p_project->'closing_statement'/);
     });
 
-    it("changes nothing else in the function: same signature, security and body apart from the three additions", () => {
-        const stripped = latest
-            .replace("    v_closing text;\n", "")
-            .replace(/\n    -- A069:[\s\S]*?END IF;\n/, "")
-            .replace(",\n        closing_statement\n", "\n")
-            .replace(",\n        v_closing\n", "\n");
-        expect(stripped).toBe(original);
+    it("changes nothing else in the function: same signature, security and body apart from the allowed additions", () => {
+        const stripAdditions = (body: string) =>
+            body
+                .replace("    v_closing text;\n", "")
+                .replace("    v_markup_method text;\n", "")
+                .replace(/\n    -- A069:[\s\S]*?END IF;\n/, "")
+                .replace(/\n    -- D36:[\s\S]*?END IF;\n/, "")
+                .replace(",\n        closing_statement\n", "\n")
+                .replace(",\n        v_closing\n", "\n")
+                .replace(/,\n            markup_method\n/, "\n")
+                .replace(
+                    /,\n            CASE\n                WHEN v_estimate->>'markup_method' IN \('on_net', 'compound'\)\n                    THEN v_estimate->>'markup_method'\n                ELSE v_markup_method\n            END/,
+                    "",
+                );
+        if (latestFile === D36_RPC_FILE) {
+            const a069 = definition(readFileSync(join(DIR, A069_CLOSING_FILE), "utf8"));
+            expect(stripAdditions(latest)).toBe(stripAdditions(a069));
+            return;
+        }
+        expect(stripAdditions(latest)).toBe(original);
     });
 
     it("keeps the existing grants for the redefined function", () => {

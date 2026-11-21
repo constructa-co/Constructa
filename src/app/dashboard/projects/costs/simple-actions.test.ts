@@ -163,6 +163,7 @@ describe("saveSimplePriceLineAction — lazy estimate creation", () => {
             project_id: PROJECT_ID,
             organization_id: ORG_ID,
             version_name: "Estimate v1",
+            markup_method: "on_net",
             total_cost: 2500,
             prelims_pct: 0,
             overhead_pct: 0,

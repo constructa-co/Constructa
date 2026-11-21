@@ -28,30 +28,32 @@ A missing specifically named public `handoff.md` is not accepted as a new gate: 
 
 The table reconciles existing verified receipts; it does not claim independent source inspection of every listed implementation. Schema/operational rows remain open until their real evidence exists.
 
-| Item | Current disposition | Classification | Concrete missing evidence / next action |
+D71 triage by Claude invoked with `--model sonnet`, R1 graded21Nov03:30. **0 new source-fixable defects established without owner access;22 owner-gated rows**, including the separately decided-held signup and non-blocking post-RC latency follow-up. This is bounded triage, not proof of defect absence. Existing pending green source packages are not new coding jobs.
+
+| Item | Classification | Concrete gap | Next action |
 |---|---|---|---|
-| CON-001 | in progress | needs sign-in/Rob | D66 approves two dummy test identities on non-production only. Authenticated verified preview target still needed; no production signup/writes. |
-| CON-002 | in progress | needs sign-in/Rob | D66 approves two dummy test identities on non-production only. Authenticated verified preview target still needed; no production signup/writes. |
-| CON-003 | decided/held | needs sign-in/Rob | Decided/held: signup OFF. No new decision or activation is requested. |
-| CON-008 | in progress | needs sign-in/Rob | Existing-feature cap draft228 green, additive SQL unapplied; unknown verified feature cost bounds fail closed. Activation remains held; no new implementation duplicated. |
-| CON-009 | Rob-gated | needs sign-in/Rob | Approve privacy text. D66 drafting approved; #227877fbee incorporates existing204 drafts, founding price placeholders and no testimonials. Exact entity/price facts and Rob rendered-page legal signoff remain; no publication. |
-| CON-010 | Rob-gated | needs sign-in/Rob | Approve terms text. D66 drafting approved; #227877fbee incorporates existing204 drafts, founding price placeholders and no testimonials. Exact entity/price facts and Rob rendered-page legal signoff remain; no publication. |
-| CON-012 | in progress | needs sign-in/Rob | D51 batch 01 — Profile, save and sign-in |
-| CON-013 | Rob-gated | needs sign-in/Rob | Choose the application destination and data handling. D64 minimal disabled-form source [#226](https://github.com/constructa-co/Constructa/pull/226) merged134e27b; exact PR/main CI, Sonnet, secrets and production READY verified. Collection/routing OFF, no submissions made; destination decision still Rob-gated. D66 approved one inbox/name-email-optionalcompany-message/12monthretention/Robonly. #228draft source updates fields, collectionOFF; mailbox existence and actual destination setting still required. No submissions or settings changed. |
-| CON-015 | in progress | needs sign-in/Rob | D68 corresponding draft is green/ordered-replay reviewed but unmerged/unapplied; runtime preview, verified target and actual preapply backup are outstanding. Current-source defect is not established by this review. |
-| CON-018 | in progress | needs sign-in/Rob | D68 corresponding draft is green/ordered-replay reviewed but unmerged/unapplied; runtime preview, verified target and actual preapply backup are outstanding. Current-source defect is not established by this review. |
-| CON-023 | post-RC evidence | needs sign-in/Rob | Post-RC real latency measurement is missing; non-blocking. Existing functional CI is not a production latency sample. |
-| CON-025 | in progress | needs sign-in/Rob | D68 corresponding draft is green/ordered-replay reviewed but unmerged/unapplied; runtime preview, verified target and actual preapply backup are outstanding. Current-source defect is not established by this review. |
-| CON-026 | in progress | needs sign-in/Rob | D68 corresponding draft is green/ordered-replay reviewed but unmerged/unapplied; runtime preview, verified target and actual preapply backup are outstanding. Current-source defect is not established by this review. |
-| CON-039 | Rob-gated | needs sign-in/Rob | Approved domestic terms copy pending. D66 drafting approved; #227877fbee incorporates existing204 drafts, founding price placeholders and no testimonials. Exact entity/price facts and Rob rendered-page legal signoff remain; no publication. |
-| CON-044 | in progress | needs sign-in/Rob | D68 corresponding draft is green/ordered-replay reviewed but unmerged/unapplied; runtime preview, verified target and actual preapply backup are outstanding. Current-source defect is not established by this review. |
-| CON-051 | Rob-gated | needs sign-in/Rob | Review captures shipped in #191. Testimonials and pricing need approved owner inputs. D66 drafting approved; #227877fbee incorporates existing204 drafts, founding price placeholders and no testimonials. Exact entity/price facts and Rob rendered-page legal signoff remain; no publication. |
-| CON-052 | Rob-gated | needs sign-in/Rob | Confirm legal entity details. D66 drafting approved; #227877fbee incorporates existing204 drafts, founding price placeholders and no testimonials. Exact entity/price facts and Rob rendered-page legal signoff remain; no publication. |
-| CON-053 | Rob-gated | needs sign-in/Rob | Confirm contact form scope and destination. D64 minimal disabled-form source [#226](https://github.com/constructa-co/Constructa/pull/226) merged134e27b; exact PR/main CI, Sonnet, secrets and production READY verified. Collection/routing OFF, no submissions made; destination decision still Rob-gated. D66 approved one inbox/name-email-optionalcompany-message/12monthretention/Robonly. #228draft source updates fields, collectionOFF; mailbox existence and actual destination setting still required. No submissions or settings changed. |
-| CON-061 | in progress | needs sign-in/Rob | Existing D51 media upload/selection source reconciled as already on main e6de701 (public-image and photo-slot implementations match); 46 targeted and 307 case-study tests passed. No duplicate code PR. Remaining default selection, duplicate-photo and legacy positional-selection scope needs original snag mapping; hosted storage unverified.  D63 now authorises first-upload primary unless explicitly selected, hash duplicate prevention and legacy-after-new ordering; Cursor source job active on codex/d63-case-photo-behaviour. [#225](https://github.com/constructa-co/Constructa/pull/225) head652baf3 merged53167bc under D63/D58; exact PR CI, Sonnet and secrets PASS; production READY targetproduction exact53167bc verified. Main CI44737532205 and secret scan44737532207 PASS. New content-addressed uploads dedupe across reload; old random legacy objects preserved without retrospective byte-hash proof; library wire remains held. |
-| CON-068 | in progress | needs sign-in/Rob | D68 corresponding draft is green/ordered-replay reviewed but unmerged/unapplied; runtime preview, verified target and actual preapply backup are outstanding. Current-source defect is not established by this review. |
-| CON-073 | in progress | needs sign-in/Rob | D68 corresponding draft is green/ordered-replay reviewed but unmerged/unapplied; runtime preview, verified target and actual preapply backup are outstanding. Current-source defect is not established by this review. |
-| CON-078 | in progress | needs sign-in/Rob | Approved single-field private correction remains pending authenticated exact row/version read, private backup SHA, scoped compare-and-set and readback. No production values are published here. |
+|CON-001|owner-gated|Two-user/isolation testing requires authenticated sign-in on verified disposable target|Use D66-approved dummy identities; no production signup/writes|
+|CON-002|owner-gated|Authenticated brief save/reload and two-user isolation evidence is missing|Use approved disposable test identities on verified target; #175 remains distinct from planner #222.|
+|CON-003|owner-gated|Signup policy (OFF settled)|No new decision requested; remains held|
+|CON-008|owner-gated|Feature cost bounds unknown; additive SQL unapplied|Draft #228 green; activation held pending verified bounds|
+|CON-009|owner-gated|Privacy text approval needed|D66 drafting approved; Rob legal signoff + exact entity facts remain|
+|CON-010|owner-gated|Terms text approval needed|D66 drafting approved; Rob legal signoff + exact entity facts remain|
+|CON-012|owner-gated|Profile save and sign-in testing|D51 batch 01 scope; hosted flow evidence needed|
+|CON-013|owner-gated|Application destination and routing|PR #226 merged 134e27b; collection OFF; destination decision Rob-held|
+|CON-015|owner-gated|Schema draft unmerged/unapplied|D68 draft green/reviewed; runtime preview + verified target outstanding|
+|CON-018|owner-gated|Schema draft unmerged/unapplied|Same as CON-015|
+|CON-023|owner-gated|Post-RC real latency sample requires genuine authorised observability/runtime access; functional CI is not latency evidence|Retain explicitly non-blocking post-RC disposition; no new approval or qualification loop.|
+|CON-025|owner-gated|Schema draft unmerged/unapplied|Same as CON-015|
+|CON-026|owner-gated|Schema draft unmerged/unapplied|Same as CON-015|
+|CON-039|owner-gated|Domestic terms copy pending|D66 drafting approved; entity/price facts + Rob page signoff remain|
+|CON-044|owner-gated|Schema draft unmerged/unapplied|Same as CON-015|
+|CON-051|owner-gated|Founding-cohort numeric price/billing/discount facts remain owner-held; testimonials are removed, no testimonial decision requested|Retain publication-held #227; populate only verified owner price facts, no re-ask of settled testimonial removal.|
+|CON-052|owner-gated|Legal entity details confirmation|D66 drafting approved; entity/price facts remain|
+|CON-053|owner-gated|Contact form destination confirmation|PR #226 merged 134e27b; collection OFF; destination Rob-gated|
+|CON-061|owner-gated|Hosted storage wire unverified|PR #225 merged 53167bc; content-hash dedupe on main; library wire held|
+|CON-068|owner-gated|Schema draft unmerged/unapplied|Same as CON-015|
+|CON-073|owner-gated|Schema draft unmerged/unapplied|Same as CON-015|
+|CON-078|owner-gated|Private correction needs authenticated row access|Requires authenticated exact row/version read + scoped compare-and-set|
 
 ## Marketing check
 

@@ -64,6 +64,94 @@ export async function savedSetup(userId: string, email: string): Promise<{ compa
     return { companyName: data?.company_name ?? null, businessType: data?.business_type ?? null, fullName: data?.full_name ?? null };
 }
 
+function assertD81LocalReplay(env: E2EEnv) {
+    const api = new URL(env.supabaseUrl);
+    if (env.projectRef !== EPHEMERAL_REPLAY_PROJECT_REF || api.protocol !== "http:" || !["127.0.0.1", "localhost"].includes(api.hostname) || api.port !== "54321" || api.username || api.password) {
+        throw new Error("D81 profile helpers require the local disposable replay target.");
+    }
+}
+
+export interface SavedProfileFields {
+    companyName: string | null;
+    businessType: string | null;
+    fullName: string | null;
+    phone: string | null;
+}
+
+/** Read-only profile row for a synthetic account (service role; proves persistence). */
+export async function savedProfileFields(
+    userId: string,
+    ownerEmail: string,
+    env: E2EEnv = readE2EEnv(),
+): Promise<SavedProfileFields | null> {
+    assertSynthetic(ownerEmail);
+    assertD81LocalReplay(env);
+    const { data, error } = await admin(env)
+        .from("profiles")
+        .select("company_name, business_type, full_name, phone")
+        .eq("id", userId)
+        .maybeSingle();
+    if (error) throw new Error(`Could not read the profile: ${error.message}`);
+    if (!data) return null;
+    return {
+        companyName: data.company_name != null ? String(data.company_name) : null,
+        businessType: data.business_type != null ? String(data.business_type) : null,
+        fullName: data.full_name != null ? String(data.full_name) : null,
+        phone: data.phone != null ? String(data.phone) : null,
+    };
+}
+
+/** Resolve a synthetic account id from its email without logging credentials. */
+export async function syntheticUserIdByEmail(email: string, env: E2EEnv = readE2EEnv()): Promise<string | null> {
+    assertSynthetic(email);
+    assertD81LocalReplay(env);
+    const { data, error } = await admin(env).auth.admin.listUsers({ page: 1, perPage: 200 });
+    if (error) throw new Error(`Could not list users: ${error.message}`);
+    const match = (data.users ?? []).find((user) => user.email?.toLowerCase() === email.toLowerCase());
+    return match?.id ?? null;
+}
+
+export interface ClientProfileProbe {
+    ownRow: SavedProfileFields | null;
+    otherRow: SavedProfileFields | null;
+}
+
+/**
+ * Uses the signed-in user's JWT (browser session), not the service role: proves RLS
+ * hides another contractor's profile row while still returning the caller's own row.
+ */
+export async function clientProfileIsolationProbe(
+    accessToken: string,
+    ownUserId: string,
+    otherUserId: string,
+    callerEmail: string,
+    env: E2EEnv = readE2EEnv(),
+): Promise<ClientProfileProbe> {
+    assertSynthetic(callerEmail);
+    assertD81LocalReplay(env);
+    if (!accessToken.trim()) throw new Error("Refusing profile probe without a session token.");
+    const client = createClient(env.supabaseUrl, env.supabaseAnonKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+        global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    });
+    const fields = "company_name, business_type, full_name, phone";
+    const [own, other] = await Promise.all([
+        client.from("profiles").select(fields).eq("id", ownUserId).maybeSingle(),
+        client.from("profiles").select(fields).eq("id", otherUserId).maybeSingle(),
+    ]);
+    if (own.error || other.error) throw new Error("Profile isolation reads failed; an API error is not evidence of isolation.");
+    const row = (data: typeof own.data): SavedProfileFields | null =>
+        data
+            ? {
+                  companyName: data.company_name != null ? String(data.company_name) : null,
+                  businessType: data.business_type != null ? String(data.business_type) : null,
+                  fullName: data.full_name != null ? String(data.full_name) : null,
+                  phone: data.phone != null ? String(data.phone) : null,
+              }
+            : null;
+    return { ownRow: row(own.data), otherRow: row(other.data) };
+}
+
 export interface PublicationRecord {
     version: number;
     status: string;

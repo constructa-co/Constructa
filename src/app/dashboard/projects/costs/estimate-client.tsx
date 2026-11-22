@@ -103,6 +103,7 @@ interface ProjectContext {
     brief_trade_sections?: unknown;
     payment_schedule?: unknown;
     payment_lock_reason?: string | null;
+    is_vat_reverse_charge?: boolean | null;
     scope_notes?: PricingScopeNotesSource;
     full_scope?: PricingFullScopeSource;
     experience?: PricingExperienceSource | null;
@@ -703,6 +704,7 @@ export default function EstimateClient({
                                         setActiveTab={selectEstimate}
                                         costLibrary={advanced.data.costLibrary}
                                         projectId={project.id}
+                                        isVatReverseCharge={project.is_vat_reverse_charge}
                                         orgId={advanced.data.orgId}
                                         rateBuildups={advanced.data.rateBuildups}
                                         labourRates={advanced.data.labourRates}

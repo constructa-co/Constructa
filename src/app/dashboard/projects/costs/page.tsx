@@ -42,7 +42,7 @@ export default async function EstimatingPage(props: { searchParams: Promise<{ pr
     // Fetch active project
     const { data: project } = await supabase
         .from("projects")
-        .select("id, user_id, name, client_name, brief_scope, brief_trade_sections, payment_schedule, status, is_archived, proposal_status, proposal_accepted_at, exclusions_text, clarifications_text, contract_exclusions, contract_clarifications, proposal_introduction, scope_text, selected_case_study_ids")
+        .select("id, user_id, name, client_name, brief_scope, brief_trade_sections, payment_schedule, status, is_archived, proposal_status, proposal_accepted_at, exclusions_text, clarifications_text, contract_exclusions, contract_clarifications, proposal_introduction, scope_text, selected_case_study_ids, is_vat_reverse_charge")
         .eq("id", activeProjectId)
         .single();
 
@@ -82,6 +82,7 @@ export default async function EstimatingPage(props: { searchParams: Promise<{ pr
                     experience,
                     full_scope: { scope_text: project.scope_text ?? null, brief_scope: project.brief_scope ?? null },
                     payment_lock_reason: getPrecontractEditLockReason(project),
+                    is_vat_reverse_charge: project.is_vat_reverse_charge === true,
                     scope_notes: {
                         exclusions_text: project.exclusions_text ?? null, clarifications_text: project.clarifications_text ?? null,
                         contract_exclusions: project.contract_exclusions ?? null, contract_clarifications: project.contract_clarifications ?? null,

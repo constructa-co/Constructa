@@ -31,7 +31,7 @@ type Failure = { table: string; op: "insert" | "update" | "delete" | "select"; c
  * builder for these actions, primary keys that reject duplicates, and
  * failures that can be injected per table and operation.
  */
-function fakeDb(seed: Partial<Record<string, Row[]>> = {}) {
+function fakeDb(seed: Partial<Record<string, Row[]>> = {}, missingEstimateColumns: string[] = []) {
     const tables: Record<string, Row[]> = {
         projects: [{ id: PROJECT_ID, user_id: USER_ID, organization_id: ORG_ID, status: "Lead" }],
         estimates: [],
@@ -53,10 +53,14 @@ function fakeDb(seed: Partial<Record<string, Row[]>> = {}) {
         let op: Failure["op"] = "select";
         let payload: Row | null = null;
         let wantRows = false;
+        let selection = "*";
         const filters: [string, unknown, "eq" | "is" | undefined][] = [];
 
         const run = () => {
             log.push(`${op}:${table}`);
+            if (table === "estimates" && missingEstimateColumns.some(column => selection.split(/[,()\s]+/).includes(column))) {
+                return { data: null, error: { code: "42703", message: "column does not exist" } };
+            }
             const injected = takeFailure(table, op);
             if (injected) return { data: null, error: injected };
             const rows = tables[table];
@@ -103,7 +107,7 @@ function fakeDb(seed: Partial<Record<string, Row[]>> = {}) {
         };
 
         const builder = {
-            select: () => { wantRows = true; return builder; },
+            select: (columns = "*") => { selection = columns; wantRows = true; return builder; },
             insert: (row: Row) => { op = "insert"; payload = row; return builder; },
             update: (row: Row) => { op = "update"; payload = row; return builder; },
             delete: () => { op = "delete"; return builder; },
@@ -186,6 +190,15 @@ describe("saveSimplePriceLineAction — lazy estimate creation", () => {
         expect(result.estimateId).toBe(NEW_ESTIMATE_ID);
         expect(result.createdEstimate?.estimate_lines.map((l) => l.id)).toEqual([LINE_ID]);
         expect(result.line.line_total).toBe(2500);
+    });
+
+    it.each([null, NEW_ESTIMATE_ID])("saves a price when the optional BoQ column is absent, estimate=%s", async estimateId => {
+        const db = fakeDb({ estimates: estimateId ? [{ id: NEW_ESTIMATE_ID, project_id: PROJECT_ID, is_active: true }] : [] }, ["is_client_boq"]);
+        useDb(db);
+        const result = await saveSimplePriceLineAction(request({ estimateId }));
+        expect(result.ok).toBe(true);
+        expect(db.tables.estimate_lines).toHaveLength(1);
+        expect(db.tables.estimate_lines[0].line_total).toBe(2500);
     });
 
     it("moves a Lead project to Estimating when its first price is saved", async () => {

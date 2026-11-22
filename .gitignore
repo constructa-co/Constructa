@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+/readonlyaudit/*
+!/readonlyaudit/README.md
 
 # next.js
 /.next/

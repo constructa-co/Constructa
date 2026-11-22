@@ -1,5 +1,7 @@
 # Constructa — Claude Code Project Context
 
+> **Current authority (November 2026):** Follow repository root [`AGENTS.md`](./AGENTS.md) and the latest dated Constructa inbox directions. The sections below are **historical** sprint context (April 2026). Do not treat April credential, commit-identity, or deployment assumptions as live authority unless explicitly re-approved.
+>
 > This file is auto-loaded by Claude Code at session start.
 > Read this before making any changes to the codebase.
 > Last updated: 6 April 2026 — Claude Code session (Sprint 21: Comprehensive BI Admin Dashboard)
@@ -28,7 +30,7 @@
 - Vercel: auto-deploys from GitHub main branch
 - OpenAI: `OPENAI_API_KEY` env var in Vercel (project level)
 
-**Always run before committing:**
+**Historical (April 2026) — commit identity; superseded by `AGENTS.md` delivery rules:**
 ```bash
 git config user.email "perplexity-computer@constructa.co"
 git config user.name "Perplexity Computer"

@@ -42,7 +42,7 @@ const priceBlock = (section: DocSection): Extract<DocBlock, { type: "price" }> =
 };
 
 describe("proposal snapshot — typed PC and provisional sums", () => {
-    it("keeps allowance amounts when a credit requires its own adjustment", () => {
+    it("publishes an explicit credit line instead of a price adjustment", () => {
         const input = allowanceInput();
         const [, , primeCost, provisional] = input.estimate.estimate_lines;
         input.estimate.estimate_lines = [
@@ -54,7 +54,12 @@ describe("proposal snapshot — typed PC and provisional sums", () => {
         const items = snapshot.commercial.fee_items;
         expect(items.find((item) => item.id === "pc1")?.amount_ex_vat).toBe(7500);
         expect(items.find((item) => item.id === "ps1")?.amount_ex_vat).toBe(-50);
-        expect(items.find((item) => item.description === "Price adjustment")).toBeDefined();
+        // The -£100 credit is marked up like other work (×1.265) and shown
+        // as its own negative item; nothing is invented to balance the sum.
+        expect(items.find((item) => item.id === "credit")).toMatchObject({ description: "Work credit", amount_ex_vat: -126.5 });
+        expect(items.find((item) => item.description === "Price adjustment")).toBeUndefined();
+        expect(snapshot.commercial.contract_sum_ex_vat).toBe(7323.5);
+        expect(round2(items.reduce((sum, item) => sum + item.amount_ex_vat, 0))).toBe(7323.5);
     });
 
     it("publishes allowances at face value and stamps their type", () => {

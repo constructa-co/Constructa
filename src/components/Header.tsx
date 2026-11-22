@@ -23,7 +23,7 @@ const Header = () => {
           <div className="h-16 flex items-center justify-between md:grid md:grid-cols-3">
             {/* Left column - Logo */}
             <div className="flex items-center">
-              <a href="/" className="text-2xl font-semibold text-white hover:opacity-90 transition-opacity">
+              <a href="/" aria-label="Constructa home" className="text-2xl font-semibold text-white hover:opacity-90 transition-opacity">
                 <SidebarBrand />
               </a>
             </div>
@@ -36,7 +36,7 @@ const Header = () => {
             <div className="flex items-center justify-end space-x-3 sm:space-x-6">
               <a
                 href="/login"
-                className="text-sm text-gray-500 hover:text-gray-300 transition-colors duration-200"
+                className="text-sm text-gray-400 hover:text-gray-200 transition-colors duration-200"
               >
                 Log in
               </a>
@@ -59,18 +59,18 @@ const Header = () => {
         <div className="h-16 grid grid-cols-3 items-center">
           {/* Left column - Logo */}
           <div className="flex items-center">
-            <a href="/" className="text-2xl font-semibold text-white hover:opacity-90 transition-opacity">
+            <a href="/" aria-label="Constructa home" className="text-2xl font-semibold text-white hover:opacity-90 transition-opacity">
               <SidebarBrand />
             </a>
           </div>
 
           {/* Center column - Navigation (Desktop) */}
-          <nav className="hidden md:flex justify-center">
+          <nav aria-label="Main navigation" className="hidden md:flex justify-center">
             <div className="flex items-center space-x-8 text-sm">
               <FeatureDropdown />
-              <a href="/pricing" className="text-sm text-gray-500 hover:text-gray-300 transition-colors duration-200">Pricing</a>
-              <a href="/about" className="text-sm text-gray-500 hover:text-gray-300 transition-colors duration-200">About</a>
-              <a href="/contact" className="text-sm text-gray-500 hover:text-gray-300 transition-colors duration-200">Contact</a>
+              <a href="/pricing" className="text-sm text-gray-400 hover:text-gray-200 transition-colors duration-200">Pricing</a>
+              <a href="/about" className="text-sm text-gray-400 hover:text-gray-200 transition-colors duration-200">About</a>
+              <a href="/contact" className="text-sm text-gray-400 hover:text-gray-200 transition-colors duration-200">Contact</a>
             </div>
           </nav>
 
@@ -81,7 +81,7 @@ const Header = () => {
               <a href="/apply" className="px-4 py-1.5 bg-white text-black text-sm font-medium rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors duration-200">
                 Apply to the founding cohort
               </a>
-              <a href="/login" className="text-sm text-gray-500 hover:text-gray-300 transition-colors duration-200">
+              <a href="/login" className="text-sm text-gray-400 hover:text-gray-200 transition-colors duration-200">
                 Log in
               </a>
             </div>

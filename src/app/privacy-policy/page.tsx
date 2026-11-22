@@ -21,7 +21,7 @@ function MailLink() {
   return (
     <a
       href={`mailto:${CONSTRUCTA_CONTACT_EMAIL}`}
-      className="text-gray-300 hover:text-white transition-colors duration-200"
+      className="text-gray-300 underline underline-offset-4 hover:text-white transition-colors duration-200"
     >
       {CONSTRUCTA_CONTACT_EMAIL}
     </a>
@@ -129,6 +129,7 @@ export default function PrivacyPolicyPage() {
             </h2>
             <p data-privacy-change-process>{POLICY_CHANGE_PROCESS}</p>
           </section>
+
         </div>
 
         <p className="text-sm text-gray-500 mt-8">

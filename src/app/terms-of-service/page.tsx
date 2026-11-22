@@ -19,7 +19,7 @@ function MailLink() {
   return (
     <a
       href={`mailto:${CONSTRUCTA_CONTACT_EMAIL}`}
-      className="text-gray-300 hover:text-white transition-colors duration-200"
+      className="text-gray-300 underline underline-offset-4 hover:text-white transition-colors duration-200"
     >
       {CONSTRUCTA_CONTACT_EMAIL}
     </a>
@@ -127,12 +127,13 @@ export default function TermsOfServicePage() {
             </h2>
             <p>
               Send questions about the terms to <MailLink />.
+
             </p>
           </section>
         </div>
 
-        <p className="mt-10 text-sm text-gray-500">
-          <Link href="/login" className="text-gray-300 hover:text-white transition-colors duration-200">
+        <p className="mt-10 text-sm text-gray-400">
+          <Link href="/login" className="text-gray-300 underline underline-offset-4 hover:text-white transition-colors duration-200">
             ← Back to sign in / sign up
           </Link>
         </p>

@@ -1098,3 +1098,7 @@ Base branch: `origin/cq/cq-0105-a001-initialize-kit-primary` (includes `5d73ebc`
 | `src/app/dashboard/projects/proposal/review-send-client.test.ts` | new test | All-week pattern shows Sunday 15 Nov finish in programme section | Prove production Review & Send uses saved pattern, not default Mon–Fri |
 
 D78 R1: actual disposable journey reached estimating and found first-line save refused because explicit is_client_boq selection names an optional column absent from committed replay migrations. Read available estimate columns while retaining BoQ protection when present; focused missing-column regression covers new/existing estimates. No SQL/schema changes. Prior signup/brief and D38 persistence passed; full journey requires fresh CI.
+
+## 22 November — D92-M1 held publication parity repair
+
+Prepared additive publish RPC canonical sum parity and direct-RPC disposable regression cases. PC/PS face value, credits and blank prelims now match main calculation; optional on_net compatibility does not add columns or activate held176. Owner R1; schema DRAFT, outside D86 apply sequence; independent Sonnet and exact CI receipts pending. No hosted SQL/publication/settings/signup.

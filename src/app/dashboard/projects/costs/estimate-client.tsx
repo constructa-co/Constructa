@@ -710,6 +710,7 @@ export default function EstimateClient({
                                         setActiveTab={selectEstimate}
                                         costLibrary={advanced.data.costLibrary}
                                         projectId={project.id}
+                                        isVatReverseCharge={project.is_vat_reverse_charge}
                                         orgId={advanced.data.orgId}
                                         rateBuildups={advanced.data.rateBuildups}
                                         labourRates={advanced.data.labourRates}

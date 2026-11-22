@@ -172,3 +172,14 @@ Owner answers now supersede stale fact requests: trading name Constructa/no inco
 - **CON-068** — #224 Included persistence prepared; D86 target/backup/runtime stop. Actual saved flag/reload/proposal/isolation evidence remains.
 - **CON-073** — #223 stage history prepared; D86 target/backup/runtime stop. Actual owner-event/readback/no duplicate event and separate acknowledgement evidence remains.
 - **CON-078** — D86 only projects.client_name→Dragos Zaharia authorised, project name untouched. Exact row/version/private backup/CAS/readback prerequisites remain; stopped before SQL on Unhealthy/no-backup practice. No write.
+
+
+## 22 November D92/D94 — supplemental critique finding (outside original85)
+
+Original85 count remains63closed /22open /22 owner or operational-runtime gated. D93 per-item reconciliation above remains current. D87/D91 #227 head250e8b1 and D88 #228 headc0cc4cd now have exact full original CI PASS including browser fixture; their hosted Preview remains target-configuration blocked and publication/collection gates stay unchanged. Pricing/trading-name/inbox facts were supplied, while remaining legal/rendered/activation facts were not.
+
+| Supplemental snag | Grade | Owner | Actual result | Remaining gate |
+|---|---|---|---|---|
+| D92-M1 — estimate/publish SQL price mismatch | Must-fix | R1 | Independently reproduced actual TypeScript vs committed SQL discrepancy for PC/PS, blank prelims and credits. Repair prepared in [draft #238](https://github.com/constructa-co/Constructa/pull/238), head23d6015; direct-RPC disposable regression suite and independent Sonnet review in progress. Combined contractor pricing/programme critique is [draft #239](https://github.com/constructa-co/Constructa/pull/239), headcc54943. | Schema draft, outside D86 sequence; no merge/apply. D86 Unhealthy/No backups stop; exact combined candidate/order with held176 must be approved before any future application. |
+
+D94 adds no must-fix. S7 critical-path legend is a source-evidenced should-fix: it actually marks stages ending in the final calendar week. S6 duration-linked prelims and S8 material waste are practical feature recommendations, not forced release blockers. Existing detailed Gantt/calendar/dependencies/baseline/tracking/contract-admin features are documented for reuse, not rebuilt. Hosted behavior not inferred from source. The new supplemental row does not change the denominator or claim closure of any original CON item.

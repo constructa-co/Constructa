@@ -24,10 +24,31 @@ function savedState() {
     };
     return initialEstimatingState([estimate], { pendingEstimateId: "pending" });
 }
-function markup(state: EstimatingState) {
+function markup(state: EstimatingState, vat: { is_vat_reverse_charge?: boolean | null } = {}) {
     current.state = state;
-    return renderToStaticMarkup(<EstimateClient estimates={[]} project={{ id: "job", name: "Example job", client_name: "", brief_scope: "" }} />);
+    return renderToStaticMarkup(<EstimateClient estimates={[]} project={{ id: "job", name: "Example job", client_name: "", brief_scope: "", ...vat }} />);
 }
+
+describe("estimate screen VAT follows the job's reverse-charge setting (D96 S1)", () => {
+    const vatRows = (html: string) => ({
+        label: html.match(/<dt[^>]*>(VAT \([^<]*\))<\/dt>/)?.[1],
+        vat: html.match(/VAT \([^<]*\)<\/dt><dd[^>]*>([^<]+)/)?.[1],
+        total: html.match(/Total including VAT<\/dt><dd[^>]*>([^<]+)/)?.[1],
+        beforeVat: html.match(/data-contract-sum[^>]*>([^<]+)/)?.[1],
+    });
+
+    it("adds 20% VAT when the setting is off, null or absent", () => {
+        for (const vat of [{}, { is_vat_reverse_charge: null }, { is_vat_reverse_charge: false }]) {
+            expect(vatRows(markup(savedState(), vat))).toEqual({ label: "VAT (20%)", vat: "£220.00", total: "£1,320.00", beforeVat: "£1,100.00" });
+        }
+    });
+
+    it("adds no VAT when the job is domestic reverse charge, with the same total before VAT", () => {
+        expect(vatRows(markup(savedState(), { is_vat_reverse_charge: true }))).toEqual({
+            label: "VAT (domestic reverse charge, 0%)", vat: "£0.00", total: "£1,100.00", beforeVat: "£1,100.00",
+        });
+    });
+});
 
 describe("in-view estimate total", () => {
     it("repeats the existing summary figure with an honest uncertainty note and no save control", () => {

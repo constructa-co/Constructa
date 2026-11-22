@@ -21,6 +21,13 @@ vi.mock('next/navigation', () => ({ usePathname: () => route.pathname, useRouter
 afterEach(() => { vi.unstubAllEnvs(); route.pathname = '/'; });
 
 describe('phase-one marketing integration', () => {
+  it('explains contractor-controlled pricing and time-related prelims without promising automatic repricing', () => {
+    const home = renderToStaticMarkup(<PhaseOneHome />);
+    expect(home).toContain('Your figures stay yours');
+    expect(home).toContain('programme does not automatically reprice them');
+    expect(home).toContain('subject to release approval');
+  });
+
   it('simplifies phase-one navigation to Product, Preview access, About and Guides', () => {
     const html = renderToStaticMarkup(<MarketingHeader />);
     expect(html).toContain('href="/features">Product</a>');

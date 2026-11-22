@@ -195,10 +195,12 @@ Original85 remains **63closed /22open /22 owner-or-D86/runtime gated**. Rechecke
 | S7 programme marker | #240 merged5187b15; exactCI45034298635PASS, R1/GrokindependentPASS. Wording now states final-week heuristic, not critical path | No original row forcibly closed |
 | S1 estimate reverse-charge VAT | #241 mergedec967783; exactCI45034471931PASS/R1review. Saved and preview VAT follow existing project flag | CON018 reduced/zero/registration schema/runtime gate remains |
 | S2 legacy NULL markup parity | #243 mergedc9656ff; exactCI45034766145PASS/R1review. StoredNULL maps0 as proposal/billing do; explicit/new creation defaults unchanged | CON015 held on-net package/apply remains |
-| S4 live budgets | #244751431e draft, R1reviewPASS, CIrunning; reuses existingcanonicalcosthelper | No schema/hosted closure claimed |
-| S4 priced Excel | #24552351f8 draft, R1reviewPASS, CIrunning; canonicalallowances/credits/prelims and existingVATsetting | Held176 notmerged/applied; independently compatible source only |
-| S5 explicit proposal credits | #246ae0286e draft, R1reviewPASS, CIrunning; preservesnegativefeeitems already supported | M1 SQL repair238 stillheld, no hostedpublication claim |
-| S6 time-related prelims | Source prepared onownedbranch1456d34, integration/CI next; no auto-repricing | Product hint only, not new acceptance gate |
+| S4 live budgets | #244 merged3311f7f; exactCI45035231775PASS/R1review, reuses existingcanonicalcosthelper | No schema/hosted closure claimed |
+| S4 priced Excel | #245 merged7ff66ef; exactCI45035352111PASS/R1review, canonicalallowances/credits/prelims and existingVATsetting | Held176 notmerged/applied; independently compatible source only |
+| S5 explicit proposal credits | #246 merged378410e; exactCI45035618575PASS/R1review, preservesnegativefeeitems already supported; auditsetupcrashpassedoneboundedrerun | M1 SQL repair238 stillheld, no hostedpublication claim |
+| S6 time-related prelims | #247 final4044039 integratesmain378410e; finalCIpending after correctedoldprojectionassertion, no auto-repricing | Product hint only, not new acceptance gate |
 | Kimi marketing copy | #242a08384e draft, originalfullCI45034932216PASS/GrokstaticPASS | Remains unpublished/unmerged; no #227/#228 approval |
 
 S3 new-estimate mark-up policy remains tied to the held176 default-choice package; do not split off an inconsistent new default. S8 material waste needs a schema change and remains an owner-held recommendation. Existingprogramme/fullprofilefeatures reused, no replacement system built. R1 walkthrough recommendations/yes-no page is in constructa-progress.md; recommendations are not owner answers.
+
+D96 postmerge receipt19:11: production deployment698yo3ArVErVHHijWScGbEtuaan6 READY at exactmain378410e (six source repairs plus critique). Latest mainCI45036401013 stillrunning; not claimedPASS. Final247candidate4044039 awaits its own CI. All modelworkersreturned, no newdispatch. No livecopy/SQL/schemaapply/publication.

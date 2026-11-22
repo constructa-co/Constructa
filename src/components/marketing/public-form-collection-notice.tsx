@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   PUBLIC_MARKETING_FORM_ACCESS_POLICY,
+  PUBLIC_MARKETING_PLANNED_INBOX,
   PUBLIC_MARKETING_FORM_RETENTION_MONTHS,
 } from "@/lib/marketing/public-marketing-form-policy";
 import styles from "./founding-cohort-apply.module.css";
@@ -27,9 +28,8 @@ export function PublicFormCollectionNotice({
           : "restricted access"}
         ; {PUBLIC_MARKETING_FORM_RETENTION_MONTHS}-month retention). See our{" "}
         <Link href="/privacy-policy">privacy policy</Link>. You can also reach us on
-        the <Link href="/contact">contact page</Link> or by email at{" "}
-        <a href="mailto:hello@constructa.co">hello@constructa.co</a> [ROB TO CONFIRM
-        inbox is live].
+        the <Link href="/contact">contact page</Link> or view the planned inbox:{" "}
+        <span>{PUBLIC_MARKETING_PLANNED_INBOX}</span> (planned destination; this inbox is not set up yet).
       </p>
     </div>
   );

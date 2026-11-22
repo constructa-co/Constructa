@@ -16,3 +16,5 @@ Behaviour notes:
 Checks: not run locally (no tests, build, install or dev server per brief; disk was 14 GiB free at start). Test expectations were derived by hand from `programme-plan.test.ts` fixtures, not by running them. R1 owns review and CI.
 
 R1 kept the calendar helper separate from estimate-mapping so shared price-row mapping does not acquire programme/calendar imports. It is used only by the server page; clients receive a plain duration string.
+
+R1 compatibility review: the server fetch reads the existing project row rather than requiring optional calendar columns explicitly; existing client props remain whitelisted. An older target without a working-pattern column retains the Programme helper’s established default calendar behavior rather than failing the whole estimating page. No schema apply is needed for this hint.

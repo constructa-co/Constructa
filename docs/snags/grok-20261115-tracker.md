@@ -183,3 +183,22 @@ Original85 count remains63closed /22open /22 owner or operational-runtime gated.
 | D92-M1 — estimate/publish SQL price mismatch | Must-fix | R1 | Independently reproduced actual TypeScript vs committed SQL discrepancy for PC/PS, blank prelims and credits. Repair prepared in [draft #238](https://github.com/constructa-co/Constructa/pull/238), head23d6015; actual-RPC disposable regressions, original Node24 build/type/unit4/browser fixture CI45017490172 PASS; migration replay45017490165 and D38/D78/D81 browser45017490198 PASS; independent Sonnet static review PASS. Combined contractor pricing/programme critique is [draft #239](https://github.com/constructa-co/Constructa/pull/239), headcc54943. | Schema draft, outside D86 sequence; no merge/apply. D86 Unhealthy/No backups stop; exact combined candidate/order with held176 must be approved before any future application. |
 
 D94 adds no must-fix. S7 critical-path legend is a source-evidenced should-fix: it actually marks stages ending in the final calendar week. S6 duration-linked prelims and S8 material waste are practical feature recommendations, not forced release blockers. Existing detailed Gantt/calendar/dependencies/baseline/tracking/contract-admin features are documented for reuse, not rebuilt. Hosted behavior not inferred from source. The new supplemental row does not change the denominator or claim closure of any original CON item.
+
+
+## 22 November D96 — non-schema critique follow-through
+
+Original85 remains **63closed /22open /22 owner-or-D86/runtime gated**. Rechecked the existing22 dispositions: no row is presently eligible for an ungated original-snag closure. Do not invent5/10 new original fixes to meet the requested batch count; the separately authorised critique should-fixes below are real source repairs. Existing D93 per-item notes remain current. D95 correction18:37 means the private live-data-copy question is still pending, not a final NO. No copy/SQL/application has occurred; D86 remains stopped.
+
+| Critique item | Actual outcome | Original85 implication |
+|---|---|---|
+| D92/D94 report | #239 merged185797f; exactmainCI45033977790PASS, productionASWGao85YBgVsRpVYnL3N5R6QZjfREADY | Report delivered, no hosted acceptance implied |
+| S7 programme marker | #240 merged5187b15; exactCI45034298635PASS, R1/GrokindependentPASS. Wording now states final-week heuristic, not critical path | No original row forcibly closed |
+| S1 estimate reverse-charge VAT | #241 mergedec967783; exactCI45034471931PASS/R1review. Saved and preview VAT follow existing project flag | CON018 reduced/zero/registration schema/runtime gate remains |
+| S2 legacy NULL markup parity | #243 mergedc9656ff; exactCI45034766145PASS/R1review. StoredNULL maps0 as proposal/billing do; explicit/new creation defaults unchanged | CON015 held on-net package/apply remains |
+| S4 live budgets | #244751431e draft, R1reviewPASS, CIrunning; reuses existingcanonicalcosthelper | No schema/hosted closure claimed |
+| S4 priced Excel | #24552351f8 draft, R1reviewPASS, CIrunning; canonicalallowances/credits/prelims and existingVATsetting | Held176 notmerged/applied; independently compatible source only |
+| S5 explicit proposal credits | #246ae0286e draft, R1reviewPASS, CIrunning; preservesnegativefeeitems already supported | M1 SQL repair238 stillheld, no hostedpublication claim |
+| S6 time-related prelims | Source prepared onownedbranch1456d34, integration/CI next; no auto-repricing | Product hint only, not new acceptance gate |
+| Kimi marketing copy | #242a08384e draft, originalfullCI45034932216PASS/GrokstaticPASS | Remains unpublished/unmerged; no #227/#228 approval |
+
+S3 new-estimate mark-up policy remains tied to the held176 default-choice package; do not split off an inconsistent new default. S8 material waste needs a schema change and remains an owner-held recommendation. Existingprogramme/fullprofilefeatures reused, no replacement system built. R1 walkthrough recommendations/yes-no page is in constructa-progress.md; recommendations are not owner answers.

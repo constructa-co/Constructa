@@ -10,7 +10,7 @@ vi.mock("./estimate-client", () => ({ default: () => null }));
 import { dashboardRouteShellBody } from "@/lib/__fixtures__/dashboard-route-shell-page";
 import EstimatingPage from "./page";
 
-const projects = [{ id: "job-a", name: "First job" }, { id: "job-b", name: "Empty job" }];
+const projects = [{ id: "job-a", name: "First job" }, { id: "job-b", name: "Empty job" }, { id: "job-vat", name: "Reverse charge job", is_vat_reverse_charge: true }];
 const saved = { id: "estimate-a", project_id: "job-a", estimate_lines: [{ id: "line-a", description: "First job only" }] };
 
 async function editor(projectId?: string) {
@@ -46,6 +46,11 @@ describe("estimating project identity boundary", () => {
     it("passes only the selected job's saved estimates, including an empty list", async () => {
         expect((await editor("job-a")).props.estimates[0].id).toBe("estimate-a");
         expect((await editor("job-b")).props.estimates).toEqual([]);
+    });
+
+    it("passes the job's saved reverse-charge setting to the editor, null when unset", async () => {
+        expect((await editor("job-vat")).props.project.is_vat_reverse_charge).toBe(true);
+        expect((await editor("job-a")).props.project.is_vat_reverse_charge).toBeNull();
     });
 
     it("defers the no-ID editor until browser project memory has been resolved", async () => {

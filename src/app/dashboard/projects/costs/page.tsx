@@ -79,6 +79,7 @@ export default async function EstimatingPage(props: { searchParams: Promise<{ pr
                     brief_trade_sections: project.brief_trade_sections ?? [],
                     payment_schedule: project.payment_schedule ?? null,
                     proposal_introduction: project.proposal_introduction ?? null,
+                    is_vat_reverse_charge: project.is_vat_reverse_charge ?? null,
                     experience,
                     full_scope: { scope_text: project.scope_text ?? null, brief_scope: project.brief_scope ?? null },
                     payment_lock_reason: getPrecontractEditLockReason(project),

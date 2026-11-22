@@ -206,3 +206,10 @@ S3 new-estimate mark-up policy remains tied to the held176 default-choice packag
 D96 postmerge receipt19:11: production deployment698yo3ArVErVHHijWScGbEtuaan6 READY at exactmain378410e (six source repairs plus critique). Latest mainCI45036401013 stillrunning; not claimedPASS. Final247candidate4044039 awaits its own CI. All modelworkersreturned, no newdispatch. No livecopy/SQL/schemaapply/publication.
 
 D96 FINAL19:24 UAE: seven non-schema source repairs240/241/243/244/245/246/247 and critique239 merged. Finalmainf375affb0f5d98a36cc6befcf569778371bc3beb originalCI45037322081+secrets45037322034PASS; exactproduction8re1ujDyyBzAjaAL2WybbcTxCLZLREADY; post-READYread-onlyaudit45036482582attempt2PASS,11/11publicpages. Kimi242a08384e fullCI45034932216/GrokPASS remainsDRAFT/unmerged/unpublished. Allmodelworkersreturned; no further jobs. Original85 still63/22/22gated; D95privatecopyanswerpending/D86STOP, noSQL/settings/signup/payment/collection/publication. Earlierpendingnotes are historicalreceipts, supersededbythisfinalstate.
+
+
+## 23 November D97 — original22 rechecked against D96 main
+
+Checked all22 existing rows against finalD96 mainf375aff and current heldPR185afc468e. No original remaining gate was cleared by D96. CON018 estimate reversecharge display is fixed but profile VAT registration/defaults still need185 threecolumn migration and actual runtime evidence. CON015 NULLmarkup parity is fixed but176 policy/schema remains. Other001/002/012 hostedruntime;003signupOFF;008AIcaps;009/010/039legal;013/053workinginbox;025/026185;044222;051/052publicationfacts;061hostedmedia;068224;073223;078scopedwriteprerequisites;023nonblockingpostrelease latency unchanged. Counts63closed/22open retained; no duplicate source jobs.
+
+D97-1 explicitly ungates only marketing242 publication under reviewed-green merge authority, not227/228/signup.242currentmainintegration3cbcc9e CI/Grokpending. D97copy drafts248About/249estimate-review/250programme-review are docs-only/unpublished, CI/Grokpending.185requires schema, remainswalkthrough-held. Disk authorised removal2cleanmergedfullypushedworktrees recovered~0.41GiB; still10.87GiB below16, no localbuild/tests.

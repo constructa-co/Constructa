@@ -172,6 +172,12 @@ describe("detailed planner ordinary controls use the programme sage/ink", () => 
         expect(panel.some(n => classes(n).includes("rounded-full") && classes(n).includes("bg-blue-500"))).toBe(true);
     });
 
+    it("labels the final-week star honestly in the planner legend and footer, not as critical path", () => {
+        const html = setup().html();
+        expect(html).toMatch(/finishing in the final week/i);
+        expect(html).not.toMatch(/critical path/i);
+    });
+
     it("source: only the named ordinary literals changed; meaningful blues remain", () => {
         const source = readFileSync(path.join(process.cwd(), "src/app/dashboard/projects/schedule/client-page.tsx"), "utf8");
         expect(source.split("\n").length).toBeGreaterThan(1200);

@@ -2,7 +2,7 @@
 
 export const ROB_CONFIRM_PREFIX = "[ROB TO CONFIRM" as const;
 
-export const LEGAL_ENTITY_NAME = "[ROB TO CONFIRM: legal entity name]";
+export const LEGAL_ENTITY_NAME = "Constructa";
 export const REGISTERED_OFFICE = "[ROB TO CONFIRM: registered office address]";
 export const COMPANY_REGISTRATION = "[ROB TO CONFIRM: company registration number]";
 export const GOVERNING_LAW_JURISDICTION =

@@ -1,20 +1,16 @@
 import { describe, expect, it } from "vitest";
-import {
-  FOUNDING_COHORT_MONTHLY_PRICE,
-  FOUNDING_MEMBER_DISCOUNT_LABEL,
-  STANDARD_MONTHLY_PRICE_BEFORE_DISCOUNT,
-} from "./founding-cohort-pricing";
-
-describe("founding cohort pricing tokens", () => {
-  it("uses rob-confirm tokens instead of invented GBP amounts", () => {
-    expect(FOUNDING_COHORT_MONTHLY_PRICE).toMatch(/^\[ROB TO CONFIRM:/);
-    expect(STANDARD_MONTHLY_PRICE_BEFORE_DISCOUNT).toMatch(/^\[ROB TO CONFIRM:/);
-    expect(FOUNDING_COHORT_MONTHLY_PRICE).not.toMatch(/£\s*\d/);
-    expect(STANDARD_MONTHLY_PRICE_BEFORE_DISCOUNT).not.toMatch(/£\s*\d/);
+import { PRICING_TIERS, PRICING_REVIEW_NOTES, FOUNDING_MEMBER_DISCOUNT_LABEL } from "./founding-cohort-pricing";
+describe("D91 approved pricing and unresolved terms", () => {
+  it("uses Rob's three GBP prices", () => {
+    expect(PRICING_TIERS.map(t => [t.name, t.price])).toEqual([["Free", "£0"], ["Pro", "£50"], ["Business", "£80"]]);
+    expect(PRICING_TIERS[0].features).toContain("1 quote");
+    expect(FOUNDING_MEMBER_DISCOUNT_LABEL).toContain("25%");
   });
-
-  it("labels the discount without a numeric percent", () => {
-    expect(FOUNDING_MEMBER_DISCOUNT_LABEL).toBe("Founding member discount");
-    expect(FOUNDING_MEMBER_DISCOUNT_LABEL).not.toMatch(/\d+\s*%/);
+  it("does not silently promise a trial, stacking or an incorrect annual saving", () => {
+    const notes = PRICING_REVIEW_NOTES.join(" ");
+    expect(notes).toContain("No free trial is offered");
+    expect(notes).toContain("No combined discount is assumed");
+    expect(notes).toContain("2.4 months saved, not 2 months free");
+    expect(notes).toContain("Excl. VAT — placeholder pending Rob");
   });
 });

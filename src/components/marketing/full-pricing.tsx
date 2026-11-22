@@ -12,12 +12,12 @@ const faqs = [
   {
     question: "What is the founding member discount?",
     answer:
-      "Founding cohort members receive a founding member discount on the subscription price confirmed before billing goes live. The amount stays marked [ROB TO CONFIRM] until supplied.",
+      "The founding discount is 25%. The proposal is to apply it from month 2 after a full-price first month; timing, duration, end date and combining discounts are for Rob to confirm.",
   },
   {
     question: "How do I get access now?",
     answer:
-      "Existing review accounts can sign in. If you are not signed in yet, apply to the founding cohort or email hello@constructa.co.",
+      "Existing review accounts can sign in. New signup and application collection remain off. The planned inbox is hello@constructa.co, but it is not set up yet.",
   },
   {
     question: "Do I need to install anything?",

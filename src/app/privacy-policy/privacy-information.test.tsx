@@ -28,8 +28,9 @@ describe("privacy information", () => {
         expect(text).toContain("Draft, not yet legally approved");
         expect(html).toMatch(/data-privacy-draft-notice/);
         expect(html).toMatch(/data-privacy-controller/);
-        expect(text).toContain("[ROB TO CONFIRM: legal entity name]");
-        expect(text).toContain("[ROB TO CONFIRM: registered office address]");
+        expect(text).toContain("Constructa is the trading name used for this service.");
+        expect(text).toContain("No company is incorporated yet.");
+        expect(text).not.toContain("[ROB TO CONFIRM: registered office address]");
         expect(text).toContain(
             "This site can include Vercel Web Analytics. When it is on, it counts visits to public pages for signed-out visitors.",
         );

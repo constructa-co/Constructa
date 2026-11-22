@@ -5,7 +5,8 @@ import {
   FOUNDING_COHORT_PRICING_HEADLINE,
   FOUNDING_COHORT_PRICING_LEDE,
   FOUNDING_MEMBER_DISCOUNT_LABEL,
-  STANDARD_MONTHLY_PRICE_BEFORE_DISCOUNT,
+  PRICING_TIERS,
+  PRICING_REVIEW_NOTES,
 } from "@/lib/marketing/founding-cohort-pricing";
 
 type Variant = "standalone" | "embedded";
@@ -37,27 +38,24 @@ export function FoundingCohortPricingPanel({ variant = "standalone" }: { variant
         </h2>
         <p className="text-gray-400 mb-8 max-w-2xl mx-auto">{FOUNDING_COHORT_PRICING_LEDE}</p>
 
-        <div className="mx-auto max-w-xl rounded-2xl border border-white/15 bg-white/5 p-8 text-left">
-          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-300/90 mb-2">
-            {FOUNDING_MEMBER_DISCOUNT_LABEL}
-          </p>
-          <p className="text-2xl font-bold text-white mb-1" data-founding-price-token>
-            {FOUNDING_COHORT_MONTHLY_PRICE}
-          </p>
-          <p className="text-sm text-gray-400 mb-4">
-            Standard price before discount: {STANDARD_MONTHLY_PRICE_BEFORE_DISCOUNT}
-          </p>
-          <p className="text-sm text-gray-400 mb-6">{FOUNDING_COHORT_OPENS_LABEL}</p>
-          <Link
-            href="/apply"
-            className="inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-3 text-sm font-medium text-black hover:bg-gray-100 transition-colors"
-          >
-            Apply to the founding cohort
-          </Link>
-          <p className="mt-4 text-xs text-gray-500">
-            Apply is separate from sign-in. Billing amounts are confirmed with cohort members before
-            any payment is taken.
-          </p>
+        <div className="grid gap-4 text-left md:grid-cols-3" aria-label="Draft GBP pricing tiers">
+          {PRICING_TIERS.map((tier) => (
+            <article key={tier.name} className="rounded-2xl border border-white/15 bg-white/5 p-6">
+              <h3 className="text-xl font-semibold">{tier.name}</h3>
+              <p className="my-3 text-2xl font-bold">{tier.price}<span className="text-sm font-normal"> / month GBP</span></p>
+              <p className="text-sm text-gray-300">{tier.features}</p>
+            </article>
+          ))}
+        </div>
+        <div className="mt-6 rounded-2xl border border-white/15 p-6 text-left">
+          <p className="font-semibold text-emerald-300">{FOUNDING_MEMBER_DISCOUNT_LABEL}</p>
+          <p data-founding-price-token className="mt-2">{FOUNDING_COHORT_MONTHLY_PRICE}</p>
+          <ul className="mt-4 list-disc space-y-3 pl-5 text-sm text-gray-300">
+            {PRICING_REVIEW_NOTES.map((note) => <li key={note}>{note}</li>)}
+          </ul>
+          <p className="mt-4 text-sm text-gray-400">{FOUNDING_COHORT_OPENS_LABEL}</p>
+          <p className="mt-3 text-sm">Signup and payment remain off. Applications are not collected yet.</p>
+          <Link href="/apply" className="mt-4 inline-block underline">View founding cohort information</Link>
         </div>
       </div>
     </section>

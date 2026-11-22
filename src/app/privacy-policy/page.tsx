@@ -8,7 +8,6 @@ import {
   DATA_RIGHTS_EXTRA,
   LEGAL_ENTITY_NAME,
   POLICY_CHANGE_PROCESS,
-  REGISTERED_OFFICE,
 } from "@/lib/marketing/legal-entity-draft";
 
 export const metadata = marketingPageMetadata({
@@ -57,8 +56,8 @@ export default function PrivacyPolicyPage() {
               Who is responsible for your information
             </h2>
             <p data-privacy-controller>
-              {LEGAL_ENTITY_NAME}, {REGISTERED_OFFICE}, is the data controller for the information
-              described on this page. You can contact us about your information at <MailLink />.
+              {LEGAL_ENTITY_NAME} is the trading name used for this service. No company is incorporated yet.
+              The responsible operator details must be confirmed before publication. You can contact us about your information at <MailLink />.
             </p>
           </section>
 

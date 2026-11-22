@@ -8,7 +8,7 @@ Kimi K2.8 Preview returned this page pack in the authorised desktop session; R1 
 **Draft, not yet legally approved.** This page is not legal advice or compliance certification.
 
 ### Who is responsible
-Constructa is operated by [ROB: verified legal entity name], of [ROB: verified registered address]. Contact us about personal information at [ROB: verified working inbox].
+Constructa is the trading name used for this service. No company is incorporated yet. Responsible operator details remain owner-pending before publication. The planned inbox is hello@constructa.co; it is not set up and is not a verified contact route.
 
 ### Information and its use
 The Apply and Contact forms are currently switched off. They do not submit the information entered into them. Account signup is also off in this preview.
@@ -35,7 +35,7 @@ Contact [ROB: verified working inbox] to request access, correction or deletion,
 **Draft, not yet legally approved.**
 
 ### The service
-Constructa is provided by [ROB: verified legal entity name], [ROB: verified registered address]. These terms are between you and [ROB: verified legal entity name]. Questions: [ROB: verified working inbox].
+Constructa is the trading name used for this service. No company is incorporated yet. Responsible operator and contracting-party details remain owner-pending before publication. Planned contact: hello@constructa.co (not set up yet).
 
 ### Using Constructa
 Constructa helps UK construction contractors plan work, build estimates and proposals, and manage project information. You decide what goes into the documents you share with clients. The terms you agree with a client govern that work.
@@ -85,19 +85,19 @@ The current standard terms, phase1-standard-v1, are unchanged. They state that t
 
 We plan to open a founding cohort on 7 December 2026. This is a planned launch date, subject to the release checks and owner approvals.
 
-Founding price: [ROB: numeric founding price]. Currency: [ROB: currency]. Billing: [ROB: billing interval and payment timing]. [ROB: confirmed VAT/tax treatment].
+Currency: GBP. Free: basic utility and 1 quote. Pro: £50 per month. Business: £80 per month.
 
-Founding offer: [ROB: discount amount or percentage], for [ROB: discount duration]. Offer ends [ROB: exact end date and time zone]. [ROB: verified eligibility, included service and offer conditions].
+Proposed feature split, for Rob to confirm: Pro includes the existing brief, estimate, programme and proposal workflow for a single contractor; Business offers a higher quote workload with exact allowances/additional inclusions pending. No team or later-phase feature is promised. Free quote reset period is pending.
 
-This preview takes no payment and sells no subscription. Questions: [ROB: verified working inbox].
+Billing options: monthly, quarterly and annual. CTO proposal for Rob to confirm: quarterly 10% off (£135/£216 upfront); annual 20% off (£480/£768 upfront). 20% is 2.4 months saved; two months free would be 16⅔%, so these are alternatives for Rob to choose, not equivalent claims.
+
+Founding discount: 25%. Proposed interpretation, for Rob to confirm: first month full price, then £37.50 Pro / £60 Business monthly from month 2. No free trial is offered. Founding eligibility, duration, offer end date/time zone and stacking with longer-term discounts remain owner-pending. No combined discount is assumed.
+
+Excl. VAT — placeholder pending Rob confirmation of tax treatment; no company/VAT registration claimed. No checkout, payment or signup. Planned hello@constructa.co is not yet set up.
 
 ## Legal Identity — page body
 
-Constructa is provided by [ROB: verified legal entity name].
-Registered address: [ROB: verified registered address].
-Registration: [ROB: verified registration number and registry, if applicable].
-Business contact: [ROB: verified working inbox].
-[ROB: verified tax/VAT registration details if applicable].
+Trading name: Constructa. No company is incorporated yet. Registered company name, number and address are omitted from the public-page draft; responsible operator and legally required details remain for Rob to confirm before publication. Planned inbox hello@constructa.co is not yet set up.
 
 ## Apply — page body
 
@@ -121,3 +121,6 @@ The Contact form is currently switched off and does not submit information. The 
 - R1 substitutes verified facts and checks the rendered privacy, website terms, domestic terms, pricing, legal identity, Apply and Contact versions against CON009/010/039/051/052/013/053; record exact rendered-version approval before any publication.
 - Signup stays OFF under the settled P0-plus-later-Rob-walkthrough ruling. Testimonials remain removed; no new decision requested. AI monetary activation remains OFF while cost bounds are unverified; #228 AI migration is outside the five-step schema sequence.
 - No publication, route activation, settings, new form collection or schema execution follows from this draft or from sign-in. Preserve each separate approval and existing authority.
+
+## D87/D88/D91 owner update — 22 November
+This revision supersedes old entity, price, currency and inbox questions above. Trading name and tier prices are supplied. The inbox destination is selected but not working; collection remains OFF. Legal review, operator identity, tax treatment, feature/quote allowances, discount interpretation and exact rendered-page approval remain pending. No publication.

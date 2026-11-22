@@ -5,7 +5,6 @@ import {
   GOVERNING_LAW_JURISDICTION,
   LEGAL_ENTITY_NAME,
   LIABILITY_POSITION,
-  REGISTERED_OFFICE,
   SERVICE_AVAILABILITY_POSITION,
 } from "@/lib/marketing/legal-entity-draft";
 
@@ -54,8 +53,8 @@ export default function TermsOfServicePage() {
               The service
             </h2>
             <p data-terms-entity>
-              Constructa is provided by {LEGAL_ENTITY_NAME}, {REGISTERED_OFFICE}. These terms are
-              between you and {LEGAL_ENTITY_NAME}. Questions about these terms: <MailLink />.
+              {LEGAL_ENTITY_NAME} is the trading name used for this service. No company is incorporated yet.
+              The responsible operator and contracting-party details must be confirmed before publication. Questions about these terms: <MailLink />.
             </p>
           </section>
 

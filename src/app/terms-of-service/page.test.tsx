@@ -23,7 +23,8 @@ describe("platform terms of service", () => {
         expect(html).toContain('href="/login"');
         expect(html).toMatch(/data-terms-draft-notice/);
         expect(html).toContain("Draft, not yet legally approved");
-        expect(html).toContain("[ROB TO CONFIRM: legal entity name]");
+        expect(html).toContain("No company is incorporated yet.");
+        expect(html).not.toContain("[ROB TO CONFIRM: registered office address]");
         expect(html).toContain("[ROB TO CONFIRM: governing law and jurisdiction wording]");
         expect(html).not.toMatch(/\bplaceholder\b/i);
     });

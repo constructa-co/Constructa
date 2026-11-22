@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest";
 import FullPricingPage from "./full-pricing";
 
 describe("full profile pricing page", () => {
-  it("does not surface unverified multi-tier prices or testimonial blocks", () => {
+  it("shows approved GBP tiers as unpublished review copy", () => {
     const html = renderToStaticMarkup(<FullPricingPage />);
     expect(html).toContain("Founding cohort pricing");
-    expect(html).not.toMatch(/£\s*(20|40|80)\b/);
+    expect(html).toContain("£50");
+    expect(html).toContain("£80");
+    expect(html).toContain("for Rob to confirm");
     expect(html).not.toMatch(/Paddle|14-day free trial/i);
     expect(html).not.toMatch(/testimonial|<blockquote/i);
   });

@@ -110,6 +110,8 @@ interface ProjectContext {
     proposal_introduction?: string | null;
     /** The job's saved VAT setting. The proposal reads the same field through `vatFor`. */
     is_vat_reverse_charge?: boolean | null;
+    /** Saved programme length from the Programme tab's own calculation. Null when it cannot be stated reliably. */
+    programme_duration?: string | null;
 }
 
 type LoadAdvancedData = () => Promise<{ ok: true; data: AdvancedEstimatingData } | { ok: false; error: string }>;
@@ -971,6 +973,7 @@ export default function EstimateClient({
                 draftPreview={draftPreview}
                 estimate={estimate}
                 lines={lines}
+                programmeDuration={project.programme_duration ?? null}
                 state={state.adjustments}
                 s={s}
                 onToggle={() => store.dispatch({ type: "adjustments/toggle" })}
@@ -1617,12 +1620,13 @@ function LineForm({
 const ADJUSTMENT_ORDER: AdjustmentKey[] = ["prelims", "overhead", "risk", "profit", "discount"];
 
 function TotalCard({
-    summary, draftPreview, estimate, lines, state, s, onToggle, onChange, onSave,
+    summary, draftPreview, estimate, lines, programmeDuration, state, s, onToggle, onChange, onSave,
 }: {
     summary: PriceSummary;
     draftPreview: PriceSummary | null;
     estimate: Estimate | null;
     lines: EstimateLine[];
+    programmeDuration: string | null;
     state: {
         open: boolean;
         status: "idle" | "saving" | "failed";
@@ -1689,6 +1693,13 @@ function TotalCard({
                     <dd className={`text-sm font-semibold ${s.body}`}>{formatGBP(summary.totalIncVat)}</dd>
                 </div>
             </dl>
+
+            {estimate && (
+                <p className={`mt-3 text-sm ${s.muted}`} data-programme-prelims-hint>
+                    {programmeDuration ? `Your saved programme is ${programmeDuration}. ` : ""}
+                    Changing the programme does not change your preliminaries or any price here. If the length of the job changes, check time-related preliminaries such as scaffold hire, welfare, skips and supervision yourself.
+                </p>
+            )}
 
             {estimate && !summary.adjustments.some((a) => a.amount !== 0) && (
                 <p className={`mt-3 text-sm ${s.muted}`}>

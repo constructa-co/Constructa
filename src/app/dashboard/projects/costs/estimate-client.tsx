@@ -104,7 +104,6 @@ interface ProjectContext {
     brief_trade_sections?: unknown;
     payment_schedule?: unknown;
     payment_lock_reason?: string | null;
-    is_vat_reverse_charge?: boolean | null;
     scope_notes?: PricingScopeNotesSource;
     full_scope?: PricingFullScopeSource;
     experience?: PricingExperienceSource | null;

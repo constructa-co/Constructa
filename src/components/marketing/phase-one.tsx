@@ -7,11 +7,7 @@ import { HomeReviewCaptures } from './home-review-captures';
 import { MarketingMobileMenu } from './marketing-mobile-menu';
 import { ProductReviewGuide } from './product-review-guide';
 import { ProductScreenshots } from './product-screenshots';
-import {
-  FOUNDING_COHORT_MONTHLY_PRICE,
-  FOUNDING_MEMBER_DISCOUNT_LABEL,
-  STANDARD_MONTHLY_PRICE_BEFORE_DISCOUNT,
-} from '@/lib/marketing/founding-cohort-pricing';
+import { FoundingCohortPricingPanel } from './founding-cohort-pricing-panel';
 import ui from './phase-one.module.css';
 
 const stages = [
@@ -219,15 +215,7 @@ export function PhaseOnePricing() {
           <Link href="/#questions" className={ui.textLink}>preview questions <ArrowRight size={16} aria-hidden="true" /></Link>
         </p>
       </section>
-      <section className={ui.pageIntro} data-founding-cohort-pricing data-reveal>
-        <p className={ui.eyebrow}>{FOUNDING_MEMBER_DISCOUNT_LABEL}</p>
-        <p className="text-lg font-semibold text-white mb-3">Founding cohort price (draft)</p>
-        <p data-founding-price-token>{FOUNDING_COHORT_MONTHLY_PRICE}</p>
-        <p className="text-sm text-gray-400 mt-2">
-          Before discount: {STANDARD_MONTHLY_PRICE_BEFORE_DISCOUNT}. Amounts are confirmed before billing
-          goes live. This preview does not take a payment.
-        </p>
-      </section>
+      <FoundingCohortPricingPanel />
     </div>
   );
 }

@@ -42,7 +42,7 @@ export default function TermsOfServicePage() {
             Draft, not yet legally approved
           </h2>
           <p className="text-sm text-amber-100/90">
-            Expanded UK SaaS structure for review. Bracketed facts require confirmation before these
+            Expanded UK SaaS structure for review. The planned inbox hello@constructa.co is not set up yet. Bracketed facts require confirmation before these
             terms are relied on or published as final. This is not legal advice.
           </p>
         </div>

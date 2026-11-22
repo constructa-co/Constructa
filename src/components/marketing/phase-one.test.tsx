@@ -160,7 +160,7 @@ describe('phase-one marketing integration', () => {
     expect(html).not.toContain('AI-powered construction management');
   });
 
-  it('does not invent a price, free trial, payment link or paid entitlement', () => {
+  it('renders Rob-approved draft prices without offering signup, payment or a trial', () => {
     const html = renderToStaticMarkup(<PhaseOnePricing />);
     expect(html).toContain('no subscription, free trial or payment is offered here');
     expect(html).toContain('Preview access remains on hold for new accounts');
@@ -168,7 +168,11 @@ describe('phase-one marketing integration', () => {
     expect(html).toContain('Sign in with your review account');
     expect(html).toContain('href="/contact"');
     expect(html).not.toContain('Open Constructa');
-    expect(html).not.toMatch(/£|<form|<button|href="https?:/);
+    expect(html).not.toMatch(/<form|<button|href="https?:/);
+    expect(html).toContain("£50");
+    expect(html).toContain("£80");
+    expect(html).toContain("Free");
+    expect(html).toContain("for Rob to confirm");
     expect(html).not.toContain('14-day');
   });
 

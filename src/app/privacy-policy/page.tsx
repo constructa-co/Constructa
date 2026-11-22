@@ -45,7 +45,7 @@ export default function PrivacyPolicyPage() {
           </h2>
           <p className="text-sm text-amber-100/90">
             This label is not legal approval of this notice. This page is not a marketing publication
-            and is not presented as compliance certification. Bracketed facts must be confirmed
+            and is not presented as compliance certification. The planned inbox hello@constructa.co is not set up yet. Bracketed facts must be confirmed
             before this draft is relied on or published as final.
           </p>
         </div>

@@ -1,7 +1,7 @@
 /** D91: Rob's GBP prices; discount timing, billing and tier features remain review proposals. */
 export const FOUNDING_COHORT_OPENS_LABEL = "Founding cohort opens 7 December 2026";
 export const FOUNDING_MEMBER_DISCOUNT_LABEL = "Founding member discount: 25% off";
-export const FOUNDING_COHORT_MONTHLY_PRICE = "Pro £50 / Business £80 per month (GBP)";
+export const FOUNDING_COHORT_MONTHLY_PRICE = "Standard monthly prices before discount: Pro £50 / Business £80 (GBP)";
 export const STANDARD_MONTHLY_PRICE_BEFORE_DISCOUNT = "Pro £50 / Business £80 per month (GBP)";
 export const FOUNDING_COHORT_PRICING_HEADLINE = "Founding cohort pricing";
 export const FOUNDING_COHORT_PRICING_LEDE = "Review draft only. Free basic utility and 1 quote, with paid tiers at £50 and £80 per month. This preview does not take a payment, sell a subscription or offer a free trial.";

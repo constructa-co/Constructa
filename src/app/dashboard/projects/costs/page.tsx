@@ -6,6 +6,7 @@ import ProjectEntry from "@/components/project-entry";
 import ProjectEmptyState from "@/components/project-empty-state";
 import EstimateClient from "./estimate-client";
 import { toEstimate } from "./estimate-mapping";
+import { savedProgrammeDuration } from "@/lib/saved-programme-duration";
 import { getPrecontractEditLockReason } from "@/lib/project-editability";
 import { loadPricingExperienceSource } from "@/lib/server/pricing-experience";
 import { jobAssistantReadiness } from "@/lib/server/job-assistant-transport";
@@ -39,10 +40,11 @@ export default async function EstimatingPage(props: { searchParams: Promise<{ pr
         return <ProjectEmptyState kind={jobs.length ? "missing-id" : "no-jobs"} stepLabel="Estimating" projects={jobs} path="/dashboard/projects/costs" />;
     }
 
-    // Fetch active project
+    // Read the existing row so optional saved-calendar fields do not become
+    // required columns on older targets. Client props remain explicitly whitelisted below.
     const { data: project } = await supabase
         .from("projects")
-        .select("id, user_id, name, client_name, brief_scope, brief_trade_sections, payment_schedule, status, is_archived, proposal_status, proposal_accepted_at, exclusions_text, clarifications_text, contract_exclusions, contract_clarifications, proposal_introduction, scope_text, selected_case_study_ids")
+        .select("*")
         .eq("id", activeProjectId)
         .single();
 
@@ -79,6 +81,8 @@ export default async function EstimatingPage(props: { searchParams: Promise<{ pr
                     brief_trade_sections: project.brief_trade_sections ?? [],
                     payment_schedule: project.payment_schedule ?? null,
                     proposal_introduction: project.proposal_introduction ?? null,
+                    is_vat_reverse_charge: project.is_vat_reverse_charge ?? null,
+                    programme_duration: savedProgrammeDuration(project),
                     experience,
                     full_scope: { scope_text: project.scope_text ?? null, brief_scope: project.brief_scope ?? null },
                     payment_lock_reason: getPrecontractEditLockReason(project),

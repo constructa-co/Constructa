@@ -1,5 +1,14 @@
 # Cursor change log
 
+## 2026-11-23 — D101 PR #222 normal main integration (`codex/d59-con044-exact-main`)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| Costing conflict files | merge | Main VAT/BoQ + D36 markup note retained | CON-044 planner draft untouched |
+| `e2e/support/journey-data.ts` (+ test, D78) | on_net oracle | D78 browser parity after main merge | No weakened asserts |
+
+**Checks:** Cloud Node 24 suite on merge head; hosted CI pending PR #222 push.
+
 ## 2026-11-20 — D68 approved schema sequence (CI fixture replay)
 
 | File | Lines (approx.) | Change | Intent |
@@ -75,6 +84,48 @@
 | `docs/delivery/2026-11-20/approved-176-integration.md` | rollback § | Safer rollback semantics | No blind column drop / old app |
 
 **Checks:** NOT RUN (source-only lane; R1 owns git commit, CI, Sonnet, preview).
+
+## 2026-11-21 — D81 CON-012 profile isolation (ephemeral replay, draft unverified in CI)
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `e2e/d81-profile-isolation.qa.ts` | (new) | Two seeded accounts: onboarding + profile phone save/reload; cross-account DB read; JWT RLS probe | Real browser/DB proof for profile prefill/save isolation on loopback only |
+| `scripts/ephemeral-replay/seed-d81-profile-isolation.mjs` | (new) | Seed alpha/beta synthetic auth when `E2E_D81_PROFILE_ISOLATION=1` | Disposable identities after guarded `db reset` |
+| `e2e/support/ephemeral-replay-env.ts` | ~15–20 | `D81_PROFILE_*` email/password constants | Labelled replay identities |
+| `e2e/support/backend.ts` | ~56–130 | `savedProfileFields`, `syntheticUserIdByEmail`, `clientProfileIsolationProbe` | Read-only verification without widening admin usage |
+| `playwright.d38-ephemeral-replay.config.ts` | `testMatch` | Include D81 spec | Same harness as D38/D78 |
+| `scripts/ephemeral-replay/d38-ephemeral-browser.sh` | seed block | Conditional D81 seed | No seed without env flag |
+| `.github/workflows/d38-con-browser-replay.yml` | `paths`, `env` | Trigger on D81; set `E2E_D81_PROFILE_ISOLATION` | CI orchestration |
+| `e2e/D81-PROFILE-ISOLATION.md` | (new) | Scope/limitations note | R1 handoff |
+
+**Checks:** NOT RUN locally (CI-only). Does not claim P0 closed or hosted QA.
+
+## 2026-11-21 — D78 founding-user browser journey on the disposable replay stack (draft, unverified in CI)
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `e2e/d78-founding-journey.qa.ts` | (new) | Synthetic signup → company setup → project → brief → estimate → programme → proposal review → pre-send PDF download | Finish the D38 ephemeral harness into the founding journey; publishes and emails nothing |
+| `playwright.d38-ephemeral-replay.config.ts` | `testMatch` | Also matches the D78 spec | Reuse the existing local-only config, stubs and guards |
+| `.github/workflows/d38-con-browser-replay.yml` | `paths` | Trigger on the D78 spec and `e2e/support/**` | Existing disposable CI job runs the journey |
+| `e2e/support/backend.ts` | `publicationRecords` | Optional `env` argument | Read publications from the ephemeral stack, not only the hosted disposable project |
+| `e2e/support/journey-data.ts` | `expectedProgramme` | Optional fixed Monday | Keep expected dates clear of UK bank holidays that the programme now skips |
+## 2026-11-21 — D79 marketing a11y + speed (read-only CI)
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `e2e/readonly-marketing-audit/audit-harness.mjs` | new | Shared GET/HEAD guards, blocked hosts/paths, `createGuardedBrowserContext` | D79 reuses D69 write guards without duplicating policy |
+| `e2e/readonly-marketing-audit/run-production-marketing-a11y.mjs` | new | Playwright + axe WCAG 2.x tags; fail on serious/critical | Production a11y evidence |
+| `e2e/readonly-marketing-audit/run-production-marketing-lighthouse.mjs` | new | Lighthouse mobile+desktop per sitemap URL; metrics/opportunities as lab baseline, no invented score gate | Speed + a11y scores without form interaction |
+| `.github/workflows/marketing-a11y-speed-audit.yml` | new | Read-only PR job including drafts; `CONSTRUCTA_MARKETING_AUDIT_ORIGIN`; artifacts | Guarded GET/HEAD baseline; separate hosted write journey stays draft-blocked |
+| `package.json` / `package-lock.json` | devDeps | Pin `lighthouse@12.8.2`, `chrome-launcher@1.2.1` | Node 24 CI install |
+| `src/components/public-chrome.tsx` | 19–66 | Skip link + `#public-marketing-content` on all marketing profiles | WCAG bypass on full launch profile |
+| `src/components/Header.tsx` | logo/nav | `aria-label` on home + main nav; `text-gray-400` links | Contrast + discernible name (full profile) |
+| `src/components/marketing/phase-one.test.tsx` | ~288 | Full profile expects skip + focusable main | Match a11y chrome |
+| `readonlyaudit/README.md` | header | D79 artifact names | Handoff |
+| `docs/delivery/2026-11-21/d79-marketing-a11y-speed.md` | new | Bounded delivery note | R1 / PR context |
+
+**Checks:** NOT RUN locally (D79 lane). Validation is GitHub Actions; current-production axe findings remain an explicitly advisory baseline until the deployed fixes are rescanned.
+
 ## 2026-11-21 — D69 read-only production marketing audit (CI only)
 
 | File | Lines (approx.) | Change | Intent |
@@ -538,6 +589,48 @@
 | `src/app/dashboard/projects/proposal/review-send-client.test.ts` | new `it` | SSR guard: email opt-in unchecked by default | Focused D38 regression |
 | `src/lib/proposal-review.test.ts` | new `it` | `sendProposal` with `deliverByEmail: false` | Controller still publishes link-only delivery |
 | `e2e/phase1-journey.spec.ts` | `publish()` helper | `{ emailClient: true }` opts in before send | Preserve mocked email journey when explicitly requested |
+
+## 2026-11-15 — D38 ephemeral hardening (post-8624f49, pre-PR)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `scripts/ephemeral-replay/parse-supabase-status-env.sh` | (new) Whitelist parse of `supabase status -o env`; no eval; no value logging | CI/local safety |
+| `scripts/ephemeral-replay/guards.sh` | DB URL, link, Vercel, return-based failures | Local-only reset; guards testable |
+| `scripts/test-ephemeral-replay-guards.sh` | (new) Shell validation | `npm run test:ephemeral-replay-guards` |
+| `scripts/ephemeral-replay/d38-ephemeral-browser.sh` | Parse before reset; loopback DB_URL guard | Explicit local reset |
+| `.github/workflows/d38-con-browser-replay.yml` | Chromium `--with-deps`; guard step | Clean Ubuntu CI |
+| `src/lib/deployment/supabase-target.mjs` | Loopback forbidden in preview/E2E/Vercel | Test-only loopback |
+| `playwright.d38-ephemeral-replay.config.ts` | `browserName: chromium` | CI browser install match |
+
+## 2026-11-15 — D38 ephemeral Supabase browser replay (continuation on cursor/constructa-d38-con-001-002-browser-reproduction-bd36)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/deployment/supabase-target.mjs` | context + URL + compiled | `e2e-replay` context; loopback `:54321` API URL; allow empty `.supabase.co` refs in bundle | Build/start guard for ephemeral CLI stack |
+| `src/lib/deployment/supabase-target.test.ts` | tests | Ephemeral loopback pass/fail cases | Regression |
+| `e2e/support/ephemeral-replay-env.ts` | (new) | Fail-closed env; no hosted credentials | D38 ephemeral harness |
+| `e2e/support/ephemeral-replay-env.test.ts` | (new) | Unit tests | |
+| `e2e/support/ephemeral-replay-global-setup.ts` | (new) | Local auth health; no production in build | |
+| `playwright.d38-ephemeral-replay.config.ts` | (new) | Playwright + `e2e-replay` server env | |
+| `e2e/d38-con-001-002-browser.qa.ts` | auth steps | Ephemeral sign-up/seed + hosted QA dual mode | No hosted secrets on ephemeral path |
+| `e2e/support/backend.ts` | admin | Allow loopback ephemeral replay read-back | |
+| `scripts/ephemeral-replay/*` | (new) | Guards, seed auth, orchestrator | Runnable local/CI startup |
+| `supabase/config.toml` | (new) | Local CLI project id `ephemeralreplay00001` | Ephemeral stack |
+| `.github/workflows/d38-con-browser-replay.yml` | (new) | CI job without E2E secrets | CI-only browser when Docker present |
+| `docs/temp-files/d38-ephemeral-ci-execution-plan.md` | (new) | Blocker + steps | Agent VM without Docker |
+| `package.json` | scripts | `e2e:d38-ephemeral-replay` | |
+
+## 2026-11-15 — D38 CON-001 / CON-002 browser reproduction (cursor/constructa-d38-con-001-002-browser-reproduction-bd36)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `scripts/verify-phase1-smoke.sql` | ~157–182 | PR #170 `save_phase1_brief` RPC + persistence EXISTS check before publication smoke | CON-002 SQL replay; prior disposable assertions unchanged |
+| `e2e/support/backend.ts` | ~156–188 | `savedProjectBrief` read-back helper | Mirror SQL read-back after browser save |
+| `e2e/d38-con-001-002-browser.qa.ts` | (new) | Hosted Playwright: QA sign-in, new project, brief save, reload, DB check | CON-001/002 browser reproduction |
+| `playwright.d38-con-brief-persistence.config.ts` | (new) | Single-project harness reusing no-publish global setup | Isolated from full journey matrix |
+| `e2e/D38-CON-BRIEF-PERSISTENCE.md` | (new) | Operator prerequisites and honest limits | Evidence handoff |
+| `docs/temp-files/d38-con-001-002-browser-evidence.md` | (new) | Green/red table for this agent run | Honest environment limits |
+| `package.json` | scripts | `e2e:d38-con-brief-persistence` | Discoverable entry command |
 
 ## 2026-11-15 — D38 CON-004 BLOCK #171 follow-up (cursor/constructa-d38-con-004-b37b)
 
@@ -1089,3 +1182,9 @@ Base branch: `origin/cq/cq-0105-a001-initialize-kit-primary` (includes `5d73ebc`
 | `src/app/dashboard/projects/schedule/simple-programme-client.tsx` | ~392–395 | Call `router.refresh()` after `router.push` on **Next: Proposal** | Re-fetch the proposal page server props so `programme_working_pattern` saved in Programme is not stale in Review & Send |
 | `src/app/dashboard/projects/schedule/simple-programme-workspace.test.tsx` | hoisted router mock, new test | Assert push + refresh on **Next: Proposal** | Lock the navigation seam after saved weekend working days |
 | `src/app/dashboard/projects/proposal/review-send-client.test.ts` | new test | All-week pattern shows Sunday 15 Nov finish in programme section | Prove production Review & Send uses saved pattern, not default Mon–Fri |
+
+D78 R1: actual disposable journey reached estimating and found first-line save refused because explicit is_client_boq selection names an optional column absent from committed replay migrations. Read available estimate columns while retaining BoQ protection when present; focused missing-column regression covers new/existing estimates. No SQL/schema changes. Prior signup/brief and D38 persistence passed; full journey requires fresh CI.
+
+## 22 November — D92/D94 combined contractor critique
+
+Sonnet source critique plus independently reproduced pricing mismatch, top-down contractor pricing and programme metric maps, graded findings and reuse recommendations. Only must-fix is held schema draft #238. No new original-Grok closure or runtime/release claims. Existing detailed programme features explicitly reused rather than rebuilt.

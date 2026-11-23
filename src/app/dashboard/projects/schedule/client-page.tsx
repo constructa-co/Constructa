@@ -107,7 +107,7 @@ interface Props {
 // ─── Constants ──────────────────────────────────────────────────────────────
 // Colour says something about a stage, not which row it sits on. Tones reuse
 // facts the planner already shows (saved % complete, the "Check days" flag) and
-// add no new status rule; the critical-path ring is separate. The hex values are
+// add no new status rule; the final-week star marker is separate (not CPM). The hex values are
 // the programme sage tokens (--overview-bar dark/light, --overview-bar-ink in
 // programme.module.css), written as literal classes so Tailwind generates them.
 type ActivityTone = "planned" | "complete" | "check";
@@ -544,8 +544,8 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
     const projectEnd    = displayPlan ? new Date(displayPlan.end_date + "T00:00:00") : addDays(gridStart, totalDays);
     const totalHeight   = phases.length * ROW_H;
 
-    // Critical path: phases ending within the last calendar week
-    const criticalSet = (() => {
+    // Final-week marker heuristic (not critical-path method): any phase whose calendar end is in the last 7 days of the axis.
+    const finalWeekMarkerSet = (() => {
         const s = new Set<number>();
         phases.forEach((p, i) => {
             const span = phaseSpan(p);
@@ -951,7 +951,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                             ))}
                         </span>
                     )}
-                    {criticalSet.size > 0 && <span className="text-yellow-500/80">★ Critical path</span>}
+                    {finalWeekMarkerSet.size > 0 && <span className="text-yellow-500/80">★ Finishing in the final week</span>}
                     {phases.some((p) => (p.dependsOn || []).length > 0) && (
                         <span className="text-amber-500/70">⟶ Dependencies shown</span>
                     )}
@@ -1004,7 +1004,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                     phases={phases}
                     displayPlan={displayPlan}
                     reviewStages={reviewStages}
-                    criticalSet={criticalSet}
+                    finalWeekMarkerSet={finalWeekMarkerSet}
                     toneOf={toneOf}
                 />
             )}
@@ -1063,7 +1063,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                                 const displayStage = displayPlan?.stages[idx];
                                 const phaseStart = displayStage ? new Date(displayStage.start_date + "T00:00:00") : addDays(programmeStart, phase.startOffset);
                                 const phaseEnd   = displayStage ? new Date(displayStage.end_date + "T00:00:00") : addDays(programmeStart, phase.startOffset + calDur);
-                                const isCritical = criticalSet.has(idx);
+                                const isFinalWeek = finalWeekMarkerSet.has(idx);
                                 const tone       = toneOf(phase, idx);
                                 const predIdx    = phase.dependsOn?.[0];
 
@@ -1073,7 +1073,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                                         {/* Name + dates */}
                                         <div className="w-[216px] px-3 flex flex-col justify-center border-r border-slate-700/30">
                                             <div className="flex items-center gap-1.5">
-                                                <div className={`w-2 h-2 rounded-full shrink-0 ${tone.dot}${isCritical ? " ring-1 ring-offset-1 ring-offset-slate-900 ring-yellow-400" : ""}`} />
+                                                <div className={`w-2 h-2 rounded-full shrink-0 ${tone.dot}${isFinalWeek ? " ring-1 ring-offset-1 ring-offset-slate-900 ring-yellow-400" : ""}`} />
                                                 <input
                                                     className="flex-1 min-w-0 font-medium text-sm text-slate-100 bg-transparent border-b border-transparent hover:border-slate-600 focus:border-slate-500 outline-none truncate"
                                                     value={phase.name}
@@ -1087,7 +1087,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                                             <div className="hidden lg:flex text-[9px] text-slate-400 pl-[14px] mt-0.5 items-center gap-1.5">
                                                 <span>{fmtDate(phaseStart)} – {fmtDate(phaseEnd)}</span>
                                                 {phase.manhours > 0 && <span>· {Math.round(phase.manhours)}h</span>}
-                                                {isCritical && <span className="text-yellow-500">★</span>}
+                                                {isFinalWeek && <span className="text-yellow-500">★</span>}
                                                 {reviewStages.includes(idx) && <span data-planner-review-flag className="text-amber-400 font-semibold">Check days</span>}
                                             </div>
                                         </div>
@@ -1210,7 +1210,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                                 const barLeftPct  = (barSpans[idx].startOffset / axisDays) * 100;
                                 const barWidthPct = (barSpans[idx].calendarDays / axisDays) * 100;
                                 const tone        = toneOf(phase, idx);
-                                const isCritical  = criticalSet.has(idx);
+                                const isFinalWeek  = finalWeekMarkerSet.has(idx);
                                 const isActive    = isDragging && dragStateRef.current?.phaseIndex === idx;
 
                                 return (
@@ -1227,7 +1227,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                                         <div data-planner-duration={idx} className={[
                                             "relative h-full w-full min-w-0 rounded-md overflow-hidden",
                                             tone.bar,
-                                            isCritical ? "ring-2 ring-yellow-400 ring-offset-1 ring-offset-slate-900" : "",
+                                            isFinalWeek ? "ring-2 ring-yellow-400 ring-offset-1 ring-offset-slate-900" : "",
                                             isActive ? "opacity-80 shadow-xl" : "opacity-90 hover:opacity-100 shadow-sm",
                                         ].join(" ")}>
                                             {/* % complete overlay */}
@@ -1278,7 +1278,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                     </button>
                     <div className="flex items-center gap-3">
                         <p className="text-[11px] text-slate-400">
-                            Days = working days ({daysPerWeek}d/wk). Coloured bar = calendar span; ticks and grips are controls, not extra days. ★ = critical path.
+                            Days = working days ({daysPerWeek}d/wk). Coloured bar = calendar span; ticks and grips are controls, not extra days. ★ = finishing in the final week.
                         </p>
                         <button
                             type="button"
@@ -1312,13 +1312,13 @@ function PlannerPhonePhaseList({
     phases,
     displayPlan,
     reviewStages,
-    criticalSet,
+    finalWeekMarkerSet,
     toneOf,
 }: {
     phases: Phase[];
     displayPlan: NonNullable<ReturnType<typeof plannerDisplayPlan>>;
     reviewStages: number[];
-    criticalSet: Set<number>;
+    finalWeekMarkerSet: Set<number>;
     toneOf: (phase: Phase, index: number) => (typeof ACTIVITY_TONES)[ActivityTone];
 }) {
     return (
@@ -1340,7 +1340,7 @@ function PlannerPhonePhaseList({
                             <div className="flex items-center gap-2 min-w-0">
                                 <span className={`h-2 w-2 rounded-full shrink-0 ${tone.dot}`} aria-hidden="true" />
                                 <span className="text-sm font-semibold text-slate-100 break-words">{phase.name}</span>
-                                {criticalSet.has(idx) && <span className="text-yellow-500 text-xs" aria-hidden="true">★</span>}
+                                {finalWeekMarkerSet.has(idx) && <span className="text-yellow-500 text-xs" aria-hidden="true">★</span>}
                                 {reviewStages.includes(idx) && (
                                     <span data-planner-review-flag className="text-amber-400 text-xs font-semibold">Check days</span>
                                 )}

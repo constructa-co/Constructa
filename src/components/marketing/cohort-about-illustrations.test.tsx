@@ -68,7 +68,7 @@ describe('About illustration panels without AI-generated people (cohort + full)'
     '%s shows the verified programme capture in the built-by panel with its synthetic disclosure',
     (_profile, markup) => {
       const html = markup();
-      const panel = sectionContaining(html, 'Built by people who know the job');
+      const panel = sectionContaining(html, 'Built around your own judgement');
       expect(panel).toContain(aboutCaptures.programmeSavedStages.sourcePath);
       expect(panel).toContain('synthetic journey fixture capture from 15 November 2026');
       expect(panel).toContain('made-up job');
@@ -86,12 +86,11 @@ describe('About illustration panels without AI-generated people (cohort + full)'
     expect(panel).not.toContain('data-next-image');
   });
 
-  it.each(renderers)('%s keeps the founder quote without a portrait figure', (_profile, markup) => {
+  it.each(renderers)('%s excludes unsupported founder history and attributed quotes', (_profile, markup) => {
     const html = markup();
-    expect(html).toContain('A message from the founder');
-    expect(html).toContain('— Robert Smith');
-    const founderSection = html.split('A message from the founder')[1] ?? '';
-    expect(founderSection.split('Why now?')[0]).not.toContain('<img');
+    expect(html).not.toContain('A message from the founder');
+    expect(html).not.toContain('— Robert Smith');
+    expect(html).not.toMatch(/25 years|spent decades/);
   });
 
   it.each(renderers)('%s captions the real review capture as a synthetic journey fixture', (_profile, markup) => {

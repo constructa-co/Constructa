@@ -27,13 +27,17 @@ beforeEach(() => {
 
 describe("saved Brief activity source on the actual pricing page", () => {
     it("passes the current job's exact saved names using the same project read", async () => {
+        db.tables.projects[0].proposal_token = "synthetic-not-a-real-token";
         const result = await EstimatingPage({ searchParams: Promise.resolve({ projectId: "a" }) });
         const project = dashboardRouteShellBody(result).props.project;
         expect(project.brief_trade_sections).toEqual(["Protect kitchen", "Strip out cupboards"]);
         expect(project.brief_scope).toBe("Saved work");
         expect(projections).toHaveLength(2);
         expect(projections[0]).toBe("id, name");
-        expect(projections[1].split(", ")).toContain("brief_trade_sections");
+        // An existing-row wildcard also includes saved Brief fields; client props remain whitelisted.
+        const fields = projections[1].split(", ");
+        expect(fields.includes("*") || fields.includes("brief_trade_sections")).toBe(true);
+        expect(project).not.toHaveProperty("proposal_token");
         expect(db.updates).toEqual([]); expect(db.rpcCalls).toEqual([]);
     });
 

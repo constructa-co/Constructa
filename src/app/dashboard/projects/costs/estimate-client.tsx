@@ -9,6 +9,7 @@ import { newClientId } from "@/lib/client-id";
 import { useReducerStore } from "@/lib/use-reducer-store";
 import { workspaceStyles, type WorkspaceStyles } from "@/lib/workspace-styles";
 import { splitScope } from "@/lib/guided-brief";
+import { vatFor } from "@/lib/proposal-review";
 import {
     ADJUSTMENT_HELP,
     EMPTY_PRICE_LINE_DRAFT,
@@ -108,6 +109,10 @@ interface ProjectContext {
     full_scope?: PricingFullScopeSource;
     experience?: PricingExperienceSource | null;
     proposal_introduction?: string | null;
+    /** The job's saved VAT setting. The proposal reads the same field through `vatFor`. */
+    is_vat_reverse_charge?: boolean | null;
+    /** Saved programme length from the Programme tab's own calculation. Null when it cannot be stated reliably. */
+    programme_duration?: string | null;
 }
 
 type LoadAdvancedData = () => Promise<{ ok: true; data: AdvancedEstimatingData } | { ok: false; error: string }>;
@@ -157,7 +162,8 @@ export default function EstimateClient({
     );
     const estimate = currentEstimate(state);
     const lines = useMemo(() => estimate?.estimate_lines ?? [], [estimate]);
-    const summary = useMemo(() => summarisePrice(estimate, lines), [estimate, lines]);
+    const vatTreatment = useMemo(() => vatFor({ is_vat_reverse_charge: project.is_vat_reverse_charge }), [project.is_vat_reverse_charge]);
+    const summary = useMemo(() => summarisePrice(estimate, lines, vatTreatment), [estimate, lines, vatTreatment]);
     const [advancedRunningDraft, setAdvancedRunningDraft] = useState<AdvancedRunningTotalDraft | null>(null);
     const [highDiscountConfirm, setHighDiscountConfirm] = useState<{
         discountPct: number;
@@ -344,8 +350,9 @@ export default function EstimateClient({
                 advanced: state.advancedOpen ? advancedRunningDraft : null,
                 catalogueContextToken,
                 refusePreview: refuseDraftPreview,
+                vatTreatment,
             }),
-        [state, advancedRunningDraft, catalogueContextToken, refuseDraftPreview],
+        [state, advancedRunningDraft, catalogueContextToken, refuseDraftPreview, vatTreatment],
     );
     useEffect(() => {
         if (!state.advancedOpen) setAdvancedRunningDraft(null);
@@ -704,6 +711,7 @@ export default function EstimateClient({
                                         setActiveTab={selectEstimate}
                                         costLibrary={advanced.data.costLibrary}
                                         projectId={project.id}
+                                        isVatReverseCharge={project.is_vat_reverse_charge}
                                         orgId={advanced.data.orgId}
                                         rateBuildups={advanced.data.rateBuildups}
                                         labourRates={advanced.data.labourRates}
@@ -966,6 +974,7 @@ export default function EstimateClient({
                 draftPreview={draftPreview}
                 estimate={estimate}
                 lines={lines}
+                programmeDuration={project.programme_duration ?? null}
                 state={state.adjustments}
                 s={s}
                 onToggle={() => store.dispatch({ type: "adjustments/toggle" })}
@@ -1612,12 +1621,13 @@ function LineForm({
 const ADJUSTMENT_ORDER: AdjustmentKey[] = ["prelims", "overhead", "risk", "profit", "discount"];
 
 function TotalCard({
-    summary, draftPreview, estimate, lines, state, s, onToggle, onChange, onSave,
+    summary, draftPreview, estimate, lines, programmeDuration, state, s, onToggle, onChange, onSave,
 }: {
     summary: PriceSummary;
     draftPreview: PriceSummary | null;
     estimate: Estimate | null;
     lines: EstimateLine[];
+    programmeDuration: string | null;
     state: {
         open: boolean;
         status: "idle" | "saving" | "failed";
@@ -1676,7 +1686,7 @@ function TotalCard({
                     </div>
                 )}
                 <div className={row}>
-                    <dt className={`text-sm ${s.muted}`}>VAT (20%)</dt>
+                    <dt className={`text-sm ${s.muted}`}>{summary.vatRatePct === 0 ? "VAT (domestic reverse charge, 0%)" : `VAT (${summary.vatRatePct}%)`}</dt>
                     <dd className={`text-sm ${s.muted}`}>{formatGBP(summary.vat)}</dd>
                 </div>
                 <div className={row}>
@@ -1687,6 +1697,12 @@ function TotalCard({
 
             {summary.adjustments.some((a) => a.key === "overhead" || a.key === "risk" || a.key === "profit") && (
                 <p className={`mt-3 text-sm ${s.muted}`} data-markup-method-printed>{MARKUP_METHOD_NOTE[summary.markupMethod]}</p>
+            )}
+            {estimate && (
+                <p className={`mt-3 text-sm ${s.muted}`} data-programme-prelims-hint>
+                    {programmeDuration ? `Your saved programme is ${programmeDuration}. ` : ""}
+                    Changing the programme does not change your preliminaries or any price here. If the length of the job changes, check time-related preliminaries such as scaffold hire, welfare, skips and supervision yourself.
+                </p>
             )}
 
             {estimate && !summary.adjustments.some((a) => a.amount !== 0) && (

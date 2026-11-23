@@ -44,24 +44,39 @@ const round2 = (value: number) => Math.round(value * 100) / 100;
 export const gbp = (value: number) =>
     `£${value.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+export type JourneyMarkupMethod = "on_net" | "compound";
+
+/** Substrings the UI and draft PDF must show for each markup method (no percentages). */
+export const JOURNEY_MARKUP_NOTE: Record<JourneyMarkupMethod, string> = {
+    on_net: "calculated on net construction cost",
+    compound: "compounded: each is calculated on the total before it",
+};
+
 /**
- * Preliminaries are priced as their own line, so no preliminaries percentage
- * applies. Overhead, then risk, then profit are each added on top of the
- * running figure, and VAT is added to the result.
+ * Preliminaries are priced as their own line, so construction cost is direct
+ * lines plus preliminaries. New sign-up defaults to on_net unless `compound`
+ * is passed (legacy coverage in journey-data.test.ts).
  */
-export function expectedPrice() {
-    const lines = PRICE.onePrice.amount + PRICE.measured.quantity * PRICE.measured.rate + PRICE.preliminaries.amount;
-    const overhead = lines * (PRICE.overheadPct / 100);
-    const risk = (lines + overhead) * (PRICE.riskPct / 100);
-    const profit = (lines + overhead + risk) * (PRICE.profitPct / 100);
-    const beforeVat = round2(lines + overhead + risk + profit);
+export function expectedPrice(markupMethod: JourneyMarkupMethod = "on_net") {
+    const construction =
+        PRICE.onePrice.amount + PRICE.measured.quantity * PRICE.measured.rate + PRICE.preliminaries.amount;
+    const overhead = construction * (PRICE.overheadPct / 100);
+    const risk =
+        markupMethod === "on_net"
+            ? construction * (PRICE.riskPct / 100)
+            : (construction + overhead) * (PRICE.riskPct / 100);
+    const profit =
+        markupMethod === "on_net"
+            ? construction * (PRICE.profitPct / 100)
+            : (construction + overhead + risk) * (PRICE.profitPct / 100);
+    const beforeVat = round2(construction + overhead + risk + profit);
     const vat = round2(beforeVat * (PRICE.vatPct / 100));
     // The last payment stage takes the rounding, so the stages add up to the price.
     const deposit = round2(beforeVat * (Number(PAYMENT_STAGES[0].share) / 100));
     return {
         deposit: gbp(deposit),
         balance: gbp(round2(beforeVat - deposit)),
-        lines: gbp(lines),
+        lines: gbp(construction),
         overhead: gbp(round2(overhead)),
         risk: gbp(round2(risk)),
         profit: gbp(round2(profit)),
@@ -113,8 +128,11 @@ function nextWorkingDay(date: Date): Date {
 }
 
 /** A Monday comfortably in the future, with the finish dates the programme must show. */
-export function expectedProgramme(today = new Date()) {
-    const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 28));
+export function expectedProgramme(today = new Date(), fixedMonday?: string) {
+    // A fixed Monday lets a run avoid UK bank holidays, which the programme skips and this helper does not model.
+    const start = fixedMonday
+        ? new Date(`${fixedMonday}T00:00:00Z`)
+        : new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 28));
     while (start.getUTCDay() !== 1) start.setUTCDate(start.getUTCDate() + 1);
     const stagedDays = STAGES.reduce((total, stage) => total + stage.workingDays, 0);
     // Each stage starts on the working day after the one before it finishes.

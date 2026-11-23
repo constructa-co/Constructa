@@ -1,0 +1,76 @@
+name: D38 CON browser ephemeral replay
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/d38-con-browser-replay.yml"
+      - "scripts/ephemeral-replay/**"
+      - "scripts/test-ephemeral-replay-guards.sh"
+      - "scripts/verify-phase1-smoke.sql"
+      - "e2e/d38-con-001-002-browser.qa.ts"
+      - "e2e/d78-founding-journey.qa.ts"
+      - "e2e/d81-profile-isolation.qa.ts"
+      - "e2e/support/**"
+      - "e2e/support/ephemeral-replay-*.ts"
+      - "playwright.d38-ephemeral-replay.config.ts"
+      - "src/lib/deployment/supabase-target.mjs"
+      - "supabase/migrations/**"
+      - "supabase/config.toml"
+
+permissions:
+  contents: read
+
+jobs:
+  d38-ephemeral-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: d38-replay
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Prepare disposable source tree without hosted link metadata
+        working-directory: .
+        run: |
+          mkdir d38-replay
+          git archive HEAD | tar --exclude=supabase/.temp -xf - -C d38-replay
+          test ! -e d38-replay/supabase/.temp
+          echo 'D78 archived source; disposable CI only' > d38-replay/.d78-disposable-source
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --engine-strict=false
+
+      - name: Validate ephemeral replay shell guards
+        run: bash scripts/test-ephemeral-replay-guards.sh
+
+      - name: Install Playwright Chromium and system deps
+        run: npx playwright install chromium --with-deps
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.75.0
+
+      - name: Start ephemeral Supabase and run D38 browser test
+        env:
+          SUPABASE_CLI_VERSION: 2.75.0
+          E2E_D38_AUTH: seed
+          E2E_D78_SIGNUP_FIXTURE: "1"
+          E2E_D81_PROFILE_ISOLATION: "1"
+          E2E_EVIDENCE: "0"
+        run: bash scripts/ephemeral-replay/d38-ephemeral-browser.sh
+
+      - name: Preserve disposable journey results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d78-disposable-journey
+          if-no-files-found: warn
+          retention-days: 7
+          path: d38-replay/test-results/d38-ephemeral-replay/**

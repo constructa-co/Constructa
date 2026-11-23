@@ -57,15 +57,15 @@ describe('guides hub and articles', () => {
   it('presents the hub as an editorial index with numbered entries and updated dates', () => {
     const markup = hubMarkup();
     expect(markup).toContain('The review guide');
-    expect(markup.match(/aria-hidden="true">0[1-9]</g)).toHaveLength(6);
-    expect(markup.match(/Review checklist · Updated/g)).toHaveLength(6);
+    expect(markup.match(/aria-hidden="true">0[1-9]</g)).toHaveLength(7);
+    expect(markup.match(/Review checklist · Updated/g)).toHaveLength(7);
     for (const article of GUIDE_ARTICLES) {
       expect(markup).toMatch(
         new RegExp(`<time dateTime="${article.contentUpdatedIso}">${article.contentUpdatedDisplay}</time>`, 'i'),
       );
     }
     const headings = [...markup.matchAll(/<h([1-6])\b/g)].map(match => Number(match[1]));
-    expect(headings).toEqual([1, 2, ...Array(6).fill(3)]);
+    expect(headings).toEqual([1, 2, ...Array(7).fill(3)]);
   });
 
   it('renders each article with navigation, qualifications and preview-access handoff', async () => {
@@ -108,6 +108,7 @@ describe('guides hub and articles', () => {
       { slug: 'programme-review' },
       { slug: 'company-profile' },
       { slug: 'scope-brief' },
+      { slug: 'proposal-review' },
     ]);
   });
 
@@ -129,7 +130,7 @@ describe('guides hub and articles', () => {
   });
 
   it('records transparent attribution and content updated metadata on every article', () => {
-    expect(getAllGuideSlugs()).toHaveLength(6);
+    expect(getAllGuideSlugs()).toHaveLength(7);
     for (const slug of getAllGuideSlugs()) {
       const article = getGuideArticle(slug);
       expect(article).toMatchObject(GUIDE_ARTICLE_ATTRIBUTION);

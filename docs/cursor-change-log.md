@@ -1,5 +1,17 @@
 # Cursor change log
 
+## 2026-11-24 — D103 A063 programme guidance (draft, no persistence)
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `src/lib/planning-conversation.ts` | ~67–118 | `derivePlanningGuidanceFromContext` from saved stages/client/start; read-only prompt strings | Pre-turn milestone/procurement/client context without model output or data writes |
+| `src/app/dashboard/projects/schedule/simple-programme-client.tsx` | useMemo | Build context from saved programme; pass `guidancePrompts` | Programme tab only; no shared A055 assistant changes |
+| `src/components/planning-conversation-panel.tsx` | props + empty state | Optional `guidancePrompts` list before first message | UI for deterministic prompts |
+| `src/lib/planning-conversation.test.ts` | new describe | Coverage for empty/dated programmes | Guard no invented money/dates |
+| `src/components/planning-conversation-panel.test.tsx` | new case | Guidance list renders when assistant available | Static markup proof |
+
+**Checks:** `npm run typecheck`; `vitest` `planning-conversation` + `planning-conversation-panel` tests (cloud). No save/permission/generator changes.
+
 ## 2026-11-21 — D81 CON-012 profile isolation (ephemeral replay, draft unverified in CI)
 
 | File | Lines (approx.) | Change | Intent |

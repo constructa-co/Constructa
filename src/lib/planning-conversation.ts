@@ -65,6 +65,59 @@ export interface PlanningContext {
 }
 
 /** Built from the saved project only. Null when the saved programme cannot be read safely. */
+const PROCUREMENT_STAGE_HINT = /\b(order|supply|deliver|procure|lead[- ]?time|materials?|windows?|kitchen|tiles?|units?)\b/i;
+const CLIENT_STAGE_HINT = /\b(choice|sign[- ]?off|approve|approval|decision|select|confirm|client)\b/i;
+
+/**
+ * Deterministic, read-only prompts from the saved programme — not a fixed
+ * questionnaire and not model output. Shown before the first chat turn.
+ */
+export function derivePlanningGuidanceFromContext(context: PlanningContext): string[] {
+    const prompts: string[] = [];
+    if (context.stages.length === 0) {
+        prompts.push(
+            context.job.client
+                ? `Saved programme for ${context.job.client} has no stages yet. Which milestones and client sign-offs must be clear before you commit procurement lead times?`
+                : "Saved programme has no stages yet. Which milestones and client sign-offs must be clear before you commit procurement lead times?",
+        );
+        if (context.start) {
+            prompts.push(
+                `You have a saved start (${context.start}) but no stages — which programme stages should anchor orders, deliveries and client decisions?`,
+            );
+        }
+        return prompts.slice(0, 4);
+    }
+    const first = context.stages[0]!;
+    const last = context.stages[context.stages.length - 1]!;
+    prompts.push(
+        `First saved stage “${first.name}” (${first.from}–${first.to}): what must be ordered or delivered before it starts, and what lead time is recorded in writing?`,
+    );
+    if (last.name !== first.name) {
+        prompts.push(
+            `Last saved stage “${last.name}” (${last.from}–${last.to}): which client choices or sign-offs must be settled before work reaches this stage?`,
+        );
+    }
+    const procurementStages = context.stages.filter(stage => PROCUREMENT_STAGE_HINT.test(stage.name));
+    if (procurementStages.length > 0) {
+        for (const stage of procurementStages.slice(0, 2)) {
+            prompts.push(
+                `Stage “${stage.name}” may involve lead time — what supplier timing applies, and does ${context.job.client ?? "the client"} need to confirm anything before you order?`,
+            );
+        }
+    } else {
+        prompts.push(
+            "No saved stage name mentions orders or deliveries — which long-lead items still need a stated lead time before you lock the programme?",
+        );
+    }
+    if (context.job.client) {
+        const clientStages = context.stages.filter(stage => CLIENT_STAGE_HINT.test(stage.name));
+        if (clientStages.length === 0) {
+            prompts.push(`Client ${context.job.client}: which decisions from them are still outstanding, and which stage do they gate?`);
+        }
+    }
+    return [...new Set(prompts)].slice(0, 5);
+}
+
 export function buildPlanningContext(project: PlanningProjectFields): PlanningContext | null {
     if (!project || typeof project.id !== "string" || !project.id) return null;
     const pattern = resolveJobWorkingPattern(project.programme_working_pattern);

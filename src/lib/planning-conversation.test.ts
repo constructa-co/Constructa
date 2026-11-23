@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import {
     PLANNING_CHANGED, PLANNING_FAILED, PLANNING_NO_CONTEXT, PLANNING_NOT_USABLE, PLANNING_OFF, PLANNING_OPEN_WORK, PLANNING_STOPPED, PLANNING_TURN_LIMIT,
-    buildPlanningContext, createPlanningConversation, reviewPlanningReply, type PlanningGenerator, type PlanningProjectFields,
+    buildPlanningContext, createPlanningConversation, derivePlanningGuidanceFromContext, reviewPlanningReply, type PlanningGenerator, type PlanningProjectFields,
 } from "./planning-conversation";
 
 const DATED: PlanningProjectFields = {
@@ -80,6 +80,23 @@ describe("planning context comes from the selected job's saved programme only", 
         expect(buildPlanningContext({ id: "job-c", name: "New", programme_phases: null })).toMatchObject({ basis: "none", stages: [] });
         expect(buildPlanningContext({ ...DATED, programme_phases: "broken" as unknown as unknown[] })).toBeNull();
         expect(buildPlanningContext({ ...DATED, programme_working_pattern: { weekdays: [] } })).toBeNull();
+    });
+});
+
+describe("derivePlanningGuidanceFromContext", () => {
+    it("prompts milestones and procurement when no stages are saved", () => {
+        const prompts = derivePlanningGuidanceFromContext(buildPlanningContext({
+            id: "job-empty", name: "Extension", client_name: "Ms Patel", start_date: "2026-11-02", programme_phases: null,
+        })!);
+        expect(prompts.some(text => text.includes("no stages"))).toBe(true);
+        expect(prompts.some(text => text.includes("Ms Patel"))).toBe(true);
+        expect(prompts.some(text => text.includes("saved start"))).toBe(true);
+    });
+    it("names first and last saved stages without inventing lead times", () => {
+        const prompts = derivePlanningGuidanceFromContext(buildPlanningContext(DATED)!);
+        expect(prompts.some(text => text.includes("Groundworks"))).toBe(true);
+        expect(prompts.some(text => text.includes("Kitchen fit"))).toBe(true);
+        expect(prompts.join(" ")).not.toMatch(/£/);
     });
 });
 

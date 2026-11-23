@@ -17,11 +17,18 @@ const project = { id: "job", name: "<b>Job</b>", start_date: "2026-11-02", progr
 function setup(generate?: PlanningGenerator) {
     return createPlanningConversation(() => ({ project, hasOpenWork: false }), generate);
 }
-const view = (session: PlanningConversation, blocked = false) => PlanningConversationPanel({ session, blocked, s: workspaceStyles(true) });
+const view = (session: PlanningConversation, blocked = false, guidancePrompts?: string[]) =>
+    PlanningConversationPanel({ session, blocked, guidancePrompts, s: workspaceStyles(true) });
 const buttons = (tree: unknown) => nodes(tree).filter(node => node.type === "button");
 const text = (node: Element) => renderToStaticMarkup(node);
 
 describe("planning conversation panel", () => {
+    it("lists deterministic guidance before the first turn when prompts are supplied", () => {
+        const html = renderToStaticMarkup(view(setup(vi.fn()), false, ["First saved stage — check lead times."]));
+        expect(html).toContain("From your saved programme");
+        expect(html).toContain("First saved stage");
+    });
+
     it("shows an honest not-enabled state with no form when there is no transport", () => {
         const html = renderToStaticMarkup(view(setup()));
         expect(html).toContain("Not enabled");

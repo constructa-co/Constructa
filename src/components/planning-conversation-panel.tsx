@@ -73,7 +73,7 @@ function AddToProgramme({ suggestion, onAdd, onReload, s, id, acquireAdd, releas
     );
 }
 
-export default function PlanningConversationPanel({ session, blocked, blockedNote, offReason, onAdd, onReload, s }: { session: PlanningConversation; blocked: boolean; blockedNote?: string; offReason?: JobAssistantOffReason | null; /** Present only when this job's saved programme can take a new stage. */ onAdd?: (item: PlanningProgrammeItem) => Promise<AddPlanningItemResult>; /** Reloads the saved programme when an add is refused as stale. */ onReload?: () => void; s: WorkspaceStyles }) {
+export default function PlanningConversationPanel({ session, blocked, blockedNote, offReason, guidancePrompts, onAdd, onReload, s }: { session: PlanningConversation; blocked: boolean; blockedNote?: string; offReason?: JobAssistantOffReason | null; /** Deterministic prompts from the saved programme (A063); not sent to a model. */ guidancePrompts?: string[]; /** Present only when this job's saved programme can take a new stage. */ onAdd?: (item: PlanningProgrammeItem) => Promise<AddPlanningItemResult>; /** Reloads the saved programme when an add is refused as stale. */ onReload?: () => void; s: WorkspaceStyles }) {
     const state = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
     const id = useId();
     const addSending = useRef(false);
@@ -97,6 +97,16 @@ export default function PlanningConversationPanel({ session, blocked, blockedNot
                 ) : (
                     <>
                         <p id={`${id}-help`} className={`text-sm ${s.muted}`}>Uses this job&apos;s saved programme and what you write here. Do not enter passwords or confidential client details. Replies are suggestions to review: they do not change dates or prices, and nothing is sent to your client. Your programme changes only if you choose to add a suggestion to it and confirm the name and length yourself.</p>
+                        {state.messages.length === 0 && guidancePrompts && guidancePrompts.length > 0 && (
+                            <>
+                                <p className={`text-sm font-medium ${s.heading}`}>From your saved programme (for you to answer in your own words)</p>
+                                <ul className={`mt-2 list-disc space-y-2 pl-5 text-sm ${s.muted}`} aria-label="Context-derived planning prompts">
+                                    {guidancePrompts.map(prompt => (
+                                        <li key={prompt}>{prompt}</li>
+                                    ))}
+                                </ul>
+                            </>
+                        )}
                         {state.messages.length > 0 && (
                             <ol aria-label="Planning conversation" className="space-y-3">
                                 {state.messages.map((message, turn) => (

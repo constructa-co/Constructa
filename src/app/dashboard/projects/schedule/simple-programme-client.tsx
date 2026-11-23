@@ -16,7 +16,7 @@ import SaveStatus from "@/components/save-status";
 import ui from "@/components/programme.module.css";
 import { newClientId } from "@/lib/client-id";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
-import { createPlanningConversation, type PlanningGenerator } from "@/lib/planning-conversation";
+import { buildPlanningContext, createPlanningConversation, derivePlanningGuidanceFromContext, type PlanningGenerator } from "@/lib/planning-conversation";
 import { addPlanningItemToProgramme, planningAddBlockReason, type AddPlanningItemResult, type PlanningProgrammeItem } from "@/lib/planning-programme-item";
 import { createPlanningRequestGenerator } from "@/lib/job-assistant-client";
 import { bindProgrammeSave } from "@/lib/programme-save-binding";
@@ -149,6 +149,18 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
         // A different job remounts this page; the session is per job and generator.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [incomingProject.id, planningTransport]);
+    const planningGuidancePrompts = useMemo(() => {
+        const context = buildPlanningContext({
+            id: incomingProject.id,
+            name: incomingProject.name,
+            client_name: incomingProject.client_name,
+            start_date: incomingProject.start_date,
+            programme_phases: incomingProject.programme_phases,
+            programme_working_pattern: incomingProject.programme_working_pattern,
+            region: incomingProject.region,
+        });
+        return context ? derivePlanningGuidanceFromContext(context) : [];
+    }, [incomingProject]);
     useEffect(() => {
         Object.assign(planning.source, { project, hasOpenWork: planningOpenWork });
         planning.session.refresh();
@@ -380,6 +392,7 @@ export default function SimpleProgrammeClient({ project: incomingProject, lockRe
                     />}
                     {!lockReason && inclusion.intent === "include" && detailedSection}
                     {inclusion.intent !== "invalid" && <PlanningConversationPanel session={planning.session} blocked={planningOpenWork || !!lockReason} offReason={planningAssistantOffReason}
+                        guidancePrompts={planningGuidancePrompts}
                         onAdd={planningAddBlocked ? undefined : addPlanningItem}
                         onReload={() => startRefresh(() => router.refresh())}
                         blockedNote={lockReason ? `${lockReason} The planning conversation is not available for this job.` : undefined} s={s} />}

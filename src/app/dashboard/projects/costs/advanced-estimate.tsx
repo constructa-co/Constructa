@@ -46,6 +46,8 @@ interface Props {
     setActiveTab: (estimateId: string) => void;
     costLibrary: CostLibraryItem[];
     projectId: string;
+    /** How VAT is charged on this job, for the priced Excel export. */
+    isVatReverseCharge?: boolean | null;
     orgId: string;
     rateBuildups: RateBuildup[];
     labourRates: LabourRate[];
@@ -138,7 +140,7 @@ function AdvancedLineActivity({ lineId, section, choices, blocked, helpText, rev
 }
 // ─── Main Component ──────────────────────────────────────
 
-export default function AdvancedEstimate({ estimates, setEstimates, activeTab, setActiveTab, costLibrary, projectId, orgId, rateBuildups, labourRates, preferredTrades, resourceSaveStates, onResourceSaveStateChanged, onLineSaveStateChanged, onRunningTotalDraftChange }: Props) {
+export default function AdvancedEstimate({ estimates, setEstimates, activeTab, setActiveTab, costLibrary, projectId, isVatReverseCharge, orgId, rateBuildups, labourRates, preferredTrades, resourceSaveStates, onResourceSaveStateChanged, onLineSaveStateChanged, onRunningTotalDraftChange }: Props) {
     const router = useRouter();
     const showClientBoQImport = isCapabilityEnabled("client-boq-import");
     const showDrawingTakeoff = isCapabilityEnabled("drawing-takeoff");
@@ -1748,7 +1750,7 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                 {showClientBoQImport && (
                                     <button
                                         type="button"
-                                        onClick={() => exportBoQToExcel(currentEstimate)}
+                                        onClick={() => exportBoQToExcel(currentEstimate, { is_vat_reverse_charge: isVatReverseCharge })}
                                         className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors"
                                     >
                                         <FileDown className="w-4 h-4" />

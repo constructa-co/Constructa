@@ -21,6 +21,13 @@ vi.mock('next/navigation', () => ({ usePathname: () => route.pathname, useRouter
 afterEach(() => { vi.unstubAllEnvs(); route.pathname = '/'; });
 
 describe('phase-one marketing integration', () => {
+  it('explains contractor-controlled pricing and time-related prelims without promising automatic repricing', () => {
+    const home = renderToStaticMarkup(<PhaseOneHome />);
+    expect(home).toContain('Your figures stay yours');
+    expect(home).toContain('programme does not automatically reprice them');
+    expect(home).toContain('subject to release approval');
+  });
+
   it('simplifies phase-one navigation to Product, Preview access, About and Guides', () => {
     const html = renderToStaticMarkup(<MarketingHeader />);
     expect(html).toContain('href="/features">Product</a>');
@@ -138,12 +145,12 @@ describe('phase-one marketing integration', () => {
 
   it('introduces the complete work-winning journey without an add-on sales form', () => {
     const html = renderToStaticMarkup(<PhaseOneHome />);
-    expect(html).toContain('Good work.');
-    for (const label of ['Make it your business.', 'Put a price to the work.', 'Give the job a plan.', 'Present the whole picture.']) expect(html).toContain(label);
+    expect(html).toContain('Price the work.');
+    for (const label of ['Scope first.', 'Price the work.', 'Sequence the job.', 'Check the proposal.']) expect(html).toContain(label);
     expect(html).toContain('href="/login"');
     expect(html).toContain('href="/apply"');
     expect(html).toContain('Apply to the founding cohort');
-    expect(html).toContain('Founding cohort opens 7 December 2026.');
+    expect(html).toContain('Founding cohort planned for 7 December 2026, subject to release approval.');
     expect(html).toContain('id="how-it-works"');
     expect(html).toContain('id="questions"');
     expect(html).toContain('id="marketing-content"');

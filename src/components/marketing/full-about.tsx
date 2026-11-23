@@ -37,15 +37,15 @@ export function FullAboutPage() {
           <figcaption className="mt-2 text-sm">{aboutCaptures.programmeSavedStages.caption}</figcaption>
         </figure>
         <div className="text-left">
-          <h2 className="text-2xl md:text-3xl font-semibold mb-4">Built by people who know the job</h2>
+          <h2 className="text-2xl md:text-3xl font-semibold mb-4">Built around your own judgement</h2>
           <p className="text-gray-300 text-lg mb-4">
-            We&apos;ve spent decades quoting jobs, planning programmes, and juggling the chaos of construction—clipboards, emails, spreadsheets, WhatsApp threads, last-minute changes.
+            Constructa is built for small UK contractors who price jobs from their own knowledge: scope, quantities, labour, plant, materials and subcontract rates.
           </p>
           <p className="text-gray-300 text-lg mb-4">
-            Constructa was born out of that reality. Not from a VC boardroom or software incubator—but from site visits, delivery delays, tight margins, and the stress of getting it right.
+            It brings those details together while keeping the judgement with you.
           </p>
           <p className="text-gray-300 text-lg">
-            We&apos;re not building another tool to add to the pile. We&apos;re building the one that ties everything together.
+            Capture the brief and quantities, enter your own rates, and review the proposal before sharing it.
           </p>
         </div>
       </section>
@@ -63,7 +63,7 @@ export function FullAboutPage() {
             <li>And admin takes over</li>
           </ul>
           <p className="text-gray-300 text-lg mt-4">
-            Big software platforms are overkill. Manual systems are high risk. And most tools weren&apos;t built for builders.
+            Check the scope and exclusions as carefully as the total.
           </p>
         </div>
       </section>
@@ -83,37 +83,25 @@ export function FullAboutPage() {
         <div className="text-left">
           <h2 className="text-2xl md:text-3xl font-semibold mb-4">The solution we&apos;re building</h2>
           <p className="text-gray-300 text-lg mb-4">
-            Constructa brings quoting, planning, and delivery into one clean, easy-to-use platform.
+            Include preliminaries, overheads, risk and profit, lay out the work on working days, and review the proposal before sharing it.
           </p>
           <ul className="list-disc list-inside text-gray-400 text-sm space-y-2">
-            <li>Create a clear, client-ready proposal</li>
-            <li>Build a job plan that keeps everyone aligned</li>
-            <li>Track progress and changes without the spreadsheet stress</li>
-            <li>Present a more professional front from day one</li>
+            <li>Review the estimate and draft proposal</li>
+            <li>Review the working days and sequence</li>
+            <li>Check scope, exclusions and quantities</li>
+            <li>Use your own labour, plant, material and subcontract rates</li>
           </ul>
-          <p className="text-gray-300 text-lg mt-4">We&apos;re starting simple. And growing with our users—brick by brick.</p>
+          <p className="text-gray-300 text-lg mt-4">Constructa does not measure quantities from drawings or decide your rates and margins. A programme needs your review against the real site, people and suppliers.</p>
         </div>
       </section>
 
-      <section className="max-w-3xl mx-auto px-4 py-24">
-        <div className="text-left">
-          <h2 className="text-2xl md:text-3xl font-semibold mb-4">A message from the founder</h2>
-          <p className="text-gray-300 text-lg italic mb-4">
-            &quot;After 25 years in construction, I knew there had to be a better way. I&apos;ve seen first-hand how hard it is to manage projects and people while keeping proposals sharp, programmes aligned, and clients happy.
-          </p>
-          <p className="text-gray-300 text-lg italic mb-4">
-            Constructa isn&apos;t just software—it&apos;s a response to everything I wish I&apos;d had earlier in my career. We&apos;re building it with care, with clarity, and with builders front and centre.&quot;
-          </p>
-          <div className="not-italic font-semibold">— Robert Smith</div>
-        </div>
-      </section>
 
       <section className="max-w-6xl mx-auto px-4 py-24">
         <h2 className="text-3xl font-semibold mb-10">Why now?</h2>
         <div className="grid md:grid-cols-3 gap-12 text-gray-300">
           <div className="text-left">
             <h3 className="text-2xl font-semibold mb-2">Small firms are the backbone of the sector</h3>
-            <p>Micro businesses dominate construction—but have few tools built for the way they actually work.</p>
+            <p>Enter the quantities and rates you intend to use.</p>
           </div>
           <div className="text-left">
             <h3 className="text-2xl font-semibold mb-2">Admin eats into every working week</h3>
@@ -121,7 +109,7 @@ export function FullAboutPage() {
           </div>
           <div className="text-left">
             <h3 className="text-2xl font-semibold mb-2">Spreadsheets are still the default</h3>
-            <p>Most general platforms are too complex, and manual systems are high risk.</p>
+            <p>Keep scope, exclusions and totals consistent through your own review.</p>
           </div>
         </div>
       </section>
@@ -133,10 +121,10 @@ export function FullAboutPage() {
             Constructa is in a phase-one review. We are checking the complete work-winning journey before release—it is not currently offered for live customer work.
           </p>
           <p className="text-gray-300 text-lg mb-4">
-            From here, we&apos;re expanding into contracts, resource tracking, client comms, and more.
+            The work-winning journey centres on company, brief, estimate, programme and proposal. Later delivery tools are not promised as ready.
           </p>
           <p className="text-gray-300 text-lg mb-4">
-            Preview access explains what is in scope for this review and what still needs release verification before live use.
+            Access is currently limited to existing review accounts. New signup, payment and enquiry collection remain off.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 pt-2">
             <Link href="/apply" className="bg-white text-black px-4 py-2 rounded font-semibold text-base hover:opacity-90 transition">Apply to the founding cohort →</Link>

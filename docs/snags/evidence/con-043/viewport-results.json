@@ -1,0 +1,32 @@
+[
+  {
+    "width": 360,
+    "pageWidth": 360,
+    "scrollers": [
+      {
+        "width": 358,
+        "content": 900
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "pageWidth": 390,
+    "scrollers": [
+      {
+        "width": 388,
+        "content": 900
+      }
+    ]
+  },
+  {
+    "width": 430,
+    "pageWidth": 430,
+    "scrollers": [
+      {
+        "width": 428,
+        "content": 900
+      }
+    ]
+  }
+]

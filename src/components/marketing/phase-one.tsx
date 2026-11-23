@@ -10,10 +10,10 @@ import { ProductScreenshots } from './product-screenshots';
 import ui from './phase-one.module.css';
 
 const stages = [
-  { number: '01', title: 'Make it your business.', label: 'Company', description: 'Introduce your company, your experience and the work you are proud of. Build a profile you can use again.', detail: 'Company details, your story and case studies.' },
-  { number: '02', title: 'Put a price to the work.', label: 'Estimate', description: 'Describe the job, build your price lines and see how the total comes together. Your scope and your numbers, in one place.', detail: 'One-price items, quantities, rates and adjustments.' },
-  { number: '03', title: 'Give the job a plan.', label: 'Programme', description: 'Set out when the work starts, how long it takes and the stages along the way. Give the client a clearer picture.', detail: 'Start dates, durations and a visual programme.' },
-  { number: '04', title: 'Present the whole picture.', label: 'Proposal', description: 'Bring your business, scope, price, programme and terms together. Check the finished proposal before sharing it.', detail: 'A branded document, a draft PDF and client response options.' },
+  { number: '01', title: 'Scope first.', label: 'Brief', description: 'Write down the work, refer to the drawings and note the quantities before you price anything.', detail: 'Your job brief, scope and quantities.' },
+  { number: '02', title: 'Price the work.', label: 'Estimate', description: 'Use your own labour, materials, plant and subcontract rates. Allow for preliminaries, overheads, risk and profit, then check the total.', detail: 'Quantities × rates; preliminaries as priced lines or a percentage.' },
+  { number: '03', title: 'Sequence the job.', label: 'Programme', description: 'Set working days and the order of work. Adjust durations to suit the site, suppliers and client; use finish-to-start links in the detailed planner.', detail: 'Working calendars, durations and your schedule overrides.' },
+  { number: '04', title: 'Check the proposal.', label: 'Proposal', description: 'Bring your company, scope, price, programme and terms together. Read the whole proposal before sharing it.', detail: 'A branded document and draft PDF; downloading sends nothing.' },
 ] as const;
 
 export function MarketingHeader() {
@@ -90,7 +90,7 @@ function ProposalIllustration() {
 function Journey() {
   return (
     <section id="how-it-works" className={ui.section} data-reveal>
-      <div className={ui.sectionIntro}><p className={ui.eyebrow}>One connected journey</p><h2>Less starting again.<br />More moving forward.</h2><p>From who you are to what you will deliver. Keep the company story, the job and the proposal connected.</p></div>
+      <div className={ui.sectionIntro}><p className={ui.eyebrow}>One connected journey</p><h2>From scope and rates.<br />To a checked proposal.</h2><p>Brief the work, price it with your own figures, set the sequence and check the proposal. Your company story stays alongside the numbers.</p></div>
       <ol className={ui.journey}>
         {stages.map(stage => <li key={stage.number}>
           <div className={ui.stageTop}><span>{stage.number}</span><span>{stage.label}</span></div>
@@ -117,7 +117,8 @@ function Scope({ showAccessLink = true }: { showAccessLink?: boolean }) {
 function Questions() {
   const questions = [
     ['Who is Constructa for?', 'Small and medium construction businesses working for domestic and commercial clients. Your company description and your own work remain the starting point.'],
-    ['Can I use my own prices and company details?', 'Yes. Add your business details and past work, describe the job and enter your price lines. Check the scope, programme and terms for each proposal before sharing it.'],
+    ['Does Constructa price the job for me?', 'No. Use your own labour, materials, plant and subcontract rates. Constructa organises the figures; you check the scope, allowances and total before relying on an estimate.'],
+    ['Does a longer programme update my preliminaries?', 'No. Review time-related costs yourself when dates or durations change. You can price preliminaries as lines or use a percentage; the programme does not automatically reprice them.'],
     ['Is the AI chat assistant available?', 'A contextual assistant for estimating and planning is part of the development work. It is not available as a live chatbot in this preview. Existing assisted-writing controls are separate and depend on their own availability.'],
     ['Can I buy the later-phase tools here?', 'No. This preview focuses on the work-winning journey. Later-phase workflows and commercial plans are not being offered for purchase here.'],
     ['Is this ready for live customer work?', 'This is a pre-release review. Authentication, data handling, commercial terms and the complete proposal journey are being verified before live customer use.'],
@@ -135,7 +136,7 @@ function Invitation() {
         <FoundingCohortApplyLink />
         <SignInLink>Existing account? Sign in</SignInLink>
       </div>
-      <small>Founding cohort opens 7 December 2026. Apply is separate from sign-in. This preview does not take a payment.</small>
+      <small>Founding cohort planned for 7 December 2026, subject to release approval. Apply is separate from sign-in. This preview does not take a payment.</small>
     </section>
   );
 }
@@ -145,14 +146,14 @@ export function PhaseOneHome() {
     <div className={`${ui.theme} ${ui.root}`}>
       <section id="marketing-content" className={ui.hero}>
         <div className={ui.heroCopy}><p className={ui.eyebrow}><span className={ui.dot} /> Made for the way you win work</p>
-          <h1>Good work.<br />Clearly priced.<br /><em>Better presented.</em></h1>
-          <p className={ui.lede}>Give your business the introduction it deserves. Bring your company, your price and your programme into a proposal worth putting your name to.</p>
+          <h1>Price the work.<br />Plan the job.<br /><em>Check the proposal.</em></h1>
+          <p className={ui.lede}>Constructa helps UK contractors organise the scope, quantities and rates behind an estimate, set out a programme and prepare a proposal. Your figures stay yours; you check what goes to the client.</p>
           <div className={ui.actions}>
             <FoundingCohortApplyLink />
             <SignInLink />
             <Link className={ui.textLink} href="#how-it-works">See how it connects <ArrowDown size={17} aria-hidden="true" /></Link>
           </div>
-          <p className={ui.reviewNote}>Founding cohort opens 7 December 2026.</p>
+          <p className={ui.reviewNote}>Founding cohort planned for 7 December 2026, subject to release approval.</p>
           <p className={ui.reviewNote}>Phase one review · Built for domestic and commercial contractors</p>
         </div>
         <ProposalIllustration />
@@ -175,7 +176,7 @@ export function PhaseOneFeatures() {
       <section className={ui.pageIntro} data-reveal>
         <p className={ui.eyebrow}>The phase-one product</p>
         <h1>From first hello.<br /><em>To a considered proposal.</em></h1>
-        <p>One connected work-winning journey. Company profile, brief, price, programme and proposal, with room for your own experience and judgement.</p>
+        <p>Start with your company and the job brief. Build quantities × rates, allow for preliminaries and risk, then set working days and sequence. Review the resulting proposal and draft PDF before sharing anything.</p>
         <p>The contextual assistant is not available as a live chatbot in this preview.</p>
         <div className={ui.actions}>
           <FoundingCohortApplyLink />

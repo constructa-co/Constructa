@@ -51,6 +51,19 @@ describe("full scope editor in actual pricing parent", () => {
         (scopeEditor().props.onWorkChange as (open: boolean) => void)(true);
         expect(JSON.stringify(current.state)).toBe(before); expect(current.other).not.toHaveBeenCalled();
     });
+    it("falls back to brief work in pricing helpers when cleared detailed scope is saved without reload", () => {
+        const editor = scopeEditor();
+        expect(editor.props.onScopeSaved).toBeTypeOf("function");
+        (editor.props.onScopeSaved as (saved: { scope_text: string | null; brief_scope: string }) => void)({
+            scope_text: null,
+            brief_scope: "Prepare walls",
+        });
+        current.cursor = 0;
+        const excerpt = nodes(view()).find(n => n.props["data-brief-excerpt"] as boolean);
+        const work = (excerpt?.props.context as { work: string } | undefined)?.work;
+        expect(work).toBe("Prepare walls");
+        expect(work).not.toBe("Scope");
+    });
     it("uses an independent dirty flag to fence versions and brief draft entry until confirmed/Cancel", () => {
         current.state!.estimates.push({ ...current.state!.estimates[0], id: "second", version_name: "Alternative" });
         const oldVersion = nodes(view()).find(n => n.props.id === "estimate-version")!;

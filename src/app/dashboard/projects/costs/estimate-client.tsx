@@ -361,11 +361,12 @@ export default function EstimateClient({
 
     // A055: the real request path. The server rebuilds the saved job and
     // selected estimate, compares the fingerprint and chooses the generator.
+    const activeFullScope = savedFullScope ?? project.full_scope;
     const pricingProject = useMemo(() => ({
         id: project.id,
-        brief_scope: project.brief_scope,
-        scope_text: savedFullScope?.scope_text ?? project.full_scope?.scope_text ?? null,
-    }), [project.id, project.brief_scope, savedFullScope?.scope_text, project.full_scope?.scope_text]);
+        brief_scope: activeFullScope?.brief_scope ?? project.brief_scope,
+        scope_text: activeFullScope ? activeFullScope.scope_text ?? null : null,
+    }), [project.id, project.brief_scope, activeFullScope]);
     const pricingTransport = useMemo(() => pricingGenerator ?? (pricingAssistantEnabled ? createPricingRequestGenerator(() => ({
         project: pricingProject, estimate: currentEstimate(store.getState()),
     }), pricingAssistantTurnAction) : undefined), [pricingGenerator, pricingAssistantEnabled, pricingProject, store]);
@@ -387,7 +388,7 @@ export default function EstimateClient({
         }, pricingTransport,
     ), [pricingProject, store, pricingTransport]);
     useEffect(() => () => pricingAssistant.detach(), [pricingAssistant]);
-    useEffect(() => { pricingAssistant.refresh(); }, [pricingAssistant, state, savedFullScope?.scope_text]);
+    useEffect(() => { pricingAssistant.refresh(); }, [pricingAssistant, state, savedFullScope]);
 
     // Keep the chosen estimate version when moving between project tabs.
     const tabKey = `constructa_tab_${project.id}`;
@@ -514,10 +515,7 @@ export default function EstimateClient({
         if (opening && store.getState().advancedOpen && advanced.status !== "ready" && advanced.status !== "loading") void loadAdvanced();
     };
 
-    const scope = pricingWorkFromSavedProject({
-        brief_scope: project.brief_scope,
-        scope_text: savedFullScope?.scope_text ?? project.full_scope?.scope_text ?? null,
-    }).trim();
+    const scope = pricingWorkFromSavedProject(pricingProject).trim();
     const scopeIsLong = scope.length > SCOPE_PREVIEW_LENGTH;
     const pricingContext = buildPricingReviewContext(pricingProject, estimate);
     const briefReview = pricingContext.ok ? reviewPricingSuggestion(pricingContext.value, {

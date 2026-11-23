@@ -11,7 +11,8 @@
 | `src/lib/pricing-review.test.ts` | new `it` | Override + blank fallback | |
 | `src/lib/server/pricing-request.test.ts` | new cases | Revision agree, detailed-scope stale, fallback | Server regression |
 | `src/app/dashboard/projects/costs/full-scope.tsx` | `onScopeSaved` | Notify parent after save | Assistant fingerprint refresh |
-| `src/app/dashboard/projects/costs/estimate-client.tsx` | `savedFullScope` | Local scope after save without reload | full_scope refresh consistency |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | `activeFullScope`, `pricingProject` | Authoritative saved full-scope object (null clears override) | Stale prop fallback fix |
+| `src/app/dashboard/projects/costs/full-scope-parent.test.tsx` | new `it` | Cleared scope → brief work without reload | A055 regression |
 
 **Checks:** `npm run typecheck`; vitest pricing-review, pricing-request, pricing-assistant-request.
 

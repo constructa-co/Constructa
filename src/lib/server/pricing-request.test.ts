@@ -163,7 +163,8 @@ describe("server-owned pricing request preflight (no live service)", () => {
         const brief = String(f.project.brief_scope ?? "");
         const fromNull = buildPricingReviewContext({ id: PROJECT, brief_scope: brief, scope_text: null }, null);
         const fromBlank = buildPricingReviewContext({ id: PROJECT, brief_scope: brief, scope_text: "   " }, null);
-        expect(fromNull.ok && fromBlank.ok && fromNull.value.work).toBe(fromBlank.value!.work);
+        if (!fromNull.ok || !fromBlank.ok) throw new Error("expected ok contexts");
+        expect(fromNull.value.work).toBe(fromBlank.value.work);
     });
 
     it("checks null-estimate requests against actual saved existence without creating a record", async () => {

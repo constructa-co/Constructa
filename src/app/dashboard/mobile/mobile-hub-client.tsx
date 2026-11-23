@@ -77,7 +77,7 @@ const ACTIONS = [
     label: "Log Cost",
     description: "Record labour, materials or plant",
     icon: PoundSterling,
-    color: "bg-blue-600",
+    color: "bg-emerald-600",
     href: (projectId: string | null) =>
       projectId ? `/dashboard/projects/p-and-l?projectId=${projectId}` : "/dashboard/projects/p-and-l",
   },
@@ -328,7 +328,7 @@ export default function MobileHubClient({ projects, recentCosts, recentVars }: P
                     onClick={() => setFabType(ct)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${
                       fabType === ct
-                        ? "bg-blue-600 text-white"
+                        ? "bg-emerald-600/20 border border-emerald-500/50 text-emerald-200"
                         : "bg-slate-800 text-slate-400 border border-slate-700 hover:border-slate-600"
                     }`}
                   >

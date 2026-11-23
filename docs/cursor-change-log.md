@@ -1,5 +1,14 @@
 # Cursor change log
 
+## 2026-11-24 — D104 A001 mobile hub palette (draft)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/app/dashboard/mobile/mobile-hub-client.tsx` | Log Cost tile + FAB type chip | Replace brand-blue chrome with emerald (install #257 already on main) |
+| `src/app/dashboard/mobile/mobile-hub-palette.test.ts` | Source guard | Bounded A001 |
+
+**Checks:** vitest mobile-hub-palette; typecheck.
+
 ## 2026-11-24 — D103 A001 install banner mark tile (draft)
 
 | File | Lines (approx.) | Change | Intent |

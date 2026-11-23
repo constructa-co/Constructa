@@ -222,7 +222,7 @@ export const GUIDE_ARTICLES: readonly GuideArticle[] = [
         "get": [
           "Your own review of the information you intend to share."
         ],
-        "check": "Replace those example details with facts for the actual job. This is a practical writing checklist, not contract wording or a guarantee that a brief will prevent disagreements. Access remains limited to existing review accounts; check the actual information you intend to share."
+        "check": "This is a practical writing checklist, not contract wording or a guarantee that a brief will prevent disagreements. Access remains limited to existing review accounts; check the actual information you intend to share."
       },
       {
         "title": "Worked example",

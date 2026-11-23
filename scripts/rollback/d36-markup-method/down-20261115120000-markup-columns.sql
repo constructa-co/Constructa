@@ -19,6 +19,16 @@
 
 BEGIN;
 
+-- Take the locks BEFORE inspecting any stored choice and hold them through
+-- COMMIT, so no writer can add a choice between the check and the DROP.
+-- ACCESS EXCLUSIVE is what DROP COLUMN needs anyway. lock_timeout makes a busy
+-- system fail safe (nothing changes) instead of waiting or deadlocking.
+-- MAINTENANCE ASSUMPTION: during any real rollback no old or new application
+-- instance may be writing; stop writers first. The lock enforces the guard
+-- against stragglers; it is not a substitute for the maintenance window.
+SET LOCAL lock_timeout = '5s';
+LOCK TABLE public.profiles, public.estimates IN ACCESS EXCLUSIVE MODE;
+
 DO $guard$
 DECLARE
     v_n bigint;

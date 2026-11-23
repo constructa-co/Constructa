@@ -134,6 +134,15 @@ legacy_snapshot "$L1" | diff - "$WORK/LEGACY.txt" >/dev/null || fail "apply alte
 pass "step3 applied exact A then B; legacy rows unchanged and NULL; reference captured"
 
 # ---- 4. PHASE 1: clean rollback ---------------------------------------------
+# A concurrent writer (ROW EXCLUSIVE on estimates) must make both rollbacks fail
+# safe on the lock BEFORE any check or change.
+psql_ -c "BEGIN; LOCK TABLE public.estimates IN ROW EXCLUSIVE MODE; SELECT pg_sleep(16); COMMIT;" >/dev/null &
+HOLDER=$!
+sleep 2
+expect_fail "RPC rollback under a concurrent writer" "lock timeout" run_file "$DOWN_B"
+expect_fail "column rollback under a concurrent writer" "lock timeout" run_file "$DOWN_A"
+wait "$HOLDER"
+snap | diff - "$WORK/REF.txt" >/dev/null || fail "lock-timeout refusals changed the schema"
 expect_fail "column rollback before RPC rollback" "Run the RPC rollback first" run_file "$DOWN_A"
 snap | diff - "$WORK/REF.txt" >/dev/null || fail "refused column rollback changed the schema"
 run_file "$DOWN_B"

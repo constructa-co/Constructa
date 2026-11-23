@@ -32,6 +32,15 @@ BEGIN;
 
 SELECT set_config('d101.ack_on_net_incompatible', :'ack_on_net_incompatible', true);
 
+-- Block estimate writers BEFORE counting on_net rows and hold the lock through
+-- COMMIT, so no on_net estimate can appear between the check and the restore
+-- (reads stay allowed). lock_timeout fails safe, changing nothing.
+-- MAINTENANCE ASSUMPTION: stop old/new application writers for the rollback
+-- window; estimates created by other code paths after COMMIT are outside this
+-- script's control.
+SET LOCAL lock_timeout = '5s';
+LOCK TABLE public.estimates IN SHARE ROW EXCLUSIVE MODE;
+
 DO $guard$
 DECLARE
     v_on_net bigint := 0;

@@ -39,3 +39,14 @@ psql "$URL" -X -v ON_ERROR_STOP=1 -f scripts/rollback/d36-markup-method/down-202
   actual preapply definition differs, restore that instead and re-check grants.
 * The application snapshot must be rolled back together with the database
   state it expects (migration-before-code ordering is unchanged).
+
+## Maintenance window and locking
+
+Run either script only in a maintenance window with **no old or new
+application writers** (stop writers first). Each script locks before it checks
+and holds the lock through COMMIT: the columns script takes ACCESS EXCLUSIVE on
+`profiles` and `estimates`; the RPC script takes SHARE ROW EXCLUSIVE on
+`estimates` (blocks writes, allows reads). `lock_timeout` is 5s: if writers are
+active the script fails with a lock timeout and changes nothing; retry after
+stopping them. This prevents a stored choice appearing between the guard and the
+change; it does not replace the maintenance window.

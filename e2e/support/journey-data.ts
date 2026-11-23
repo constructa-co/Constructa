@@ -54,8 +54,9 @@ export const JOURNEY_MARKUP_NOTE: Record<JourneyMarkupMethod, string> = {
 
 /**
  * Preliminaries are priced as their own line, so construction cost is direct
- * lines plus preliminaries. New sign-up defaults to on_net unless `compound`
- * is passed (legacy coverage in journey-data.test.ts).
+ * lines plus preliminaries (8120 in this fixture). New sign-up defaults to
+ * on_net: overhead, risk and profit are each a percentage of that construction
+ * cost. Pass `compound` for the legacy stacked method (unit-test coverage).
  */
 export function expectedPrice(markupMethod: JourneyMarkupMethod = "on_net") {
     const construction =

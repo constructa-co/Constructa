@@ -1,5 +1,16 @@
 # Cursor change log
 
+## 2026-11-23 — D102 PR #227 publication review prep (`codex/rob-approved-marketing-20261120`)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `src/lib/marketing/founding-cohort-pricing.ts` | settled vs owner-review notes | D99 GBP tiers, founding month-2 £37.50/£60, quarterly/annual upfront ex VAT, no stacking; remove stale “for Rob to confirm” on settled facts |
+| `founding-cohort-pricing-panel.tsx`, `full-pricing.tsx` | UI copy | Two lists: settled billing + honest owner-review pending |
+| Marketing tests | assertions | Match D102; no checkout/trial invention |
+| `docs/drafts/d87-d91-owner-review-20261122.md`, `publication-pages-rob-placeholders-20261121.md` | page pack | Align written bodies with shared pricing module |
+
+**Merge:** `origin/main` `d2085969` into held draft (normal merge). **DRAFT/unmerged/unpublished.** No signup/payments/settings/schema. **Checks:** Cloud Node 24 typecheck/build + affected vitest; hosted CI on push.
+
 ## 2026-11-21 — D81 CON-012 profile isolation (ephemeral replay, draft unverified in CI)
 
 | File | Lines (approx.) | Change | Intent |

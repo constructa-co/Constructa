@@ -7,6 +7,7 @@ import { HomeReviewCaptures } from './home-review-captures';
 import { MarketingMobileMenu } from './marketing-mobile-menu';
 import { ProductReviewGuide } from './product-review-guide';
 import { ProductScreenshots } from './product-screenshots';
+import { FoundingCohortPricingPanel } from './founding-cohort-pricing-panel';
 import ui from './phase-one.module.css';
 
 const stages = [
@@ -215,6 +216,7 @@ export function PhaseOnePricing() {
           <Link href="/#questions" className={ui.textLink}>preview questions <ArrowRight size={16} aria-hidden="true" /></Link>
         </p>
       </section>
+      <FoundingCohortPricingPanel />
     </div>
   );
 }

@@ -17,12 +17,16 @@ describe("platform terms of service", () => {
     });
     afterEach(() => vi.unstubAllEnvs());
 
-    it("shows the standard wording and return link without a draft notice", () => {
+    it("keeps approved sections and shows draft expansion with rob-confirm tokens", () => {
         const html = renderToStaticMarkup(<TermsOfServicePage />);
-        expect(html).not.toMatch(/placeholder/i);
-        expect(html).not.toMatch(/draft for review|pending legal review/i);
         expect(html).toContain("Your account and acceptable use");
         expect(html).toContain('href="/login"');
+        expect(html).toMatch(/data-terms-draft-notice/);
+        expect(html).toContain("Draft, not yet legally approved");
+        expect(html).toContain("No company is incorporated yet.");
+        expect(html).not.toContain("[ROB TO CONFIRM: registered office address]");
+        expect(html).toContain("[ROB TO CONFIRM: governing law and jurisdiction wording]");
+        expect(html).not.toMatch(/\bplaceholder\b/i);
     });
 
     it("keeps standard wording inside #public-marketing-content like the Edge loopback check", () => {
@@ -34,9 +38,8 @@ describe("platform terms of service", () => {
         const contentStart = markup.indexOf('id="public-marketing-content"');
         expect(contentStart).toBeGreaterThan(-1);
         const withinChrome = markup.slice(contentStart);
-        expect(withinChrome).not.toMatch(/placeholder/i);
-        expect(withinChrome).not.toMatch(/draft for review|pending legal review/i);
         expect(withinChrome).toContain("Your account and acceptable use");
         expect(withinChrome).toContain('href="/login"');
+        expect(withinChrome).toContain("Draft, not yet legally approved");
     });
 });

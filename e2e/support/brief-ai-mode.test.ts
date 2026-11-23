@@ -271,8 +271,10 @@ describe("the real inspector, over a pretend network", () => {
     it("refuses any project but the approved disposable one before a single request", () => {
         const requests = network(asMigrated());
         const other = "abcdefghijklmnopqrst";
-        expect(() => budgetInspector(env({ supabaseUrl: `https://${other}.supabase.co` }))).toThrow("not the approved disposable project");
-        expect(() => budgetInspector(env({ projectRef: other }))).toThrow("not the approved disposable project");
+        expect(() => budgetInspector(env({ supabaseUrl: `https://${other}.supabase.co` }))).toThrow(
+            "not an approved E2E backend",
+        );
+        expect(() => budgetInspector(env({ projectRef: other }))).toThrow("not an approved E2E backend");
         expect(requests).toEqual([]);
     });
 

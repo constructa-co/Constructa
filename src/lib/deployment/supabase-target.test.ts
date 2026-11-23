@@ -5,6 +5,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
     DEPLOY_CONTEXT_VARIABLE,
+    EPHEMERAL_REPLAY_CONTEXT,
     NONPROD_REF_VARIABLE,
     PRODUCTION_SUPABASE_PROJECT_REF,
     SupabaseTargetError,
@@ -18,6 +19,7 @@ import {
 const PRODUCTION = PRODUCTION_SUPABASE_PROJECT_REF;
 const DISPOSABLE = "abcdefghijklmnopqrst";
 const OTHER = "zyxwvutsrqponmlkjihg";
+const EPHEMERAL = "ephemeralreplay00001";
 const ROOT = path.resolve(import.meta.dirname, "../../..");
 const SCRIPT = path.join(ROOT, "scripts/verify-build-supabase-target.mjs");
 
@@ -79,6 +81,10 @@ describe("which deployments are guarded", () => {
 
     it("takes a declared context away from Vercel, and treats an unknown one as a preview", () => {
         expect(resolveDeployContext({ [DEPLOY_CONTEXT_VARIABLE]: "e2e" })).toMatchObject({ context: "e2e", guarded: true });
+        expect(resolveDeployContext({ [DEPLOY_CONTEXT_VARIABLE]: EPHEMERAL_REPLAY_CONTEXT })).toMatchObject({
+            context: EPHEMERAL_REPLAY_CONTEXT,
+            guarded: true,
+        });
         expect(resolveDeployContext({ [DEPLOY_CONTEXT_VARIABLE]: " Preview " })).toMatchObject({ context: "preview", guarded: true });
         expect(resolveDeployContext({ [DEPLOY_CONTEXT_VARIABLE]: "qa" })).toMatchObject({ context: "preview", guarded: true });
         expect(resolveDeployContext({})).toMatchObject({ context: "unspecified", guarded: false });
@@ -170,6 +176,48 @@ describe("a preview or E2E build cannot target production", () => {
         const e2e = { ...preview(), VERCEL: undefined, VERCEL_ENV: undefined, [DEPLOY_CONTEXT_VARIABLE]: "e2e" };
         expect(checkSupabaseTarget(e2e)).toMatchObject({ ok: true, context: "e2e" });
         expect(checkSupabaseTarget({ ...e2e, NEXT_PUBLIC_SUPABASE_URL: `https://${PRODUCTION}.supabase.co` }).ok).toBe(false);
+    });
+
+    it("accepts ephemeral replay on loopback with matching keys", () => {
+        const replay = {
+            [DEPLOY_CONTEXT_VARIABLE]: EPHEMERAL_REPLAY_CONTEXT,
+            [NONPROD_REF_VARIABLE]: EPHEMERAL,
+            NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
+            NEXT_PUBLIC_SUPABASE_ANON_KEY: key(EPHEMERAL, "anon"),
+            SUPABASE_SERVICE_ROLE_KEY: key(EPHEMERAL, "service_role"),
+        };
+        expect(checkSupabaseTarget(replay)).toMatchObject({ ok: true, context: EPHEMERAL_REPLAY_CONTEXT });
+        expect(checkSupabaseTarget({ ...replay, NEXT_PUBLIC_SUPABASE_URL: `https://${DISPOSABLE}.supabase.co` }).ok).toBe(false);
+    });
+
+    it("rejects loopback Supabase URLs for preview, hosted E2E, and Vercel", () => {
+        const loopback = "http://127.0.0.1:54321";
+        const hostedE2e = {
+            [DEPLOY_CONTEXT_VARIABLE]: "e2e",
+            [NONPROD_REF_VARIABLE]: DISPOSABLE,
+            NEXT_PUBLIC_SUPABASE_URL: loopback,
+            NEXT_PUBLIC_SUPABASE_ANON_KEY: key(DISPOSABLE, "anon"),
+            SUPABASE_SERVICE_ROLE_KEY: key(DISPOSABLE, "service_role"),
+        };
+        expect(problemsOf(hostedE2e)).toContain("only permitted in the e2e-replay context");
+
+        const vercelPreview = {
+            ...preview({
+                NEXT_PUBLIC_SUPABASE_URL: loopback,
+            }),
+        };
+        expect(problemsOf(vercelPreview)).toContain("only permitted in the e2e-replay context");
+
+        const vercelWithReplayDeclare = {
+            VERCEL: "1",
+            VERCEL_ENV: "preview",
+            [DEPLOY_CONTEXT_VARIABLE]: EPHEMERAL_REPLAY_CONTEXT,
+            [NONPROD_REF_VARIABLE]: EPHEMERAL,
+            NEXT_PUBLIC_SUPABASE_URL: loopback,
+            NEXT_PUBLIC_SUPABASE_ANON_KEY: key(EPHEMERAL, "anon"),
+            SUPABASE_SERVICE_ROLE_KEY: key(EPHEMERAL, "service_role"),
+        };
+        expect(problemsOf(vercelWithReplayDeclare)).toContain("only permitted in the e2e-replay context");
     });
 });
 
@@ -263,6 +311,38 @@ describe("the compiled build", () => {
         expect(checkCompiledTarget(preview(), []).problems).toContain("The compiled build names no Supabase project, so its backend cannot be proved.");
         expect(checkCompiledTarget(preview(), [DISPOSABLE, OTHER]).problems.join("\n")).toContain(`other than the declared disposable one: ${OTHER}.`);
         expect(checkCompiledTarget(preview({ [NONPROD_REF_VARIABLE]: undefined }), [DISPOSABLE]).ok).toBe(false);
+    });
+
+    it("allows an ephemeral replay build with no supabase.co host in the bundle", () => {
+        const replay = {
+            [DEPLOY_CONTEXT_VARIABLE]: EPHEMERAL_REPLAY_CONTEXT,
+            [NONPROD_REF_VARIABLE]: EPHEMERAL,
+            NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
+            NEXT_PUBLIC_SUPABASE_ANON_KEY: key(EPHEMERAL, "anon"),
+            SUPABASE_SERVICE_ROLE_KEY: key(EPHEMERAL, "service_role"),
+        };
+        expect(checkCompiledTarget(replay, []).ok).toBe(true);
+        expect(checkCompiledTarget(replay, [PRODUCTION]).ok).toBe(false);
+    });
+
+    it("distinguishes the disabled review-policy literal from a valid loopback backend only", () => {
+        const replay = {
+            [DEPLOY_CONTEXT_VARIABLE]: EPHEMERAL_REPLAY_CONTEXT,
+            [NONPROD_REF_VARIABLE]: EPHEMERAL,
+            NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
+            NEXT_PUBLIC_SUPABASE_ANON_KEY: key(EPHEMERAL, "anon"),
+            SUPABASE_SERVICE_ROLE_KEY: key(EPHEMERAL, "service_role"),
+        };
+        const review = "umqtzfsnyoofmgfbnrgv";
+        expect(checkCompiledTarget(replay, [review]).ok).toBe(true);
+        for (const ref of [PRODUCTION, OTHER]) expect(checkCompiledTarget(replay, [review, ref]).ok).toBe(false);
+        for (const overrides of [
+            { CONSTRUCTA_REVIEW_ONLY: "1" }, { VERCEL: "1" }, { VERCEL_ENV: "preview" },
+            { NEXT_PUBLIC_SUPABASE_URL: `https://${DISPOSABLE}.supabase.co` },
+            { NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:59999" },
+            { NEXT_PUBLIC_SUPABASE_ANON_KEY: key(PRODUCTION, "anon") },
+        ]) expect(checkCompiledTarget({ ...replay, ...overrides }, [review]).ok).toBe(false);
+        expect(checkCompiledTarget(preview(), [DISPOSABLE, review]).ok).toBe(false);
     });
 
     it("leaves a production build alone", () => {

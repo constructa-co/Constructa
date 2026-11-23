@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Estimate, EstimateLine } from "@/app/dashboard/projects/costs/types";
-import { computeContractSum } from "./financial";
+import { computeContractSum, roundMoney } from "./financial";
+import { vatFor } from "./proposal-review";
 import {
     ADJUSTMENTS_SAVE_ERROR,
     EMPTY_PRICE_LINE_DRAFT,
@@ -240,6 +241,51 @@ describe("summarisePrice — face-value reconciliation (CON-016)", () => {
         expect(summary.faceValueTotal).toBe(7500);
         expect(summary.contractSum).toBe(13915 + 7500);
         expect(summary.linesTotal + summary.faceValueTotal + summary.adjustmentsTotal).toBe(summary.contractSum);
+    });
+});
+
+describe("summarisePrice — VAT treatment (D96 S1)", () => {
+    const lines = [line({ line_total: 2500 }), line({ id: "line-2", line_total: 1500 })];
+    const adjusted = estimate({ prelims_pct: 10, overhead_pct: 10, risk_pct: 5, profit_pct: 15, discount_pct: 2.5 });
+
+    it("adds 20% for the standard treatment, with or without it being passed", () => {
+        const standard = vatFor({ is_vat_reverse_charge: false });
+        for (const summary of [summarisePrice(estimate(), lines), summarisePrice(estimate(), lines, standard)]) {
+            expect(summary).toMatchObject({ contractSum: 4000, vatRatePct: 20, vat: 800, totalIncVat: 4800 });
+        }
+        expect(summarisePrice(adjusted, lines, standard)).toEqual(summarisePrice(adjusted, lines));
+    });
+
+    it("adds no VAT under the domestic reverse charge, as the proposal does", () => {
+        const reverse = vatFor({ is_vat_reverse_charge: true });
+        expect(reverse.vatRate).toBe(0);
+        expect(summarisePrice(estimate(), lines, reverse)).toMatchObject({ contractSum: 4000, vatRatePct: 0, vat: 0, totalIncVat: 4000 });
+    });
+
+    it("leaves lines, prelims, mark-ups and discount unchanged by the VAT treatment", () => {
+        const standard = summarisePrice(adjusted, lines, vatFor({ is_vat_reverse_charge: false }));
+        const reverse = summarisePrice(adjusted, lines, vatFor({ is_vat_reverse_charge: true }));
+        const beforeVat = (s: typeof standard) => ({
+            linesTotal: s.linesTotal, faceValueTotal: s.faceValueTotal, adjustments: s.adjustments,
+            adjustmentsTotal: s.adjustmentsTotal, contractSum: s.contractSum, prelimsFromLines: s.prelimsFromLines,
+        });
+        expect(beforeVat(reverse)).toEqual(beforeVat(standard));
+        expect(reverse.totalIncVat).toBe(reverse.contractSum);
+        expect(standard.totalIncVat).toBe(roundMoney(standard.contractSum * 1.2));
+    });
+
+    it("treats a missing or null setting as standard, as the proposal does", () => {
+        expect(vatFor({}).vatRate).toBe(20);
+        expect(vatFor({ is_vat_reverse_charge: null }).vatRate).toBe(20);
+    });
+
+    it("carries the same treatment into the unsaved-edit preview", () => {
+        const state = estimatingReducer(
+            initialEstimatingState([{ ...estimate(), estimate_lines: lines as Estimate["estimate_lines"] }], { pendingEstimateId: "pending" }),
+            { type: "op/open", key: NEW_LINE_KEY, kind: "add", lineId: "unsent", draft: { ...EMPTY_PRICE_LINE_DRAFT, description: "Unsent", amount: "1000" } },
+        );
+        expect(previewRunningTotal(state, { vatTreatment: vatFor({ is_vat_reverse_charge: true }) })).toMatchObject({ contractSum: 5000, vat: 0, totalIncVat: 5000 });
+        expect(previewRunningTotal(state)).toMatchObject({ contractSum: 5000, vat: 1000, totalIncVat: 6000 });
     });
 });
 

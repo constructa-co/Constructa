@@ -21,6 +21,13 @@ vi.mock('next/navigation', () => ({ usePathname: () => route.pathname, useRouter
 afterEach(() => { vi.unstubAllEnvs(); route.pathname = '/'; });
 
 describe('phase-one marketing integration', () => {
+  it('explains contractor-controlled pricing and time-related prelims without promising automatic repricing', () => {
+    const home = renderToStaticMarkup(<PhaseOneHome />);
+    expect(home).toContain('Your figures stay yours');
+    expect(home).toContain('programme does not automatically reprice them');
+    expect(home).toContain('subject to release approval');
+  });
+
   it('simplifies phase-one navigation to Product, Preview access, About and Guides', () => {
     const html = renderToStaticMarkup(<MarketingHeader />);
     expect(html).toContain('href="/features">Product</a>');
@@ -138,12 +145,12 @@ describe('phase-one marketing integration', () => {
 
   it('introduces the complete work-winning journey without an add-on sales form', () => {
     const html = renderToStaticMarkup(<PhaseOneHome />);
-    expect(html).toContain('Good work.');
-    for (const label of ['Make it your business.', 'Put a price to the work.', 'Give the job a plan.', 'Present the whole picture.']) expect(html).toContain(label);
+    expect(html).toContain('Price the work.');
+    for (const label of ['Scope first.', 'Price the work.', 'Sequence the job.', 'Check the proposal.']) expect(html).toContain(label);
     expect(html).toContain('href="/login"');
     expect(html).toContain('href="/apply"');
     expect(html).toContain('Apply to the founding cohort');
-    expect(html).toContain('Founding cohort opens 7 December 2026.');
+    expect(html).toContain('Founding cohort planned for 7 December 2026, subject to release approval.');
     expect(html).toContain('id="how-it-works"');
     expect(html).toContain('id="questions"');
     expect(html).toContain('id="marketing-content"');
@@ -285,16 +292,17 @@ describe('phase-one marketing integration', () => {
     expect(html.indexOf('Skip to content')).toBeLessThan(html.indexOf('<header'));
   });
 
-  it('renders no bypass, main id or main tabindex under the full profile', () => {
+  it('renders one bypass and focusable main under the full profile', () => {
     vi.stubEnv('NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE', 'full');
     route.pathname = '/';
     const html = renderToStaticMarkup(<PublicChrome><p>Full home</p></PublicChrome>);
-    expect(html).not.toContain('Skip to content');
-    expect(html).not.toContain('public-marketing-content');
+    const anchors = html.match(/<a\b[^>]*href="#public-marketing-content"[^>]*>Skip to content<\/a>/g) ?? [];
+    expect(anchors).toHaveLength(1);
+    expect(html.indexOf('Skip to content')).toBeLessThan(html.indexOf('<header'));
     const mains = html.match(/<main\b[^>]*>/g) ?? [];
     expect(mains).toHaveLength(1);
-    expect(mains[0]).not.toContain('id=');
-    expect(mains[0]).not.toContain('tabindex');
+    expect(mains[0]).toContain('id="public-marketing-content"');
+    expect(mains[0]).toContain('tabindex="-1"');
   });
 
   it.each(['/login', '/onboarding', '/auth/confirm', '/dashboard', '/dashboard/settings/profile', '/admin', '/proposal/example'])('adds no bypass, main id or main tabindex on %s', pathname => {

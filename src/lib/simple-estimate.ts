@@ -276,12 +276,19 @@ export interface PriceSummary {
     adjustmentsTotal: number;
     /** Canonical contract sum, before VAT. */
     contractSum: number;
+    /** VAT percentage applied to the contract sum: 20 normally, 0 under the domestic reverse charge. */
+    vatRatePct: number;
     vat: number;
     totalIncVat: number;
     /** How overhead, risk and profit were calculated. Printed beside the total. */
     markupMethod: MarkupMethod;
     /** True when preliminaries come from the contractor's own lines, not a percentage. */
     prelimsFromLines: boolean;
+}
+
+/** The VAT the proposal states for a job: pass `vatFor(project)` from proposal-review. Omitted means standard 20%. */
+export interface PriceVat {
+    vatRate: number;
 }
 
 type EstimatePercentages = Pick<Estimate, "prelims_pct" | "overhead_pct" | "risk_pct" | "profit_pct" | "discount_pct" | "total_cost" | "markup_method">;
@@ -293,6 +300,7 @@ type EstimatePercentages = Pick<Estimate, "prelims_pct" | "overhead_pct" | "risk
 export function summarisePrice(
     estimate: EstimatePercentages | null,
     lines: Pick<EstimateLine, "trade_section" | "line_total" | "line_type">[],
+    vatTreatment?: PriceVat,
 ): PriceSummary {
     const percentages = estimate ?? { prelims_pct: 0, overhead_pct: 0, risk_pct: 0, profit_pct: 0, discount_pct: 0, total_cost: 0 };
     const sum = computeContractSum(percentages, lines);
@@ -320,13 +328,15 @@ export function summarisePrice(
     push("discount", "Discount", toNumber(percentages.discount_pct), -sum.discountAmount);
 
     const contractSum = roundMoney(sum.contractSum);
-    const vat = roundMoney(contractSum * VAT_RATE);
+    const vatRatePct = vatTreatment ? vatTreatment.vatRate : VAT_RATE * 100;
+    const vat = roundMoney(contractSum * (vatTreatment ? vatTreatment.vatRate / 100 : VAT_RATE));
     return {
         linesTotal: roundMoney(linesTotal),
         faceValueTotal,
         adjustments,
         adjustmentsTotal: roundMoney(contractSum - linesTotal - faceValueTotal),
         contractSum,
+        vatRatePct,
         vat,
         totalIncVat: roundMoney(contractSum + vat),
         markupMethod: sum.markupMethod,
@@ -505,9 +515,9 @@ export function currentEstimate(state: EstimatingState): Estimate | null {
     return state.estimates.find((e) => e.id === state.activeEstimateId) ?? null;
 }
 
-export function currentSummary(state: EstimatingState): PriceSummary {
+export function currentSummary(state: EstimatingState, vatTreatment?: PriceVat): PriceSummary {
     const estimate = currentEstimate(state);
-    return summarisePrice(estimate, estimate?.estimate_lines ?? []);
+    return summarisePrice(estimate, estimate?.estimate_lines ?? [], vatTreatment);
 }
 
 type LineTotalRow = Pick<EstimateLine, "trade_section" | "line_total" | "line_type"> & { id: string };
@@ -524,6 +534,7 @@ export interface PreviewRunningTotalOptions {
     catalogueContextToken?: string | null;
     /** Withhold preview when line saves are uncertain or other guarded work is open. */
     refusePreview?: boolean;
+    vatTreatment?: PriceVat;
 }
 
 function applySimpleLineOps(estimate: Estimate, ops: LineOp[]): LineTotalRow[] | null {
@@ -622,8 +633,8 @@ export function previewRunningTotal(state: EstimatingState, options: PreviewRunn
         estimateForSummary = { ...estimate, ...built.input };
     }
 
-    const saved = summarisePrice(estimate, estimate.estimate_lines);
-    const preview = summarisePrice(estimateForSummary, lines);
+    const saved = summarisePrice(estimate, estimate.estimate_lines, options.vatTreatment);
+    const preview = summarisePrice(estimateForSummary, lines, options.vatTreatment);
     return preview.contractSum === saved.contractSum ? null : preview;
 }
 

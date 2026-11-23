@@ -53,15 +53,15 @@ export default function TermsOfServicePage() {
             <h2 id="terms-contact" className="text-xl font-semibold text-white">Contact</h2>
             <p>
               Send questions about the terms to{" "}
-              <a href="mailto:hello@constructa.co" className="text-gray-300 hover:text-white transition-colors duration-200">
+              <a href="mailto:hello@constructa.co" className="text-gray-300 underline underline-offset-4 hover:text-white transition-colors duration-200">
                 hello@constructa.co
               </a>.
             </p>
           </section>
         </div>
 
-        <p className="mt-10 text-sm text-gray-500">
-          <Link href="/login" className="text-gray-300 hover:text-white transition-colors duration-200">
+        <p className="mt-10 text-sm text-gray-400">
+          <Link href="/login" className="text-gray-300 underline underline-offset-4 hover:text-white transition-colors duration-200">
             ← Back to sign in / sign up
           </Link>
         </p>

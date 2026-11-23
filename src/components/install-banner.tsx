@@ -46,7 +46,7 @@ export default function InstallBanner() {
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-6 md:max-w-sm">
       <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-4 flex items-center gap-3">
-        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shrink-0">
+        <div className="w-10 h-10 bg-[#c9efcf] rounded-xl flex items-center justify-center text-[#182c1b] font-bold text-lg shrink-0">
           C
         </div>
         <div className="flex-1 min-w-0">

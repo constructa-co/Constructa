@@ -1,5 +1,14 @@
 # Cursor change log
 
+## 2026-11-24 — D103 A001 install banner mark tile (draft)
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `src/components/install-banner.tsx` | mark tile ~49 | `bg-blue-600` → `bg-[#c9efcf]` + ink “C” | PWA install chrome matches offline/hub sage mark; Install CTA already used `corePrimaryButton` |
+| `src/components/a001-workflow-standalone-controls-brand.test.ts` | install-banner `it` | Assert sage mark; forbid `bg-blue-600` on banner | Bounded regression |
+
+**Checks:** `npm run typecheck`; vitest `a001-workflow-standalone-controls-brand` + `a001-palette-audit`. No semantic status blues changed.
+
 ## 2026-11-21 — D81 CON-012 profile isolation (ephemeral replay, draft unverified in CI)
 
 | File | Lines (approx.) | Change | Intent |

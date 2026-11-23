@@ -1,15 +1,21 @@
 # Cursor change log
 
+## 2026-11-23 — D101 ordered stack: #223 `9be33d96` into #224
+
+| File | Change | Intent |
+|------|--------|--------|
+| Merge | `codex/d59-con073-exact-main` `9be33d96` | Step 4 — full stack + #176 drill on disposable replay tip |
+| `scripts/fixtures/d68-schema-sequence/manifest.tsv` | `sourceHead` pins | `176→f6dda4d5`, `185→834381f`, `222→aad778ad`, `223→9be33d96`, `224→3cfff39c` (pre-manifest); final CI head = merge commit after this entry | SHA-256 column unchanged |
+
 ## 2026-11-23 — D101 PR #224 normal main integration (`codex/d59-con068-exact-main`)
 
 | File | Lines (approx.) | Change | Intent |
 |------|-----------------|--------|--------|
 | `src/lib/simple-estimate.ts` | `currentSummary`, `PreviewRunningTotalOptions`, `previewRunningTotal` | Merge #222 VAT preview (`vatTreatment`) with CON-068 included APIs | Typecheck + reverse-charge preview parity |
 | `src/app/dashboard/projects/costs/estimate-client.tsx` | `ProjectContext` | `is_vat_reverse_charge`, `programme_duration` | Match `page.tsx` props + running total |
-| Costing + journey fixtures | merge | Main + D36 markup; on_net journey oracle (`74fedc13`) | CON-068 Included persistence unchanged |
-| `scripts/fixtures/d68-schema-sequence/manifest.tsv` | `sourceHead` | Pins `176→cf922aa` **provisional** (await R1 final #176 SHA after rollback lock fix); `#185/#222/#223/#224` post-merge heads; SHA-256 unchanged | Ordered disposable replay; normal-merge #176 descendant later, no force |
+| Costing + journey fixtures | merge | Main + D36 markup; on_net journey oracle | CON-068 Included persistence unchanged |
 
-**Checks:** Cloud lint 0 errors, typecheck, build, vitest (journey + simple-estimate + costs page), replay bootstrap — PASS. Hosted CI after push (R1 confirms).
+**Checks:** Cloud lint/typecheck/build/vitest/replay-bootstrap on merge head; hosted CI + disposable ordered replay on final PR head.
 
 ### 2026-11-23 — D101 #224 main re-sync fix (`149c79ec`)
 
@@ -18,7 +24,53 @@
 | Branch merge | `origin/main` `62706fe3` → `codex/d59-con068-exact-main` | Prior tip `1f6d0342` was not mergeable vs actual main — PR CI/replay/browser did not run (push-only secret scan e.g. [45167844347](https://github.com/constructa-co/Constructa/actions/runs/45167844347)) |
 | Conflict files | costs + D78 + changelog | Preserve VAT/markup/on_net journey + CON-068 Included + both doc histories |
 
-**PR head (CI):** `149c79ec9c7ec3c5f863f961dca18c7a84cf20a2`. **Manifest #224 `sourceHead`:** still `e3838ef3` (integration merge anchor); will align to approved stack tip after R1 green + final #176 SHA.
+## 2026-11-23 — D101 ordered stack: repaired #222 `aad778ad` into #223
+
+| File | Change | Intent |
+|------|--------|--------|
+| Merge | `codex/d59-con044-exact-main` `aad778ad` | Step 3 — #223 inherits #176 drill via final #185/#222 |
+
+## 2026-11-23 — D101 ordered stack: #222 into #223
+
+| File | Change | Intent |
+|------|--------|--------|
+| Merge | `codex/d59-con044-exact-main` `55005764` | Step 3 (first pass) — superseded by `aad778ad` drill carry |
+
+## 2026-11-23 — D101 PR #223 normal main integration (`codex/d59-con073-exact-main`)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| Costing + journey fixtures | merge | Main + D36 markup; on_net journey oracle | CON-073 append-only history unchanged |
+
+**Checks:** Cloud typecheck on merge head; hosted CI after push.
+
+## 2026-11-23 — D101 ordered stack: #185 tip `834381f` into #222 (drill carry)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `.github/workflows/d101-markup-undo-drill.yml`, `scripts/d101/*` | added | Correct predecessor after stale `8dfd81ea` merge; #176 drill survives on #222 |
+
+## 2026-11-23 — D101 ordered stack: #185 into #222
+
+| File | Change | Intent |
+|------|--------|--------|
+| Merge | `cursor/d49-settings-con-018-025-026-ade5` `834381f6` | Step 2 — #222 contains final #176 + main via #185 |
+
+## 2026-11-23 — D101 PR #222 normal main integration (`codex/d59-con044-exact-main`)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| Costing conflict files | merge | Main VAT/BoQ + D36 markup note retained | CON-044 planner draft untouched |
+| `e2e/support/journey-data.ts` (+ test, D78) | on_net oracle | D78 browser parity after main merge | No weakened asserts |
+
+**Checks:** Cloud Node 24 suite on merge head; hosted CI pending PR #222 push.
+
+## 2026-11-23 — D101 ordered stack: final #176 into #185 (`f6dda4d5`)
+
+| File | Change | Intent |
+|------|--------|--------|
+| Merge | `origin/main` `d2085969` + `codex/d36-markup-package-20261116` `f6dda4d5` | Ordered source stack step 1; drill/rollback lock files from #176 retained |
+| `e2e/support/journey-data*` | conflict | on_net default + deposit/balance pins (no weakened asserts) |
 
 ## 2026-11-20 — D68 approved schema sequence (CI fixture replay)
 
@@ -31,6 +83,14 @@
 | `docs/delivery/2026-11-20/d68-schema-sequence.md` | new | Apply order, preview steps, non-destructive rollback SQL per PR | Operator apply-ready text (not executed) |
 
 **Checks:** NOT RUN (CI-only lane). **Workflow path** `scripts/fixtures/d68-schema-sequence/**` not added — R1 may extend `migration-replay.yml` triggers or pair with script commits.
+
+## 2026-11-23 — D101 PR #185 normal main integration (`cursor/d49-settings-con-018-025-026-ade5`)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| Costing + journey fixtures | merge | Main + D36 markup; on_net journey oracle | D78 disposable browser parity |
+
+**Checks:** Cloud Node 24 lint/type/build/SQL guards/unit shards on merge head; hosted CI on PR #185 after push.
 
 ## 2026-11-20 — D68 PR #185 merge onto `main` `53167bc` (D68 source-only)
 
@@ -78,6 +138,26 @@
 **Rollout gates (no live activation):**
 - CON-018: `CONSTRUCTA_PROFILE_VAT_SETTINGS=1` **and** migration `20261116103000_con018_profile_vat_settings.sql` applied by **Rob**.
 - CON-026 cover persistence unchanged: `CONSTRUCTA_PROPOSAL_COVER_PHOTO=1` **and** migration `20261114201500_a074_proposal_cover_photo.sql`.
+
+## 2026-11-23 — D100 D78 journey fixture on_net parity (`cursor/constructa-d100-pr176-normal-main-integration-68c5`)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `e2e/support/journey-data.ts` | `expectedPrice`, exports | Default `on_net` math on construction cost; optional `compound`; `JOURNEY_MARKUP_NOTE` | Match D36 default company/estimate behaviour; keep legacy compound pin |
+| `e2e/support/journey-data.test.ts` | (new) | Vitest pins on_net £10,515.40 and compound £10,754.13 totals | Regression without weakening browser assertions |
+| `e2e/d78-founding-journey.qa.ts` | ~160, ~203 | Assert running-total and draft-PDF calculation-method copy | Disposable D78 browser evidence |
+
+**Checks:** Cloud vitest `journey-data.test.ts` + full unit shards; hosted D38/D78 rerun pending R1 PR176 integration.
+
+## 2026-11-23 — D100 PR #176 normal main integration (`cursor/constructa-d100-pr176-normal-main-integration-68c5`)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/dashboard/projects/costs/boq-excel-export.ts` | imports, summary tail | Main `boqSummaryRows` + VAT via `vatFor`; retain D36 `MARKUP_METHOD_NOTE` row | BoQ export parity with proposal and markup wording |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | ~1698–1708 | Both markup-method note and programme prelims hint | Preserve D36 + main D96 hints |
+| `src/lib/simple-estimate.ts` | ~246–255 | `PriceVat` + `markup_method` on `EstimatePercentages` | Reverse-charge VAT + D36 summary |
+
+**Checks:** Cloud Node 24 lint/typecheck/build + SQL guards on merged head.
 
 ## 2026-11-20 — PR #176 main integration merge conflict resolution (`codex/approved-176-integration-20261120`)
 

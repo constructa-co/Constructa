@@ -9,6 +9,7 @@ import { newClientId } from "@/lib/client-id";
 import { useReducerStore } from "@/lib/use-reducer-store";
 import { workspaceStyles, type WorkspaceStyles } from "@/lib/workspace-styles";
 import { splitScope } from "@/lib/guided-brief";
+import { vatFor } from "@/lib/proposal-review";
 import {
     ADJUSTMENT_HELP,
     EMPTY_PRICE_LINE_DRAFT,
@@ -109,7 +110,9 @@ interface ProjectContext {
     full_scope?: PricingFullScopeSource;
     experience?: PricingExperienceSource | null;
     proposal_introduction?: string | null;
+    /** The job's saved VAT setting. The proposal reads the same field through `vatFor`. */
     is_vat_reverse_charge?: boolean | null;
+    /** Saved programme length from the Programme tab's own calculation. Null when it cannot be stated reliably. */
     programme_duration?: string | null;
 }
 
@@ -160,7 +163,8 @@ export default function EstimateClient({
     );
     const estimate = currentEstimate(state);
     const lines = useMemo(() => estimate?.estimate_lines ?? [], [estimate]);
-    const summary = useMemo(() => summarisePrice(estimate, lines), [estimate, lines]);
+    const vatTreatment = useMemo(() => vatFor({ is_vat_reverse_charge: project.is_vat_reverse_charge }), [project.is_vat_reverse_charge]);
+    const summary = useMemo(() => summarisePrice(estimate, lines, vatTreatment), [estimate, lines, vatTreatment]);
     const [advancedRunningDraft, setAdvancedRunningDraft] = useState<AdvancedRunningTotalDraft | null>(null);
     const [highDiscountConfirm, setHighDiscountConfirm] = useState<{
         discountPct: number;
@@ -347,8 +351,9 @@ export default function EstimateClient({
                 advanced: state.advancedOpen ? advancedRunningDraft : null,
                 catalogueContextToken,
                 refusePreview: refuseDraftPreview,
+                vatTreatment,
             }),
-        [state, advancedRunningDraft, catalogueContextToken, refuseDraftPreview],
+        [state, advancedRunningDraft, catalogueContextToken, refuseDraftPreview, vatTreatment],
     );
     useEffect(() => {
         if (!state.advancedOpen) setAdvancedRunningDraft(null);
@@ -707,6 +712,7 @@ export default function EstimateClient({
                                         setActiveTab={selectEstimate}
                                         costLibrary={advanced.data.costLibrary}
                                         projectId={project.id}
+                                        isVatReverseCharge={project.is_vat_reverse_charge}
                                         orgId={advanced.data.orgId}
                                         rateBuildups={advanced.data.rateBuildups}
                                         labourRates={advanced.data.labourRates}

@@ -7,7 +7,7 @@
 | `src/lib/simple-estimate.ts` | `currentSummary`, `PreviewRunningTotalOptions`, `previewRunningTotal` | Merge #222 VAT preview (`vatTreatment`) with CON-068 included APIs | Typecheck + reverse-charge preview parity |
 | `src/app/dashboard/projects/costs/estimate-client.tsx` | `ProjectContext` | `is_vat_reverse_charge`, `programme_duration` | Match `page.tsx` props + running total |
 | Costing + journey fixtures | merge | Main + D36 markup; on_net journey oracle (`74fedc13`) | CON-068 Included persistence unchanged |
-| `scripts/fixtures/d68-schema-sequence/manifest.tsv` | `sourceHead` | Pins `176→cf922aa`, `#185/#222/#223/#224` post-merge heads; SHA-256 unchanged | Ordered disposable replay receipts |
+| `scripts/fixtures/d68-schema-sequence/manifest.tsv` | `sourceHead` | Pins `176→cf922aa` **provisional** (await R1 final #176 SHA after rollback lock fix); `#185/#222/#223/#224` post-merge heads; SHA-256 unchanged | Ordered disposable replay; normal-merge #176 descendant later, no force |
 
 **Checks:** Cloud lint 0 errors, typecheck, build, vitest (journey + simple-estimate + costs page), replay bootstrap — PASS. Hosted CI after push (R1 confirms).
 
@@ -1196,12 +1196,10 @@ Base branch: `origin/cq/cq-0105-a001-initialize-kit-primary` (includes `5d73ebc`
 | `src/app/dashboard/projects/schedule/simple-programme-workspace.test.tsx` | hoisted router mock, new test | Assert push + refresh on **Next: Proposal** | Lock the navigation seam after saved weekend working days |
 | `src/app/dashboard/projects/proposal/review-send-client.test.ts` | new test | All-week pattern shows Sunday 15 Nov finish in programme section | Prove production Review & Send uses saved pattern, not default Mon–Fri |
 
-<<<<<<< HEAD
 Codex integration: conservative false default for all unknown/legacy rows, no rate-inferred intent/backfill; missing-column mapper false. Optional legacy action inputs default false. Included participates in update CAS. Disposable SQL asserts true then false readback in-transaction; no browser/commit durability claim.
-=======
+
 D78 R1: actual disposable journey reached estimating and found first-line save refused because explicit is_client_boq selection names an optional column absent from committed replay migrations. Read available estimate columns while retaining BoQ protection when present; focused missing-column regression covers new/existing estimates. No SQL/schema changes. Prior signup/brief and D38 persistence passed; full journey requires fresh CI.
 
 ## 22 November — D92/D94 combined contractor critique
 
 Sonnet source critique plus independently reproduced pricing mismatch, top-down contractor pricing and programme metric maps, graded findings and reuse recommendations. Only must-fix is held schema draft #238. No new original-Grok closure or runtime/release claims. Existing detailed programme features explicitly reused rather than rebuilt.
->>>>>>> origin/main

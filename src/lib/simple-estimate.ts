@@ -534,6 +534,7 @@ export interface PreviewRunningTotalOptions {
     catalogueContextToken?: string | null;
     /** Withhold preview when line saves are uncertain or other guarded work is open. */
     refusePreview?: boolean;
+    /** Same VAT as the saved summary, so the preview shows the same treatment. */
     vatTreatment?: PriceVat;
 }
 

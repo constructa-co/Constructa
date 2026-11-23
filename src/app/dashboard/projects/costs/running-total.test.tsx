@@ -24,10 +24,56 @@ function savedState() {
     };
     return initialEstimatingState([estimate], { pendingEstimateId: "pending" });
 }
-function markup(state: EstimatingState) {
+function markup(state: EstimatingState, vat: { is_vat_reverse_charge?: boolean | null; programme_duration?: string | null } = {}) {
     current.state = state;
-    return renderToStaticMarkup(<EstimateClient estimates={[]} project={{ id: "job", name: "Example job", client_name: "", brief_scope: "" }} />);
+    return renderToStaticMarkup(<EstimateClient estimates={[]} project={{ id: "job", name: "Example job", client_name: "", brief_scope: "", ...vat }} />);
 }
+
+describe("estimate screen VAT follows the job's reverse-charge setting (D96 S1)", () => {
+    const vatRows = (html: string) => ({
+        label: html.match(/<dt[^>]*>(VAT \([^<]*\))<\/dt>/)?.[1],
+        vat: html.match(/VAT \([^<]*\)<\/dt><dd[^>]*>([^<]+)/)?.[1],
+        total: html.match(/Total including VAT<\/dt><dd[^>]*>([^<]+)/)?.[1],
+        beforeVat: html.match(/data-contract-sum[^>]*>([^<]+)/)?.[1],
+    });
+
+    it("adds 20% VAT when the setting is off, null or absent", () => {
+        for (const vat of [{}, { is_vat_reverse_charge: null }, { is_vat_reverse_charge: false }]) {
+            expect(vatRows(markup(savedState(), vat))).toEqual({ label: "VAT (20%)", vat: "£220.00", total: "£1,320.00", beforeVat: "£1,100.00" });
+        }
+    });
+
+    it("adds no VAT when the job is domestic reverse charge, with the same total before VAT", () => {
+        expect(vatRows(markup(savedState(), { is_vat_reverse_charge: true }))).toEqual({
+            label: "VAT (domestic reverse charge, 0%)", vat: "£0.00", total: "£1,100.00", beforeVat: "£1,100.00",
+        });
+    });
+});
+
+describe("programme and preliminaries hint (D96 S6)", () => {
+    const hint = (html: string) => html.match(/<p[^>]*data-programme-prelims-hint[^>]*>([\s\S]*?)<\/p>/)?.[1]?.replace(/<!-- -->/g, "");
+
+    it("shows the saved programme length beside a clear note that prices do not follow it", () => {
+        const text = hint(markup(savedState(), { programme_duration: "15 working days (3 weeks)" }));
+        expect(text).toContain("Your saved programme is 15 working days (3 weeks).");
+        expect(text).toContain("Changing the programme does not change your preliminaries or any price here.");
+        expect(text).toContain("check time-related preliminaries");
+    });
+
+    it("explains manual review without an invented length when none is saved or reliable", () => {
+        for (const vat of [{}, { programme_duration: null }]) {
+            const text = hint(markup(savedState(), vat));
+            expect(text).toContain("Changing the programme does not change your preliminaries");
+            expect(text).not.toMatch(/saved programme is|working day/);
+        }
+    });
+
+    it("changes no price and leaves the VAT treatment alone", () => {
+        const withHint = markup(savedState(), { programme_duration: "5 working days (1 week)", is_vat_reverse_charge: true });
+        expect(withHint.match(/data-contract-sum[^>]*>([^<]+)/)?.[1]).toBe("£1,100.00");
+        expect(withHint).toContain("VAT (domestic reverse charge, 0%)");
+    });
+});
 
 describe("in-view estimate total", () => {
     it("repeats the existing summary figure with an honest uncertainty note and no save control", () => {

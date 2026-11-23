@@ -1099,6 +1099,10 @@ Base branch: `origin/cq/cq-0105-a001-initialize-kit-primary` (includes `5d73ebc`
 
 D78 R1: actual disposable journey reached estimating and found first-line save refused because explicit is_client_boq selection names an optional column absent from committed replay migrations. Read available estimate columns while retaining BoQ protection when present; focused missing-column regression covers new/existing estimates. No SQL/schema changes. Prior signup/brief and D38 persistence passed; full journey requires fresh CI.
 
+## 22 November — D92/D94 combined contractor critique
+
+Sonnet source critique plus independently reproduced pricing mismatch, top-down contractor pricing and programme metric maps, graded findings and reuse recommendations. Only must-fix is held schema draft #238. No new original-Grok closure or runtime/release claims. Existing detailed programme features explicitly reused rather than rebuilt.
+
 ## 22 November — D92-M1 held publication parity repair
 
 Prepared additive publish RPC canonical sum parity and direct-RPC disposable regression cases. PC/PS face value, credits and blank prelims now match main calculation; optional on_net compatibility does not add columns or activate held176. Owner R1; schema DRAFT, outside D86 apply sequence; independent Sonnet and exact CI receipts pending. No hosted SQL/publication/settings/signup.

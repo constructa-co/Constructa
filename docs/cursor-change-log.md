@@ -11,6 +11,15 @@
 
 **Checks:** Cloud lint 0 errors, typecheck, build, vitest (journey + simple-estimate + costs page), replay bootstrap — PASS. Hosted CI after push (R1 confirms).
 
+### 2026-11-23 — D101 #224 main re-sync fix (`149c79ec`)
+
+| File | Change | Intent |
+|------|--------|--------|
+| Branch merge | `origin/main` `62706fe3` → `codex/d59-con068-exact-main` | Prior tip `1f6d0342` was not mergeable vs actual main — PR CI/replay/browser did not run (push-only secret scan e.g. [45167844347](https://github.com/constructa-co/Constructa/actions/runs/45167844347)) |
+| Conflict files | costs + D78 + changelog | Preserve VAT/markup/on_net journey + CON-068 Included + both doc histories |
+
+**PR head (CI):** `149c79ec9c7ec3c5f863f961dca18c7a84cf20a2`. **Manifest #224 `sourceHead`:** still `e3838ef3` (integration merge anchor); will align to approved stack tip after R1 green + final #176 SHA.
+
 ## 2026-11-20 — D68 approved schema sequence (CI fixture replay)
 
 | File | Lines (approx.) | Change | Intent |

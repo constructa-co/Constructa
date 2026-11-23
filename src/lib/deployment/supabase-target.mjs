@@ -1,4 +1,5 @@
 // @ts-check
+import { REVIEW_PROJECT } from "./review-project.mjs";
 /**
  * Supabase target guard.
  *
@@ -39,7 +40,10 @@ const SUPABASE_HOST = /\b([a-z0-9]{20})\.supabase\.co\b/g;
 const METADATA_VARIABLE = /^(VERCEL_GIT_|GITHUB_|npm_)/;
 
 /** @typedef {Record<string, string | undefined>} Env */
-/** @typedef {"production" | "preview" | "e2e" | "development" | "unspecified"} DeployContextName */
+/** Ephemeral local Supabase stack (Supabase CLI on loopback). Not a hosted project. */
+export const EPHEMERAL_REPLAY_CONTEXT = "e2e-replay";
+
+/** @typedef {"production" | "preview" | "e2e" | "e2e-replay" | "development" | "unspecified"} DeployContextName */
 /** @typedef {{ context: DeployContextName, guarded: boolean, source: string }} DeployContext */
 /** @typedef {{ context: DeployContextName, guarded: boolean, ok: boolean, problems: string[], summary: string }} TargetCheck */
 
@@ -72,6 +76,9 @@ export function resolveDeployContext(env) {
     if (declared === "") return { context: "unspecified", guarded: false, source: "none" };
     if (declared === "production" || declared === "development") {
         return { context: declared, guarded: false, source: DEPLOY_CONTEXT_VARIABLE };
+    }
+    if (declared === EPHEMERAL_REPLAY_CONTEXT) {
+        return { context: EPHEMERAL_REPLAY_CONTEXT, guarded: true, source: DEPLOY_CONTEXT_VARIABLE };
     }
     return { context: declared === "e2e" ? "e2e" : "preview", guarded: true, source: DEPLOY_CONTEXT_VARIABLE };
 }
@@ -107,6 +114,33 @@ function urlProjectRef(value) {
         return url.protocol === "https:" && match ? match[1] : null;
     } catch {
         return null;
+    }
+}
+
+/**
+ * Whether a Supabase API URL is the guarded local ephemeral replay stack.
+ *
+ * @param {string} value
+ * @param {DeployContextName} context
+ */
+function ephemeralReplayApiUrl(value, context) {
+    if (context !== EPHEMERAL_REPLAY_CONTEXT) return false;
+    return loopbackSupabaseApiUrl(value);
+}
+
+/**
+ * Loopback Supabase API (local CLI). Not valid for preview, production, or Vercel.
+ *
+ * @param {string} value
+ */
+function loopbackSupabaseApiUrl(value) {
+    try {
+        const url = new URL(value);
+        if (url.protocol !== "http:") return false;
+        if (!["127.0.0.1", "localhost"].includes(url.hostname)) return false;
+        return url.port === "" || url.port === "54321";
+    } catch {
+        return false;
     }
 }
 
@@ -195,6 +229,24 @@ export function checkSupabaseTarget(env) {
     let urlRef = "not set";
     if (!url) {
         problems.push("NEXT_PUBLIC_SUPABASE_URL is not set. A preview needs its own disposable project.");
+    } else if (loopbackSupabaseApiUrl(url)) {
+        if (context === "preview" || context === "e2e") {
+            problems.push(
+                "NEXT_PUBLIC_SUPABASE_URL is a loopback test address. That is only permitted in the e2e-replay context, not preview or hosted E2E.",
+            );
+        } else if (text(env.VERCEL) === "1" || text(env.VERCEL_ENV) !== "") {
+            problems.push("Ephemeral replay loopback URLs cannot be used on Vercel preview or production deployments.");
+        } else if (context !== EPHEMERAL_REPLAY_CONTEXT) {
+            problems.push(
+                `NEXT_PUBLIC_SUPABASE_URL is a loopback test address. Set ${DEPLOY_CONTEXT_VARIABLE}=${EPHEMERAL_REPLAY_CONTEXT} only for local ephemeral tests.`,
+            );
+        }
+    }
+    if (url && ephemeralReplayApiUrl(url, context)) {
+        urlRef = expected ?? "local-ephemeral-replay";
+        if (!expected) {
+            problems.push(`${NONPROD_REF_VARIABLE} must be set for ${EPHEMERAL_REPLAY_CONTEXT}; the local API URL does not carry a project reference.`);
+        }
     } else {
         const ref = urlProjectRef(url);
         urlRef = ref ?? "unreadable";
@@ -311,10 +363,20 @@ export function checkCompiledTarget(env, refs) {
     if (refs.includes(PRODUCTION_SUPABASE_PROJECT_REF)) {
         problems.push("The compiled build names the production Supabase project.");
     }
-    if (refs.length === 0) {
+    if (refs.length === 0 && context !== EPHEMERAL_REPLAY_CONTEXT) {
         problems.push("The compiled build names no Supabase project, so its backend cannot be proved.");
     }
-    const others = refs.filter((ref) => ref !== expected && ref !== PRODUCTION_SUPABASE_PROJECT_REF);
+    // The app bundles an existing read-only review-policy origin even when that
+    // mode is disabled. It is metadata, not the configured backend, ONLY for a
+    // fully validated local replay. Hosted/preview/E2E and production checks
+    // retain their existing refusal of additional project references.
+    const inactiveReviewMetadata = context === EPHEMERAL_REPLAY_CONTEXT
+        && checkSupabaseTarget(env).ok
+        && loopbackSupabaseApiUrl(text(env.NEXT_PUBLIC_SUPABASE_URL))
+        && text(env.CONSTRUCTA_REVIEW_ONLY) !== "1"
+        && text(env.VERCEL) !== "1" && text(env.VERCEL_ENV) === "";
+    const others = refs.filter((ref) => ref !== expected && ref !== PRODUCTION_SUPABASE_PROJECT_REF
+        && !(inactiveReviewMetadata && ref === REVIEW_PROJECT));
     if (expected && others.length > 0) {
         problems.push(`The compiled build names a project other than the declared disposable one: ${others.join(", ")}.`);
     }

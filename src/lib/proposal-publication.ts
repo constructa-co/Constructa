@@ -333,10 +333,10 @@ function buildFeeItems(
     const sourceItems = estimate.estimate_lines
         // A zero-value placeholder is never published — not even a typed
         // allowance, which computeContractSum also leaves out of the price.
-        .filter((line) =>
-            isFaceValueLineType(line.line_type)
-                ? toNumber(line.line_total) !== 0
-                : toNumber(line.line_total) > 0)
+        // A negative (credit) line is priced by computeContractSum, so it is
+        // published as its own marked-up negative item rather than being
+        // dropped and silently netted into another line by the residual.
+        .filter((line) => toNumber(line.line_total) !== 0)
         .map((line) => {
             // Prime-cost and provisional sums go to the client at exactly the
             // typed figure — never multiplied by the mark-up.

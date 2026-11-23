@@ -1,0 +1,5 @@
+# D78 disposable founding journey
+
+Uses existing175 local Supabase/identity fixtures. Signup is exercised only in a git-archived CI source copy: the workflow writes a marker, and the fixture helper requires that marker, no.git, validated loopback API/DB, e2e-replay/noVercel and the exact OFF-policy source hash before enabling signup in that copy. The committed product signup-policy remains byte-for-byte OFF. This is post-approval journey simulation, not proof that public signup is enabled or authorised. No live SQL/account/hosting settings or user-data writes.
+
+The real app server action and local auth/consent storage are exercised, not a mocked signup response. The subsequent project/brief/estimate/programme/draftPDF flow uses the same local database; publication records must remain empty. Existing brief persistence assertions still inspect both saved activity UI and database after reload, navigating to the actual Activities step first. CI artifacts retain actual failures/results; do not mark runtime acceptance/owner holds closed from this synthetic fixture.

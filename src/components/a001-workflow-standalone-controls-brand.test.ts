@@ -66,10 +66,12 @@ describe("A001 workflow standalone controls brand primary (cq-2224)", () => {
         expect(source).not.toMatch(/focus:ring-blue-/);
     });
 
-    it("install-banner: Install action uses core primary", () => {
+    it("install-banner: Install action and mark tile use sage palette", () => {
         const source = read(PATHS.installBanner);
         expectSagePrimaryClassLine(primaryClassNear(source, "onClick={handleInstall}"));
         expect(source).not.toMatch(/bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium/);
+        expect(source).toContain("bg-[#c9efcf]");
+        expect(source).not.toMatch(/bg-blue-600/);
     });
 
     it("offline page: Back to Hub uses core primary; mark tile uses sage not brand blue", () => {

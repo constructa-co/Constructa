@@ -1,5 +1,11 @@
 # Cursor change log
 
+## 2026-11-23 — D101 ordered stack: #185 into #222
+
+| File | Change | Intent |
+|------|--------|--------|
+| Merge | `cursor/d49-settings-con-018-025-026-ade5` `834381f6` | Step 2 — #222 contains final #176 + main via #185 |
+
 ## 2026-11-23 — D101 PR #222 normal main integration (`codex/d59-con044-exact-main`)
 
 | File | Lines (approx.) | Change | Intent |
@@ -8,6 +14,12 @@
 | `e2e/support/journey-data.ts` (+ test, D78) | on_net oracle | D78 browser parity after main merge | No weakened asserts |
 
 **Checks:** Cloud Node 24 suite on merge head; hosted CI pending PR #222 push.
+
+## 2026-11-23 — D101 ordered stack: final #176 into #185 (`f6dda4d5`)
+
+| File | Change | Intent |
+|------|--------|--------|
+| Merge | `origin/main` `d2085969` + final #176 | Ordered source stack step 1 |
 
 ## 2026-11-20 — D68 approved schema sequence (CI fixture replay)
 
@@ -20,6 +32,14 @@
 | `docs/delivery/2026-11-20/d68-schema-sequence.md` | new | Apply order, preview steps, non-destructive rollback SQL per PR | Operator apply-ready text (not executed) |
 
 **Checks:** NOT RUN (CI-only lane). **Workflow path** `scripts/fixtures/d68-schema-sequence/**` not added — R1 may extend `migration-replay.yml` triggers or pair with script commits.
+
+## 2026-11-23 — D101 PR #185 normal main integration (`cursor/d49-settings-con-018-025-026-ade5`)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| Costing + journey fixtures | merge | Main + D36 markup; on_net journey oracle | D78 disposable browser parity |
+
+**Checks:** Cloud Node 24 lint/type/build/SQL guards/unit shards on merge head; hosted CI on PR #185 after push.
 
 ## 2026-11-20 — D68 PR #185 merge onto `main` `53167bc` (D68 source-only)
 

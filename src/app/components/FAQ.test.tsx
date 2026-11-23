@@ -19,6 +19,11 @@ describe("marketing FAQ copy", () => {
     expect(allCopy).toContain("existing review account");
   });
 
+  it("explains brief-to-estimate and assistant boundaries honestly", () => {
+    expect(allCopy).toContain("does not auto-price");
+    expect(allCopy).toMatch(/stay off until|stays off until/i);
+  });
+
   it("does not promise trials, subscriptions or unavailable capabilities", () => {
     expect(allCopy).not.toContain("14-day");
     expect(allCopy).not.toMatch(/free trial with full access/i);

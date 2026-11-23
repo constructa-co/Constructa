@@ -27,6 +27,14 @@ export const faqs: FAQItem[] = [
   {
     question: "Can I cancel my subscription?",
     answer: "There is no subscription in the phase-one preview, so there is nothing to cancel. If paid plans launch later, their terms will be published before you commit to anything."
+  },
+  {
+    question: "Does the brief automatically become an estimate?",
+    answer: "No. The brief is saved scope and context you write. On Estimating you add your own price lines, quantities and rates. You can copy wording into lines when you choose; Constructa does not auto-price the job from the brief alone in this preview."
+  },
+  {
+    question: "Are AI assistants included in the phase-one review?",
+    answer: "Job-aware assistants for brief, pricing and programme exist in the product code but stay off until provider, budget and approval gates are satisfied. The preview focuses on what you can check yourself: company profile, saved scope, estimates, programme and proposal preview."
   }
 ];
 

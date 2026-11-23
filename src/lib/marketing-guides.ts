@@ -80,6 +80,57 @@ const proposalStep: GuideStepBlock = {
 
 export const GUIDE_ARTICLES: readonly GuideArticle[] = [
   {
+    slug: 'how-saved-job-data-connects',
+    title: 'How saved job data connects across the review journey',
+    summary:
+      'Each pre-construction tab reads what you already saved on the job. Nothing silently retypes your brief into the estimate or proposal for you.',
+    intro:
+      'Constructa keeps one job record. Brief, estimating, programme and proposal tabs each read saved fields you control. This note explains what carries over automatically and what you still enter yourself, so you can check consistency before sharing.',
+    previewNote: 'For existing phase-one review accounts. Job-aware assistants remain off until separately approved.',
+    ...GUIDE_ARTICLE_ATTRIBUTION,
+    steps: [
+      {
+        title: 'Brief → estimating',
+        add: [
+          'Write the job scope and trades on the Brief tab and save.',
+          'On Estimating, price lines are yours to add; the app does not auto-build a bill of quantities from the brief alone.',
+          'If you edit full proposal scope on Estimating, that saved scope_text is what proposals use when set.',
+        ],
+        get: [
+          'Saved brief wording you can quote into price lines when you choose.',
+          'Estimate lines and totals you entered or imported yourself.',
+        ],
+        check: 'The descriptions and totals you priced match the scope you intend to show the client.',
+      },
+      {
+        title: 'Estimating → programme',
+        add: [
+          'Save programme stages and working pattern on the Programme tab.',
+          'Optional: pull stage names or durations from estimate labour where the product already surfaces them — you still review every date.',
+        ],
+        get: [
+          'A saved programme the proposal can read for timing pages.',
+        ],
+        check: 'Stages and working days are realistic and consistent with how you priced time-related preliminaries.',
+      },
+      {
+        title: 'Programme and estimate → proposal',
+        add: [
+          'Review proposal sections that pull saved company profile, scope, estimate totals, programme and terms.',
+          'Download a draft PDF when you are ready; nothing is sent by downloading alone.',
+        ],
+        get: [
+          'An on-screen preview and draft PDF built from saved job data.',
+        ],
+        check: 'Read the actual preview and PDF. Client response options record receipt or a non-binding intention — not legal acceptance.',
+      },
+    ],
+    closingChecks: [
+      'Scope, price, programme and proposal sections tell the same story for this job.',
+      'You checked the exported document yourself; this guide does not replace your review.',
+    ],
+  },
+  {
     slug: 'review-brief-and-price',
     title: 'Review your company profile, brief and price',
     summary:

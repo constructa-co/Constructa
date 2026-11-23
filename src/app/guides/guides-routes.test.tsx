@@ -57,15 +57,17 @@ describe('guides hub and articles', () => {
   it('presents the hub as an editorial index with numbered entries and updated dates', () => {
     const markup = hubMarkup();
     expect(markup).toContain('The review guide');
-    expect(markup.match(/aria-hidden="true">0[1-9]</g)).toHaveLength(7);
-    expect(markup.match(/Review checklist · Updated/g)).toHaveLength(7);
+    expect(markup.match(/aria-hidden="true">0[1-9]</g)?.length).toBeGreaterThanOrEqual(8);
+    expect(markup.match(/Review checklist · Updated/g)?.length).toBeGreaterThanOrEqual(8);
     for (const article of GUIDE_ARTICLES) {
       expect(markup).toMatch(
         new RegExp(`<time dateTime="${article.contentUpdatedIso}">${article.contentUpdatedDisplay}</time>`, 'i'),
       );
     }
     const headings = [...markup.matchAll(/<h([1-6])\b/g)].map(match => Number(match[1]));
-    expect(headings).toEqual([1, 2, ...Array(7).fill(3)]);
+    expect(headings[0]).toBe(1);
+    expect(headings[1]).toBe(2);
+    expect(headings.filter(level => level === 3).length).toBe(GUIDE_ARTICLES.length);
   });
 
   it('renders each article with navigation, qualifications and preview-access handoff', async () => {

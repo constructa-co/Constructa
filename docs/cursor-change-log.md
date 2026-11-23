@@ -1,5 +1,16 @@
 # Cursor change log
 
+## 2026-11-24 — D104 marketing connected-journey guide + FAQ (draft)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/marketing-guides.ts` | New `how-saved-job-data-connects` article | Contractor FAQ on brief→estimate→programme→proposal without invented features |
+| `src/app/components/FAQ.tsx` | Two FAQ entries | Honest brief/estimate split + assistants held |
+| `src/app/guides/guides-routes.test.tsx` | Hub card count assertion | 8 articles |
+| `src/app/components/FAQ.test.tsx` | Copy guard | Regression |
+
+**Checks:** vitest guides-routes + FAQ. No pricing/legal/trial claims; no forms.
+
 ## 2026-11-24 — D103 A001 install banner mark tile (draft)
 
 | File | Lines (approx.) | Change | Intent |

@@ -179,7 +179,8 @@ describe('phase-one marketing integration', () => {
     expect(html).toContain("£50");
     expect(html).toContain("£80");
     expect(html).toContain("Free");
-    expect(html).toContain("for Rob to confirm");
+    expect(html).toContain("Still for owner review before publication");
+    expect(html).not.toContain("for Rob to confirm");
     expect(html).not.toContain('14-day');
   });
 

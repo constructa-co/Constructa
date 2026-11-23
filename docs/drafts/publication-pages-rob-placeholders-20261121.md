@@ -85,13 +85,13 @@ The current standard terms, phase1-standard-v1, are unchanged. They state that t
 
 We plan to open a founding cohort on 7 December 2026. This is a planned launch date, subject to the release checks and owner approvals.
 
-Currency: GBP. Free: basic utility and 1 quote. Pro: £50 per month. Business: £80 per month.
+Currency: GBP. Trading name: Constructa only (no registered company identity on this draft). Free: basic utility and 1 quote. Pro: £50 per month. Business: £80 per month.
 
-Proposed feature split, for Rob to confirm: Pro includes the existing brief, estimate, programme and proposal workflow for a single contractor; Business offers a higher quote workload with exact allowances/additional inclusions pending. No team or later-phase feature is promised. Free quote reset period is pending.
+**Settled billing (D99, ex VAT before payment):** Quarterly 10% paid upfront — £135 Pro / £216 Business per quarter. Annual 20% paid upfront — £480 Pro / £768 per year. Founding member discount does not combine with quarterly or annual discounts. Annual 20% is 2.4 months saved versus monthly list; this is not a “two months free” offer.
 
-Billing options: monthly, quarterly and annual. CTO proposal for Rob to confirm: quarterly 10% off (£135/£216 upfront); annual 20% off (£480/£768 upfront). 20% is 2.4 months saved; two months free would be 16⅔%, so these are alternatives for Rob to choose, not equivalent claims.
+**Settled founding discount:** 25% off monthly list after the first full-price month — month 1 at £50 Pro / £80 Business, then from month 2 at £37.50 Pro / £60 Business. No free trial.
 
-Founding discount: 25%. Proposed interpretation, for Rob to confirm: first month full price, then £37.50 Pro / £60 Business monthly from month 2. No free trial is offered. Founding eligibility, duration, offer end date/time zone and stacking with longer-term discounts remain owner-pending. No combined discount is assumed.
+**Still for owner review before publication:** Pro/Business feature split, quote allowances and free-tier reset/utility limits; founding eligibility, duration and offer end date/time zone.
 
 Excl. VAT — placeholder pending Rob confirmation of tax treatment; no company/VAT registration claimed. No checkout, payment or signup. Planned hello@constructa.co is not yet set up.
 

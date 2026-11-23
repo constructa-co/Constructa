@@ -12,7 +12,7 @@ const faqs = [
   {
     question: "What is the founding member discount?",
     answer:
-      "The founding discount is 25%. The proposal is to apply it from month 2 after a full-price first month; timing, duration, end date and combining discounts are for Rob to confirm.",
+      "Founding member discount is 25% off monthly list. Month 1 is full price (£50 Pro / £80 Business); from month 2, £37.50 Pro / £60 Business (GBP, ex VAT). Eligibility, duration and offer end date remain for owner review before publication. Quarterly and annual discounts do not combine with the founding discount.",
   },
   {
     question: "How do I get access now?",

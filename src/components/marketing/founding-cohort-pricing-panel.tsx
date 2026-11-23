@@ -5,8 +5,9 @@ import {
   FOUNDING_COHORT_PRICING_HEADLINE,
   FOUNDING_COHORT_PRICING_LEDE,
   FOUNDING_MEMBER_DISCOUNT_LABEL,
+  PRICING_OWNER_REVIEW_NOTES,
+  PRICING_SETTLED_NOTES,
   PRICING_TIERS,
-  PRICING_REVIEW_NOTES,
 } from "@/lib/marketing/founding-cohort-pricing";
 
 type Variant = "standalone" | "embedded";
@@ -50,8 +51,16 @@ export function FoundingCohortPricingPanel({ variant = "standalone" }: { variant
         <div className="mt-6 rounded-2xl border border-white/15 p-6 text-left">
           <p className="font-semibold text-emerald-300">{FOUNDING_MEMBER_DISCOUNT_LABEL}</p>
           <p data-founding-price-token className="mt-2">{FOUNDING_COHORT_MONTHLY_PRICE}</p>
-          <ul className="mt-4 list-disc space-y-3 pl-5 text-sm text-gray-300">
-            {PRICING_REVIEW_NOTES.map((note) => <li key={note}>{note}</li>)}
+          <ul className="mt-4 list-disc space-y-3 pl-5 text-sm text-gray-300" aria-label="Settled pricing and billing (D99)">
+            {PRICING_SETTLED_NOTES.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+          <p className="mt-4 text-sm font-medium text-gray-300">Still for owner review before publication:</p>
+          <ul className="mt-2 list-disc space-y-2 pl-5 text-sm text-gray-400" aria-label="Outstanding owner review">
+            {PRICING_OWNER_REVIEW_NOTES.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
           </ul>
           <p className="mt-4 text-sm text-gray-400">{FOUNDING_COHORT_OPENS_LABEL}</p>
           <p className="mt-3 text-sm">Signup and payment remain off. Applications are not collected yet.</p>

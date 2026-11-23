@@ -1,7 +1,17 @@
-# Rob: finished draft changes to review — 22 November
+# Rob: finished draft changes to review — 22 November (updated D102)
 
-Held #227 only; no publication or signup/payment activation. Trading name Constructa, no incorporated-company claim or visible registered-address/number tokens. Pricing: Free basic utility + 1 quote; Pro £50/month; Business £80/month; GBP.
+Held **#227** only; no publication or signup/payment activation. Trading name **Constructa** only; no incorporated-company claim or invented registered-address/number tokens.
 
-Confirm: Pro/Business feature split and quote allowances; quarterly 10% and annual 20% paid-upfront discounts; annual20% is2.4months saved (not2months free); founding25% begins month2 after one full-price month; duration/end date/eligibility; stacking; excl.VAT placeholder. No trial assumed. Planned hello@constructa.co is not yet working. Privacy, website and domestic contract legal review remains separate; existing domestic contract not replaced.
+## Settled for publication review (D99 / CTO 23 Nov — not re-opened as questions)
 
-Source pages and complete page bodies are in this PR. Protected Preview was previously target-configuration blocked, so no new rendered-page or publication approval is claimed. Review exact rendered pages before any release. #228 is a separate held branch.
+- **List prices (GBP, ex VAT):** Free £0 — basic utility and 1 quote; Pro £50/month; Business £80/month.
+- **Quarterly:** 10% paid upfront before VAT — £135 Pro / £216 Business per quarter.
+- **Annual:** 20% paid upfront before VAT — £480 Pro / £768 per year. Equals **2.4 months saved** vs monthly list; **not** a “two months free” offer.
+- **Founding 25%:** after the **first full-price month**, from month 2: **£37.50 Pro / £60 Business** monthly. **No free trial.**
+- **Stacking:** founding discount **does not combine** with quarterly or annual discounts.
+
+## Still for owner review before publication
+
+Pro/Business feature split and quote allowances; free-tier reset/utility limits; founding eligibility, discount duration and offer end date/time zone; excl. VAT tax treatment placeholder. Planned hello@constructa.co is not yet working. Privacy, website and domestic contract legal review remains separate; **existing standard domestic contract not replaced**.
+
+Source pages and complete page bodies are in this PR. Protected Preview was previously target-configuration blocked — review exact rendered pages before any release. **#228** is a separate held branch.

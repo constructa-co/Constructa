@@ -8,7 +8,8 @@ describe("full profile pricing page", () => {
     expect(html).toContain("Founding cohort pricing");
     expect(html).toContain("£50");
     expect(html).toContain("£80");
-    expect(html).toContain("for Rob to confirm");
+    expect(html).toContain("£37.50");
+    expect(html).not.toContain("for Rob to confirm");
     expect(html).not.toMatch(/Paddle|14-day free trial/i);
     expect(html).not.toMatch(/testimonial|<blockquote/i);
   });

@@ -46,11 +46,17 @@ export const gbp = (value: number) =>
 
 export type JourneyMarkupMethod = "on_net" | "compound";
 
+/** Substrings the UI and draft PDF must show for each markup method (no percentages). */
 export const JOURNEY_MARKUP_NOTE: Record<JourneyMarkupMethod, string> = {
     on_net: "calculated on net construction cost",
     compound: "compounded: each is calculated on the total before it",
 };
 
+/**
+ * Preliminaries are priced as their own line, so construction cost is direct
+ * lines plus preliminaries. New sign-up defaults to on_net unless `compound`
+ * is passed (legacy coverage in journey-data.test.ts).
+ */
 export function expectedPrice(markupMethod: JourneyMarkupMethod = "on_net") {
     const construction =
         PRICE.onePrice.amount + PRICE.measured.quantity * PRICE.measured.rate + PRICE.preliminaries.amount;

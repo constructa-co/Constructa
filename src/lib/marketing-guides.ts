@@ -241,6 +241,47 @@ export const GUIDE_ARTICLES: readonly GuideArticle[] = [
   ,
     ...GUIDE_ARTICLE_ATTRIBUTION
   },
+  {
+    "slug": "proposal-review",
+    "title": "Reviewing a proposal preview and draft PDF",
+    "summary": "Read the proposal preview and draft PDF before sharing anything. Downloading a draft PDF sends nothing to the client. Check the actual document you intend to share, including its last page, rather than assuming it matches an earlier draft.",
+    "intro": "Read the proposal preview and draft PDF before sharing anything. Downloading a draft PDF sends nothing to the client. Check the actual document you intend to share, including its last page, rather than assuming it matches an earlier draft.",
+    "previewNote": "For existing phase-one review accounts. Check your own work before sharing.",
+    "steps": [
+      {
+        "title": "Practical checklist",
+        "add": [
+          "Confirm the client, site and company details.",
+          "Compare the scope, assumptions and exclusions with the work you priced.",
+          "Read the estimate descriptions, quantities, rates, allowances, credits and total against your checked estimate.",
+          "Review how preliminaries and VAT are shown using your own verified information.",
+          "Check the programme dates, working days and sequence against the job.",
+          "Read the existing payment-stage and validity information you entered; do not assume this guide supplies approved contract terms.",
+          "Check headings, page breaks, images and unfinished text throughout the exported document.",
+          "If you make a correction, review the updated preview and PDF before using them."
+        ],
+        "get": [
+          "Your own review of the information you intend to share."
+        ],
+        "check": "Client-response options are separate from draft download. A receipt records receipt; a non-binding intention to proceed is not legal acceptance. This is a document-review checklist, not legal advice, an e-signature service or an automatic-send promise. The preview remains for existing review accounts."
+      },
+      {
+        "title": "Worked example",
+        "add": [
+          "For a kitchen refurbishment, compare the scope and exclusions in the preview with the draft PDF. If a description is missing or differs from the estimate, correct it and inspect the revised document before sharing. This example makes no promise about avoiding a dispute or its cost."
+        ],
+        "get": [
+          "Your own review of the information you intend to share."
+        ],
+        "check": "If you correct a description, inspect the updated preview and PDF."
+      }
+    ],
+    "closingChecks": [
+      "The actual exported document matches your checked preview."
+    ]
+  ,
+    ...GUIDE_ARTICLE_ATTRIBUTION
+  },
 ] as const;
 
 export function getGuideArticle(slug: string): GuideArticle | undefined {

@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-11-23 — D101 ordered stack: final #176 into #185 (`f6dda4d5`)
+
+| File | Change | Intent |
+|------|--------|--------|
+| Merge | `origin/main` `d2085969` + `codex/d36-markup-package-20261116` `f6dda4d5` | Ordered source stack step 1; drill/rollback lock files from #176 retained |
+| `e2e/support/journey-data*` | conflict | on_net default + deposit/balance pins (no weakened asserts) |
+
 ## 2026-11-23 — D101 PR #185 normal main integration (`cursor/d49-settings-con-018-025-026-ade5`)
 
 | File | Lines (approx.) | Change | Intent |
@@ -60,6 +67,26 @@
 **Rollout gates (no live activation):**
 - CON-018: `CONSTRUCTA_PROFILE_VAT_SETTINGS=1` **and** migration `20261116103000_con018_profile_vat_settings.sql` applied by **Rob**.
 - CON-026 cover persistence unchanged: `CONSTRUCTA_PROPOSAL_COVER_PHOTO=1` **and** migration `20261114201500_a074_proposal_cover_photo.sql`.
+
+## 2026-11-23 — D100 D78 journey fixture on_net parity (`cursor/constructa-d100-pr176-normal-main-integration-68c5`)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `e2e/support/journey-data.ts` | `expectedPrice`, exports | Default `on_net` math on construction cost; optional `compound`; `JOURNEY_MARKUP_NOTE` | Match D36 default company/estimate behaviour; keep legacy compound pin |
+| `e2e/support/journey-data.test.ts` | (new) | Vitest pins on_net £10,515.40 and compound £10,754.13 totals | Regression without weakening browser assertions |
+| `e2e/d78-founding-journey.qa.ts` | ~160, ~203 | Assert running-total and draft-PDF calculation-method copy | Disposable D78 browser evidence |
+
+**Checks:** Cloud vitest `journey-data.test.ts` + full unit shards; hosted D38/D78 rerun pending R1 PR176 integration.
+
+## 2026-11-23 — D100 PR #176 normal main integration (`cursor/constructa-d100-pr176-normal-main-integration-68c5`)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/dashboard/projects/costs/boq-excel-export.ts` | imports, summary tail | Main `boqSummaryRows` + VAT via `vatFor`; retain D36 `MARKUP_METHOD_NOTE` row | BoQ export parity with proposal and markup wording |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | ~1698–1708 | Both markup-method note and programme prelims hint | Preserve D36 + main D96 hints |
+| `src/lib/simple-estimate.ts` | ~246–255 | `PriceVat` + `markup_method` on `EstimatePercentages` | Reverse-charge VAT + D36 summary |
+
+**Checks:** Cloud Node 24 lint/typecheck/build + SQL guards on merged head.
 
 ## 2026-11-20 — PR #176 main integration merge conflict resolution (`codex/approved-176-integration-20261120`)
 

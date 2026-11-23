@@ -9,8 +9,8 @@ export type GuideStepBlock = {
 export const GUIDE_ARTICLE_ATTRIBUTION = {
   author: 'Constructa',
   preparation: 'AI-assisted draft guidance',
-  contentUpdatedIso: '2026-11-04',
-  contentUpdatedDisplay: '4 November 2026',
+  contentUpdatedIso: '2026-11-23',
+  contentUpdatedDisplay: '23 November 2026',
 } as const;
 
 export type GuideArticle = {
@@ -109,6 +109,32 @@ export const GUIDE_ARTICLES: readonly GuideArticle[] = [
       'Read the whole preview. Client response options ask for receipt or a non-binding intention to proceed, and neither is acceptance.',
       'A PDF marked as a draft. Downloading it sends nothing.',
     ],
+  },
+  {
+    "slug": "estimate-review",
+    "title": "Checking an estimate before sharing",
+    "summary": "Start with your quantities and rates. Read each description, unit, quantity and rate against the work you intend to include. Constructa organises your figures; it does not measure drawings or price the job for you.",
+    "intro": "Start with your quantities and rates. Read each description, unit, quantity and rate against the work you intend to include. Constructa organises your figures; it does not measure drawings or price the job for you.",
+    "previewNote": "For existing phase-one review accounts. Check your own work before sharing.",
+    "steps": [
+      {
+        "title": "Practical checklist",
+        "add": [
+          "Keep credits visible. A credit is a deduction or adjustment reducing the price, not a nominated-supplier allowance. Check its sign, description and effect on the total, and confirm it appears where you intend in the proposal.",
+          "Review any prime-cost or provisional-sum allowances you have entered separately from credits. Make their descriptions and exclusions clear and check the figures you have entered. This guide does not decide their contractual treatment.",
+          "Read preliminaries, overheads, risk and profit alongside the work items. Check whether preliminaries are explicit lines or percentage based. If the programme changes, revisit time-related preliminaries yourself; changing dates does not automatically reprice them."
+        ],
+        "get": [
+          "Your own review of the information you intend to share."
+        ],
+        "check": "Check the sections and final total independently. Review the VAT treatment against the job and your own verified information. Read the proposal preview and draft PDF before sharing. Downloading the draft PDF sends nothing. This is practical checking guidance, not tax or legal advice."
+      }
+    ],
+    "closingChecks": [
+      "Credits, allowances and the final total reflect the work you priced."
+    ]
+  ,
+    ...GUIDE_ARTICLE_ATTRIBUTION
   },
 ] as const;
 

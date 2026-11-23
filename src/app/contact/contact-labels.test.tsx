@@ -21,14 +21,13 @@ function render() { return ContactPage(); }
 const html = () => renderToStaticMarkup(render());
 
 describe("actual contact form labels", () => {
-    it("renders name, email, optional company, message, and consent with stable ids", () => {
+    it("renders name, email, optional company and message with stable ids", () => {
 
         const fields = [
             { id: "contact-name", name: "name", type: "input" },
             { id: "contact-email", name: "email", type: "input" },
             { id: "contact-company", name: "company", type: "input" },
             { id: "contact-message", name: "message", type: "textarea" },
-            { id: "contact-consent", name: "consent", type: "input" },
         ] as const;
         const markup = html();
         for (const field of fields) {
@@ -43,7 +42,8 @@ describe("actual contact form labels", () => {
         const markup = html();
         expect(markup).toContain("Got a question? Want to stay in the loop?");
         expect(markup).toContain('href="mailto:hello@constructa.co"');
-        expect(markup).not.toContain("CONSTRUCTA_PUBLIC_CONTACT_FORM_DESTINATION");
+        expect(markup).not.toContain("CONSTRUCTA_PUBLIC_MARKETING_INBOX_DESTINATION");
+        expect(markup).not.toContain('name="consent"');
         expect(markup).not.toMatch(/action="https?:\/\//i);
     });
 });

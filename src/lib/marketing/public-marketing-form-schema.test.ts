@@ -9,12 +9,14 @@ const valid = {
   email: "alex@example.co.uk",
   company: "Smith Refurbs Ltd",
   message: "Interested in the founding cohort preview.",
-  consent: "on" as const,
 };
 
 describe("public marketing form schema", () => {
-  it("accepts name, email, message, consent and optional company", () => {
+  it("accepts name, email, message and optional company without a consent field", () => {
     expect(PublicMarketingFormSchema.safeParse(valid).success).toBe(true);
+    expect(PublicMarketingFormSchema.safeParse({ ...valid, consent: "on" }).success).toBe(
+      false,
+    );
   });
 
   it("treats blank company as omitted", () => {
@@ -28,18 +30,17 @@ describe("public marketing form schema", () => {
     }
   });
 
-  it("rejects missing consent and invalid email", () => {
+  it("rejects invalid email and missing message", () => {
     const result = parsePublicMarketingFormInput({
       name: "Alex",
       email: "bad",
       message: "",
-      consent: undefined,
     });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.fieldErrors.email).toBeDefined();
       expect(result.fieldErrors.message).toBeDefined();
-      expect(result.fieldErrors.consent).toBeDefined();
+      expect("consent" in result.fieldErrors).toBe(false);
     }
   });
 });

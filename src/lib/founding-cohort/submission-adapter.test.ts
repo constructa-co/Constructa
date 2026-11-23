@@ -1,8 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  PUBLIC_APPLY_FORM_DESTINATION_ENV,
-  PUBLIC_FORM_COLLECTION_ENABLED_ENV,
-} from "@/lib/marketing/public-form-collection";
+import { PUBLIC_MARKETING_INBOX_DESTINATION_ENV } from "@/lib/marketing/public-marketing-form-policy";
+import { PUBLIC_FORM_COLLECTION_ENABLED_ENV } from "@/lib/marketing/public-form-collection";
 import {
   hasFoundingCohortApplicationStorageAdapter,
   submitFoundingCohortApplication,
@@ -26,7 +24,6 @@ describe("founding cohort submission adapter", () => {
         company: "Smith Ltd",
         email: "alex@example.com",
         message: "Interested",
-        consent: "on",
       }),
     ).rejects.toThrow(/not enabled/i);
     expect(spy).not.toHaveBeenCalled();
@@ -34,13 +31,12 @@ describe("founding cohort submission adapter", () => {
 
   it("refuses submit when enabled but destination routing is not implemented", async () => {
     vi.stubEnv(PUBLIC_FORM_COLLECTION_ENABLED_ENV, "1");
-    vi.stubEnv(PUBLIC_APPLY_FORM_DESTINATION_ENV, "operator-supplied-later");
+    vi.stubEnv(PUBLIC_MARKETING_INBOX_DESTINATION_ENV, "operator-supplied-later");
     await expect(
       submitFoundingCohortApplication({
         name: "Alex",
         email: "alex@example.com",
         message: "Interested",
-        consent: "on",
       }),
     ).rejects.toThrow(/not implemented/i);
   });

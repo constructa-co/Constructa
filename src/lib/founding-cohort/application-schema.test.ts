@@ -9,11 +9,10 @@ const valid = {
   email: "alex@example.co.uk",
   company: "Smith Refurbs Ltd",
   message: "Interested in proposals for domestic clients.",
-  consent: "on" as const,
 };
 
 describe("founding cohort application schema", () => {
-  it("accepts a complete application", () => {
+  it("accepts a complete application without consent", () => {
     const parsed = FoundingCohortApplicationSchema.safeParse(valid);
     expect(parsed.success).toBe(true);
   });
@@ -36,13 +35,12 @@ describe("founding cohort application schema", () => {
       name: "",
       email: "not-an-email",
       message: "",
-      consent: undefined,
     });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.fieldErrors.name).toBeDefined();
       expect(result.fieldErrors.email).toBeDefined();
-      expect(result.fieldErrors.consent).toBeDefined();
+      expect("consent" in result.fieldErrors).toBe(false);
     }
   });
 

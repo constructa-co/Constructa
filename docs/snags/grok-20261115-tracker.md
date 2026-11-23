@@ -1,5 +1,9 @@
 # 15 November Grok review snag tracker
 
+## Current disposition — D100, 23 November 2026
+
+Original85 remains **63 closed / 22 open**. Earlier dated sections below are historical receipts, not current approval or new task assignments. D99 completed actual About and five guide integrations248–253; reports254/255 are merged docs only and close no snags. D100 authorises cloud-only readiness for238 (normal main integration, disposable database change and rollback proof, PR rollback notes) and176 (normal main integration/conflict repair/CI); neither is authority for schema merge or production application. D99/D100 prohibit a live database copy onto the Mac; earlier pending/NO-copy chronology below is historical. 185 and222–224 schema,238merge,227/228pricing/legal/collection, D95 and original22 remain held. Current source/register/inbox receipts govern; no new runtime acceptance is claimed by this documentation merge.
+
 06:46 UAE, 16 November 2026. This tracker uses the private review IDs. Keep original review evidence and personal data in the private intake.
 
 Current count: 63 merged, 13 in progress, 7 Rob-fact/render-signoff gated, 1 decided/held (CON-003 signup OFF), 1 post-RC evidence follow-up (CON-023); 0 not started. D66 Rob17:49 approved all seven approaches; D68 21:20 authorises complete CI preparation while access is blocked. No extra delivery claimed; no schema merge/apply. All five preview/rollback SQL instructions are in their PR descriptions.

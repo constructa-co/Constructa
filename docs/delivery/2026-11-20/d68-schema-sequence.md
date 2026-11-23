@@ -13,7 +13,19 @@ Authority: `CTO-20261120-2120-D68-AUTHORITY.md`. **Source-only in this worktree.
 | 5 | #223 | `20261120032000_con073_pipeline_stage_history.sql` | `282c3d3098b5fa738e92057bc1c5ecc0c2c27be402d9d82d2b493979396bb567` |
 | 6 | #224 | `20261120040000_con068_estimate_line_included.sql` | `242d79778b7c8b0baf2561d6372ff804cadb9966dfece7c4c67e061a119b00b2` |
 
-Canonical order and hashes: `manifest.tsv` (container-friendly) and `manifest.json`. These files are **CI fixtures only** — never copy into `supabase/migrations/` on main until each PR merges.
+Canonical order and hashes: **`manifest.tsv` is authoritative** for `verify-migration-replay.sh`; **`manifest.json` must mirror** the same six rows (order, `sha256`, `sourceHead`) — `ci-replay-in-container.sh` prepare requires both. These files are **CI fixtures only** — never copy into `supabase/migrations/` on main until each PR merges.
+
+### D101 ordered stack `sourceHead` pins (23 Nov 2026 — held; migration bytes unchanged)
+
+| PR | Integration branch tip (source anchor) | Notes |
+| --- | --- | --- |
+| #176 | `f6dda4d541ded8380b571b03914a302fa1a504e7` | R1 final #176; drill/replay/D38/scans |
+| #185 | `834381f64b1af62ae37c9a77211b4734565f48dd` | After `main` + final #176 |
+| #222 | `aad778ad1aea0e45336bf75c3e6bf053b3c0294d` | After final #185 (`834381f`); includes #176 drill |
+| #223 | `9be33d96e2e26dfa5e1dada49c0d774aa00acd51` | After repaired #222 |
+| #224 | `d1125c5b1f9a2152a21eb78535ecc21edf928e4a` | **Pre-manifest** merge of final #223 into #224 (not the PR’s later manifest-only CI tip — avoids self-referential anchor) |
+
+**PR #224 CI / ordered replay:** grade the **current PR head** on `codex/d59-con068-exact-main` (manifest-only commits after `d1125c5b` do not change the six fixture bytes). Historical pins (`cf922aa`, `c6882dd`, `3cfff39c`, etc.) are superseded by the table above; keep old changelog rows as receipts only.
 
 ## How CI replays
 

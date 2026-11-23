@@ -1,5 +1,15 @@
 # Cursor change log
 
+## 2026-11-23 — D101 D68 manifest authoritative alignment (TSV + JSON)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `manifest.tsv` | `#224 sourceHead` → `d1125c5b` | Pre-manifest integration merge (final #223 `9be33d96`); not self-referential CI tip |
+| `manifest.json` | mirror TSV + `d101SourceAnchors` | R1 grade: JSON no longer stale `c688`/`68ab`/`bd012`/`1aee`/`add056`; **`manifest.tsv` authoritative** for replay |
+| `docs/delivery/2026-11-20/d68-schema-sequence.md` | D101 anchor table | One release plan; old pins noted as historical receipts only |
+
+**PR #224 CI head:** commit after this changelog row on `codex/d59-con068-exact-main` (manifest receipt only; six migration SHA-256 unchanged).
+
 ## 2026-11-23 — D101 manifest newline fix (`manifest.tsv` + `manifest.json`)
 
 | File | Change | Intent |

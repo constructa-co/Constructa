@@ -1,5 +1,14 @@
 {
-  "authority": "D68 20Nov21:20; CI fixture ONLY, never production migration directory",
+  "authority": "D68 20Nov21:20; D101 23Nov ordered stack pins mirrored from manifest.tsv",
+  "replayAuthority": "manifest.tsv is authoritative for verify-migration-replay.sh; manifest.json must byte-match the same order, sha256, and sourceHead values (ci-replay prepare checks both).",
+  "d101SourceAnchors": {
+    "176": "f6dda4d541ded8380b571b03914a302fa1a504e7",
+    "185": "834381f64b1af62ae37c9a77211b4734565f48dd",
+    "222": "aad778ad1aea0e45336bf75c3e6bf053b3c0294d",
+    "223": "9be33d96e2e26dfa5e1dada49c0d774aa00acd51",
+    "224IntegrationMerge": "d1125c5b1f9a2152a21eb78535ecc21edf928e4a",
+    "note": "224 sourceHead is the pre-manifest integration merge containing final #223 (9be33d96); not the self-referential PR CI tip after manifest-only commits."
+  },
   "order": [
     {
       "pr": 176,
@@ -33,7 +42,7 @@
     },
     {
       "pr": 224,
-      "sourceHead": "3cfff39c5bc7df1afe1a7ab131e03ccdc6da5c7d",
+      "sourceHead": "d1125c5b1f9a2152a21eb78535ecc21edf928e4a",
       "file": "20261120040000_con068_estimate_line_included.sql",
       "sha256": "242d79778b7c8b0baf2561d6372ff804cadb9966dfece7c4c67e061a119b00b2"
     }

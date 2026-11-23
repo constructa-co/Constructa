@@ -121,17 +121,17 @@ export const GUIDE_ARTICLES: readonly GuideArticle[] = [
         "title": "Practical checklist",
         "add": [
           "Keep credits visible. A credit is a deduction or adjustment reducing the price, not a nominated-supplier allowance. Check its sign, description and effect on the total, and confirm it appears where you intend in the proposal.",
-          "Review prime-cost and provisional-sum allowances separately from credits. Make their descriptions and exclusions clear and check the figures you have entered. This guide does not decide their contractual treatment.",
+          "Review any prime-cost or provisional-sum allowances you have entered separately from credits. Make their descriptions and exclusions clear and check the figures you have entered. This guide does not decide their contractual treatment.",
           "Read preliminaries, overheads, risk and profit alongside the work items. Check whether preliminaries are explicit lines or percentage based. If the programme changes, revisit time-related preliminaries yourself; changing dates does not automatically reprice them."
         ],
         "get": [
           "Your own review of the information you intend to share."
         ],
-        "check": "Check the sections and final total independently. Review the VAT treatment against the job and your own verified information. Read the proposal preview and draft PDF before sharing. This is practical checking guidance, not tax or legal advice."
+        "check": "Check the sections and final total independently. Review the VAT treatment against the job and your own verified information. Read the proposal preview and draft PDF before sharing. Downloading the draft PDF sends nothing. This is practical checking guidance, not tax or legal advice."
       }
     ],
     "closingChecks": [
-      "Check the sections and final total independently. Review the VAT treatment against the job and your own verified information. Read the proposal preview and draft PDF before sharing. This is practical checking guidance, not tax or legal advice."
+      "Credits, allowances and the final total reflect the work you priced."
     ]
   ,
     ...GUIDE_ARTICLE_ATTRIBUTION

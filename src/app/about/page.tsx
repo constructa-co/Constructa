@@ -6,7 +6,7 @@ import { marketingPageMetadata } from '@/lib/marketing-seo';
 export const metadata = marketingPageMetadata({
   title: 'About | Constructa',
   description:
-    'Learn how Constructa was built for small construction teams to quote faster, plan better, and deliver jobs with confidence.',
+    'How Constructa helps small UK contractors organise their own brief, estimate, programme and proposal for review.',
   pathname: '/about',
 });
 
@@ -15,7 +15,7 @@ const aboutJsonLd = `{
   "@type": "AboutPage",
   "name": "About Constructa",
   "url": "https://constructa.co/about",
-  "description": "Constructa was created to help small construction teams quote faster, plan better, and deliver jobs with confidence. Built by people who know the industry.",
+  "description": "Constructa brings contractor-entered scope, quantities, rates and working days together for review.",
   "publisher": {
     "@type": "Organization",
     "name": "Constructa",

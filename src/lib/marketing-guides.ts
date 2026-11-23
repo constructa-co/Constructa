@@ -162,6 +162,36 @@ export const GUIDE_ARTICLES: readonly GuideArticle[] = [
   ,
     ...GUIDE_ARTICLE_ATTRIBUTION
   },
+  {
+    "slug": "company-profile",
+    "title": "Keeping your company profile accurate",
+    "summary": "Your company profile helps explain who will do the work. Review the company details, insurance, accreditations, specialisms and past jobs you enter. Constructa does not verify credentials for you; check each statement against your own current records.",
+    "intro": "Your company profile helps explain who will do the work. Review the company details, insurance, accreditations, specialisms and past jobs you enter. Constructa does not verify credentials for you; check each statement against your own current records.",
+    "previewNote": "For existing phase-one review accounts. Check your own work before sharing.",
+    "steps": [
+      {
+        "title": "Practical checklist",
+        "add": [
+          "Check that the company name, address and logo match your current trading details.",
+          "Review insurance and accreditation entries. Describe their current status accurately; do not imply cover or membership you cannot substantiate.",
+          "List specialisms that reflect work you actually undertake.",
+          "Choose relevant past work rather than presenting every job. Consider similar trades, scale and setting, and describe your own role accurately.",
+          "Use project descriptions and images you have permission to use. Do not invent a client quote or testimonial.",
+          "Read the profile as it appears in the proposal, not just in the input fields. Check that the examples included suit this job.",
+          "For a bathroom refurbishment, a comparable residential project may explain your experience more clearly than an unrelated large commercial job. Describe the work and setting factually; do not imply that every future job will have the same result."
+        ],
+        "get": [
+          "Your own review of the information you intend to share."
+        ],
+        "check": "This guide is for existing review accounts. Check your actual saved information and the proposal you intend to share."
+      }
+    ],
+    "closingChecks": [
+      "Company statements and past-work examples match current records."
+    ]
+  ,
+    ...GUIDE_ARTICLE_ATTRIBUTION
+  },
 ] as const;
 
 export function getGuideArticle(slug: string): GuideArticle | undefined {

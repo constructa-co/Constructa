@@ -146,13 +146,16 @@ describe('guides hub and articles', () => {
     });
     for (const slug of getAllGuideSlugs()) {
       const article = getGuideArticle(slug);
-      expect(article).toMatchObject(GUIDE_ARTICLE_ATTRIBUTION);
+      expect(article).toMatchObject({
+        author: GUIDE_ARTICLE_ATTRIBUTION.author,
+        preparation: GUIDE_ARTICLE_ATTRIBUTION.preparation,
+      });
       const markup = renderToStaticMarkup(<GuideArticleView article={article!} />);
       expect(markup).toContain('Constructa');
       expect(markup).toContain('AI-assisted draft guidance');
       expect(markup).toContain('Not human-expert reviewed');
       expect(markup).toContain('Content updated date:');
-      expect(markup).toMatch(/<time datetime="2026-11-23">23 November 2026<\/time>/i);
+      expect(markup).toMatch(new RegExp(`<time datetime="${article!.contentUpdatedIso}">${article!.contentUpdatedDisplay}</time>`, 'i'));
       expect(markup).not.toMatch(/reviewed by|expert approval|Rob approved/i);
     }
   });

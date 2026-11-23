@@ -1,5 +1,15 @@
 # Cursor change log
 
+## 2026-11-23 — D100 D78 journey fixture on_net parity (`cursor/constructa-d100-pr176-normal-main-integration-68c5`)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `e2e/support/journey-data.ts` | `expectedPrice`, exports | Default `on_net` math on construction cost; optional `compound`; `JOURNEY_MARKUP_NOTE` | Match D36 default company/estimate behaviour; keep legacy compound pin |
+| `e2e/support/journey-data.test.ts` | (new) | Vitest pins on_net £10,515.40 and compound £10,754.13 totals | Regression without weakening browser assertions |
+| `e2e/d78-founding-journey.qa.ts` | ~160, ~203 | Assert running-total and draft-PDF calculation-method copy | Disposable D78 browser evidence |
+
+**Checks:** Cloud vitest `journey-data.test.ts` + full unit shards; hosted D38/D78 rerun pending R1 PR176 integration.
+
 ## 2026-11-23 — D100 PR #176 normal main integration (`cursor/constructa-d100-pr176-normal-main-integration-68c5`)
 
 | File | Lines (approx.) | Change | Intent |

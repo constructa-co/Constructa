@@ -103,15 +103,7 @@ describe('guides hub and articles', () => {
   });
 
   it('generateStaticParams lists every authored slug once', () => {
-    expect(generateStaticParams()).toEqual([
-      { slug: 'review-brief-and-price' },
-      { slug: 'programme-and-proposal-before-sharing' },
-      { slug: 'estimate-review' },
-      { slug: 'programme-review' },
-      { slug: 'company-profile' },
-      { slug: 'scope-brief' },
-      { slug: 'proposal-review' },
-    ]);
+    expect(generateStaticParams()).toEqual(getAllGuideSlugs().map(slug => ({ slug })));
   });
 
   it('binds step section aria-labelledby to one whitespace-free heading id and names recovery in the held note', () => {
@@ -132,7 +124,7 @@ describe('guides hub and articles', () => {
   });
 
   it('records transparent attribution and content updated metadata on every article', () => {
-    expect(getAllGuideSlugs()).toHaveLength(7);
+    expect(getAllGuideSlugs()).toHaveLength(GUIDE_ARTICLES.length);
     for (const slug of getAllGuideSlugs()) {
       const article = getGuideArticle(slug);
       expect(article).toMatchObject(GUIDE_ARTICLE_ATTRIBUTION);

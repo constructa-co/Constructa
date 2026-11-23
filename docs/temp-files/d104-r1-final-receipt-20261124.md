@@ -17,7 +17,7 @@
 | Field | Value |
 | --- | --- |
 | Branch | `codex/d104-marketing-guide-20261124` |
-| Head | (see push output below) |
+| Head | `2657504a` |
 | Deliverable | `how-saved-job-data-connects` + FAQ; R1 copy/tests |
 | CI | `ci.yml` + possible read-only `marketing-a11y-speed-audit.yml` on marketing paths |
 

@@ -1,5 +1,17 @@
 # Cursor change log
 
+## 2026-11-24 — D104 A055 pricing assistant scope_text alignment (draft)
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `src/lib/pricing-review.ts` | `pricingWorkFromSavedProject` | `scope_text` overrides brief work; revision includes `scopeText` | Job-aware pricing context matches proposal review |
+| `src/lib/server/pricing-request.ts` | verify select | Load/pass `scope_text` | Server fingerprint matches client |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | `pricingProject` | Pass saved proposal scope through assistant paths | Brief→estimate journey consistency |
+| `src/lib/job-assistant-client.ts`, `pricing-conversation.ts` | types | Optional `scope_text` on project snapshot | Transport typing |
+| `src/lib/pricing-review.test.ts` | new `it` | Override regression | |
+
+**Checks:** `npm run typecheck`; vitest pricing-review, pricing-request, pricing-assistant-request.
+
 ## 2026-11-24 — D103 A001 install banner mark tile (draft)
 
 | File | Lines (approx.) | Change | Intent |

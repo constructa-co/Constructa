@@ -177,13 +177,22 @@ export const GUIDE_ARTICLES: readonly GuideArticle[] = [
           "List specialisms that reflect work you actually undertake.",
           "Choose relevant past work rather than presenting every job. Consider similar trades, scale and setting, and describe your own role accurately.",
           "Use project descriptions and images you have permission to use. Do not invent a client quote or testimonial.",
-          "Read the profile as it appears in the proposal, not just in the input fields. Check that the examples included suit this job.",
+          "Read the profile as it appears in the proposal, not just in the input fields. Check that the examples included suit this job."
+        ],
+        "get": [
+          "Your own review of the information you intend to share."
+        ],
+        "check": "This guide is for existing review accounts. Full photo and library journeys remain outside this preview. Check your saved company information and the actual proposal before sharing."
+      },
+      {
+        "title": "Worked example",
+        "add": [
           "For a bathroom refurbishment, a comparable residential project may explain your experience more clearly than an unrelated large commercial job. Describe the work and setting factually; do not imply that every future job will have the same result."
         ],
         "get": [
           "Your own review of the information you intend to share."
         ],
-        "check": "This guide is for existing review accounts. Check your actual saved information and the proposal you intend to share."
+        "check": "Describe your own role accurately and use only past-work examples you can substantiate."
       }
     ],
     "closingChecks": [

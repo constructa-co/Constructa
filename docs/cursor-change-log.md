@@ -1,11 +1,18 @@
 # Cursor change log
 
+## 2026-11-23 — D101 manifest newline fix (`manifest.tsv` + `manifest.json`)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `scripts/fixtures/d68-schema-sequence/manifest.tsv` | trailing newline | Bash `read` loop requires EOF newline or #224 row dropped (bootstrap 5/6) |
+| `scripts/fixtures/d68-schema-sequence/manifest.json` | `sourceHead` pins | Match final ordered stack anchors |
+
 ## 2026-11-23 — D101 ordered stack: #223 `9be33d96` into #224
 
 | File | Change | Intent |
 |------|--------|--------|
 | Merge | `codex/d59-con073-exact-main` `9be33d96` | Step 4 — full stack + #176 drill on disposable replay tip |
-| `scripts/fixtures/d68-schema-sequence/manifest.tsv` | `sourceHead` pins | `176→f6dda4d5`, `185→834381f`, `222→aad778ad`, `223→9be33d96`, `224→3cfff39c` (pre-manifest); final CI head = merge commit after this entry | SHA-256 column unchanged |
+| `scripts/fixtures/d68-schema-sequence/manifest.tsv` | `sourceHead` pins | `176→f6dda4d5`, `185→834381f`, `222→aad778ad`, `223→9be33d96`, `224→3cfff39c` (pre-manifest); final CI head = merge commit after manifest fix | SHA-256 column unchanged |
 
 ## 2026-11-23 — D101 PR #224 normal main integration (`codex/d59-con068-exact-main`)
 

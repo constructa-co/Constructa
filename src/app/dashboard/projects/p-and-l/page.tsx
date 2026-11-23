@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ClientPLDashboard from "./client-pl-dashboard";
 import GlobalPLDashboard from "./global-pl-client";
-import { computeContractSum } from "@/lib/financial";
+import { computeBudgetCost, computeContractSum } from "@/lib/financial";
+import { isFaceValueLineType } from "@/lib/estimate-line-type";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +65,7 @@ export default async function PLPage(props: { searchParams: Promise<{ projectId?
                     .in("project_id", projectIds),
                 supabase
                     .from("estimates")
-                    .select("project_id, total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, discount_pct, is_active, estimate_lines(trade_section, line_total)")
+                    .select("project_id, total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, discount_pct, is_active, estimate_lines(trade_section, line_total, line_type)")
                     .in("project_id", projectIds),
             ]);
             allExpenses  = expData  ?? [];
@@ -82,6 +83,9 @@ export default async function PLPage(props: { searchParams: Promise<{ projectId?
             const budgetCost = activeEst
                 ? (() => {
                     const lines = activeEst.estimate_lines ?? [];
+                    if (lines.some((line: { line_type?: string | null }) => isFaceValueLineType(line.line_type))) {
+                        return computeBudgetCost(activeEst, lines);
+                    }
                     const np = lines.filter((l: any) => l.trade_section !== "Preliminaries");
                     const pl = lines.filter((l: any) => l.trade_section === "Preliminaries");
                     const dc = np.reduce((s: number, l: any) => s + (Number(l.line_total) || 0), 0);
@@ -184,12 +188,16 @@ export default async function PLPage(props: { searchParams: Promise<{ projectId?
             riskAmount:            0,
             profitAmount:          0,
             discountAmount:        0,
+            faceValueTotal:        0,
             contractSum:           0,
             ohRiskProfitMultiplier: 1,
         };
     const directCost      = breakdown.directCost;
     const prelimsTotal    = breakdown.prelimsTotal;
-    const totalBudgetCost = breakdown.totalConstructionCost;
+    // Face-value sums are real cost, not margin: the estimated margin is
+    // contract value minus budget cost, so an allowance excluded here would
+    // read as pure profit.
+    const totalBudgetCost = breakdown.totalConstructionCost + breakdown.faceValueTotal;
     const overheadPct     = Number(activeEstimate?.overhead_pct) || 0;
     const riskPct         = Number(activeEstimate?.risk_pct)     || 0;
     const profitPct       = Number(activeEstimate?.profit_pct)   || 0;

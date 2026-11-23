@@ -14,7 +14,7 @@ describe("contractor-written job types", () => {
         expect(JOB_TYPE_EXAMPLES).toEqual(["Extension", "Loft Conversion", "New Build", "Renovation", "Bathroom/Kitchen", "Roofing", "General Works", "Other"]);
     });
 
-    it.each(["Kitchen worktop repairs", "Residential Extension", "Other", "Repairs & alterations"])("preserves %s through the existing creation graph and proposal document", projectType => {
+    it.each(["Kitchen worktop repairs", "Residential Extension", "Repairs & alterations"])("preserves %s through the existing creation graph and proposal document", projectType => {
         const parsed = validateBlankProjectForm({ ...EMPTY_BLANK_PROJECT_FORM, name: "Local job", client: "Synthetic client", projectType }, "11111111-1111-4111-8111-111111111111");
         expect(parsed.ok).toBe(true);
         if (!parsed.ok) throw Error("Expected existing type validation to accept text");
@@ -31,5 +31,17 @@ describe("contractor-written job types", () => {
         const withoutType = structuredClone(input);
         withoutType.project.project_type = "Other";
         expect(snapshot.commercial).toEqual(buildProposalPublicationSnapshot(withoutType).commercial);
+    });
+
+    it("stores the unspecified placeholder without showing it as the document type of work", () => {
+        const parsed = validateBlankProjectForm({ ...EMPTY_BLANK_PROJECT_FORM, name: "Local job", client: "Synthetic client", projectType: "" }, "11111111-1111-4111-8111-111111111111");
+        expect(parsed.ok).toBe(true);
+        if (!parsed.ok) throw Error("Expected blank type");
+        const graph = buildBlankProjectGraph(parsed.input);
+        expect(graph.project.project_type).toBe("Other");
+        const input = representativeInput();
+        input.project.project_type = graph.project.project_type;
+        const doc = buildProposalDocument(buildProposalPublicationSnapshot(input));
+        expect(doc.projectType).toBeNull();
     });
 });

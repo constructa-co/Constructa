@@ -572,7 +572,15 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
         const basisLines = wrap(`${programmeBasisNote(plan)} Coloured bars show duration. Vertical ticks mark starts, not extra days.`, PAGE.contentWidth, STYLES.small);
         const axisAndNoteHeight = Math.max(12, 6 + basisLines.length * STYLES.small.lineHeight);
         const headline: DocFact[] = programmeFacts(plan);
-        ensure(TIMELINE_FACTS + STAGE_ROW);
+        // A stage name too long for its column runs on to further lines, and
+        // its row grows to hold them. Proposals issued before presentation 4
+        // printed the first line only and are still drawn that way.
+        const stageNames = plan.stages.map((stage) => {
+            const nameLines = wrap(stage.name, PAGE.contentWidth - 78, STYLES.strong);
+            return document.presentationVersion >= 4 ? nameLines : nameLines.slice(0, 1);
+        });
+        const nameOverflow = (index: number) => Math.max(0, (stageNames[index]?.length ?? 0) - 1) * STYLES.strong.lineHeight;
+        ensure(TIMELINE_FACTS + STAGE_ROW + nameOverflow(0));
         const factsTop = y;
         const columnWidth = PAGE.contentWidth / 3;
         headline.forEach((fact, column) => {
@@ -589,9 +597,10 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
         plan.stages.forEach((stage, index) => {
             const isLast = index === plan.stages.length - 1;
             // The date axis and the basis note stay with the last stage.
-            ensure(STAGE_ROW + (isLast ? axisAndNoteHeight : 0));
+            const overflow = nameOverflow(index);
+            ensure(STAGE_ROW + overflow + (isLast ? axisAndNoteHeight : 0));
             const top = y;
-            drawBlockLines(wrap(stage.name, PAGE.contentWidth - 78, STYLES.strong).slice(0, 1), PAGE.left, top, STYLES.strong);
+            drawBlockLines(stageNames[index], PAGE.left, top, STYLES.strong);
             drawBlockLines(
                 [pdfText(`${programmeStageRange(plan, index)} - ${formatWorkingDuration(stage.working_days, plan.working_pattern)}`)],
                 PAGE.right, top + 0.6, STYLES.small, "right",
@@ -599,19 +608,20 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
             const bar = programmeStageBar(plan, index, 0);
             const barX = PAGE.left + (PAGE.contentWidth * bar.leftPct) / 100;
             const barWidth = (PAGE.contentWidth * bar.widthPct) / 100;
+            const barTop = top + overflow + 6.5;
             pdf.setFillColor(231, 229, 228);
-            pdf.roundedRect(PAGE.left, top + 6.5, PAGE.contentWidth, 2.6, 1.3, 1.3, "F");
+            pdf.roundedRect(PAGE.left, barTop, PAGE.contentWidth, 2.6, 1.3, 1.3, "F");
             pdf.setFillColor(...ACCENT);
             if (barWidth > 0) pdf.roundedRect(
                 barX,
-                top + 6.5,
+                barTop,
                 barWidth,
                 2.6, Math.min(1.3, barWidth / 2), 1.3, "F",
             );
             pdf.setDrawColor(...ACCENT);
             pdf.setLineWidth(0.25);
-            pdf.line(barX, top + 6, barX, top + 9.6);
-            y += STAGE_ROW;
+            pdf.line(barX, barTop - 0.5, barX, barTop + 3.1);
+            y += STAGE_ROW + overflow;
             log("row", top, y);
         });
 
@@ -761,12 +771,13 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
             });
             y += height + 4;
         }
-        const narrative: Array<[string, string[]]> = [["What we delivered", block.delivered], ["Value added", block.valueAdded]];
+        const narrative: Array<[string, string[]]> = [["What we delivered", block.delivered], ["Value added", block.valueAdded], ["The challenge", block.challenge ?? []], ["How we resolved it", block.solution ?? []]];
         narrative.forEach(([heading, text]) => {
             if (text.length === 0) return;
             subheading(heading, { type: "paragraphs", paragraphs: text });
             paragraphs(text);
         });
+        if (block.quote) quote(block.quote.paragraphs, block.quote.attribution);
         y += 6;
     };
 
@@ -928,7 +939,14 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
             `Reference ${document.reference}.${document.snapshotRef ? ` Snapshot ${document.snapshotRef}.` : ""}${document.draftCheckCode ? ` Check code ${document.draftCheckCode}.` : ""}`,
             PAGE.contentWidth - 16, STYLES.small,
         );
-        const signatureHeight = 33;
+        // From presentation 5 a client name too long for the signature column
+        // is written out in full and the lines to sign move down for it.
+        // Earlier versions kept the first line only and are still drawn that way.
+        const columnWidth = (PAGE.contentWidth - 16 - 10) / 2;
+        const wrappedClientName = document.clientName ? wrap(document.clientName, columnWidth, STYLES.strong) : [];
+        const clientNameLines = document.presentationVersion >= 5 ? wrappedClientName : wrappedClientName.slice(0, 1);
+        const nameOverflow = Math.max(0, clientNameLines.length - 1) * STYLES.strong.lineHeight;
+        const signatureHeight = 33 + nameOverflow;
         const height = 7 + headingLines.length * headingStyle.lineHeight + 2 + noticeLines.length * STYLES.body.lineHeight
             + 6 + signatureHeight + footnote.length * STYLES.small.lineHeight + 6;
 
@@ -942,8 +960,15 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
             if (room > 30) y = PAGE.contentTop + room / 2;
         } else {
             const slack = remaining() - need;
-            if (slack > 40) y += pad + Math.min(slack * 0.35, 28);
-            else y += pad;
+            if (slack > 60) {
+                // Terms and the receipt share a page: keep the receipt near the foot
+                // instead of floating high with a mostly blank lower third (A075).
+                y = PAGE.contentBottom - height - 12;
+            } else if (slack > 40) {
+                y += pad + Math.min(slack * 0.35, 28);
+            } else {
+                y += pad;
+            }
         }
         const top = y;
         pdf.setFillColor(...SOFT);
@@ -956,20 +981,21 @@ export function renderProposalBrochure(document: ProposalDocument, images: Image
         cursor += drawBlockLines(headingLines, x, cursor, headingStyle) + 2;
         cursor += drawBlockLines(noticeLines, x, cursor, STYLES.body) + 6;
 
-        const columnWidth = (PAGE.contentWidth - 16 - 10) / 2;
-        const signature = (columnX: number, label: string, name: string | null) => {
+        const signature = (columnX: number, label: string, nameLines: string[]) => {
             drawBlockLines(wrap(label, columnWidth, STYLES.label), columnX, cursor, STYLES.label);
-            if (name) drawBlockLines(wrap(name, columnWidth, STYLES.strong).slice(0, 1), columnX, cursor + 5, STYLES.strong);
+            drawBlockLines(nameLines, columnX, cursor + 5, STYLES.strong);
             ["Signature", "Name", "Date"].forEach((line, index) => {
-                const lineY = cursor + 16 + index * 7;
+                const lineY = cursor + 16 + nameOverflow + index * 7;
+                const fieldTop = lineY - 3;
                 pdf.setDrawColor(...MUTED);
                 pdf.setLineWidth(0.2);
                 pdf.line(columnX + 18, lineY, columnX + columnWidth, lineY);
-                drawBlockLines([line], columnX, lineY - 3, STYLES.small);
+                drawBlockLines([line], columnX, fieldTop, STYLES.small);
+                log("signature-field", fieldTop, lineY + 0.5, `signature-${Math.round(columnX)}`);
             });
         };
-        signature(x, `For ${document.company.name}`, null);
-        signature(x + columnWidth + 10, response.signatureLabel, document.clientName);
+        signature(x, `For ${document.company.name}`, []);
+        signature(x + columnWidth + 10, response.signatureLabel, clientNameLines);
         cursor += signatureHeight;
         drawBlockLines(footnote, x, cursor, STYLES.small);
 
@@ -1037,9 +1063,20 @@ function round(value: number): number {
     return Math.round(value * 100) / 100;
 }
 
+/** The most of a job name a file name carries, so it saves on any system whatever alphabet it is in. */
+const FILENAME_TITLE_LENGTH = 60;
+
 export function brochureFilename(document: ProposalDocument): string {
-    const name = document.title.replace(/[^a-z0-9]+/gi, "_").replace(/^_+|_+$/g, "") || "Proposal";
-    return `${name}_Proposal_${document.reference}.pdf`;
+    // Letters and digits of any alphabet are kept: "Café" is not cut to "Caf".
+    const words = Array.from(document.title.normalize("NFC").replace(/[^\p{L}\p{N}]+/gu, "_").replace(/^_+|_+$/g, ""));
+    let name = words.join("");
+    if (words.length > FILENAME_TITLE_LENGTH) {
+        // A long name ends at a whole word where there is one.
+        const cut = words.slice(0, FILENAME_TITLE_LENGTH + 1).join("");
+        const lastBreak = cut.lastIndexOf("_");
+        name = lastBreak > 0 ? cut.slice(0, lastBreak) : words.slice(0, FILENAME_TITLE_LENGTH).join("");
+    }
+    return `${name || "Proposal"}_Proposal_${document.reference}.pdf`;
 }
 
 /**

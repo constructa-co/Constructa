@@ -51,7 +51,8 @@
     line-height: 1.6;
 }
 
-.root :is(input, select) {
+/* Tick boxes keep their own size; stretched to a full-width field they squeeze their label. */
+.root :is(input, select):not(:where([type="checkbox"], [type="radio"])) {
     min-width: 0;
     width: 100%;
     min-height: 46px;

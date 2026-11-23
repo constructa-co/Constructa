@@ -200,7 +200,7 @@ const saveInclusion: SaveProgrammeInclusion = async (include) => {
 function renderProgramme() {
     fixture.view = "programme";
     root.render(<SimpleProgrammeClient project={fixture.projectRow} lockReason={null} estimate={null}
-        save={saveProgramme} saveInclusion={saveInclusion} />);
+        save={saveProgramme} saveInclusion={saveInclusion} plannerDraftViewerScope="e2e-local-viewer" />);
 }
 
 const reviewServer: ReviewServer = {

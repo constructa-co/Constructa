@@ -203,6 +203,7 @@ describe("proposal publication snapshot", () => {
             const snapshot = buildProposalPublicationSnapshot({ ...input, project: programmeProject });
             expect(snapshot.programme_plan).toEqual({
                 basis: "mon_fri_working_days",
+                bank_holiday_division: "england-and-wales",
                 start_date: "2026-10-12",
                 end_date: "2026-11-04",
                 working_days: 18,

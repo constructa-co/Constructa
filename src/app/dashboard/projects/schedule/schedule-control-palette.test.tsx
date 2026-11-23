@@ -34,7 +34,8 @@ const button = (tree: Element[], label: string) => tree.find(n => n.type === "bu
 
 function setup(phases: TrackedPhase[] = example(), days = "5") {
     vi.stubGlobal("window", {}); vi.stubGlobal("localStorage", { getItem: () => days, setItem: hooks.setItem });
-    const props = { project: { id: "job", name: "Kitchen", start_date: "2026-11-02", programme_phases: phases }, projectId: "job", estimate: null };
+    const props = { project: { id: "job", name: "Kitchen", start_date: "2026-11-02", programme_phases: phases },
+        projectId: "job", estimate: null, plannerDraftViewerScope: "viewer-test" };
     const parent = () => { hooks.cursor = 0; return nodes(ClientSchedulePage(props)); };
     const tracking = () => {
         const toggle = parent().find(n => n.type === "button" && text(n.props.children).includes("Live Tracking"))!;
@@ -132,16 +133,20 @@ describe("detailed planner ordinary controls use the programme sage/ink", () => 
         expect(text(legend.props.children)).toBe("PlannedComplete");
     });
 
-    it("desktop layout is lg-only: sticky header and stage columns, bounded height; the 900px scroll below lg stays", () => {
+    it("desktop layout is lg-only: sticky header, bounded height, and phone list plus chart breakpoints", () => {
         const tree = setup().parent();
-        const card = tree.find(n => n.type === "div" && classes(n).includes("overflow-x-auto"))!;
-        expect(classes(card)).toEqual(expect.arrayContaining(["overflow-x-auto", "lg:max-h-[75vh]"]));
-        const [header, body] = tree.filter(n => n.type === "div" && classes(n).includes("min-w-[900px]"));
-        expect(classes(header)).toEqual(expect.arrayContaining(["min-w-[900px]", "lg:sticky", "lg:top-0", "lg:z-40", "lg:bg-slate-900"]));
+        const card = tree.find(n => n.type === "div" && classes(n).includes("lg:overflow-x-auto"))!;
+        expect(classes(card)).toEqual(expect.arrayContaining(["lg:overflow-x-auto", "lg:max-h-[75vh]"]));
+        const scroll = tree.find(n => n.type === "div" && n.props["data-planner-editing-table-scroll"] !== undefined)!;
+        expect(classes(scroll)).toEqual(expect.arrayContaining(["overflow-x-auto", "lg:overflow-x-visible"]));
+        const [header, body] = tree.filter(n => n.type === "div" && classes(n).includes("lg:min-w-[900px]"));
+        expect(classes(header)).toEqual(expect.arrayContaining(["min-w-[444px]", "lg:min-w-[900px]", "lg:sticky", "lg:top-0", "lg:z-40", "lg:bg-slate-900"]));
+        expect(classes(body)).toEqual(expect.arrayContaining(["min-w-[444px]", "lg:min-w-[900px]"]));
         expect(classes(body)).not.toContain("lg:sticky");
         const panel = tree.find(n => n.type === "div" && classes(n).includes("lg:left-0") && classes(n).includes("lg:z-30"))!;
         expect(classes(panel)).toEqual(expect.arrayContaining(["shrink-0", "lg:sticky", "lg:bg-slate-900"]));
-        // Every sticky/height class is behind lg:, so phone layout is the unchanged scroll card.
+        const html = setup().html();
+        expect(html).toMatch(/data-planner-phone-phase-list[^>]*class="[^"]*lg:hidden/);
         for (const cls of [...classes(card), ...classes(header), ...classes(panel)]) {
             if (/sticky|max-h|top-0|left-0|z-30|z-40/.test(cls)) expect(cls.startsWith("lg:"), cls).toBe(true);
         }
@@ -165,6 +170,12 @@ describe("detailed planner ordinary controls use the programme sage/ink", () => 
         const overall = panel.find(n => n.type === "p" && /%$/.test(text(n.props.children)) && classes(n).includes("text-xl"))!;
         expect(classes(overall)).toContain("text-blue-400");
         expect(panel.some(n => classes(n).includes("rounded-full") && classes(n).includes("bg-blue-500"))).toBe(true);
+    });
+
+    it("labels the final-week star honestly in the planner legend and footer, not as critical path", () => {
+        const html = setup().html();
+        expect(html).toMatch(/finishing in the final week/i);
+        expect(html).not.toMatch(/critical path/i);
     });
 
     it("source: only the named ordinary literals changed; meaningful blues remain", () => {

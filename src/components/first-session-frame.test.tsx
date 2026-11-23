@@ -1,10 +1,20 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { FirstSessionPanel } from "./first-session-frame";
+import { FirstSessionFrame, FirstSessionPanel } from "./first-session-frame";
 
 const render = (step: 0 | 1) => renderToStaticMarkup(
     <FirstSessionPanel step={step}><p>Existing form</p></FirstSessionPanel>
 );
+
+describe("first-session frame header", () => {
+    it("uses the approved trust wording in the site chrome", () => {
+        const html = renderToStaticMarkup(
+            <FirstSessionFrame><p>Form</p></FirstSessionFrame>,
+        );
+        expect(html).toContain("A better way to build your business.");
+        expect(html).not.toContain("build business.");
+    });
+});
 
 describe("first-session supporting panel", () => {
     it("preserves the approved account introduction", () => {

@@ -36,7 +36,8 @@ const revision = () => createHash("sha256").update(JSON.stringify(buildPlanningC
 function mount(props: Record<string, unknown> = {}) {
     hooks.state = initialProgrammeState(emptyProgrammeDraft("2026-11-02"), false);
     hooks.effects = []; hooks.panel = null;
-    renderToStaticMarkup(<SimpleProgrammeClient project={project} lockReason={null} estimate={null} {...props} />);
+    renderToStaticMarkup(<SimpleProgrammeClient project={project} lockReason={null} estimate={null}
+        plannerDraftViewerScope="viewer-test" {...props} />);
     for (const effect of hooks.effects) {
         const cleanup = effect();
         if (cleanup) cleanups.push(cleanup);
@@ -100,7 +101,8 @@ describe("A055 Programme page request path (actual parent, adapter and action bo
         const saved = { ...project, updated_at: "t1" };
         hooks.state = initialProgrammeState(emptyProgrammeDraft("2026-11-02"), false);
         hooks.effects = []; hooks.panel = null;
-        renderToStaticMarkup(<SimpleProgrammeClient project={saved} lockReason={null} estimate={null} save={save} />);
+        renderToStaticMarkup(<SimpleProgrammeClient project={saved} lockReason={null} estimate={null} save={save}
+            plannerDraftViewerScope="viewer-test" />);
         for (const effect of hooks.effects) { const cleanup = effect(); if (cleanup) cleanups.push(cleanup); }
         const onAdd = (hooks.panel as unknown as { onAdd: (item: { name: string; duration: string; unit: "weeks" }) => Promise<{ ok: boolean; error?: string }> }).onAdd;
         const item = { name: "Order windows", duration: "2", unit: "weeks" as const };

@@ -5,6 +5,7 @@ import ProgrammeClient from "./programme-client";
 import Link from "next/link";
 import ProgrammeOverview from "@/components/programme-overview";
 import { computeRelativeProgramme, hasRelativeProgramme } from "@/lib/relative-programme";
+import { resolveUkBankHolidayDivision } from "@/lib/uk-bank-holidays";
 import { readProgrammeInclusion } from "@/lib/programme-inclusion";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +38,7 @@ export default async function AsBuiltProgrammePage(props: { searchParams: Promis
 
     const { data: project } = await supabase
         .from("projects")
-        .select("id, name, start_date, programme_phases")
+        .select("id, name, start_date, programme_phases, programme_working_pattern, region")
         .eq("id", projectId)
         .eq("user_id", user.id)
         .single();
@@ -45,7 +46,11 @@ export default async function AsBuiltProgrammePage(props: { searchParams: Promis
     const inclusion = readProgrammeInclusion(project?.programme_phases);
     if (inclusion.intent === "invalid") return <p role="alert">Check the programme inclusion choice in Programme before using live tracking.</p>;
     if (hasRelativeProgramme(inclusion.phases)) {
-        const plan = computeRelativeProgramme(inclusion.phases);
+        const plan = computeRelativeProgramme(
+            inclusion.phases,
+            project?.programme_working_pattern,
+            resolveUkBankHolidayDivision(project?.region),
+        );
         return (
             <div className="max-w-7xl mx-auto p-8 space-y-6" data-relative-live-programme>
                 <h1 className="text-2xl font-bold text-white">Programme: {project?.name}</h1>
@@ -79,6 +84,8 @@ export default async function AsBuiltProgrammePage(props: { searchParams: Promis
                 projectId={projectId}
                 projectName={project?.name ?? ""}
                 startDate={project?.start_date ?? null}
+                region={project?.region ?? null}
+                programmeWorkingPattern={project?.programme_working_pattern}
                 initialPhases={phases}
             />
         </div>

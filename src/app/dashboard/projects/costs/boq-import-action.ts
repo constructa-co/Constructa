@@ -6,6 +6,9 @@ import { revalidatePath } from "next/cache";
 import OpenAI from "openai";
 import { CreateBoQEstimateSchema, parseInput } from "@/lib/validation/schemas";
 import { requireLaunchCapability } from "@/lib/launch-profile";
+import { batchSectionHeadings } from "@/lib/estimate-batch-sections";
+import { normalizeClientBoQLines } from "@/lib/client-boq-normalize";
+import { reconcileBoQLineTotal, type BoQTotalMismatch } from "@/lib/boq-number";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -17,6 +20,10 @@ export interface ClientBoQLine {
     unit: string;
     unit_rate: number;        // 0 = unpriced
     line_total: number;
+    /** Set when qty/rate cells were present but not readable — no invented numbers. */
+    parse_warnings?: string[];
+    /** The client's stated total disagreed with qty × rate; line_total holds qty × rate. Does not block import. */
+    total_mismatch?: BoQTotalMismatch;
 }
 
 export interface ParsedClientBoQ {
@@ -92,12 +99,13 @@ Rules:
         try {
             const jsonMatch = rawText.match(/\{[\s\S]*\}/);
             const parsed = JSON.parse(jsonMatch?.[0] || rawText);
-            lines = Array.isArray(parsed.lines) ? parsed.lines : [];
+            const raw = Array.isArray(parsed.lines) ? parsed.lines : [];
+            lines = normalizeClientBoQLines(raw);
         } catch {
             lines = [];
         }
 
-        const sections = [...new Set(lines.map((l) => l.section).filter(Boolean))];
+        const sections = batchSectionHeadings(lines);
 
         return {
             success: true,
@@ -137,8 +145,8 @@ If a cell is blank or "-", use null for quantities and 0 for rates.
 Return JSON: { "lines": [{ "client_ref": "", "section": "", "description": "", "quantity": null, "unit": "item", "unit_rate": 0, "line_total": 0 }] }`
         );
 
-        const lines = result.lines || [];
-        const sections = [...new Set(lines.map((l) => l.section).filter(Boolean))];
+        const lines = normalizeClientBoQLines(result.lines || []);
+        const sections = batchSectionHeadings(lines);
 
         return {
             success: true,
@@ -156,6 +164,13 @@ export async function createBoQEstimateAction(
     boq: ParsedClientBoQ
 ): Promise<{ success: boolean; estimateId?: string; error?: string }> {
     requireLaunchCapability("client-boq-import");
+  const warned = boq.lines.filter((line) => line.parse_warnings?.length);
+    if (warned.length) {
+        return {
+            success: false,
+            error: `${warned.length} row(s) have unreadable quantities, rates or totals. Fix them in the file or remove those rows before importing.`,
+        };
+    }
     try {
         parseInput(CreateBoQEstimateSchema, { projectId, boq }, "client BoQ import");
     } catch (err) {
@@ -189,18 +204,27 @@ export async function createBoQEstimateAction(
     // Insert lines — skip blank description rows, keep section headers
     const linesToInsert = boq.lines
         .filter((l) => l.description?.trim())
-        .map((l) => ({
+        .map((l) => {
+            const unit = (l.unit || "item").trim() || "item";
+            const quantity = l.quantity ?? 1;
+            // Never trust a posted total that disagrees with qty × rate: the row
+            // would read "2 × £10 = £25" and change on its first edit.
+            const line_total = Number.isFinite(l.line_total)
+                ? reconcileBoQLineTotal(l.quantity, l.unit_rate || 0, l.line_total).line_total
+                : quantity * (l.unit_rate || 0);
+            return {
             estimate_id: estimate.id,
             trade_section: l.section || "General",
             client_ref: l.client_ref || null,
             description: l.description,
-            quantity: l.quantity ?? 1,
-            unit: l.unit || "item",
+            quantity,
+            unit,
             unit_rate: l.unit_rate || 0,
-            line_total: l.quantity != null ? (l.quantity * (l.unit_rate || 0)) : 0,
+            line_total,
             pricing_mode: "simple",
             line_type: "general",
-        }));
+        };
+        });
 
     if (linesToInsert.length > 0) {
         const { error: linesErr } = await supabase

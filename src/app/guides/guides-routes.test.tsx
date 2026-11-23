@@ -6,6 +6,7 @@ import { MarketingFooter } from '@/components/marketing/phase-one';
 import { GuideArticleView } from '@/components/marketing/guide-article-view';
 import {
   GUIDE_ARTICLE_ATTRIBUTION,
+  GUIDE_ARTICLES,
   getAllGuideSlugs,
   getGuideArticle,
 } from '@/lib/marketing-guides';
@@ -53,6 +54,20 @@ describe('guides hub and articles', () => {
     expect(markup).not.toMatch(/Plausible|Formspree|Google Analytics|<iframe/i);
   });
 
+  it('presents the hub as an editorial index with numbered entries and updated dates', () => {
+    const markup = hubMarkup();
+    expect(markup).toContain('The review guide');
+    expect(markup.match(/aria-hidden="true">0[1-9]</g)).toHaveLength(7);
+    expect(markup.match(/Review checklist · Updated/g)).toHaveLength(7);
+    for (const article of GUIDE_ARTICLES) {
+      expect(markup).toMatch(
+        new RegExp(`<time dateTime="${article.contentUpdatedIso}">${article.contentUpdatedDisplay}</time>`, 'i'),
+      );
+    }
+    const headings = [...markup.matchAll(/<h([1-6])\b/g)].map(match => Number(match[1]));
+    expect(headings).toEqual([1, 2, ...Array(7).fill(3)]);
+  });
+
   it('renders each article with navigation, qualifications and preview-access handoff', async () => {
     for (const slug of getAllGuideSlugs()) {
       route.pathname = `/guides/${slug}`;
@@ -89,6 +104,11 @@ describe('guides hub and articles', () => {
     expect(generateStaticParams()).toEqual([
       { slug: 'review-brief-and-price' },
       { slug: 'programme-and-proposal-before-sharing' },
+      { slug: 'estimate-review' },
+      { slug: 'programme-review' },
+      { slug: 'company-profile' },
+      { slug: 'scope-brief' },
+      { slug: 'proposal-review' },
     ]);
   });
 
@@ -110,7 +130,7 @@ describe('guides hub and articles', () => {
   });
 
   it('records transparent attribution and content updated metadata on every article', () => {
-    expect(getAllGuideSlugs()).toHaveLength(2);
+    expect(getAllGuideSlugs()).toHaveLength(7);
     for (const slug of getAllGuideSlugs()) {
       const article = getGuideArticle(slug);
       expect(article).toMatchObject(GUIDE_ARTICLE_ATTRIBUTION);
@@ -119,7 +139,7 @@ describe('guides hub and articles', () => {
       expect(markup).toContain('AI-assisted draft guidance');
       expect(markup).toContain('Not human-expert reviewed');
       expect(markup).toContain('Content updated date:');
-      expect(markup).toMatch(/<time datetime="2026-11-04">4 November 2026<\/time>/i);
+      expect(markup).toMatch(/<time datetime="2026-11-23">23 November 2026<\/time>/i);
       expect(markup).not.toMatch(/reviewed by|expert approval|Rob approved/i);
     }
   });

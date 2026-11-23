@@ -8,8 +8,10 @@ import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import {
     BLANK_PROJECT_CREATE_ERROR,
     EMPTY_BLANK_PROJECT_FORM,
+    PROJECT_NAME_MAX_LENGTH,
     PROJECT_TYPE_OPTIONS,
     briefPathForProject,
+    projectNameLimitNotice,
     validateBlankProjectForm,
     type BlankProjectField,
     type BlankProjectForm,
@@ -18,8 +20,10 @@ import {
 import { MANUAL_ADDRESS_UNAPPLIED_CREATE_MESSAGE } from "@/lib/manual-address";
 import { createBlankProjectAction } from "./actions";
 import JobAddressField from "@/components/job-address-field";
+import UkDateInput from "@/components/uk-date-input";
 import NewJobFrame from "@/components/new-job-frame";
 import type { PostcodeLookupFn } from "@/lib/postcode-address";
+import { clientPostcodeLookup } from "@/lib/postcode-address-provider";
 import ui from "@/components/new-job.module.css";
 import { workspaceStyles } from "@/lib/workspace-styles";
 
@@ -41,6 +45,7 @@ export default function NewProjectForm({
     postcodeLookup,
     createProject = createBlankProjectAction,
 }: Props) {
+    const resolvedPostcodeLookup = postcodeLookup ?? clientPostcodeLookup();
     const router = useRouter();
     const { theme } = useTheme();
     const isDark = theme === "dark";
@@ -163,6 +168,8 @@ export default function NewProjectForm({
         fieldErrors[name] ? (
             <p id={`new-project-${name}-error`} className={errorCls}>{fieldErrors[name]}</p>
         ) : null;
+    const nameLimitNotice = projectNameLimitNotice(form.name);
+    const nameAtLimit = form.name.length >= PROJECT_NAME_MAX_LENGTH;
 
     return (
         <NewJobFrame first={isFirstProject} dark={isDark} creating={creating} errorKey={createError || Object.entries(fieldErrors).map(([name, message]) => `${name}:${message}`).join("|")}>
@@ -179,9 +186,19 @@ export default function NewProjectForm({
                         onChange={(e) => set("name", e.target.value)}
                         placeholder="e.g. 14 Oak Road rear extension"
                         autoComplete="off"
-                        maxLength={200}
+                        maxLength={PROJECT_NAME_MAX_LENGTH}
+                        aria-describedby={[fieldErrors.name ? "new-project-name-error" : "", nameLimitNotice ? "new-project-name-limit" : ""].filter(Boolean).join(" ") || undefined}
                         className={`${inputCls} mt-1.5`}
                     />
+                    {/* Always mounted so the limit is announced when it appears. */}
+                    <p
+                        id="new-project-name-limit"
+                        role="status"
+                        data-job-name-limit={nameLimitNotice ? (nameAtLimit ? "reached" : "near") : undefined}
+                        className={nameLimitNotice ? `mt-1.5 text-sm ${nameAtLimit ? (isDark ? "text-amber-200" : "text-amber-800") : muted}` : undefined}
+                    >
+                        {nameLimitNotice}
+                    </p>
                     {fieldError("name")}
                 </div>
 
@@ -255,7 +272,7 @@ export default function NewProjectForm({
                                 value={form.siteAddress}
                                 onChange={(value) => set("siteAddress", value)}
                                 onStructuredPendingChange={(pending) => setStructuredAddressDraft("site", pending)}
-                                lookup={postcodeLookup}
+                                lookup={resolvedPostcodeLookup}
                                 isDark={isDark}
                                 labelCls={labelCls}
                                 inputCls={inputCls}
@@ -278,7 +295,7 @@ export default function NewProjectForm({
                                 value={form.clientAddress}
                                 onChange={(value) => set("clientAddress", value)}
                                 onStructuredPendingChange={(pending) => setStructuredAddressDraft("client", pending)}
-                                lookup={postcodeLookup}
+                                lookup={resolvedPostcodeLookup}
                                 isDark={isDark}
                                 labelCls={labelCls}
                                 inputCls={inputCls}
@@ -314,11 +331,12 @@ export default function NewProjectForm({
                             <div className="grid sm:grid-cols-2 gap-5">
                                 <div>
                                     <label htmlFor="new-project-startDate" className={labelCls}>Likely start date</label>
-                                    <input
+                                    <UkDateInput
                                         {...field("startDate")}
-                                        type="date"
+                                        id="new-project-startDate"
                                         value={form.startDate}
                                         onChange={(e) => set("startDate", e.target.value)}
+                                        mutedClassName={isDark ? "text-slate-400" : "text-slate-500"}
                                         className={`${inputCls} mt-1.5`}
                                     />
                                     {fieldError("startDate")}

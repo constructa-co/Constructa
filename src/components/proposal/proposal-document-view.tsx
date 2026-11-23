@@ -36,7 +36,7 @@ export default function ProposalDocumentView({ doc, children, readingPage }: { d
             <header hidden={readingPage !== undefined && readingPage !== "cover"} className="px-5 pb-10 pt-8 sm:px-12 sm:pb-14 sm:pt-12">
                 <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-stone-200 pb-6">
                     {doc.company.logoUrl
-                        ? <img src={doc.company.logoUrl} alt={doc.company.name} className="max-h-14 max-w-[60%] object-contain" />
+                        ? <img src={doc.company.logoUrl} alt={doc.company.name} data-cover-logo className="max-h-14 max-w-[60%] object-contain" />
                         : <p className="text-lg font-bold tracking-tight text-stone-900">{doc.company.name}</p>}
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--doc-highlight)]">Proposal</p>
                 </div>
@@ -107,7 +107,7 @@ export default function ProposalDocumentView({ doc, children, readingPage }: { d
                     <p className="text-xs font-semibold tracking-[0.2em] text-[var(--doc-highlight)]" aria-hidden="true">
                         {String(index + 1).padStart(2, "0")}
                     </p>
-                    <h2 id={`doc-${section.id}`} className="mt-1 font-serif text-3xl leading-tight text-stone-900">{section.title}</h2>
+                    <h2 id={`doc-${section.id}`} className="mt-1 break-after-avoid font-serif text-3xl leading-tight text-stone-900">{section.title}</h2>
                     <div className="mt-6 space-y-5">
                         {section.blocks.map((block, blockIndex) => <Block key={blockIndex} block={block} sectionId={section.id} />)}
                     </div>
@@ -175,7 +175,7 @@ function Block({ block, sectionId }: { block: DocBlock; sectionId: DocSectionId 
             return <Paragraphs paragraphs={block.paragraphs} />;
 
         case "subheading":
-            return <h3 className="pt-3 text-sm font-semibold uppercase tracking-wide text-stone-900">{block.text}</h3>;
+            return <h3 className="break-after-avoid pt-3 text-sm font-semibold uppercase tracking-wide text-stone-900">{block.text}</h3>;
 
         case "bullets":
             return <Bullets items={block.items} />;
@@ -321,6 +321,26 @@ function Block({ block, sectionId }: { block: DocBlock; sectionId: DocSectionId 
                             <h4 className="text-sm font-semibold uppercase tracking-wide text-stone-900">Value added</h4>
                             <div className="mt-2"><Paragraphs paragraphs={block.valueAdded} /></div>
                         </div>
+                    )}
+                    {block.challenge && block.challenge.length > 0 && (
+                        <div className="mt-5" data-doc-case-study-challenge>
+                            <h4 className="text-sm font-semibold uppercase tracking-wide text-stone-900">The challenge</h4>
+                            <div className="mt-2"><Paragraphs paragraphs={block.challenge} /></div>
+                        </div>
+                    )}
+                    {block.solution && block.solution.length > 0 && (
+                        <div className="mt-5" data-doc-case-study-solution>
+                            <h4 className="text-sm font-semibold uppercase tracking-wide text-stone-900">How we resolved it</h4>
+                            <div className="mt-2"><Paragraphs paragraphs={block.solution} /></div>
+                        </div>
+                    )}
+                    {block.quote && (
+                        <figure className="mt-5 border-l-2 border-[var(--doc-accent)] bg-[var(--doc-accent-soft)] px-5 py-4" data-doc-case-study-quote>
+                            <blockquote className="space-y-3 font-serif text-lg italic leading-relaxed text-stone-800">
+                                {block.quote.paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}
+                            </blockquote>
+                            {block.quote.attribution && <figcaption className="mt-3 text-sm font-semibold text-stone-900">{block.quote.attribution}</figcaption>}
+                        </figure>
                     )}
                 </div>
             );

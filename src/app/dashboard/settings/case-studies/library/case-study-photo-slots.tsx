@@ -2,9 +2,19 @@
 
 import { Upload } from "lucide-react";
 import { fieldMessage } from "@/lib/case-library/messages";
+import { CASE_STUDY_PRIMARY_LABEL } from "@/lib/case-library/case-study-photo-behaviour";
 import { CASE_STUDY_PHOTO_COUNT, type CaseStudyPhotoSlot } from "@/lib/case-library/photos";
+import { coreFocusVisibleRing } from "@/lib/core-editing-palette";
+import { PUBLIC_IMAGE_LIMITS_HINT } from "@/lib/storage/public-image";
 
 export type PhotoUpload = (slot: number, file: File) => Promise<void>;
+
+/** Hands a picked file on, and clears the input so choosing the same file again is still a change the browser reports. */
+function pickFrom(input: HTMLInputElement, slot: number, onUpload: PhotoUpload) {
+    const file = input.files?.[0];
+    input.value = "";
+    if (file) void onUpload(slot, file);
+}
 
 /** File upload is offered only when persistence is on the wire contract and a handler exists. */
 export function libraryPhotoUploadOffered(persistenceAvailable: boolean, onUpload?: PhotoUpload): boolean {
@@ -17,6 +27,8 @@ export default function CaseStudyPhotoSlots({
     onUpload,
     cardIndex,
     persistenceAvailable,
+    primarySlot,
+    onMakePrimary,
 }: {
     photos: CaseStudyPhotoSlot[];
     onChange: (slot: number, patch: Partial<CaseStudyPhotoSlot>) => void;
@@ -25,6 +37,8 @@ export default function CaseStudyPhotoSlots({
     cardIndex: number;
     /** From {@link caseLibraryDraftPhotosOnWire}; when false, upload/replace is not offered. */
     persistenceAvailable: boolean;
+    primarySlot?: number;
+    onMakePrimary?: (slot: number) => void;
 }) {
     const canUpload = libraryPhotoUploadOffered(persistenceAvailable, onUpload);
     const unavailableCopy = fieldMessage("photos");
@@ -32,7 +46,7 @@ export default function CaseStudyPhotoSlots({
     return (
         <div data-case-study-photos className="space-y-2">
             <p className="text-base font-semibold text-slate-100">Photos {!persistenceAvailable && <span className="font-normal text-slate-300">(not available yet)</span>}{persistenceAvailable && <span className="font-normal text-slate-200">(optional, up to 3)</span>}</p>
-            <p className="text-sm text-slate-200">{persistenceAvailable ? "Add your own pictures in order. A caption is optional and stays with each slot." : unavailableCopy}</p>
+            <p className="text-sm text-slate-200">{persistenceAvailable ? `Add your own pictures in order: ${PUBLIC_IMAGE_LIMITS_HINT}. A caption is optional and stays with each slot.` : unavailableCopy}</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {Array.from({ length: CASE_STUDY_PHOTO_COUNT }, (_, slot) => {
                     const photo = slots[slot] ?? { url: "", caption: "" };
@@ -43,10 +57,18 @@ export default function CaseStudyPhotoSlots({
                                     <>
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img src={photo.url} alt={photo.caption || `Photo ${slot + 1}`} className="w-full h-full object-cover" />
+                                        {primarySlot === slot && (
+                                            <span className="absolute top-1 left-1 z-10 rounded bg-emerald-900/90 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-100">{CASE_STUDY_PRIMARY_LABEL}</span>
+                                        )}
+                                        {onMakePrimary && primarySlot !== slot && (
+                                            <button type="button" aria-label={`Use photo ${slot + 1} as main for past work ${cardIndex + 1}`} onClick={() => onMakePrimary(slot)} className={`absolute top-1 left-1 z-10 min-h-8 px-2 rounded-lg bg-black/70 text-[10px] font-semibold text-white hover:bg-black ${coreFocusVisibleRing}`}>
+                                                Use as main
+                                            </button>
+                                        )}
                                         {canUpload && (
                                             <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity">
                                                 <Upload className="w-5 h-5 text-white" aria-hidden />
-                                                <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={`Replace photo ${slot + 1} for past work ${cardIndex + 1}`} className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) void onUpload!(slot, file); }} />
+                                                <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={`Replace photo ${slot + 1} for past work ${cardIndex + 1}`} className="sr-only" onChange={(event) => pickFrom(event.target, slot, onUpload!)} />
                                             </label>
                                         )}
                                     </>
@@ -54,7 +76,7 @@ export default function CaseStudyPhotoSlots({
                                     <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-slate-800 transition-colors">
                                         <Upload className="w-5 h-5 text-slate-300 mb-1" aria-hidden />
                                         <span className="text-xs text-slate-300">Upload</span>
-                                        <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={`Upload photo ${slot + 1} for past work ${cardIndex + 1}`} className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) void onUpload!(slot, file); }} />
+                                        <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={`Upload photo ${slot + 1} for past work ${cardIndex + 1}`} className="sr-only" onChange={(event) => pickFrom(event.target, slot, onUpload!)} />
                                     </label>
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-xs text-slate-300 px-2 text-center">No picture</div>

@@ -1,0 +1,22 @@
+{
+  "theme": "dark",
+  "regions": [
+    "[data-project-period]",
+    "[data-project-views]",
+    "[data-running-total]"
+  ],
+  "findings": [
+    {
+      "selector": "[data-project-period]",
+      "violations": []
+    },
+    {
+      "selector": "[data-project-views]",
+      "violations": []
+    },
+    {
+      "selector": "[data-running-total]",
+      "violations": []
+    }
+  ]
+}

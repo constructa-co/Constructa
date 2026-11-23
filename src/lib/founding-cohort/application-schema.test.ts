@@ -6,11 +6,10 @@ import {
 
 const valid = {
   name: "Alex Smith",
-  company: "Smith Refurbs Ltd",
   email: "alex@example.co.uk",
-  trade: "Kitchen refurbishment",
-  teamSize: "2-5",
-  note: "Interested in proposals for domestic clients.",
+  company: "Smith Refurbs Ltd",
+  message: "Interested in proposals for domestic clients.",
+  consent: "on" as const,
 };
 
 describe("founding cohort application schema", () => {
@@ -19,38 +18,38 @@ describe("founding cohort application schema", () => {
     expect(parsed.success).toBe(true);
   });
 
-  it("trims fields and allows an empty optional note", () => {
+  it("trims fields and allows an empty optional company", () => {
     const parsed = FoundingCohortApplicationSchema.safeParse({
       ...valid,
       name: "  Alex Smith  ",
-      note: "   ",
+      company: "   ",
     });
     expect(parsed.success).toBe(true);
     if (parsed.success) {
       expect(parsed.data.name).toBe("Alex Smith");
-      expect(parsed.data.note).toBeUndefined();
+      expect(parsed.data.company).toBeUndefined();
     }
   });
 
   it("rejects missing required fields and invalid email", () => {
     const result = parseFoundingCohortApplicationInput({
       name: "",
-      company: "Co",
       email: "not-an-email",
-      trade: "Groundworks",
-      teamSize: "6-10",
+      message: "",
+      consent: undefined,
     });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.fieldErrors.name).toBeDefined();
       expect(result.fieldErrors.email).toBeDefined();
+      expect(result.fieldErrors.consent).toBeDefined();
     }
   });
 
-  it("rejects an overlong note", () => {
+  it("rejects an overlong message", () => {
     const parsed = FoundingCohortApplicationSchema.safeParse({
       ...valid,
-      note: "x".repeat(2001),
+      message: "x".repeat(4001),
     });
     expect(parsed.success).toBe(false);
   });

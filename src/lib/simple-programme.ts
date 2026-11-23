@@ -24,6 +24,7 @@ import {
 } from "./job-working-pattern";
 import { canonicalWorkingPatternComparable, workingPatternsEquivalent } from "./working-pattern-canonical";
 import { computeDisplayProgramme, computeRelativeProgramme, hasRelativeProgramme, RELATIVE_PROGRAMME_BASIS, type DisplayProgrammePlan } from "./relative-programme";
+import { programmeCalendarForProject } from "./programme-calendar";
 
 export const MIN_STAGES = 1;
 export const MAX_STAGES = 6;
@@ -88,6 +89,7 @@ export interface ProgrammeProjectFields {
     start_date?: string | null;
     programme_phases?: unknown[] | null;
     gantt_phases?: unknown[] | null;
+    region?: string | null;
     /** When the job row last changed, if the database keeps it. */
     updated_at?: string | null;
 }
@@ -119,11 +121,11 @@ function hasLiveOrLinkedData(phase: Record<string, unknown>): boolean {
 }
 
 /** Where the plan draws a saved phase: its calendar offset, rolled on to a working day. */
-function placedStart(startDate: string, offset: number, pattern: JobWorkingPattern): string | null {
+function placedStart(startDate: string, offset: number, calendar: ReturnType<typeof programmeCalendarForProject>): string | null {
     const start = parseIsoDate(startDate);
-    if (start === null || !Number.isInteger(offset) || offset < 0) return null;
+    if (start === null || !Number.isInteger(offset) || offset < 0 || !calendar) return null;
     const placed = new Date(start + offset * 86_400_000);
-    return Number.isFinite(placed.getTime()) ? addJobWorkingDays(placed.toISOString().slice(0, 10), 1, pattern) : null;
+    return Number.isFinite(placed.getTime()) ? addJobWorkingDays(placed.toISOString().slice(0, 10), 1, calendar) : null;
 }
 
 /**
@@ -132,8 +134,8 @@ function placedStart(startDate: string, offset: number, pattern: JobWorkingPatte
  * plan reads it, from the next working day. The date itself is not changed;
  * it still has to be corrected to a weekday before the programme is saved.
  */
-function fitsSimpleShape(startDate: string, phases: unknown[], pattern: JobWorkingPattern): boolean {
-    const firstDay = addJobWorkingDays(startDate, 1, pattern);
+function fitsSimpleShape(startDate: string, phases: unknown[], calendar: NonNullable<ReturnType<typeof programmeCalendarForProject>>): boolean {
+    const firstDay = addJobWorkingDays(startDate, 1, calendar);
     if (!firstDay) return false;
     const weekendStart = firstDay !== startDate;
     if (phases.length !== 1 && (phases.length < MIN_STAGES || phases.length > MAX_STAGES)) return false;
@@ -145,9 +147,9 @@ function fitsSimpleShape(startDate: string, phases: unknown[], pattern: JobWorki
         if (typeof phase.name !== "string" || !phase.name.trim() || workingDays < 1 || hasLiveOrLinkedData(phase)) return false;
         if (cursor === null) return false;
         const offset = Number(phase.startOffset ?? 0);
-        if (weekendStart ? placedStart(startDate, offset, pattern) !== cursor : offset !== calendarOffset(startDate, cursor)) return false;
-        const end = addJobWorkingDays(cursor, workingDays, pattern);
-        cursor = end ? nextJobWorkingDayAfter(end, pattern) : null;
+        if (weekendStart ? placedStart(startDate, offset, calendar) !== cursor : offset !== calendarOffset(startDate, cursor)) return false;
+        const end = addJobWorkingDays(cursor, workingDays, calendar);
+        cursor = end ? nextJobWorkingDayAfter(end, calendar) : null;
     }
     return true;
 }
@@ -161,6 +163,9 @@ export function viewForProject(project: ProgrammeProjectFields, makeKey: () => s
     const source = resolveProgrammeSource(project);
     const pattern = resolveJobWorkingPattern(project.programme_working_pattern);
     if (!pattern) return { kind: "detailed", plan: null, origin: "programme", reason: "Check this job's saved working days before editing its programme.", canStartSimple: false, startDate };
+    const calendar = programmeCalendarForProject(project, pattern);
+    if (!calendar) return { kind: "detailed", plan: null, origin: "programme", reason: "Check this job's saved working days before editing its programme.", canStartSimple: false, startDate };
+    const division = calendar.bankHolidayDivision;
     const blank = emptyProgrammeDraft(startDate, project.programme_working_pattern == null ? undefined : pattern);
 
     if (source.origin === "none") {
@@ -169,7 +174,7 @@ export function viewForProject(project: ProgrammeProjectFields, makeKey: () => s
     if (source.origin === "legacy_timeline") {
         return {
             kind: "detailed",
-            plan: computeDisplayProgramme(project.start_date, source.phases, pattern),
+            plan: computeDisplayProgramme(project.start_date, source.phases, pattern, division),
             origin: "legacy_timeline",
             reason: LEGACY_TIMELINE_REASON,
             canStartSimple: true,
@@ -178,12 +183,12 @@ export function viewForProject(project: ProgrammeProjectFields, makeKey: () => s
     }
     const relative = hasRelativeProgramme(source.phases);
     const fits = relative
-        ? source.phases.length <= MAX_STAGES && computeRelativeProgramme(source.phases, pattern) !== null
-        : fitsSimpleShape(startDate, source.phases, pattern);
+        ? source.phases.length <= MAX_STAGES && computeRelativeProgramme(source.phases, pattern, division) !== null
+        : fitsSimpleShape(startDate, source.phases, calendar);
     if (!fits) {
         return {
             kind: "detailed",
-            plan: computeDisplayProgramme(project.start_date, source.phases, pattern),
+            plan: computeDisplayProgramme(project.start_date, source.phases, pattern, division),
             origin: "programme",
             reason: DETAILED_REASON,
             canStartSimple: false,
@@ -290,6 +295,20 @@ export function validateStartDate(startDate: string, workingPattern?: unknown): 
     if (!isJobWorkingDay(startDate, pattern)) return isDefaultJobWorkingPattern(pattern)
         ? "Choose a weekday. The programme counts Monday to Friday." : "Choose one of this job's working days.";
     return null;
+}
+
+export const PROGRAMME_PAST_START_WARNING =
+    "This start date is in the past. That is fine for a job already under way. Otherwise, check the date.";
+
+/**
+ * A note, never an error: a job that has already started is a valid programme
+ * and still saves. Null for today, a later date, or a date that cannot be read.
+ * `today` is the reader's own calendar day, as YYYY-MM-DD.
+ */
+export function startDateInPastWarning(startDate: string | null | undefined, today: string | null | undefined): string | null {
+    const start = parseIsoDate(startDate);
+    const now = parseIsoDate(today);
+    return start !== null && now !== null && start < now ? PROGRAMME_PAST_START_WARNING : null;
 }
 
 function programmeDaysUpperBound(draft: ProgrammeDraft): number {

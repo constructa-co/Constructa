@@ -19,7 +19,7 @@ import { representativeInput } from "@/lib/__fixtures__/proposal";
 import { isDashboardPathAllowed } from "@/lib/launch-profile";
 import { responseWording } from "@/lib/proposal-response";
 import { buildPreviewSnapshot, draftFromProject, type ReviewContext } from "@/lib/proposal-review";
-import { buildProposalDocument } from "@/lib/proposal-document";
+import { buildProposalDocument, proposalReference } from "@/lib/proposal-document";
 import SimpleProgrammeClient from "../schedule/simple-programme-client";
 import PublicationHistoryPanel, {
     publicationResponseKind,
@@ -107,6 +107,14 @@ describe("Review and Send", () => {
         expect(html).toContain("12 terms are shown to the client");
     });
 
+    it("surfaces inconsistent £ figures between the brief and the priced proposal", () => {
+        const mismatch = review({
+            context: context({ brief_scope: "Client discussed a fixed price of £50,000.00 for the full refurbishment." }),
+        });
+        expect(mismatch).toContain("data-figure-consistency-warning");
+        expect(mismatch).toMatch(/£50,000\.00 appears/);
+    });
+
     it("shows a saved all-week working pattern in the programme section, not the default Monday–Friday finish", () => {
         const weekend = review({
             context: context({
@@ -118,7 +126,7 @@ describe("Review and Send", () => {
         const programme = weekend.slice(weekend.indexOf('id="review-programme"'), weekend.indexOf('id="review-terms"'));
         expect(programme).toContain("Sunday 15 November 2026");
         expect(programme).not.toContain("Tuesday 17 November 2026");
-        expect(programme).toContain("Bank holidays are not allowed for.");
+        expect(programme).toContain("UK bank holidays for England and Wales are not working days.");
     });
 
     it("distinguishes project details from the company profile on the cover", () => {
@@ -200,6 +208,13 @@ describe("Review and Send", () => {
         expect(button).toContain("disabled");
         expect(html).toContain('data-send-block="not-confirmed"');
         expect(html).toContain("I have read the preview and it is right. Send version 1 to Alex Client.");
+    });
+
+    it("warns about a past programme start without blocking proposal readiness", () => {
+        const past = review({ context: context({ start_date: "2026-09-28" }) });
+        expect(past).toContain("data-proposal-past-start");
+        expect(past).toContain('data-readiness="ready"');
+        expect(html).not.toContain("data-proposal-past-start");
     });
 
     it("separates what is needed from what would improve it", () => {
@@ -304,7 +319,8 @@ describe("Review and Send", () => {
         const button = pdf.match(/<button[^>]*>/)![0];
         expect(button).not.toContain('disabled=""');
         expect(pdf).toContain("Download this draft as a PDF");
-        expect(pdf).toContain("The PDF your client will get, marked as a draft. Downloading it sends nothing.");
+        expect(pdf).toContain("marked as a draft");
+        expect(pdf).toContain("sent versions after issue");
         // It sits outside the collapsible preview, so it is there when the preview is closed.
         expect(html.indexOf("data-presend-pdf")).toBeLessThan(html.indexOf('id="review-preview"'));
         // With nothing to price there is nothing to draw, and the button says why.
@@ -369,16 +385,67 @@ describe("sent versions", () => {
     });
 
     it("renders closed, with every version behind one disclosure", () => {
-        const html = renderToStaticMarkup(createElement(PublicationHistoryPanel, { publications: history, s, loadPublication: vi.fn() }));
+        const html = renderToStaticMarkup(createElement(PublicationHistoryPanel, {
+            publications: history,
+            projectId: input.project.id,
+            s,
+            loadPublication: vi.fn(),
+        }));
         expect(html).toContain("Sent versions (3)");
         expect(html).toContain('aria-expanded="false"');
+    });
+});
+
+describe("CON-040 issued reference numbering", () => {
+    it("formats immutable issued references from the frozen project id and version number", () => {
+        expect(proposalReference({
+            project: { id: input.project.id },
+            publication: { version_number: 3 },
+        })).toBe("22222222-V3");
+        expect(proposalReference({
+            project: { id: input.project.id },
+            publication: { version_number: 1 },
+        })).toBe("22222222-V1");
+    });
+});
+
+describe("CON-036 site address readiness", () => {
+    it("blocks send when the site address is missing", () => {
+        const html = review({ context: context({ site_address: "" }) });
+        expect(html).toContain('data-readiness-item="siteAddress"');
+        expect(html).toContain('data-ok="false"');
+        expect(html).toContain("Add the site address in project details.");
+    });
+});
+
+describe("CON-037 managing director message empty state", () => {
+    it("shows the saved message when present and an explicit empty state when not", () => {
+        const withMessage = review();
+        expect(withMessage).toContain("data-company-closing-saved");
+        expect(withMessage).toContain("Use saved company message");
+        const without = review({ context: { ...context(), profile: { ...input.profile, md_message: "" } } });
+        expect(without).toContain("data-company-closing-empty");
+        expect(without).toContain("No managing director");
+    });
+});
+
+describe("CON-040 draft versus issued reference", () => {
+    it("labels the draft preview separately from the next issued reference", () => {
+        const html = review({ publications: history, context: { ...context(), nextVersion: 4 } });
+        expect(html).toContain("data-draft-reference-note");
+        expect(html).toContain("Draft previews use reference");
+        expect(html).toContain('data-next-issued-reference="true">22222222-V4');
+        const preview = buildPreviewSnapshot(context(), draftFromProject(context().project, () => "k"), "acknowledgement", NOW);
+        expect(buildProposalDocument(preview!, { isDraft: true }).reference).toBe("Draft");
     });
 });
 
 describe("programme step", () => {
     const project = { id: "p", name: "14 Example Road bathroom refit", client_name: "Alex Client", start_date: null, programme_phases: [] };
     const render = (props: Partial<Parameters<typeof SimpleProgrammeClient>[0]> = {}) =>
-        renderToStaticMarkup(createElement(SimpleProgrammeClient, { project, lockReason: null, estimate: null, ...props }));
+        renderToStaticMarkup(createElement(SimpleProgrammeClient, {
+            project, lockReason: null, estimate: null, plannerDraftViewerScope: "review-test-viewer", ...props,
+        }));
 
     it("opens on the simple editor: start date, duration, optional stages", () => {
         const html = render();

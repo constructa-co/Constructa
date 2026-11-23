@@ -7,6 +7,7 @@ import {
     POSTCODE_LOOKUP_NOT_AVAILABLE_MESSAGE,
     type PostcodeLookupResult,
 } from "@/lib/postcode-address";
+import { POSTCODE_LOOKUP_CONFIGURATION_GAP } from "@/lib/postcode-address-provider";
 
 const hooks = vi.hoisted(() => ({
     slots: [] as unknown[],
@@ -122,23 +123,45 @@ beforeEach(() => {
 
 describe("PostcodeAddressPicker", () => {
     it("Find addresses control uses core sage primary tokens, not brand blue", () => {
-        editPostcode("AB1 2CD");
-        const html = renderToStaticMarkup(renderPicker().node);
+        const lookup = vi.fn();
+        editPostcode("AB1 2CD", { lookup });
+        const html = renderToStaticMarkup(renderPicker({ lookup }).node);
         expect(html).not.toMatch(/(?:bg|hover:bg|text|border|ring)-blue-/);
         expect(html).toContain("#c9efcf");
         expect(html).toContain("#182c1b");
-        const find = nodes(renderPicker().node).find(n => n.props.id === "test-picker-find")!;
+        const find = nodes(renderPicker({ lookup }).node).find(n => n.props.id === "test-picker-find")!;
         expect(find.props.disabled).toBe(false);
+        expect(lookup).not.toHaveBeenCalled();
     });
 
-    it("does not call lookup or onSelect when search is not configured", () => {
+    it("switches search off and says so once when search is not configured", () => {
         const onSelect = vi.fn();
-        editPostcode("AB1 2CD", { onSelect });
-        clickFind({ onSelect });
-        expect(onSelect).not.toHaveBeenCalled();
-        expect(nodes(renderPicker({ onSelect }).node).find(n => n.props.id === "test-picker-lookup-status")!.props.children).toBe(
-            POSTCODE_LOOKUP_NOT_AVAILABLE_MESSAGE,
-        );
+        const fetchSpy = vi.fn();
+        vi.stubGlobal("fetch", fetchSpy);
+        vi.stubEnv("NEXT_PUBLIC_POSTCODE_LOOKUP_ENABLED", "");
+        vi.stubEnv("NEXT_PUBLIC_POSTCODE_DATA_TRANSFER_APPROVED", "");
+        try {
+            const idle = nodes(renderPicker({ onSelect }).node);
+            expect(idle.find(n => n.props.id === "test-picker-postcode")!.props.disabled).toBe(true);
+            expect(idle.find(n => n.props.id === "test-picker-find")!.props.disabled).toBe(true);
+
+            // A handler reached despite the disabled controls still does nothing.
+            editPostcode("AB1 2CD", { onSelect });
+            clickFind({ onSelect });
+
+            const tree = nodes(renderPicker({ onSelect }).node);
+            expect(tree.find(n => n.props.id === "test-picker-find")!.props.disabled).toBe(true);
+            expect(tree.some(n => n.props.id === "test-picker-lookup-status")).toBe(false);
+            const gapCopies = tree.filter(n => n.props.children === POSTCODE_LOOKUP_CONFIGURATION_GAP);
+            expect(gapCopies).toHaveLength(1);
+            expect(gapCopies[0].props.id).toBe("test-picker-lookup-hint");
+            expect(tree.some(n => n.props.children === POSTCODE_LOOKUP_NOT_AVAILABLE_MESSAGE)).toBe(false);
+            expect(onSelect).not.toHaveBeenCalled();
+            expect(fetchSpy).not.toHaveBeenCalled();
+        } finally {
+            vi.unstubAllGlobals();
+            vi.unstubAllEnvs();
+        }
     });
 
     it("lists injected candidates and applies only on explicit pick", async () => {

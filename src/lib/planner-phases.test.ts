@@ -73,11 +73,15 @@ describe("a job with no programme", () => {
         expect(opening.phases).toEqual([
             { name: "Works on site", calculatedDays: 5, manualDays: null, manhours: 40, startOffset: 0 },
             { name: "Tiling", calculatedDays: 4, manualDays: null, manhours: 32, startOffset: 7 },
+            { name: "Preliminaries", calculatedDays: 5, manualDays: null, manhours: 0, startOffset: 14 },
         ]);
     });
 
-    it("has nothing to open on when the estimate carries no labour hours", () => {
-        expect(plannerPhasesOnOpen([], simpleEstimate, 5)).toEqual({ phases: [], origin: "empty" });
+    it("still offers placeholder stages when the estimate has lines but no labour hours", () => {
+        expect(plannerPhasesOnOpen([], simpleEstimate, 5)).toEqual({
+            origin: "suggested",
+            phases: [{ name: "Works on site", calculatedDays: 5, manualDays: null, manhours: 0, startOffset: 0 }],
+        });
         expect(plannerPhasesOnOpen([], null, 5)).toEqual({ phases: [], origin: "empty" });
     });
 

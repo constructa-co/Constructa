@@ -5,10 +5,11 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Script from 'next/script';
 import FAQ from '@/app/components/FAQ';
-import {
-  trackContactFormSubmitAccepted,
-  trackTryConstructaClick,
-} from '@/lib/public-measurement';
+import { ContactMarketingForm } from '@/components/marketing/contact-marketing-form';
+import { PublicFormCollectionNotice } from '@/components/marketing/public-form-collection-notice';
+import { PUBLIC_FORM_COLLECTION_NOTICE_ID_CONTACT } from '@/components/marketing/public-form-collection-notice-ids';
+import { isPublicContactFormCollectionReady } from '@/lib/marketing/public-form-collection';
+import { trackTryConstructaClick } from '@/lib/public-measurement';
 import { ProjectCoverRender } from '@/components/marketing/project-cover-render';
 
 // Add these price calculations at the top of the file, after imports
@@ -169,33 +170,7 @@ const FeatureSection = () => {
 
 export default function Home() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'quarterly' | 'annual'>('monthly');
-  const [isSubmitted, setIsSubmitted] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const formData = new FormData(form);
-
-    try {
-      const response = await fetch('https://formspree.io/f/xnnprlod', {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        trackContactFormSubmitAccepted();
-        setIsSubmitted(true);
-        form.reset();
-      } else {
-        console.error('Form submission failed');
-      }
-    } catch (error) {
-      console.error('Error submitting form:', error);
-    }
-  };
+  const contactCollectionReady = false; // Collection remains off for the client-only home panel.
 
   const getBillingText = (price: number) => {
     switch (billingPeriod) {
@@ -695,72 +670,13 @@ export default function Home() {
             {/* Right side form */}
             <div className="bg-white/5 p-10 rounded-[2rem] border border-white/10 backdrop-blur-xl shadow-2xl relative overflow-hidden group">
               <div className="absolute inset-0 bg-blue-500/5 mix-blend-overlay group-hover:bg-transparent transition-colors duration-500"></div>
-              {isSubmitted ? (
-                <div className="text-center py-12 animate-in zoom-in duration-500">
-                  <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-8 shadow-inner">
-                    <svg className="w-10 h-10 text-white" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <h3 className="text-3xl font-black text-white mb-4 uppercase tracking-tighter">Thank You!</h3>
-                  <p className="text-gray-400 mb-10 leading-relaxed font-medium">Your message has been received. <br />Our team will get back to you shortly.</p>
-                  <button
-                    onClick={() => setIsSubmitted(false)}
-                    className="px-10 py-4 bg-white text-black text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-gray-100 transition-all duration-300 hover:scale-105 active:scale-95 shadow-xl"
-                  >
-                    Send Another Message
-                  </button>
-                </div>
-              ) : (
-                <form
-                  onSubmit={handleSubmit}
-                  className="space-y-8"
-                >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div>
-                      <label htmlFor="name" className="block text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-3 ml-1">Your Name</label>
-                      <input
-                        type="text"
-                        id="name"
-                        name="name"
-                        className="w-full px-6 py-4 bg-black/40 border border-white/10 rounded-2xl focus:ring-4 focus:ring-white/5 focus:border-white/20 transition-all duration-300 text-white placeholder-white/20 font-medium"
-                        placeholder="John Doe"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="email" className="block text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-3 ml-1">Email Address</label>
-                      <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        required
-                        className="w-full px-6 py-4 bg-black/40 border border-white/10 rounded-2xl focus:ring-4 focus:ring-white/5 focus:border-white/20 transition-all duration-300 text-white placeholder-white/20 font-medium"
-                        placeholder="john@example.com"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label htmlFor="message" className="block text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-3 ml-1">Message</label>
-                    <textarea
-                      id="message"
-                      name="message"
-                      rows={4}
-                      required
-                      className="w-full px-6 py-4 bg-black/40 border border-white/10 rounded-2xl focus:ring-4 focus:ring-white/5 focus:border-white/20 transition-all duration-300 text-white placeholder-white/20 font-medium resize-none"
-                      placeholder="How can we help your construction business?"
-                    ></textarea>
-                  </div>
-                  <button
-                    type="submit"
-                    className="w-full px-10 py-5 bg-white text-black text-[10px] font-black uppercase tracking-[0.2em] rounded-[1.2rem] hover:bg-gray-100 transition-all duration-300 hover:scale-[1.02] active:scale-98 shadow-2xl flex items-center justify-center group/btn"
-                  >
-                    Send Message
-                    <svg className="ml-3 w-4 h-4 transition-transform group-hover/btn:translate-x-1" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M6.5 3.5L11 8L6.5 12.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </button>
-                </form>
-              )}
+              <div className="relative z-10 space-y-6">
+                <PublicFormCollectionNotice
+                  id={`${PUBLIC_FORM_COLLECTION_NOTICE_ID_CONTACT}-home`}
+                  kind="contact"
+                />
+                <ContactMarketingForm collectionReady={contactCollectionReady} collectionNoticeId={`${PUBLIC_FORM_COLLECTION_NOTICE_ID_CONTACT}-home`} />
+              </div>
             </div>
           </div>
         </div>

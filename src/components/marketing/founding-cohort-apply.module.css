@@ -48,11 +48,20 @@
 }
 .storageNoticeTitle { display: block; margin: 0 0 6px; font-size: 14px; font-weight: 650; color: #f4e8e4; }
 .storageNoticeBody { margin: 0; color: #d9c9c5; font-size: 14px; line-height: 1.6; }
-.storageNoticeBody a { color: var(--ink); text-underline-offset: 3px; }
+.storageNoticeBody a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 .storageNoticeBody a:hover { color: var(--accent); }
 .form { display: grid; gap: 22px; margin: 0; }
 .field { display: grid; gap: 8px; }
 .label { font-size: 13px; font-weight: 650; letter-spacing: .02em; color: #d6ded7; }
+.consentLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.consentLabel input { margin-top: 3px; flex-shrink: 0; }
 .input, .select, .textarea {
   width: 100%;
   min-height: 46px;

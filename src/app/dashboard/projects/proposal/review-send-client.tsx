@@ -4,6 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Check, ChevronDown, Circle, FileDown, Loader2, Plus, Send, Sparkles, Trash2 } from "lucide-react";
+import { localIsoDateFromUtc } from "@/lib/job-working-local";
+import { hasRelativeProgramme } from "@/lib/relative-programme";
+import { startDateInPastWarning } from "@/lib/simple-programme";
 import ProgrammeTimeline from "@/components/programme-timeline";
 import ProposalDocumentView from "@/components/proposal/proposal-document-view";
 import ProposalDocumentDialog from "@/components/proposal/proposal-document-dialog";
@@ -18,7 +21,15 @@ import { newClientId } from "@/lib/client-id";
 import { copyTextWithFallback } from "@/lib/clipboard-copy";
 import { programmePlanForProject } from "@/lib/programme-plan";
 import { proposalPaymentSave } from "@/lib/proposal-payment-save";
-import { buildProposalDocument, paymentRows, vatLines, vatNote } from "@/lib/proposal-document";
+import {
+    buildProposalDocument,
+    DRAFT_PROPOSAL_REFERENCE,
+    paymentRows,
+    proposalReference,
+    publicationProjectTypeDisplay,
+    vatLines,
+    vatNote,
+} from "@/lib/proposal-document";
 import {
     COVER_PHOTO_CHOICE_LABELS,
     COVER_RENDER_CAPTION,
@@ -26,6 +37,7 @@ import {
     type ProposalCoverPhotoChoice,
 } from "@/lib/proposal-cover-photo";
 import { contentCheckCode, hashProposalContent, type ProposalPublicationSnapshot } from "@/lib/proposal-publication";
+import { sitePhotoOrigin } from "@/lib/proposal-site-photos";
 import type { ReadinessKey, RecommendedKey } from "@/lib/proposal-readiness";
 import { RESPONSE_KINDS, responseWording } from "@/lib/proposal-response";
 import {
@@ -86,6 +98,8 @@ import {
 import PublicationHistoryPanel, { type ProposalPublicationHistoryRow } from "./publication-history-panel";
 import PastJobsExtras from "./past-jobs-extras";
 import { buildPastJobs } from "@/lib/case-library/past-jobs";
+import { roundMoney } from "@/lib/financial";
+import { evaluateProposalFigureConsistency } from "@/lib/proposal-figure-consistency";
 
 export interface CaseStudyOption {
     /** The case study's own id, or its position when it has none. */
@@ -206,11 +220,42 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
 
     const readiness = useMemo(() => reviewReadiness(context, draft), [context, draft]);
     const plan = useMemo(() => programmePlanForProject(project), [project]);
+    const programmeTimeZone = plan?.working_pattern?.version === 2 ? plan.working_pattern.timezone : "Europe/London";
+    const programmeStartWarning = hasRelativeProgramme(project.programme_phases) ? null : startDateInPastWarning(
+        plan?.start_date ?? project.start_date,
+        localIsoDateFromUtc(Date.parse(previewTime), programmeTimeZone),
+    );
     const preview = useMemo(
         () => buildPreviewSnapshot(context, draft, state.responseKind, previewTime),
         [context, draft, state.responseKind, previewTime],
     );
+    const figureWarnings = useMemo(() => {
+        if (!preview) return [];
+        const commercial = preview.commercial;
+        const paymentAmounts = (commercial.payment_schedule ?? []).map((row) =>
+            row.amount ?? roundMoney((commercial.contract_sum_ex_vat * row.percentage) / 100),
+        );
+        return evaluateProposalFigureConsistency({
+            wordingFields: [
+                draft.introduction,
+                draft.scope,
+                draft.exclusions,
+                draft.clarifications,
+                draft.closing,
+            ],
+            briefText: context.project.brief_scope,
+            contractSumExVat: commercial.contract_sum_ex_vat,
+            contractSumIncVat: commercial.contract_sum_inc_vat,
+            paymentAmounts,
+        });
+    }, [preview, draft, context.project.brief_scope]);
     const previewDocument = useMemo(() => (preview ? buildProposalDocument(preview, { isDraft: true }) : null), [preview]);
+    const nextIssuedReference = preview
+        ? proposalReference({
+            project: preview.project,
+            publication: { version_number: context.nextVersion },
+        })
+        : null;
     const previewValidation = !preview ? buildProposalPayload(draft) : null;
     const previewTermIssues = previewValidation && !previewValidation.ok
         ? (draft.terms ?? []).flatMap((clause, index) => {
@@ -321,6 +366,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
     const href = (path: string) => `/dashboard/projects/${path}?projectId=${encodeURIComponent(project.id)}`;
     const requiredFix: Partial<Record<ReadinessKey, { href: string; label: string }>> = {
         identity: { href: href("settings"), label: "Open project details" },
+        siteAddress: { href: href("settings"), label: "Open project details" },
         scope: { href: "#review-scope", label: "Go to the scope" },
         contractValue: { href: href("costs"), label: "Open Estimating" },
         programme: { href: href("schedule"), label: "Open Programme" },
@@ -488,6 +534,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
         }
     };
 
+
     const estimateTotals = preview && preview.commercial.contract_sum_ex_vat > 0 ? vatLines(preview.commercial) : null;
     // The stages as the client will read them, with what each comes to.
     const paymentSummary = preview && estimateTotals ? paymentRows(preview.commercial) : [];
@@ -513,6 +560,18 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
 
     const preparing = proposalStage === "prepare";
     const showingDocument = !preparing && documentView.open && documentView.projectId === project.id && !locked && previewDocument !== null;
+    const signatureLine = (label: string, key: string) => (
+        <div key={key} className="break-inside-avoid space-y-1" data-signature-field>
+            <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">{label}</p>
+            <div className="mt-5 border-b border-stone-400" aria-hidden="true" />
+        </div>
+    );
+    const signatureColumn = (heading: string, prefix: string) => (
+        <div className="break-inside-avoid min-w-0 space-y-4" data-signature-column>
+            <p className="text-xs font-semibold uppercase tracking-wide text-stone-900">{heading}</p>
+            {["Signature", "Name", "Date"].map((line) => signatureLine(line, `${prefix}-${line}`))}
+        </div>
+    );
     const documentResponse = previewDocument ? (
         <>
             <h2 id="doc-response" className="font-serif text-3xl leading-tight text-stone-900">{previewDocument.response.heading}</h2>
@@ -523,6 +582,10 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                 {previewDocument.response.actionLabel}
             </p>
             <p className="mt-2 text-sm text-stone-600">Your client fills in their name and presses this button. It does nothing in the preview.</p>
+            <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2" data-doc-signature-preview>
+                {signatureColumn(`For ${previewDocument.company.name}`, "contractor")}
+                {signatureColumn(previewDocument.response.signatureLabel, "client")}
+            </div>
         </>
     ) : null;
     const documentContent = previewDocument ? (
@@ -534,7 +597,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
     );
 
     return (
-        <div className={`${ui.workspace} space-y-5`} data-dark={isDark} onClickCapture={(event) => {
+        <div className={`${ui.workspace} space-y-5`} data-dark={isDark ? "true" : undefined} onClickCapture={(event) => {
             // Existing in-page fixes still reveal their mounted preparation fields.
             const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
             const hash = anchor?.getAttribute("href");
@@ -572,6 +635,26 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                         {readiness.ready ? "Everything needed is in place" : `${readiness.missing.length} ${readiness.missing.length === 1 ? "thing is" : "things are"} needed before you can send`}
                     </h2>
                     {estimateIssue && <p role="alert" className={`mt-3 ${s.errorBox} text-sm`}>{estimateIssue}</p>}
+                    {programmeStartWarning && (
+                        <p className={`mt-3 text-sm ${s.body}`} data-proposal-past-start>
+                            {programmeStartWarning}
+                        </p>
+                    )}
+
+                    {figureWarnings.length > 0 && (
+                        <div
+                            role="alert"
+                            className={`mt-3 ${s.noticeBox} text-sm space-y-2`}
+                            data-figure-consistency-warning
+                        >
+                            <p className={`font-semibold ${s.body}`}>Check prices in your wording</p>
+                            <ul className="list-disc pl-5 space-y-1">
+                                {figureWarnings.map((warning) => (
+                                    <li key={warning.id}>{warning.message}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
 
                     <h3 className={`mt-4 text-sm font-semibold ${s.body}`}>Needed</h3>
                     <ul className="mt-2 space-y-2">
@@ -654,9 +737,10 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                 ["Site", project.site_address || "Not set"],
                                 ["From", context.profile.company_name || "Not set"],
                             ] as Array<[string, string]>)
-                                .concat(project.project_type?.trim()
-                                    ? [["Type of work", project.project_type] as [string, string]]
-                                    : [])
+                                .concat((() => {
+                                    const jobType = publicationProjectTypeDisplay(project.project_type);
+                                    return jobType ? [["Type of work", jobType] as [string, string]] : [];
+                                })())
                             .map(([label, value]) => (
                                 <div key={label} className="min-w-0">
                                     <dt className={`font-semibold ${s.muted}`}>{label}</dt>
@@ -791,6 +875,11 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                         <li key={photo.url} className={`${s.inset} p-3 space-y-2`} data-review-photo>
                                             {/* eslint-disable-next-line @next/next/no-img-element */}
                                             <img src={photo.url} alt={photo.caption || `Site photo ${index + 1}`} className="w-full aspect-[4/3] object-cover rounded-lg" />
+                                            {sitePhotoOrigin(photo.url, { projectId: project.id }) === "elsewhere" && (
+                                                <p role="alert" className={`text-sm ${s.errorText}`} data-review-photo-elsewhere>
+                                                    Photo {index + 1} was not uploaded for this job, so it is left out of the proposal. Remove it and add the photo again.
+                                                </p>
+                                            )}
                                             <label htmlFor={`photo-caption-${index}`} className="sr-only">Caption for photo {index + 1}</label>
                                             <input
                                                 id={`photo-caption-${index}`}
@@ -1123,24 +1212,31 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                     <section id="review-closing" className={sectionCard} aria-labelledby="review-closing-title">
                         {sectionTitle("review-closing", 8, "Closing message", "The last thing your client reads before they respond.")}
                         {wordingField("closing", { rows: 4, help: "In your own words. Leave it empty and this section is left out." })}
-                        {companyMessage.trim() && (
-                            <details className={`${s.inset} mt-4 p-4`} data-company-closing-source>
-                                <summary className={`cursor-pointer text-sm font-semibold ${s.heading}`}>Use your managing director&apos;s message</summary>
-                                <p className={`mt-3 text-sm ${s.muted}`}>From your saved company profile. No new text is generated here. It can also appear under About your business. Review it for this proposal before saving.</p>
-                                <blockquote className={`mt-3 max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-sm ${s.body}`}>{companyMessage}</blockquote>
-                                <button type="button" data-use-company-closing disabled={companyClosingBlocked} className={`${s.secondaryButton} mt-3`}
-                                    onClick={() => {
-                                        const result = applyCompanyClosingMessage(store, companyMessage, !locked);
-                                        setCompanyClosingNote(result.ok ? "Company message copied to this unsaved draft. Review and save it when ready." : result.error);
-                                    }}>Use company message</button>
-                                <p className={`mt-2 text-sm ${s.muted}`}>{companyMessage.length > TEXT_LIMITS.closing
-                                    ? "This message exceeds the closing field's 20,000-character limit. Nothing will be copied or shortened."
-                                    : draft.closing.trim() || state.saved.closing.trim()
-                                        ? "Your proposal's existing wording is kept. Edit the closing field directly; using company text will not replace it."
-                                        : "This fills only an empty draft. It does not save the proposal or change your company profile."}</p>
-                                {companyClosingNote && <p role="status" className={`mt-2 text-sm ${s.body}`}>{companyClosingNote}</p>}
-                            </details>
-                        )}
+                        <details className={`${s.inset} mt-4 p-4`} data-company-closing-source>
+                            <summary className={`cursor-pointer text-sm font-semibold ${s.heading}`}>Use your managing director&apos;s message</summary>
+                            {companyMessage.trim() ? (
+                                <>
+                                    <p className={`mt-3 text-sm ${s.muted}`}>From your saved company profile. No new text is generated here. Used here, it is shown once, as your closing message, and is left out of About your business. Review it for this proposal before saving.</p>
+                                    <blockquote className={`mt-3 max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-sm ${s.body}`} data-company-closing-saved>{companyMessage}</blockquote>
+                                    <button type="button" data-use-company-closing disabled={companyClosingBlocked} className={`${s.secondaryButton} mt-3`}
+                                        onClick={() => {
+                                            const result = applyCompanyClosingMessage(store, companyMessage, !locked);
+                                            setCompanyClosingNote(result.ok ? "Company message copied to this unsaved draft. Review and save it when ready." : result.error);
+                                        }}>Use saved company message</button>
+                                    <p className={`mt-2 text-sm ${s.muted}`}>{companyMessage.length > TEXT_LIMITS.closing
+                                        ? "This message exceeds the closing field's 20,000-character limit. Nothing will be copied or shortened."
+                                        : draft.closing.trim() || state.saved.closing.trim()
+                                            ? "Your proposal's existing wording is kept. Edit the closing field directly; using company text will not replace it."
+                                            : "This fills only an empty draft. It does not save the proposal or change your company profile."}</p>
+                                </>
+                            ) : (
+                                <p className={`mt-3 text-sm ${s.muted}`} data-company-closing-empty>
+                                    No managing director&apos;s message is saved in your company profile yet. Add one in{" "}
+                                    <a href="/dashboard/settings/profile" className={s.quietButton}>company profile</a> if you want to copy it here later.
+                                </p>
+                            )}
+                            {companyClosingNote && <p role="status" className={`mt-2 text-sm ${s.body}`}>{companyClosingNote}</p>}
+                        </details>
                     </section>
                 </fieldset>
 
@@ -1236,11 +1332,19 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                         </button>
                         <p id="presend-pdf-note" role={previewProblem ? "alert" : undefined} className={`text-sm ${s.muted}`}>
                             {preview
-                                ? "The PDF your client will get, marked as a draft. Downloading it sends nothing."
+                                ? "The PDF your client will get, marked as a draft. Downloading it sends nothing. A clean copy without markings is available from sent versions after issue."
                                 : previewProblem ?? "The PDF is available once the job has a name and an estimate."}
                             {previewProblem && previewTermIssues.length > 0 && <> <a href="#review-terms" className={s.quietButton}>Review the current terms</a>.</>}
                             {checkCode && <> Check code <span className="font-mono font-semibold" data-check-code>{checkCode}</span>.</>}
                         </p>
+                        {preview && (
+                            <p className={`text-sm ${s.muted}`} data-draft-reference-note>
+                                Draft previews use reference <span className="font-mono font-semibold">{DRAFT_PROPOSAL_REFERENCE}</span>, not an issued number.
+                                {nextIssuedReference
+                                    ? <> Sending version {context.nextVersion} will issue reference <span className="font-mono font-semibold" data-next-issued-reference>{nextIssuedReference}</span>, which stays fixed on that sent copy.</>
+                                    : null}
+                            </p>
+                        )}
                         {draftPdf.text && <p role={draftPdf.failed ? "alert" : "status"} className={`text-sm ${draftPdf.failed ? s.errorText : s.body}`} data-presend-pdf-result>{draftPdf.text}</p>}
                     </div>
 
@@ -1488,6 +1592,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
             {publications.length > 0 && (
                 <PublicationHistoryPanel
                     publications={publications}
+                    projectId={project.id}
                     s={s as WorkspaceStyles}
                     loadPublication={(publicationId) => api.loadPublication(publicationId)}
                 />

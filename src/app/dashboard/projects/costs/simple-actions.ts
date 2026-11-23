@@ -28,7 +28,12 @@ import {
 } from "@/lib/simple-estimate";
 import { recalcEstimateTotal } from "./estimate-total";
 import { toEstimate, toEstimateLine } from "./estimate-mapping";
+import { mapLegacyCostLibraryRow, mapMomRowsToCostLibrary } from "@/lib/cost-library-catalog";
 import type { CostLibraryItem, LabourRate, RateBuildup } from "./types";
+import {
+    HIGH_DISCOUNT_REASON_REQUIRED,
+    highDiscountRequiresReason,
+} from "@/lib/discount-confirm";
 
 // Simple estimating actions. Like the other estimating actions these never
 // call revalidatePath: the screen updates from the confirmed result.
@@ -90,33 +95,47 @@ export async function saveSimplePriceLineAction(request: SavePriceLineRequest): 
     try {
         const { supabase, user } = await requireEditableProjectAccess(projectId);
 
-        const { data: project, error: projectError } = await supabase
-            .from("projects")
-            .select("organization_id, status")
-            .eq("id", projectId)
-            .eq("user_id", user.id)
-            .single();
-        if (projectError || !project) return { ok: false, error: LINE_SAVE_ERROR };
-
+        // is_client_boq is optional on replay/older schemas. Read available columns
+        // so a missing optional flag cannot prevent the first price from saving.
         let estimateId = parsed.data.estimateId;
         let clientBoQ = false;
         let createdHere = false;
         const clientHadNoEstimate = estimateId === null;
 
-        if (estimateId) {
-            const { data: owned } = await supabase
-                .from("estimates")
-                .select("id, is_client_boq")
-                .eq("id", estimateId)
-                .eq("project_id", projectId)
-                .maybeSingle();
+        let project: { organization_id: string | null; status: string | null };
+
+        if (parsed.data.estimateId) {
+            const [{ data: projectData, error: projectError }, { data: owned }] = await Promise.all([
+                supabase
+                    .from("projects")
+                    .select("organization_id, status")
+                    .eq("id", projectId)
+                    .eq("user_id", user.id)
+                    .single(),
+                supabase
+                    .from("estimates")
+                    .select("*")
+                    .eq("id", parsed.data.estimateId)
+                    .eq("project_id", projectId)
+                    .maybeSingle(),
+            ]);
+            if (projectError || !projectData) return { ok: false, error: LINE_SAVE_ERROR };
+            project = projectData;
             if (!owned) return { ok: false, error: "This estimate is no longer available. Reload the page and try again." };
             clientBoQ = !!owned.is_client_boq;
         } else {
+            const { data: projectData, error: projectError } = await supabase
+                .from("projects")
+                .select("organization_id, status")
+                .eq("id", projectId)
+                .eq("user_id", user.id)
+                .single();
+            if (projectError || !projectData) return { ok: false, error: LINE_SAVE_ERROR };
+            project = projectData;
             // Another tab, or an earlier attempt, may already have made one.
             const { data: existing, error: existingError } = await supabase
                 .from("estimates")
-                .select("id, is_active, is_client_boq")
+                .select("*")
                 .eq("project_id", projectId)
                 .order("created_at");
             if (existingError) return { ok: false, error: LINE_SAVE_ERROR };
@@ -270,7 +289,7 @@ export async function updateSimplePriceLineAction(
 
         const { data: current } = await supabase
             .from("estimate_lines")
-            .select("id, pricing_mode")
+            .select("id, pricing_mode, quantity, unit_rate, description, unit")
             .eq("id", lineId)
             .eq("estimate_id", estimateId)
             .maybeSingle();
@@ -279,7 +298,7 @@ export async function updateSimplePriceLineAction(
             return { ok: false, error: "This line uses a rate build-up. Change it in Advanced estimating." };
         }
 
-        const { data: updated, error } = await supabase
+        let update = supabase
             .from("estimate_lines")
             .update({
                 description: parsed.data.description,
@@ -289,12 +308,21 @@ export async function updateSimplePriceLineAction(
                 line_total: lineTotal(parsed.data.quantity, parsed.data.unit_rate),
             })
             .eq("id", lineId)
-            .eq("estimate_id", estimateId)
+            .eq("estimate_id", estimateId);
+        update = current.quantity === null ? update.is("quantity", null) : update.eq("quantity", current.quantity);
+        update = current.unit_rate === null ? update.is("unit_rate", null) : update.eq("unit_rate", current.unit_rate);
+        update = current.description === null ? update.is("description", null) : update.eq("description", current.description);
+        update = current.unit === null ? update.is("unit", null) : update.eq("unit", current.unit);
+
+        const { data: updated, error } = await update
             .select("id, description, quantity, unit, unit_rate, line_total")
             .maybeSingle();
-        if (error || !updated) {
-            if (error) console.error("[updateSimplePriceLineAction] failed", { estimateId, code: error.code });
+        if (error) {
+            console.error("[updateSimplePriceLineAction] failed", { estimateId, code: error.code });
             return { ok: false, error: LINE_SAVE_ERROR };
+        }
+        if (!updated) {
+            return { ok: false, error: "This line was saved with different details while you were editing. Reload the page to reconcile your draft." };
         }
 
         try {
@@ -347,18 +375,33 @@ export async function savePriceAdjustmentsAction(estimateId: string, input: Adju
     const id = z.string().uuid().safeParse(estimateId);
     const parsed = AdjustmentsSchema.safeParse(input);
     if (!id.success || !parsed.success) return { ok: false, error: "Enter each percentage as a number between 0 and 100." };
+    if (highDiscountRequiresReason(parsed.data.discount_pct, parsed.data.discount_reason)) {
+        return { ok: false, error: HIGH_DISCOUNT_REASON_REQUIRED };
+    }
 
     try {
         const { supabase } = await editableEstimate(estimateId);
-        const { data, error } = await supabase
+        const { data: current, error: readError } = await supabase
             .from("estimates")
-            .update(parsed.data)
+            .select("id, prelims_pct, overhead_pct, risk_pct, profit_pct, discount_pct, discount_reason")
             .eq("id", estimateId)
-            .select("id")
             .maybeSingle();
-        if (error || !data) {
-            if (error) console.error("[savePriceAdjustmentsAction] failed", { estimateId, code: error.code });
+        if (readError || !current) return { ok: false, error: ADJUSTMENTS_SAVE_ERROR };
+
+        let update = supabase.from("estimates").update(parsed.data).eq("id", estimateId);
+        const guardKeys = ["prelims_pct", "overhead_pct", "risk_pct", "profit_pct", "discount_pct", "discount_reason"] as const;
+        for (const key of guardKeys) {
+            const value = current[key];
+            update = value === null || value === undefined ? update.is(key, null) : update.eq(key, value);
+        }
+
+        const { data, error } = await update.select("id").maybeSingle();
+        if (error) {
+            console.error("[savePriceAdjustmentsAction] failed", { estimateId, code: error.code });
             return { ok: false, error: ADJUSTMENTS_SAVE_ERROR };
+        }
+        if (!data) {
+            return { ok: false, error: "These percentages were changed elsewhere. Reload the page before saving again." };
         }
         return { ok: true };
     } catch (error) {
@@ -371,6 +414,8 @@ export async function savePriceAdjustmentsAction(estimateId: string, input: Adju
 export interface AdvancedEstimatingData {
     orgId: string;
     costLibrary: CostLibraryItem[];
+    /** Present when loaded from the server; MoM preferred over legacy rows. */
+    catalogueSource?: "mom" | "legacy";
     rateBuildups: RateBuildup[];
     labourRates: LabourRate[];
     preferredTrades: string[];
@@ -402,29 +447,47 @@ export async function loadAdvancedEstimatingDataAction(): Promise<
         if (orgId) labourRateQuery.or(`is_system_default.eq.true,organization_id.eq.${orgId}`);
         else labourRateQuery.eq("is_system_default", true);
 
-        const [rateBuildups, costLibrary, labourRates, profile] = await Promise.all([
+        const momCategories = supabase.from("mom_categories").select("id,name").is("organization_id", null);
+        const momItems = supabase.from("mom_items").select("id,code,description,unit,base_rate,category_id").is("organization_id", null).order("code");
+        const momOverrides = orgId
+            ? supabase.from("mom_item_overrides").select("mom_item_id,custom_rate").eq("organization_id", orgId)
+            : null;
+
+        const [rateBuildups, categories, items, overrides, legacyLibrary, labourRates, profile] = await Promise.all([
             rateBuildupQuery,
+            momCategories,
+            momItems,
+            momOverrides ?? Promise.resolve({ data: [], error: null }),
             supabase.from("cost_library_items").select("*").or("is_system_default.eq.true").order("category,description"),
             labourRateQuery,
             supabase.from("profiles").select("preferred_trades").eq("id", user.id).single(),
         ]);
-        if (rateBuildups.error || costLibrary.error || labourRates.error) {
+        if (rateBuildups.error || labourRates.error) {
             return { ok: false, error: "The advanced tools couldn't be loaded. Check your connection and try again." };
         }
 
+        // The two catalogues back each other up. MoM is only used when all three
+        // of its reads succeed: without the overrides read an organisation's own
+        // rates are unknown, and base rates must not stand in for them.
+        const momError = categories.error || items.error || overrides.error;
+        if (momError) console.error("[loadAdvancedEstimatingDataAction] MoM catalogue unavailable", momError);
+        const fromMom = momError ? [] : mapMomRowsToCostLibrary(items.data || [], categories.data || [], overrides.data || []);
         /* eslint-disable @typescript-eslint/no-explicit-any */
+        const legacy = legacyLibrary.error
+            ? []
+            : (legacyLibrary.data || []).map((row: any) => mapLegacyCostLibraryRow(row)).filter(Boolean) as CostLibraryItem[];
+        const catalogueSource: "mom" | "legacy" = fromMom.length ? "mom" : "legacy";
+        if (!fromMom.length && (legacyLibrary.error || (momError && !legacy.length))) {
+            return { ok: false, error: "The advanced tools couldn't be loaded. Check your connection and try again." };
+        }
+        const costLibrary = catalogueSource === "mom" ? fromMom : legacy;
+
         return {
             ok: true,
             data: {
                 orgId: orgId || "",
-                costLibrary: (costLibrary.data || []).map((c: any) => ({
-                    id: c.id,
-                    code: c.code || "",
-                    description: c.description || "",
-                    unit: c.unit || "nr",
-                    base_rate: c.base_rate || 0,
-                    category: c.category || "General",
-                })),
+                costLibrary,
+                catalogueSource,
                 rateBuildups: (rateBuildups.data || []).map((rb: any) => ({
                     id: rb.id,
                     name: rb.name || "",

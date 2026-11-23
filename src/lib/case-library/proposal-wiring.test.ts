@@ -26,11 +26,17 @@ function context(stored: unknown, selected: unknown, lib?: ProposalLibrary): Rev
 const draftOf = (ctx: ReviewContext) => draftFromProject(ctx.project, () => "key");
 
 describe("older-only proposals are exactly as they were", () => {
-    // Hashes of the representative fixture's snapshot as built by the accepted code at 63ca10f, before this wiring.
-    it("the representative proposal's content and snapshot hashes are unchanged", async () => {
+    // The a93712a baseline includes the regional bank-holiday division in the programme plan.
+    // CON-058 only changes programme_plan.duration_label ("3 weeks" → "15 working days (3 weeks)");
+    // case-study wiring unchanged; reverting that field alone restores the pre-CON-058 hashes (CI con058).
+    it("pins the representative legacy selection with the regional calendar fields", async () => {
         const snapshot = buildProposalPublicationSnapshot(representativeInput());
-        expect(await hashProposalContent(snapshot)).toBe("c2f49cabb4771dbb6810ea0896a3ab8413040a309097032b903cbc3010442e61");
-        expect(await hashProposalPublication(snapshot)).toBe("bea30af8126b29ec39653032105dc9b889c435bcccf251ad7396c6bed5f2aa1d");
+        expect(snapshot.programme_plan?.duration_label).toBe("15 working days (3 weeks)");
+        expect(await hashProposalContent(snapshot)).toBe("e769bc4faf2b82be3efd1fcb605ce094802767f1ddf59f76c8c4312aa7cc88ce");
+        expect(await hashProposalPublication(snapshot)).toBe("3a92756f10b0134472e71753affa785b927f6e880046481446a433e78d15cb48");
+        const legacyLabel = { ...snapshot, programme_plan: { ...snapshot.programme_plan!, duration_label: "3 weeks" } };
+        expect(await hashProposalContent(legacyLabel)).toBe("2b0185bf6355f113239781dd87aaf9025648babacb72257a567a76c68161f8e4");
+        expect(await hashProposalPublication(legacyLabel)).toBe("87b47a6df37223f114ac39b0c0aec56718554ebfe260f67aac11ab9a2895b314");
     });
 
     it.each([[[]], [["o1"]], [["1"]], [[2, "o5"]], [["o1", "o2", "o3", "o4", "o5", "o6", "o7"]], [["nope"]], [null], [["o7", "o1"]]])("selection %j: the case studies are today's selection, with no library, an empty one, or a full one", (selected) => {
@@ -45,7 +51,12 @@ describe("older-only proposals are exactly as they were", () => {
     it("readiness gains no new row unless something chosen cannot be sent", () => {
         const ctx = context(SEVEN, ["o1"]);
         const readiness = reviewReadiness(ctx, draftOf(ctx));
-        expect(readiness.mandatory.map((item) => item.key)).toEqual(["identity", "scope", "contractValue", "programme", "payment", "terms"]);
+        expect(readiness.mandatory.map((item) => item.key)).toEqual([
+            "identity", "siteAddress", "scope", "contractValue", "programme", "payment", "terms",
+        ]);
+        expect(readiness.mandatory.find((item) => item.key === "siteAddress")?.ok).toBe(true);
+        expect(readiness.mandatory.some((item) => item.key === "caseStudySelection")).toBe(false);
+        expect(readiness.missing.map((item) => item.key)).not.toContain("caseStudySelection");
         expect(evaluateProposalReadiness({ caseStudySelectionProblem: "  " }).mandatory.some((item) => item.key === "caseStudySelection")).toBe(false);
     });
 

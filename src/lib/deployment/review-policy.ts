@@ -1,4 +1,5 @@
-export const REVIEW_PROJECT = "umqtzfsnyoofmgfbnrgv";
+import { REVIEW_PROJECT } from "./review-project.mjs";
+export { REVIEW_PROJECT } from "./review-project.mjs";
 export const REVIEW_ORIGIN = `https://${REVIEW_PROJECT}.supabase.co`;
 export const REVIEW_USER = "5f13c70d-7cf4-4080-9b2a-650a5a7f4ff2";
 

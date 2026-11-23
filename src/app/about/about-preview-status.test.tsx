@@ -50,7 +50,7 @@ describe("about preview status in What's next", () => {
   it("states phase-one review truthfully and routes new visitors to apply separate from pricing", () => {
     expect(whatsNext).toContain("phase-one review");
     expect(whatsNext).toContain("not currently offered for live customer work");
-    expect(whatsNext).toContain("From here, we&#x27;re expanding into contracts, resource tracking, client comms, and more.");
+    expect(whatsNext).toContain("The work-winning journey centres on company, brief, estimate, programme and proposal. Later delivery tools are not promised as ready.");
     expect(whatsNext).toMatch(/href="\/apply"[^>]*>Apply to the founding cohort →<\/a>/);
     expect(whatsNext).toMatch(/href="\/pricing"[^>]*>Preview access →<\/a>/);
     const applyIndex = whatsNext.indexOf('href="/apply"');

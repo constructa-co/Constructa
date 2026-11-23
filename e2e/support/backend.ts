@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { functionSignatureFromApiDescription } from "./api-description";
 import { BRIEF_AI_PREREQUISITES, type BudgetInspector, type Read } from "./brief-ai-mode";
+import { EPHEMERAL_REPLAY_PROJECT_REF } from "./ephemeral-replay-env";
 import { APPROVED_DISPOSABLE_PROJECT, SYNTHETIC_EMAIL_DOMAIN, readE2EEnv, type E2EEnv } from "./env";
 
 /**
@@ -10,11 +11,28 @@ import { APPROVED_DISPOSABLE_PROJECT, SYNTHETIC_EMAIL_DOMAIN, readE2EEnv, type E
  * disposable project until that project is deleted. The journey itself goes
  * through the browser like a contractor would.
  */
-function admin(env: E2EEnv): SupabaseClient {
-    // Checked again at the point of use: nothing below can run against any
-    // project other than the approved disposable one.
-    if (new URL(env.supabaseUrl).hostname !== `${APPROVED_DISPOSABLE_PROJECT.ref}.supabase.co` || env.projectRef !== APPROVED_DISPOSABLE_PROJECT.ref) {
-        throw new Error("Refusing to use the admin client: the target is not the approved disposable project.");
+function isApprovedE2eBackend(env: E2EEnv): boolean {
+    const host = new URL(env.supabaseUrl).hostname;
+    const port = new URL(env.supabaseUrl).port;
+    if (
+        env.projectRef === APPROVED_DISPOSABLE_PROJECT.ref &&
+        host === `${APPROVED_DISPOSABLE_PROJECT.ref}.supabase.co`
+    ) {
+        return true;
+    }
+    if (
+        env.projectRef === EPHEMERAL_REPLAY_PROJECT_REF &&
+        (host === "127.0.0.1" || host === "localhost") &&
+        (port === "54321" || port === "")
+    ) {
+        return true;
+    }
+    return false;
+}
+
+function admin(env: E2EEnv = readE2EEnv()): SupabaseClient {
+    if (!isApprovedE2eBackend(env)) {
+        throw new Error("Refusing to use the admin client: the target is not an approved E2E backend.");
     }
     return createClient(env.supabaseUrl, env.supabaseServiceRoleKey, {
         auth: { autoRefreshToken: false, persistSession: false },
@@ -28,9 +46,9 @@ function assertSynthetic(email: string) {
 }
 
 /** The account the browser just created exists in the disposable project. */
-export async function syntheticUserExists(userId: string, email: string): Promise<boolean> {
+export async function syntheticUserExists(userId: string, email: string, env: E2EEnv = readE2EEnv()): Promise<boolean> {
     assertSynthetic(email);
-    const { data, error } = await admin(readE2EEnv()).auth.admin.getUserById(userId);
+    const { data, error } = await admin(env).auth.admin.getUserById(userId);
     return !error && data.user?.email?.toLowerCase() === email.toLowerCase();
 }
 
@@ -46,6 +64,94 @@ export async function savedSetup(userId: string, email: string): Promise<{ compa
     return { companyName: data?.company_name ?? null, businessType: data?.business_type ?? null, fullName: data?.full_name ?? null };
 }
 
+function assertD81LocalReplay(env: E2EEnv) {
+    const api = new URL(env.supabaseUrl);
+    if (env.projectRef !== EPHEMERAL_REPLAY_PROJECT_REF || api.protocol !== "http:" || !["127.0.0.1", "localhost"].includes(api.hostname) || api.port !== "54321" || api.username || api.password) {
+        throw new Error("D81 profile helpers require the local disposable replay target.");
+    }
+}
+
+export interface SavedProfileFields {
+    companyName: string | null;
+    businessType: string | null;
+    fullName: string | null;
+    phone: string | null;
+}
+
+/** Read-only profile row for a synthetic account (service role; proves persistence). */
+export async function savedProfileFields(
+    userId: string,
+    ownerEmail: string,
+    env: E2EEnv = readE2EEnv(),
+): Promise<SavedProfileFields | null> {
+    assertSynthetic(ownerEmail);
+    assertD81LocalReplay(env);
+    const { data, error } = await admin(env)
+        .from("profiles")
+        .select("company_name, business_type, full_name, phone")
+        .eq("id", userId)
+        .maybeSingle();
+    if (error) throw new Error(`Could not read the profile: ${error.message}`);
+    if (!data) return null;
+    return {
+        companyName: data.company_name != null ? String(data.company_name) : null,
+        businessType: data.business_type != null ? String(data.business_type) : null,
+        fullName: data.full_name != null ? String(data.full_name) : null,
+        phone: data.phone != null ? String(data.phone) : null,
+    };
+}
+
+/** Resolve a synthetic account id from its email without logging credentials. */
+export async function syntheticUserIdByEmail(email: string, env: E2EEnv = readE2EEnv()): Promise<string | null> {
+    assertSynthetic(email);
+    assertD81LocalReplay(env);
+    const { data, error } = await admin(env).auth.admin.listUsers({ page: 1, perPage: 200 });
+    if (error) throw new Error(`Could not list users: ${error.message}`);
+    const match = (data.users ?? []).find((user) => user.email?.toLowerCase() === email.toLowerCase());
+    return match?.id ?? null;
+}
+
+export interface ClientProfileProbe {
+    ownRow: SavedProfileFields | null;
+    otherRow: SavedProfileFields | null;
+}
+
+/**
+ * Uses the signed-in user's JWT (browser session), not the service role: proves RLS
+ * hides another contractor's profile row while still returning the caller's own row.
+ */
+export async function clientProfileIsolationProbe(
+    accessToken: string,
+    ownUserId: string,
+    otherUserId: string,
+    callerEmail: string,
+    env: E2EEnv = readE2EEnv(),
+): Promise<ClientProfileProbe> {
+    assertSynthetic(callerEmail);
+    assertD81LocalReplay(env);
+    if (!accessToken.trim()) throw new Error("Refusing profile probe without a session token.");
+    const client = createClient(env.supabaseUrl, env.supabaseAnonKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+        global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    });
+    const fields = "company_name, business_type, full_name, phone";
+    const [own, other] = await Promise.all([
+        client.from("profiles").select(fields).eq("id", ownUserId).maybeSingle(),
+        client.from("profiles").select(fields).eq("id", otherUserId).maybeSingle(),
+    ]);
+    if (own.error || other.error) throw new Error("Profile isolation reads failed; an API error is not evidence of isolation.");
+    const row = (data: typeof own.data): SavedProfileFields | null =>
+        data
+            ? {
+                  companyName: data.company_name != null ? String(data.company_name) : null,
+                  businessType: data.business_type != null ? String(data.business_type) : null,
+                  fullName: data.full_name != null ? String(data.full_name) : null,
+                  phone: data.phone != null ? String(data.phone) : null,
+              }
+            : null;
+    return { ownRow: row(own.data), otherRow: row(other.data) };
+}
+
 export interface PublicationRecord {
     version: number;
     status: string;
@@ -54,8 +160,8 @@ export interface PublicationRecord {
 }
 
 /** What the database recorded for each sent version, oldest first. */
-export async function publicationRecords(projectId: string): Promise<PublicationRecord[]> {
-    const supabase = admin(readE2EEnv());
+export async function publicationRecords(projectId: string, env: E2EEnv = readE2EEnv()): Promise<PublicationRecord[]> {
+    const supabase = admin(env);
     const { data: publications, error } = await supabase
         .from("proposal_publications")
         .select("id, version_number, status, snapshot")
@@ -150,6 +256,43 @@ export function budgetInspector(env: E2EEnv = readE2EEnv(), options: { timeoutMs
             // Not understood is not the same as "takes no arguments".
             return { ok: false, code: `api-description-unreadable:${signature.code}` };
         },
+    };
+}
+
+/** What the disposable database holds for a project brief. Read-only; mirrors CI smoke assertions. */
+export interface SavedProjectBrief {
+    name: string;
+    clientName: string;
+    briefScope: string;
+    briefCompleted: boolean;
+    briefTradeSections: string[];
+    clientType: string | null;
+    startDate: string | null;
+}
+
+export async function savedProjectBrief(
+    projectId: string,
+    ownerEmail: string,
+    env: E2EEnv = readE2EEnv(),
+): Promise<SavedProjectBrief | null> {
+    assertSynthetic(ownerEmail);
+    const { data, error } = await admin(env)
+        .from("projects")
+        .select("name, client_name, brief_scope, brief_completed, brief_trade_sections, client_type, start_date")
+        .eq("id", projectId)
+        .maybeSingle();
+    if (error) throw new Error(`Could not read the project brief: ${error.message}`);
+    if (!data) return null;
+    return {
+        name: String(data.name ?? ""),
+        clientName: String(data.client_name ?? ""),
+        briefScope: String(data.brief_scope ?? ""),
+        briefCompleted: Boolean(data.brief_completed),
+        briefTradeSections: Array.isArray(data.brief_trade_sections)
+            ? data.brief_trade_sections.map((row) => String(row))
+            : [],
+        clientType: data.client_type != null ? String(data.client_type) : null,
+        startDate: data.start_date != null ? String(data.start_date).slice(0, 10) : null,
     };
 }
 

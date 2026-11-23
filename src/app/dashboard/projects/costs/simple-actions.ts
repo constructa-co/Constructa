@@ -96,6 +96,8 @@ export async function saveSimplePriceLineAction(request: SavePriceLineRequest): 
     try {
         const { supabase, user } = await requireEditableProjectAccess(projectId);
 
+        // is_client_boq is optional on replay/older schemas. Read available columns
+        // so a missing optional flag cannot prevent the first price from saving.
         let estimateId = parsed.data.estimateId;
         let clientBoQ = false;
         let createdHere = false;
@@ -113,7 +115,7 @@ export async function saveSimplePriceLineAction(request: SavePriceLineRequest): 
                     .single(),
                 supabase
                     .from("estimates")
-                    .select("id, is_client_boq")
+                    .select("*")
                     .eq("id", parsed.data.estimateId)
                     .eq("project_id", projectId)
                     .maybeSingle(),
@@ -134,7 +136,7 @@ export async function saveSimplePriceLineAction(request: SavePriceLineRequest): 
             // Another tab, or an earlier attempt, may already have made one.
             const { data: existing, error: existingError } = await supabase
                 .from("estimates")
-                .select("id, is_active, is_client_boq")
+                .select("*")
                 .eq("project_id", projectId)
                 .order("created_at");
             if (existingError) return { ok: false, error: LINE_SAVE_ERROR };

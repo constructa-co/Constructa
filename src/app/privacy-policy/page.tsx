@@ -52,14 +52,14 @@ export default function PrivacyPolicyPage() {
             You can contact us at{' '}
             <a 
               href="mailto:hello@constructa.co" 
-              className="text-gray-300 hover:text-white transition-colors duration-200"
+              className="text-gray-300 underline underline-offset-4 hover:text-white transition-colors duration-200"
             >
               hello@constructa.co
             </a>
             {' '}to request access to, correction of, or deletion of your data, or to ask how personal, company, tax, pricing or salary information is handled.
           </p>
           
-          <p className="text-sm text-gray-500 mt-8">
+          <p className="text-sm text-gray-400 mt-8">
             This policy may be updated from time to time. Previous version dated March 2026.
           </p>
         </div>

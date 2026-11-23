@@ -4,9 +4,12 @@
 
 | File | Lines (approx.) | Change | Intent |
 |------|-----------------|--------|--------|
-| Costing + journey fixtures | merge | Main + D36 markup; on_net journey oracle | CON-068 Included persistence unchanged |
+| `src/lib/simple-estimate.ts` | `currentSummary`, `PreviewRunningTotalOptions`, `previewRunningTotal` | Merge #222 VAT preview (`vatTreatment`) with CON-068 included APIs | Typecheck + reverse-charge preview parity |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | `ProjectContext` | `is_vat_reverse_charge`, `programme_duration` | Match `page.tsx` props + running total |
+| Costing + journey fixtures | merge | Main + D36 markup; on_net journey oracle (`74fedc13`) | CON-068 Included persistence unchanged |
+| `scripts/fixtures/d68-schema-sequence/manifest.tsv` | `sourceHead` | Pins `176→cf922aa`, `#185/#222/#223/#224` post-merge heads; SHA-256 unchanged | Ordered disposable replay receipts |
 
-**Checks:** Cloud typecheck on merge head; hosted CI after push.
+**Checks:** Cloud lint 0 errors, typecheck, build, vitest (journey + simple-estimate + costs page), replay bootstrap — PASS. Hosted CI after push (R1 confirms).
 
 ## 2026-11-20 — D68 approved schema sequence (CI fixture replay)
 

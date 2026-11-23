@@ -241,6 +241,8 @@ export default function EstimateClient({
     const [fullScopeWork, setFullScopeWork] = useState(false);
     const fullScopeWorkRef = useRef(false);
     const fullScopeWorkChanged = (open: boolean) => { fullScopeWorkRef.current = open; setFullScopeWork(open); };
+    const [savedFullScope, setSavedFullScope] = useState(project.full_scope);
+    useEffect(() => { setSavedFullScope(project.full_scope); }, [project.id, project.full_scope]);
     const [openingWork, setOpeningWork] = useState(false);
     const openingWorkRef = useRef(false);
     const openingWorkChanged = (open: boolean) => { openingWorkRef.current = open; setOpeningWork(open); };
@@ -362,8 +364,8 @@ export default function EstimateClient({
     const pricingProject = useMemo(() => ({
         id: project.id,
         brief_scope: project.brief_scope,
-        scope_text: project.full_scope?.scope_text ?? null,
-    }), [project.id, project.brief_scope, project.full_scope?.scope_text]);
+        scope_text: savedFullScope?.scope_text ?? project.full_scope?.scope_text ?? null,
+    }), [project.id, project.brief_scope, savedFullScope?.scope_text, project.full_scope?.scope_text]);
     const pricingTransport = useMemo(() => pricingGenerator ?? (pricingAssistantEnabled ? createPricingRequestGenerator(() => ({
         project: pricingProject, estimate: currentEstimate(store.getState()),
     }), pricingAssistantTurnAction) : undefined), [pricingGenerator, pricingAssistantEnabled, pricingProject, store]);
@@ -385,7 +387,7 @@ export default function EstimateClient({
         }, pricingTransport,
     ), [pricingProject, store, pricingTransport]);
     useEffect(() => () => pricingAssistant.detach(), [pricingAssistant]);
-    useEffect(() => { pricingAssistant.refresh(); }, [pricingAssistant, state]);
+    useEffect(() => { pricingAssistant.refresh(); }, [pricingAssistant, state, savedFullScope?.scope_text]);
 
     // Keep the chosen estimate version when moving between project tabs.
     const tabKey = `constructa_tab_${project.id}`;
@@ -514,7 +516,7 @@ export default function EstimateClient({
 
     const scope = pricingWorkFromSavedProject({
         brief_scope: project.brief_scope,
-        scope_text: project.full_scope?.scope_text ?? null,
+        scope_text: savedFullScope?.scope_text ?? project.full_scope?.scope_text ?? null,
     }).trim();
     const scopeIsLong = scope.length > SCOPE_PREVIEW_LENGTH;
     const pricingContext = buildPricingReviewContext(pricingProject, estimate);
@@ -789,8 +791,8 @@ export default function EstimateClient({
             {project.experience && <PricingExperienceEditor key={project.id} projectId={project.id} source={project.experience}
                 lockReason={project.payment_lock_reason ?? null} styles={s} onWorkChange={experienceWorkChanged} />}
             {project.experience === null && <p className={s.muted}>Saved experience sources could not be read. No choices have been changed; review experience on the proposal page.</p>}
-            {project.full_scope && <PricingFullScopeEditor key={project.id} projectId={project.id} source={project.full_scope}
-                lockReason={project.payment_lock_reason ?? null} styles={s} onWorkChange={fullScopeWorkChanged} />}
+            {project.full_scope && <PricingFullScopeEditor key={project.id} projectId={project.id} source={savedFullScope ?? project.full_scope}
+                lockReason={project.payment_lock_reason ?? null} styles={s} onWorkChange={fullScopeWorkChanged} onScopeSaved={setSavedFullScope} />}
             {project.proposal_introduction !== undefined && <PricingOpeningEditor key={project.id} projectId={project.id} source={project.proposal_introduction}
                 lockReason={project.payment_lock_reason ?? null} styles={s} onWorkChange={openingWorkChanged} />}
 

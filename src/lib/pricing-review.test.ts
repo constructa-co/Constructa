@@ -45,6 +45,11 @@ describe("source-bound pricing review", () => {
         if (!result.ok || !other.ok) throw new Error("expected ok contexts");
         expect(result.value.revision).not.toBe(other.value.revision);
     });
+    it("treats blank detailed scope as absent and uses brief work", () => {
+        const brief = "Brief work only.";
+        const result = buildPricingReviewContext({ id: "job", brief_scope: brief, scope_text: "   " }, null);
+        expect(result.ok && result.value.work).toBe(brief);
+    });
     it("refuses oversized source text without silently truncating it", () => {
         expect(buildPricingReviewContext({ id: "job", brief_scope: "x".repeat(20001) }, null).ok).toBe(false);
     });

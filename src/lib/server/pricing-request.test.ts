@@ -20,7 +20,7 @@ const MESSAGE = "Help me organise the cabinet installation.";
 type Row = Record<string, unknown>;
 
 function fixture() {
-    const project: Row = { id: PROJECT, user_id: USER, brief_scope: "Install kitchen cabinets", status: "Estimating", is_archived: false, proposal_status: "draft", proposal_accepted_at: null };
+    const project: Row = { id: PROJECT, user_id: USER, brief_scope: "Install kitchen cabinets", scope_text: null, status: "Estimating", is_archived: false, proposal_status: "draft", proposal_accepted_at: null };
     const estimate: Row = { id: ESTIMATE, project_id: PROJECT, version_name: "Estimate v1", total_cost: 1000, is_active: true,
         estimate_lines: [{ id: LINE, estimate_id: ESTIMATE, description: "Cabinets", trade_section: "Kitchen", quantity: 1, unit: "item", unit_rate: 1000, line_total: 1000, pricing_mode: "simple", estimate_line_components: [] }] };
     let session: { data: { user: { id: string } | null }; error: unknown } = { data: { user: { id: USER } }, error: null };
@@ -52,7 +52,11 @@ function fixture() {
     const getUser = vi.fn(async () => session);
     mocks.createClient.mockResolvedValue({ auth: { getUser }, from });
     const revision = (message = MESSAGE, selected: Row | null = estimate) => {
-        const context = buildPricingReviewContext({ id: PROJECT, brief_scope: String(project.brief_scope ?? "") }, selected ? toEstimate(selected) : null, message);
+        const context = buildPricingReviewContext({
+            id: PROJECT,
+            brief_scope: String(project.brief_scope ?? ""),
+            scope_text: typeof project.scope_text === "string" || project.scope_text === null ? project.scope_text : null,
+        }, selected ? toEstimate(selected) : null, message);
         if (!context.ok) throw new Error(context.error);
         return createHash("sha256").update(context.value.revision).digest("hex");
     };
@@ -132,13 +136,34 @@ describe("server-owned pricing request preflight (no live service)", () => {
         expect((await inspectPricingRequest(request)).status).toBe("unavailable");
     });
 
-    it.each(["brief", "price", "resource", "message"]) ("detects stale server context after a %s change", async field => {
+    it.each(["brief", "detailed-scope", "price", "resource", "message"]) ("detects stale server context after a %s change", async field => {
         const f = fixture(); const request = f.request();
         if (field === "brief") f.project.brief_scope = "Changed saved scope";
+        if (field === "detailed-scope") {
+            f.project.scope_text = "Saved detailed scope for pricing";
+            request.expectedRevision = f.revision();
+            f.project.scope_text = "Changed detailed scope";
+        }
         if (field === "price") f.estimate.total_cost = 2000;
         if (field === "resource") f.estimate.estimate_lines = [{ id: LINE, estimate_id: ESTIMATE, estimate_line_components: [{ estimate_line_id: LINE, quantity: 2 }] }];
         if (field === "message") request.message = "A later message";
         expect((await inspectPricingRequest(request)).status).toBe("stale");
+    });
+
+    it("accepts client expectedRevision when saved detailed scope overrides brief", async () => {
+        const f = fixture();
+        f.project.scope_text = "Kitchen fit-out scope saved on Estimating.";
+        const request = f.request({ expectedRevision: f.revision() });
+        expect((await inspectPricingRequest(request)).status).toBe("off");
+        expect(f.queries.some(q => q.table === "projects" && q.columns.includes("scope_text"))).toBe(true);
+    });
+
+    it("falls back to brief work when detailed scope is null or blank", () => {
+        const f = fixture();
+        const brief = String(f.project.brief_scope ?? "");
+        const fromNull = buildPricingReviewContext({ id: PROJECT, brief_scope: brief, scope_text: null }, null);
+        const fromBlank = buildPricingReviewContext({ id: PROJECT, brief_scope: brief, scope_text: "   " }, null);
+        expect(fromNull.ok && fromBlank.ok && fromNull.value.work).toBe(fromBlank.value!.work);
     });
 
     it("checks null-estimate requests against actual saved existence without creating a record", async () => {

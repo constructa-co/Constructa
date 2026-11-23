@@ -1,6 +1,6 @@
 # Cursor change log
 
-## 2026-11-24 — D104 A055 pricing assistant scope_text alignment (draft)
+## 2026-11-24 — D104 A055 pricing assistant scope_text alignment (draft, R1 repair)
 
 | File | Lines (approx.) | Change | Intent |
 | --- | --- | --- | --- |
@@ -8,7 +8,10 @@
 | `src/lib/server/pricing-request.ts` | verify select | Load/pass `scope_text` | Server fingerprint matches client |
 | `src/app/dashboard/projects/costs/estimate-client.tsx` | `pricingProject` | Pass saved proposal scope through assistant paths | Brief→estimate journey consistency |
 | `src/lib/job-assistant-client.ts`, `pricing-conversation.ts` | types | Optional `scope_text` on project snapshot | Transport typing |
-| `src/lib/pricing-review.test.ts` | new `it` | Override regression | |
+| `src/lib/pricing-review.test.ts` | new `it` | Override + blank fallback | |
+| `src/lib/server/pricing-request.test.ts` | new cases | Revision agree, detailed-scope stale, fallback | Server regression |
+| `src/app/dashboard/projects/costs/full-scope.tsx` | `onScopeSaved` | Notify parent after save | Assistant fingerprint refresh |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | `savedFullScope` | Local scope after save without reload | full_scope refresh consistency |
 
 **Checks:** `npm run typecheck`; vitest pricing-review, pricing-request, pricing-assistant-request.
 

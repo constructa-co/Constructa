@@ -34,7 +34,7 @@ export const faqs: FAQItem[] = [
   },
   {
     question: "Are AI assistants included in the phase-one review?",
-    answer: "Job-aware assistants for brief, pricing and programme exist in the product code but stay off until provider, budget and approval gates are satisfied. The preview focuses on what you can check yourself: company profile, saved scope, estimates, programme and proposal preview."
+    answer: "No. AI assistance is not available in the phase-one preview. You can still check company profile, saved scope, your own estimates, programme and proposal preview yourself."
   }
 ];
 

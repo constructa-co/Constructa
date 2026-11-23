@@ -21,7 +21,8 @@ describe("marketing FAQ copy", () => {
 
   it("explains brief-to-estimate and assistant boundaries honestly", () => {
     expect(allCopy).toContain("does not auto-price");
-    expect(allCopy).toMatch(/stay off until|stays off until/i);
+    expect(allCopy).toContain("AI assistance is not available in the phase-one preview");
+    expect(allCopy).not.toMatch(/provider|budget|approval gate|scope_text/i);
   });
 
   it("does not promise trials, subscriptions or unavailable capabilities", () => {

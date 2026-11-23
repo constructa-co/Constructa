@@ -83,18 +83,21 @@ export const GUIDE_ARTICLES: readonly GuideArticle[] = [
     slug: 'how-saved-job-data-connects',
     title: 'How saved job data connects across the review journey',
     summary:
-      'Each pre-construction tab reads what you already saved on the job. Nothing silently retypes your brief into the estimate or proposal for you.',
+      'Saved brief scope can feed the proposal when you have not replaced it with a detailed scope on Estimating. Price lines and programme stages are still work you enter and review yourself.',
     intro:
-      'Constructa keeps one job record. Brief, estimating, programme and proposal tabs each read saved fields you control. This note explains what carries over automatically and what you still enter yourself, so you can check consistency before sharing.',
-    previewNote: 'For existing phase-one review accounts. Job-aware assistants remain off until separately approved.',
-    ...GUIDE_ARTICLE_ATTRIBUTION,
+      'Constructa keeps one job record. Brief, estimating, programme and proposal tabs read saved fields you control. This note explains what carries from earlier steps and what you still enter yourself, so you can check consistency before sharing.',
+    previewNote: 'For existing phase-one review accounts. AI assistance is not available in this preview.',
+    author: GUIDE_ARTICLE_ATTRIBUTION.author,
+    preparation: GUIDE_ARTICLE_ATTRIBUTION.preparation,
+    contentUpdatedIso: '2026-11-24',
+    contentUpdatedDisplay: '24 November 2026',
     steps: [
       {
         title: 'Brief → estimating',
         add: [
           'Write the job scope and trades on the Brief tab and save.',
-          'On Estimating, price lines are yours to add; the app does not auto-build a bill of quantities from the brief alone.',
-          'If you edit full proposal scope on Estimating, that saved scope_text is what proposals use when set.',
+          'On Estimating, add price lines, quantities and rates yourself; the app does not auto-build a bill of quantities from the brief alone.',
+          'If you save a detailed scope on Estimating, the proposal uses that wording in place of the brief work text.',
         ],
         get: [
           'Saved brief wording you can quote into price lines when you choose.',
@@ -105,8 +108,7 @@ export const GUIDE_ARTICLES: readonly GuideArticle[] = [
       {
         title: 'Estimating → programme',
         add: [
-          'Save programme stages and working pattern on the Programme tab.',
-          'Optional: pull stage names or durations from estimate labour where the product already surfaces them — you still review every date.',
+          'Save programme stages and working pattern on the Programme tab yourself.',
         ],
         get: [
           'A saved programme the proposal can read for timing pages.',

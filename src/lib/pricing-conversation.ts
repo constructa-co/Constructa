@@ -14,7 +14,7 @@ const UNAVAILABLE = "The assistant couldn't complete this reply. Nothing has bee
 type Message = { role: "user" | "assistant"; content: string };
 type GenerationResult = { value: unknown } | { failed: true } | { cancelled: true } | { transport: AssistantTransportError };
 export interface PricingConversationSnapshot {
-    project: { id: string; brief_scope: string };
+    project: { id: string; brief_scope: string; scope_text?: string | null };
     estimate: Estimate | null;
     hasOpenWork: boolean;
 }

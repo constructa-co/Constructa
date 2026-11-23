@@ -84,7 +84,7 @@ import { createPricingRequestGenerator } from "@/lib/job-assistant-client";
 import type { JobAssistantOffReason } from "@/lib/job-assistant-readiness";
 import { pricingAssistantTurnAction } from "./assistant-actions";
 import type { PricingConversationGenerator } from "@/lib/pricing-conversation";
-import { buildPricingReviewContext, prepareReviewedPriceDraft, reviewPricingSuggestion, PRICING_REVIEW_OPEN, PRICING_REVIEW_STALE, type PendingPricingReview } from "@/lib/pricing-review";
+import { buildPricingReviewContext, prepareReviewedPriceDraft, pricingWorkFromSavedProject, reviewPricingSuggestion, PRICING_REVIEW_OPEN, PRICING_REVIEW_STALE, type PendingPricingReview } from "@/lib/pricing-review";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import { BEFORE_PROJECT_NAVIGATION } from "@/lib/project-navigation";
 import { ESTIMATE_LEAVE_WARNING, hasOpenEstimateWork } from "./estimate-navigation";
@@ -359,18 +359,23 @@ export default function EstimateClient({
 
     // A055: the real request path. The server rebuilds the saved job and
     // selected estimate, compares the fingerprint and chooses the generator.
+    const pricingProject = useMemo(() => ({
+        id: project.id,
+        brief_scope: project.brief_scope,
+        scope_text: project.full_scope?.scope_text ?? null,
+    }), [project.id, project.brief_scope, project.full_scope?.scope_text]);
     const pricingTransport = useMemo(() => pricingGenerator ?? (pricingAssistantEnabled ? createPricingRequestGenerator(() => ({
-        project: { id: project.id, brief_scope: project.brief_scope }, estimate: currentEstimate(store.getState()),
-    }), pricingAssistantTurnAction) : undefined), [pricingGenerator, pricingAssistantEnabled, project.id, project.brief_scope, store]);
+        project: pricingProject, estimate: currentEstimate(store.getState()),
+    }), pricingAssistantTurnAction) : undefined), [pricingGenerator, pricingAssistantEnabled, pricingProject, store]);
     // Conversation and review stay in this page; nothing is stored or saved.
     const pricingAssistant = useMemo(() => createPricingAssistantSession(
         () => {
             const fresh = store.getState();
-            return { project: { id: project.id, brief_scope: project.brief_scope }, estimate: currentEstimate(fresh), hasOpenWork: hasOpenEstimateWork(fresh) || fresh.advancedOpen };
+            return { project: pricingProject, estimate: currentEstimate(fresh), hasOpenWork: hasOpenEstimateWork(fresh) || fresh.advancedOpen };
         },
         (pending, index, contractorMessage) => {
             const fresh = store.getState();
-            const context = buildPricingReviewContext({ id: project.id, brief_scope: project.brief_scope }, currentEstimate(fresh), contractorMessage);
+            const context = buildPricingReviewContext(pricingProject, currentEstimate(fresh), contractorMessage);
             if (!context.ok) return context;
             const draft = prepareReviewedPriceDraft(pending, index, context.value, hasOpenEstimateWork(fresh) || fresh.advancedOpen);
             if (!draft.ok) return draft;
@@ -378,7 +383,7 @@ export default function EstimateClient({
             store.dispatch({ type: "op/open", key: NEW_LINE_KEY, kind: "add", draft: draft.value, lineId: newClientId() });
             return { ok: true };
         }, pricingTransport,
-    ), [project.id, project.brief_scope, store, pricingTransport]);
+    ), [pricingProject, store, pricingTransport]);
     useEffect(() => () => pricingAssistant.detach(), [pricingAssistant]);
     useEffect(() => { pricingAssistant.refresh(); }, [pricingAssistant, state]);
 
@@ -507,10 +512,12 @@ export default function EstimateClient({
         if (opening && store.getState().advancedOpen && advanced.status !== "ready" && advanced.status !== "loading") void loadAdvanced();
     };
 
-    const { work } = splitScope(project.brief_scope);
-    const scope = work.trim();
+    const scope = pricingWorkFromSavedProject({
+        brief_scope: project.brief_scope,
+        scope_text: project.full_scope?.scope_text ?? null,
+    }).trim();
     const scopeIsLong = scope.length > SCOPE_PREVIEW_LENGTH;
-    const pricingContext = buildPricingReviewContext(project, estimate);
+    const pricingContext = buildPricingReviewContext(pricingProject, estimate);
     const briefReview = pricingContext.ok ? reviewPricingSuggestion(pricingContext.value, {
         message: "", suggestions: [{ source: "briefWork", start: 0, end: pricingContext.value.work.length }],
     }) : null;
@@ -525,7 +532,7 @@ export default function EstimateClient({
         : "Copies only your work wording into an unsaved price-line draft. Review it before entering a price; no rates or quantities are suggested.";
     const openReviewedBriefDraft = (pending: PendingPricingReview): { ok: true } | { ok: false; error: string } => {
         const freshState = store.getState();
-        const freshContext = buildPricingReviewContext(project, currentEstimate(freshState));
+        const freshContext = buildPricingReviewContext(pricingProject, currentEstimate(freshState));
         if (!freshContext.ok) return freshContext;
         const prepared = prepareReviewedPriceDraft(pending, 0, freshContext.value, hasOpenEstimateWork(freshState) || freshState.advancedOpen || Object.keys(resourceSaveStatesRef.current).length > 0 || paymentWorkRef.current || scopeNotesWorkRef.current || experienceWorkRef.current || fullScopeWorkRef.current || openingWorkRef.current || workListOpenRef.current || Object.keys(activityWorkRef.current).length > 0);
         if (!prepared.ok) return prepared;
@@ -549,10 +556,10 @@ export default function EstimateClient({
 
     const openWorkListDraftAt = (source: string, range: WorkDescriptionRange, revision?: string): { ok: true } | { ok: false; error: string } => {
         const freshState = store.getState();
-        const base = buildPricingReviewContext(project, currentEstimate(freshState));
+        const base = buildPricingReviewContext(pricingProject, currentEstimate(freshState));
         if (!base.ok) return base;
         if (revision !== undefined && base.value.revision !== revision) return { ok: false, error: PRICING_REVIEW_STALE };
-        const context = buildPricingReviewContext(project, currentEstimate(freshState), source);
+        const context = buildPricingReviewContext(pricingProject, currentEstimate(freshState), source);
         if (!context.ok) return context;
         const pending = reviewPricingSuggestion(context.value, { message: "", suggestions: [{ source: "contractorMessage", ...range }] });
         if (!pending.ok) return pending;

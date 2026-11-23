@@ -2,14 +2,23 @@
 
 **Main:** `5ae38208` at batch start. **Authority:** no force/amend/rebase pushed; normal push only.
 
+## PR integration (R1)
+
+| PR | Branch | Tip |
+| --- | --- | --- |
+| #258 Marketing | `codex/d104-marketing-guide-20261124` | `86ddb464` |
+| #259 A055 (+ merge 258) | `codex/d104-a055-job-context-20261124` | see merge commit on 259 after normal merge of `86ddb464` into A055 |
+
+Merge order for release: **258 first**, then **259** (259 tree includes marketing + A055).
+
 ## Job 1 — A055 (accept repair)
 
 | Field | Value |
 | --- | --- |
 | Branch | `codex/d104-a055-job-context-20261124` |
-| Head | `71654aff` |
-| Deliverable | `scope_text` in pricing client/server + stale revision tests + scope save refresh |
-| Draft PR | R1 to create from branch compare link |
+| Pre-merge tip | `de8fb3e1` |
+| Deliverable | `scope_text` in pricing client/server + stale revision tests + scope save refresh + cleared-scope fix |
+| Draft PR | #259 |
 | CI | `ci.yml` on PR; `e2e.yml` skipped while draft |
 
 ## Job 2 — Marketing (accept repair)
@@ -17,8 +26,9 @@
 | Field | Value |
 | --- | --- |
 | Branch | `codex/d104-marketing-guide-20261124` |
-| Head | `2657504a` |
+| Head | `86ddb464` |
 | Deliverable | `how-saved-job-data-connects` + FAQ; R1 copy/tests |
+| Draft PR | #258 |
 | CI | `ci.yml` + possible read-only `marketing-a11y-speed-audit.yml` on marketing paths |
 
 ## Job 3 — A001 mobile hub — **SKIP**

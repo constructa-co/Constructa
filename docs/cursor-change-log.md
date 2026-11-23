@@ -11,6 +11,22 @@
 
 **Checks:** vitest guides-routes + FAQ. No pricing/legal/trial claims; no forms.
 
+## 2026-11-24 — D104 A055 pricing assistant scope_text alignment (draft, R1 repair)
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `src/lib/pricing-review.ts` | `pricingWorkFromSavedProject` | `scope_text` overrides brief work; revision includes `scopeText` | Job-aware pricing context matches proposal review |
+| `src/lib/server/pricing-request.ts` | verify select | Load/pass `scope_text` | Server fingerprint matches client |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | `pricingProject` | Pass saved proposal scope through assistant paths | Brief→estimate journey consistency |
+| `src/lib/job-assistant-client.ts`, `pricing-conversation.ts` | types | Optional `scope_text` on project snapshot | Transport typing |
+| `src/lib/pricing-review.test.ts` | new `it` | Override + blank fallback | |
+| `src/lib/server/pricing-request.test.ts` | new cases | Revision agree, detailed-scope stale, fallback | Server regression |
+| `src/app/dashboard/projects/costs/full-scope.tsx` | `onScopeSaved` | Notify parent after save | Assistant fingerprint refresh |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | `activeFullScope`, `pricingProject` | Authoritative saved full-scope object (null clears override) | Stale prop fallback fix |
+| `src/app/dashboard/projects/costs/full-scope-parent.test.tsx` | new `it` | Cleared scope → brief work without reload | A055 regression |
+
+**Checks:** `npm run typecheck`; vitest pricing-review, pricing-request, pricing-assistant-request.
+
 ## 2026-11-24 — D103 A001 install banner mark tile (draft)
 
 | File | Lines (approx.) | Change | Intent |

@@ -1,0 +1,56 @@
+[
+  {
+    "viewport": 360,
+    "width": 152,
+    "value": "m2",
+    "label": "m²"
+  },
+  {
+    "viewport": 360,
+    "width": 152,
+    "value": "m3",
+    "label": "m³"
+  },
+  {
+    "viewport": 360,
+    "width": 152,
+    "value": "week",
+    "label": "wk"
+  },
+  {
+    "viewport": 390,
+    "width": 167,
+    "value": "m2",
+    "label": "m²"
+  },
+  {
+    "viewport": 390,
+    "width": 167,
+    "value": "m3",
+    "label": "m³"
+  },
+  {
+    "viewport": 390,
+    "width": 167,
+    "value": "week",
+    "label": "wk"
+  },
+  {
+    "viewport": 430,
+    "width": 187,
+    "value": "m2",
+    "label": "m²"
+  },
+  {
+    "viewport": 430,
+    "width": 187,
+    "value": "m3",
+    "label": "m³"
+  },
+  {
+    "viewport": 430,
+    "width": 187,
+    "value": "week",
+    "label": "wk"
+  }
+]

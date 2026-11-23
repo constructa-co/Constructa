@@ -326,4 +326,83 @@ END;
 $$;
 SQL
 
+
+# D92-M1 rollback proof (disposable DB only): the rollback file must contain the
+# exact pre-D92 function block, restore pre-D92 behaviour with grants intact,
+# touch no data, and the forward migration must re-apply cleanly afterwards.
+FOUNDATION="$ROOT_DIR/supabase/migrations/20260930150000_proposal_publication_foundation.sql"
+ROLLBACK="$ROOT_DIR/supabase/rollbacks/20261122120000_d92_proposal_price_parity.rollback.sql"
+diff <(sed -n '/^CREATE OR REPLACE FUNCTION public.publish_proposal_publication(/,/^) TO authenticated, service_role;/p' "$FOUNDATION") \
+     <(sed -n '/^CREATE OR REPLACE FUNCTION public.publish_proposal_publication(/,/^) TO authenticated, service_role;/p' "$ROLLBACK") \
+  || { echo "Rollback is not byte-identical to the pre-D92 function"; exit 1; }
+
+PUB_BEFORE="$("${PSQL[@]}" -At -c "SELECT count(*) FROM public.proposal_publications")"
+"${PSQL[@]}" -f "$ROLLBACK" >/dev/null
+"${PSQL[@]}" -v pub_before="$PUB_BEFORE" <<'SQL'
+DO $$
+DECLARE
+  p_id uuid; v integer; s jsonb; ok boolean;
+  sent timestamptz := '2026-11-22T00:00:00Z';
+  expiry timestamptz := '2026-12-22T00:00:00Z';
+  fn text := 'public.publish_proposal_publication(uuid,uuid,uuid,integer,text,jsonb,text,numeric,numeric,numeric,numeric,timestamptz,integer,timestamptz,text)';
+BEGIN
+  IF has_function_privilege('anon', fn, 'EXECUTE') OR NOT has_function_privilege('authenticated', fn, 'EXECUTE')
+     OR NOT has_function_privilege('service_role', fn, 'EXECUTE') THEN
+    RAISE EXCEPTION 'Rollback changed publish RPC grants.';
+  END IF;
+  -- With a PC allowance the pre-D92 function must refuse the face-value price (old behaviour restored).
+  DELETE FROM public.estimate_lines;
+  INSERT INTO public.estimate_lines(id,estimate_id,line_total,line_type) VALUES
+    (gen_random_uuid(),'50000000-0000-0000-0000-000000000001',10000,NULL),
+    (gen_random_uuid(),'50000000-0000-0000-0000-000000000001',5000,'pc_sum');
+  UPDATE public.estimates SET markup_method=NULL, prelims_pct=10,overhead_pct=10,risk_pct=5,profit_pct=15,discount_pct=0;
+  SELECT max(version_number)+1 INTO v FROM public.proposal_publications WHERE project_id='20000000-0000-0000-0000-000000000001';
+  p_id := gen_random_uuid();
+  s := jsonb_build_object('schema_version',1,'project',jsonb_build_object('id','20000000-0000-0000-0000-000000000001'),
+    'publication',jsonb_build_object('id',p_id,'version_number',v,'sent_at',sent,'expires_at',expiry,'validity_days',30),
+    'commercial',jsonb_build_object('estimate_id','50000000-0000-0000-0000-000000000001',
+      'contract_sum_ex_vat',19610.75,'vat_rate',0,'vat_amount',0,'contract_sum_inc_vat',19610.75));
+  PERFORM set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
+  SET LOCAL ROLE authenticated;
+  ok := false;
+  BEGIN
+    PERFORM public.publish_proposal_publication('20000000-0000-0000-0000-000000000001',p_id,
+      '50000000-0000-0000-0000-000000000001',v,repeat('9',64),s,repeat('f',64),19610.75,0,0,19610.75,sent,30,expiry,NULL);
+  EXCEPTION WHEN check_violation THEN ok := true;
+  END;
+  RESET ROLE;
+  IF NOT ok THEN RAISE EXCEPTION 'Rollback did not restore pre-D92 price behaviour.'; END IF;
+  RAISE NOTICE 'rollback PASS: pre-D92 function restored, grants intact';
+END;
+$$;
+SELECT (SELECT count(*) FROM public.proposal_publications) = :pub_before AS rows_unchanged \gset
+\if :rows_unchanged
+\else
+  \echo 'Rollback changed publication rows.'
+  SELECT 1/0;
+\endif
+SQL
+
+# Roll forward again: same file must re-apply and restore parity.
+"${PSQL[@]}" -f "$ROOT_DIR/supabase/migrations/20261122120000_d92_proposal_price_parity.sql" >/dev/null
+"${PSQL[@]}" <<'SQL'
+DO $$
+DECLARE p_id uuid := gen_random_uuid(); v integer; s jsonb;
+  sent timestamptz := '2026-11-22T00:00:00Z'; expiry timestamptz := '2026-12-22T00:00:00Z';
+BEGIN
+  SELECT max(version_number)+1 INTO v FROM public.proposal_publications WHERE project_id='20000000-0000-0000-0000-000000000001';
+  s := jsonb_build_object('schema_version',1,'project',jsonb_build_object('id','20000000-0000-0000-0000-000000000001'),
+    'publication',jsonb_build_object('id',p_id,'version_number',v,'sent_at',sent,'expires_at',expiry,'validity_days',30),
+    'commercial',jsonb_build_object('estimate_id','50000000-0000-0000-0000-000000000001',
+      'contract_sum_ex_vat',19610.75,'vat_rate',0,'vat_amount',0,'contract_sum_inc_vat',19610.75));
+  PERFORM set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000001',true);
+  SET LOCAL ROLE authenticated;
+  PERFORM public.publish_proposal_publication('20000000-0000-0000-0000-000000000001',p_id,
+    '50000000-0000-0000-0000-000000000001',v,repeat('8',64),s,repeat('f',64),19610.75,0,0,19610.75,sent,30,expiry,NULL);
+  RESET ROLE;
+  RAISE NOTICE 'roll-forward PASS: parity restored after rollback';
+END;
+$$;
+SQL
+
 echo "proposal-publication-security-suite: pass"

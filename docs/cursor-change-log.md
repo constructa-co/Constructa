@@ -1106,3 +1106,7 @@ Sonnet source critique plus independently reproduced pricing mismatch, top-down 
 ## 22 November — D92-M1 held publication parity repair
 
 Prepared additive publish RPC canonical sum parity and direct-RPC disposable regression cases. PC/PS face value, credits and blank prelims now match main calculation; optional on_net compatibility does not add columns or activate held176. Owner R1; schema DRAFT, outside D86 apply sequence; independent Sonnet and exact CI receipts pending. No hosted SQL/publication/settings/signup.
+
+## 23 November — D100 #238 readiness
+
+Merged main af3d342 into the D92 branch (changelog-only conflict). Added function-only rollback file and disposable rollback/roll-forward checks to the proposal publication SQL suite. CI-only validation; no hosted SQL, merge or publication.

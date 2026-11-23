@@ -1,5 +1,16 @@
 # Cursor change log
 
+## 2026-11-24 — D104 marketing connected-journey guide + FAQ (draft, R1 repair)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/marketing-guides.ts` | Copy + 24 Nov date on new article only | Public wording; no implementation field names |
+| `src/app/components/FAQ.tsx` | FAQ copy repair | AI unavailable in preview; no gate jargon |
+| `src/app/guides/guides-routes.test.tsx` | Exact 8 slug order/count/headings | No weakened >= assertions |
+| `src/app/components/FAQ.test.tsx` | Copy guard | Regression |
+
+**Checks:** vitest guides-routes + FAQ. No pricing/legal/trial claims; no forms.
+
 ## 2026-11-24 — D104 A055 pricing assistant scope_text alignment (draft, R1 repair)
 
 | File | Lines (approx.) | Change | Intent |

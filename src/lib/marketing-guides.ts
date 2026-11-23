@@ -9,8 +9,8 @@ export type GuideStepBlock = {
 export const GUIDE_ARTICLE_ATTRIBUTION = {
   author: 'Constructa',
   preparation: 'AI-assisted draft guidance',
-  contentUpdatedIso: '2026-11-04',
-  contentUpdatedDisplay: '4 November 2026',
+  contentUpdatedIso: '2026-11-23',
+  contentUpdatedDisplay: '23 November 2026',
 } as const;
 
 export type GuideArticle = {
@@ -109,6 +109,58 @@ export const GUIDE_ARTICLES: readonly GuideArticle[] = [
       'Read the whole preview. Client response options ask for receipt or a non-binding intention to proceed, and neither is acceptance.',
       'A PDF marked as a draft. Downloading it sends nothing.',
     ],
+  },
+  {
+    "slug": "estimate-review",
+    "title": "Checking an estimate before sharing",
+    "summary": "Start with your quantities and rates. Read each description, unit, quantity and rate against the work you intend to include. Constructa organises your figures; it does not measure drawings or price the job for you.",
+    "intro": "Start with your quantities and rates. Read each description, unit, quantity and rate against the work you intend to include. Constructa organises your figures; it does not measure drawings or price the job for you.",
+    "previewNote": "For existing phase-one review accounts. Check your own work before sharing.",
+    "steps": [
+      {
+        "title": "Practical checklist",
+        "add": [
+          "Keep credits visible. A credit is a deduction or adjustment reducing the price, not a nominated-supplier allowance. Check its sign, description and effect on the total, and confirm it appears where you intend in the proposal.",
+          "Review any prime-cost or provisional-sum allowances you have entered separately from credits. Make their descriptions and exclusions clear and check the figures you have entered. This guide does not decide their contractual treatment.",
+          "Read preliminaries, overheads, risk and profit alongside the work items. Check whether preliminaries are explicit lines or percentage based. If the programme changes, revisit time-related preliminaries yourself; changing dates does not automatically reprice them."
+        ],
+        "get": [
+          "Your own review of the information you intend to share."
+        ],
+        "check": "Check the sections and final total independently. Review the VAT treatment against the job and your own verified information. Read the proposal preview and draft PDF before sharing. Downloading the draft PDF sends nothing. This is practical checking guidance, not tax or legal advice."
+      }
+    ],
+    "closingChecks": [
+      "Credits, allowances and the final total reflect the work you priced."
+    ]
+  ,
+    ...GUIDE_ARTICLE_ATTRIBUTION
+  },
+  {
+    "slug": "programme-review",
+    "title": "Checking a programme before sharing",
+    "summary": "Check the working calendar before relying on dates. Working days and calendar days differ; allow for site access, holidays, people and suppliers that affect this job.",
+    "intro": "Check the working calendar before relying on dates. Working days and calendar days differ; allow for site access, holidays, people and suppliers that affect this job.",
+    "previewNote": "For existing phase-one review accounts. Check your own work before sharing.",
+    "steps": [
+      {
+        "title": "Practical checklist",
+        "add": [
+          "Read the sequence stage by stage. Where work overlaps, review the actual scheduled start and finish dates rather than adding every stage duration together. Use the existing scheduling controls and check any finish-to-start dependencies against the way the job will be delivered.",
+          "A stage marked as finishing in the final week is not a critical-path calculation. The marker does not establish float or tell you the consequences of every delay. Review what a slipped activity affects yourself.",
+          "Changing the programme does not automatically reprice time-related preliminaries. If the job becomes longer or shorter, revisit those estimate lines and check the revised scope and total before sharing anything."
+        ],
+        "get": [
+          "Your own review of the information you intend to share."
+        ],
+        "check": "Finally, read the programme as your client or site lead would. Does the order make sense? Are durations realistic? Does the plan include work that has not been priced? Keep the estimate, programme and proposal consistent through your own review."
+      }
+    ],
+    "closingChecks": [
+      "Dates and sequence are realistic and consistent with the checked estimate."
+    ]
+  ,
+    ...GUIDE_ARTICLE_ATTRIBUTION
   },
 ] as const;
 

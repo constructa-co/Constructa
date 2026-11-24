@@ -47,7 +47,7 @@ export function MarketingFooter() {
           <Link href="/features">The product</Link><Link href="/guides">Guides</Link>
           <Link href="/about">About</Link>
           <Link href="/apply">Apply to the founding cohort</Link><Link href="/login">Sign in</Link>
-          <Link href="/terms-of-service">Terms</Link><Link href="/privacy-policy">Privacy</Link>
+          <Link href="/terms-of-service">Terms</Link><Link href="/privacy-policy" title="Privacy, optional forms and site measurement">Privacy</Link>
           <Link href="/contact">Get in touch</Link>
         </nav>
       </div>

@@ -93,3 +93,16 @@ Checks: `vitest run src/components/marketing/phase-one.test.tsx`; `npx tsc --noE
 **Remaining A061:** Gantt bar density, settings strip polish, full desktop workspace — not this diff.
 
 Checks: `vitest run src/app/dashboard/projects/schedule/planner-dates.test.tsx`; `npx tsc --noEmit`.
+
+## D108 Job 2 — A096/A097 public measurement + forms copy (a11y) — 24 November 2026
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/app/privacy-policy/page.tsx` | `data-privacy-updates-availability` — forms off + analytics separation | A096 audit / A097 measurement requirements without activation |
+| `src/app/privacy-policy/privacy-information.test.tsx` | Expect new paragraph | Copy boundary |
+| `src/components/marketing/marketing-mobile-menu.tsx` | `aria-label` on menu control | Responsive a11y after #265 |
+| `src/components/marketing/phase-one.tsx` | Footer Privacy link title | Discoverability of measurement/forms notice |
+
+Hosted Plausible/activation and **#228** form switches remain held; no new events or providers.
+
+Checks: `vitest run src/app/privacy-policy/privacy-information.test.tsx`.

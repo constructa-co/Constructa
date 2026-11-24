@@ -55,7 +55,15 @@ describe("privacy information", () => {
         expect(html).toMatch(/^<main[^>]*><div[^>]*><h1[^>]*>Privacy Policy<\/h1>/);
         expect(text).toContain("When you use our platform, we hold the details you give us, such as your name, email address and company details.");
         expect(text).toContain("If you submit the updates form on this site, your email address is sent to Kit (ConvertKit), the email provider that runs that list.");
-        expect(html.match(/<p /g)).toHaveLength(8);
+        expect(html.match(/<p /g)).toHaveLength(9);
+    });
+
+    it("says when the updates form appears and that signup is separate from analytics", () => {
+        const note = html.match(/<p [^>]*data-privacy-updates-availability[^>]*>([^<]*)<\/p>/);
+        expect(note).not.toBeNull();
+        expect(note![1].replace(/\s+/g, " ").trim()).toBe(
+            "The optional email updates form is not shown unless Constructa turns it on. That signup path is separate from Vercel Web Analytics below and does not add a custom marketing conversion event in the current public code.",
+        );
     });
 
     it("describes analytics without claiming whether it is on or off", () => {

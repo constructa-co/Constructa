@@ -28,8 +28,8 @@ export function MarketingMobileMenu() {
   const closeOnSelection = () => { closeMobileMenu(menu.current); };
 
   return (
-    <details ref={menu} className={ui.mobileMenu}>
-      <summary>Menu</summary>
+    <details ref={menu} className={ui.mobileMenu} aria-label="Site menu">
+      <summary aria-label="Open site menu">Menu</summary>
       <nav aria-label="Mobile navigation">
         <Link href="/features" onClick={closeOnSelection}>Product</Link>
         <Link href="/pricing" onClick={closeOnSelection}>Preview access</Link>

@@ -40,6 +40,10 @@ export default function PrivacyPolicyPage() {
             If you submit the updates form on this site, your email address is sent to Kit (ConvertKit), the email provider that runs that list.
           </p>
 
+          <p className="text-gray-400 mb-6" data-privacy-updates-availability>
+            The optional email updates form is not shown unless Constructa turns it on. That signup path is separate from Vercel Web Analytics below and does not add a custom marketing conversion event in the current public code.
+          </p>
+
           <p className="text-gray-400 mb-6" data-privacy-analytics-note>
             This site includes Vercel Web Analytics, which can be on or off. When it is on, it counts visits to public pages for signed-out visitors. Constructa removes query strings from page addresses before page views are sent.
           </p>

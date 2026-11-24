@@ -42,7 +42,7 @@ describe('phase-one marketing integration', () => {
 
   it('renders the mobile menu closed with the same destinations plus sign-in', () => {
     const html = renderToStaticMarkup(<MarketingMobileMenu />);
-    expect(html).toMatch(/^<details\b(?![^>]*\bopen\b)[^>]*><summary>Menu<\/summary>/);
+    expect(html).toMatch(/^<details\b(?![^>]*\bopen\b)[^>]*><summary[^>]*>Menu<\/summary>/);
     const links = [...html.matchAll(/<a\b[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/g)].map(match => [match[1], match[2]]);
     expect(links).toEqual([['/features', 'Product'], ['/pricing', 'Preview access'], ['/about', 'About'], ['/guides', 'Guides'], ['/apply', 'Apply to the founding cohort'], ['/login', 'Sign in']]);
   });
@@ -81,6 +81,8 @@ describe('phase-one marketing integration', () => {
     const source = readFileSync(new URL('./marketing-mobile-menu.tsx', import.meta.url), 'utf8');
     expect(source.match(/<Link\b/g) ?? []).toHaveLength(6);
     expect(source.match(/<Link\b[^>]*onClick=\{closeOnSelection\}/g) ?? []).toHaveLength(6);
+    expect(source).toContain('aria-label="Site menu"');
+    expect(source).toContain('aria-label="Open site menu"');
     expect(source).toMatch(/event\.key === 'Escape'\) closeMobileMenu\(menu\.current, document\.activeElement\)/);
     expect(source).toContain("document.addEventListener('keydown', onKeyDown)");
     expect(source).toContain("document.removeEventListener('keydown', onKeyDown)");

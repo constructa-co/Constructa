@@ -12,7 +12,7 @@
 
 **Evidence:** `walkthrough-action-register.json` A038; `src/lib/case-library/content.ts`; `library-photo-persistence.test.ts`; migration `20261028120000_case_library_photos.sql` (hold).
 
-**Owner:** Rob / R1 for wire flip + migration in database release hold (#238 chain).
+**Owner:** Rob for explicit release/settings authority; R1 for subsequent authorised implementation and evidence. #238 remains separately held; this photo migration is not asserted to be part of the D101 ordered database-release stack.
 
 ## A001 — source repair (hero chrome)
 

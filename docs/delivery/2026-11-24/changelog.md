@@ -14,7 +14,6 @@
 | `src/app/dashboard/projects/schedule/client-page.tsx` | ~1020–1095 | Two-line **10px** headers (`Calc`/`days`, `Working`/`days`); clean **Phase / Trade** header; readonly stage dates as `<time dateTime>`; no timeline wrapper `aria-label` (week cells keep `aria-label`) | Readable headers for touch/keyboard without 8px subcaptions or title-only help; no math changes |
 | `src/app/dashboard/projects/schedule/planner-dates.test.tsx` | header + dateTime | Rendered header and ISO `dateTime` checks | Affected date/header coverage |
 | `src/app/dashboard/projects/schedule/planner-phone-phase-list.test.tsx` | desktop date parse | Match `<time>` desktop inline dates to phone list | Phone/desktop date parity |
-| `docs/delivery/2026-11-24/changelog.md` | (this file) | Receipt | Cursor change log |
 
 **Calc column semantics (unchanged):** body cell still shows calculated working days only when `manhours > 0`; otherwise `—` with existing per-cell title.
 
@@ -38,12 +37,22 @@ Checks: `vitest run` on `planner-dates.test.tsx`, `planner-phone-phase-list.test
 | All `docs/marketing/drafts/*.md` | Bounded copy + URL policy | Review links on `constructa-nu.vercel.app`; www canonical labelled unverified (D89); approved attribution and draft-PDF / non-binding language only; remove unsupported margins/universal-loss/legal/send claims |
 | `pilot-review-plan-2026-11-24.md` | Measurement + review steps | Unpublished: no traffic/conversion data; no hosted-flow gate; no Plausible inference from #228 |
 
-## D105 Job 4 — A020/A037 — 24 November 2026
+## D105 Job 4 — A020 resource portfolio + A037 — 24 November 2026
 
 | Item | Result | Evidence |
 | --- | --- | --- |
 | A037 example tags | **No new source gap (register Not started)** | Existing tag source + persistence guard on `main` (`case-study-example-tags.ts`, `example-tags-section.tsx`, `a037-example-tags.test.tsx`). Do not mark Complete from source/tests alone; no newly verified hosted save in this pass. |
-| A020 resource portfolio | **Separate branch** `codex/d105-a020-resource-unavailable-20261124` | Read-failure unavailable UX (not silent empty dashboard); not SKIP for feature scope. |
 | A024 privacy | **No change** | `src/app/privacy-policy/page.tsx` + tests; M.3 only if owner finds gap |
 
-Checks (marketing path on this branch): docs + A061 schedule sources; A020 on integration branch for PR 262.
+### A020 read-failure fix (this branch — PR 262)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/app/dashboard/resources/portfolio/page.tsx` | Five-read error detection; native `<a href="/dashboard/resources/portfolio">` reload | Fail closed vs `?? []` zero-looking dashboard; full route reload for fresh server read |
+| `src/app/dashboard/resources/portfolio/page-read-outcomes.test.tsx` | Redirect, per-table `it.each` errors, empty/data success | Route read outcomes; no mirror class guards |
+
+**Before:** Failed reads ignored → `PortfolioClient` got empty arrays and misleading zeros.
+
+**After:** Any read error → `role="alert"` + reload link, no DB details. Legitimate empty data unchanged.
+
+Checks: `vitest run src/app/dashboard/resources/portfolio/page-read-outcomes.test.tsx`; `npx tsc --noEmit`.

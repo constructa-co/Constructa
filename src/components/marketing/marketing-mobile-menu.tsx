@@ -35,6 +35,7 @@ export function MarketingMobileMenu() {
         <Link href="/pricing" onClick={closeOnSelection}>Preview access</Link>
         <Link href="/about" onClick={closeOnSelection}>About</Link>
         <Link href="/guides" onClick={closeOnSelection}>Guides</Link>
+        <Link href="/apply" onClick={closeOnSelection}>Apply to the founding cohort</Link>
         <Link href="/login" onClick={closeOnSelection}>Sign in</Link>
       </nav>
     </details>

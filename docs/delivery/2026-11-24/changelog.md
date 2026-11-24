@@ -66,3 +66,17 @@ Branch synced with `origin/main` @ `ff855dee` (fast-forward) before article add.
 **After:** Any read error → `role="alert"` + reload link, no DB details. Legitimate empty data unchanged.
 
 Checks: `vitest run src/app/dashboard/resources/portfolio/page-read-outcomes.test.tsx`; `npx tsc --noEmit`.
+
+## D107 Job 2 — marketing mobile Apply nav (public site; not A102) — 24 November 2026
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `src/components/marketing/marketing-mobile-menu.tsx` | ~38 | Add `/apply` link **Apply to the founding cohort** with `closeOnSelection` | Small-viewport parity with header/footer; **#227** / **#228** holds unchanged |
+| `src/components/marketing/phase-one.test.tsx` | ~47, ~82–83 | Expect Apply in mobile link list; 6 menu links | Regression for mobile nav + source wiring test |
+| `docs/delivery/2026-11-24/d107-batch-handoff.md` | — | Correct gated labels; A103 already Partial (D105); A061 pending separate branch | R1 PR; worker does not merge |
+
+**A102** remains Partial (social copy in repo; publication with Rob). This diff is Job 2 public marketing repair only.
+
+**D107 Jobs 1, 3:** SKIP on `b2ea9f7c`. **A103:** register already Partial since D105 — no duplicate index. **Job 4 A020/A037:** SKIP. **A061:** separate `codex/d107-a061-programme-20261124`.
+
+Checks: `vitest run src/components/marketing/phase-one.test.tsx`; `npx tsc --noEmit`.

@@ -1,5 +1,13 @@
 # Cursor change log
 
+## 2026-11-24 — D106 Job 1 A001 project-picker hero (A038 SKIP)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/components/project-picker.tsx` | L71–72 emerald hero tile | A001 dashboard chrome; preserve proposal status blues |
+| `src/components/a001-workflow-standalone-controls-brand.test.ts` | Hero assertions | Regression |
+| `docs/delivery/2026-11-24/d106-job1-handoff.md` | Register handoff | A038 gated SKIP evidence |
+
 ## 2026-11-24 — D104 marketing connected-journey guide + FAQ (draft, R1 repair)
 
 | File | Change | Intent |

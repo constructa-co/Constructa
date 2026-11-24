@@ -54,6 +54,9 @@ describe("A001 workflow standalone controls brand primary (cq-2224)", () => {
         const emptyCta = source.split("No projects yet")[1]?.split("No projects match")[0] ?? "";
         expectSagePrimaryClassLine(primaryClassNear(emptyCta, 'href="/dashboard/projects/new"'));
         expect(classLineNear(source, "Search projects or clients")).toContain("coreFocusRing");
+        expect(source).toMatch(/bg-emerald-500\/10 border border-emerald-500\/30/);
+        expect(source).toMatch(/text-emerald-400/);
+        expect(source).not.toMatch(/bg-blue-600\/20 border border-blue-500\/30/);
         expect(source).toMatch(/text-blue-500 hover:text-blue-400/);
         expect(source).toMatch(/bg-blue-500\/15 text-blue-400/);
     });

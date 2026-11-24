@@ -1021,20 +1021,20 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                         <div className="flex shrink-0 w-full lg:w-auto lg:sticky lg:left-0 lg:z-10 lg:bg-slate-900">
                             <div className="w-[216px] shrink-0 border-r border-slate-700/50 px-3 py-2.5">
                                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-300">Phase / Trade</span>
-                                <span className="mt-0.5 block text-[8px] font-normal normal-case tracking-normal text-slate-500">Stage name · dates below</span>
                             </div>
-                            <div className="w-14 shrink-0 border-r border-slate-700/50 text-center py-2.5" title="Working days calculated from labour hours on this stage">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-300">Calc</span>
+                            <div className="w-14 shrink-0 border-r border-slate-700/50 text-center py-2 leading-tight">
+                                <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-300">Calc</span>
+                                <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-300">days</span>
                             </div>
-                            <div className="w-16 shrink-0 border-r border-slate-700/50 text-center py-2.5" title="Working days for this stage (not calendar span on the bar)">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-300">Days</span>
-                                <span className="mt-0.5 block text-[8px] font-normal normal-case tracking-normal text-slate-500">Working</span>
+                            <div className="w-16 shrink-0 border-r border-slate-700/50 text-center py-2 leading-tight">
+                                <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-300">Working</span>
+                                <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-300">days</span>
                             </div>
-                            <div className="w-[108px] shrink-0 border-r border-slate-700/50 text-center py-2.5" title="Finish-to-start dependency on a predecessor stage">
+                            <div className="w-[108px] shrink-0 border-r border-slate-700/50 text-center py-2.5">
                                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-300">Starts After</span>
                             </div>
                         </div>
-                        <div className="hidden lg:flex flex-1" aria-label="Programme timeline by calendar week">
+                        <div className="hidden lg:flex flex-1">
                             {weekHeaders.map(wk => (
                                 <div key={wk.weekIndex} data-planner-week-start={wk.weekIndex + 1} data-planner-week-span={wk.weeks}
                                     title={wk.range} aria-label={wk.range}

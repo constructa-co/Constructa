@@ -1,16 +1,58 @@
-## D105 Job 4 — A020 resource portfolio read failures — 24 November 2026
+## D105 Job 1 — A055 post-#259 — 24 November 2026
+
+| Item | Result | Evidence |
+| --- | --- | --- |
+| A055 source follow-up | **SKIP** | `pricingWorkFromSavedProject`, `scope_text` on server, `activeFullScope` / `onScopeSaved` on costs — merged **PR #259** (`fcdcc2f5`). No demonstrated nongated defect on `main`. |
+| Partial (standing) | Provider/readiness/hosted runtime | Not a source patch in this batch |
+
+## D105 Job 2 — A061 programme grid readability (PARTIAL) — 24 November 2026
+
+**Scope:** Limited desktop grid readability only — **not** a full A061 redesign, **not** P6 parity. Broader programme desktop visual acceptance (density, chart polish, full planning UX) remains open for a later pass.
 
 | File | Lines (approx.) | Change | Intent |
 | --- | --- | --- | --- |
-| `src/app/dashboard/resources/portfolio/page.tsx` | queries + unavailable UI | Capture errors on all five reads; fail closed with plain reload message instead of `?? []` silent empty dashboard | Honest disconnected state when Supabase reads fail; no query/SQL/schema changes |
-| `src/app/dashboard/resources/portfolio/page-read-outcomes.test.tsx` | (new) | Mocked read failure vs empty success vs data success | Route-level outcome tests; no mirror class guards |
+| `src/app/dashboard/projects/schedule/client-page.tsx` | ~1020–1095 | Two-line **10px** headers (`Calc`/`days`, `Working`/`days`); clean **Phase / Trade** header; readonly stage dates as `<time dateTime>`; no timeline wrapper `aria-label` (week cells keep `aria-label`) | Readable headers for touch/keyboard without 8px subcaptions or title-only help; no math changes |
+| `src/app/dashboard/projects/schedule/planner-dates.test.tsx` | header + dateTime | Rendered header and ISO `dateTime` checks | Affected date/header coverage |
+| `src/app/dashboard/projects/schedule/planner-phone-phase-list.test.tsx` | desktop date parse | Match `<time>` desktop inline dates to phone list | Phone/desktop date parity |
 
-**Before:** Any failed `projects` / `staff` / `allocations` / `absences` / `estimates` read was ignored; `PortfolioClient` received empty arrays and showed zero-looking metrics.
+**Calc column semantics (unchanged):** body cell still shows calculated working days only when `manhours > 0`; otherwise `—` with existing per-cell title.
 
-**After:** Auth redirect unchanged. Successful reads with empty rows still render `PortfolioClient`. Any read error → `role="alert"` unavailable copy + reload link; no raw DB messages.
+**Remaining (honest):** Full A061 professional planning look — Gantt chrome, settings bar density, mobile/desktop breakpoint polish — not claimed in this diff.
 
-**A037 (same batch context):** Existing tag source and persistence guard on `main`; register remains Not started — no new source gap and no newly verified hosted save in this pass.
+Checks: `vitest run` on `planner-dates.test.tsx`, `planner-phone-phase-list.test.tsx`, `schedule-control-palette.test.tsx`; `npx tsc --noEmit`.
 
-**A055:** SKIP — no gap after #259 (unchanged).
+## D105 Job 3 — A102/A103 marketing drafts — 24 November 2026
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `docs/marketing/drafts/linkedin-saved-job-data-2026-11-24.md` | New | LinkedIn copy; cites live guide URLs |
+| `docs/marketing/drafts/facebook-programme-check-2026-11-24.md` | New | Facebook copy |
+| `docs/marketing/drafts/medium-brief-to-proposal-2026-11-24.md` | New | Long-form draft |
+| `docs/marketing/drafts/pilot-review-plan-2026-11-24.md` | New | Review plan; no publish/forms |
+
+### Job 3 copy repair (R1 — post `e56485ba`)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| All `docs/marketing/drafts/*.md` | Bounded copy + URL policy | Review links on `constructa-nu.vercel.app`; www canonical labelled unverified (D89); approved attribution and draft-PDF / non-binding language only; remove unsupported margins/universal-loss/legal/send claims |
+| `pilot-review-plan-2026-11-24.md` | Measurement + review steps | Unpublished: no traffic/conversion data; no hosted-flow gate; no Plausible inference from #228 |
+
+## D105 Job 4 — A020 resource portfolio + A037 — 24 November 2026
+
+| Item | Result | Evidence |
+| --- | --- | --- |
+| A037 example tags | **No new source gap (register Not started)** | Existing tag source + persistence guard on `main` (`case-study-example-tags.ts`, `example-tags-section.tsx`, `a037-example-tags.test.tsx`). Do not mark Complete from source/tests alone; no newly verified hosted save in this pass. |
+| A024 privacy | **No change** | `src/app/privacy-policy/page.tsx` + tests; M.3 only if owner finds gap |
+
+### A020 read-failure fix (this branch — PR 262)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/app/dashboard/resources/portfolio/page.tsx` | Five-read error detection; native `<a href="/dashboard/resources/portfolio">` reload | Fail closed vs `?? []` zero-looking dashboard; full route reload for fresh server read |
+| `src/app/dashboard/resources/portfolio/page-read-outcomes.test.tsx` | Redirect, per-table `it.each` errors, empty/data success | Route read outcomes; no mirror class guards |
+
+**Before:** Failed reads ignored → `PortfolioClient` got empty arrays and misleading zeros.
+
+**After:** Any read error → `role="alert"` + reload link, no DB details. Legitimate empty data unchanged.
 
 Checks: `vitest run src/app/dashboard/resources/portfolio/page-read-outcomes.test.tsx`; `npx tsc --noEmit`.

@@ -1020,16 +1020,18 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                     <div className="flex min-w-[444px] lg:min-w-[900px] border-b border-slate-700/50 bg-slate-900/40 lg:sticky lg:top-0 lg:z-40 lg:bg-slate-900">
                         <div className="flex shrink-0 w-full lg:w-auto lg:sticky lg:left-0 lg:z-10 lg:bg-slate-900">
                             <div className="w-[216px] shrink-0 border-r border-slate-700/50 px-3 py-2.5">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Phase / Trade</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-300">Phase / Trade</span>
                             </div>
-                            <div className="w-14 shrink-0 border-r border-slate-700/50 text-center py-2.5">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Calc</span>
+                            <div className="w-14 shrink-0 border-r border-slate-700/50 text-center py-2 leading-tight">
+                                <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-300">Calc</span>
+                                <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-300">days</span>
                             </div>
-                            <div className="w-16 shrink-0 border-r border-slate-700/50 text-center py-2.5">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Days</span>
+                            <div className="w-16 shrink-0 border-r border-slate-700/50 text-center py-2 leading-tight">
+                                <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-300">Working</span>
+                                <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-300">days</span>
                             </div>
                             <div className="w-[108px] shrink-0 border-r border-slate-700/50 text-center py-2.5">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Starts After</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-300">Starts After</span>
                             </div>
                         </div>
                         <div className="hidden lg:flex flex-1">
@@ -1084,8 +1086,10 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                                                     ×
                                                 </button>
                                             </div>
-                                            <div className="hidden lg:flex text-[9px] text-slate-400 pl-[14px] mt-0.5 items-center gap-1.5">
-                                                <span>{fmtDate(phaseStart)} – {fmtDate(phaseEnd)}</span>
+                                            <div className="hidden lg:flex text-[10px] tabular-nums text-slate-300 pl-[14px] mt-0.5 items-center gap-1.5">
+                                                <time dateTime={displayStage?.start_date ?? toInputDate(phaseStart)}>{fmtDate(phaseStart)}</time>
+                                                <span aria-hidden="true">–</span>
+                                                <time dateTime={displayStage?.end_date ?? toInputDate(phaseEnd)}>{fmtDate(phaseEnd)}</time>
                                                 {phase.manhours > 0 && <span>· {Math.round(phase.manhours)}h</span>}
                                                 {isFinalWeek && <span className="text-yellow-500">★</span>}
                                                 {reviewStages.includes(idx) && <span data-planner-review-flag className="text-amber-400 font-semibold">Check days</span>}

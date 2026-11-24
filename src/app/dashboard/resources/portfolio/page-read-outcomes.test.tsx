@@ -1,4 +1,4 @@
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -20,7 +20,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 vi.mock("next/link", () => ({
-  default: (props: { href: string; children?: unknown }) =>
+  default: (props: { href: string; children?: ReactNode }) =>
     createElement("a", { href: props.href }, props.children),
 }));
 vi.mock("./portfolio-client", () => ({

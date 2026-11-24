@@ -103,9 +103,21 @@ Checks: `vitest run src/app/dashboard/projects/schedule/planner-dates.test.tsx`;
 
 **Register:** #125 Kit form remains gated (`CONSTRUCTA_NEWSLETTER_SIGNUP_ENABLED`). **Partial** — live provider setup still owner-held.
 
-**R1 follow-up (`842d` → next head):** Preview copy simplified — “not available yet in this preview”, **Guides** link only; no Kit/privacy promises. Enabled form + review/preview `null` unchanged.
+**R1 follow-up (`842d` → `2da5be77`):** Preview copy simplified — “not available yet in this preview”, **Guides** link only; no Kit/privacy promises. Enabled form + review/preview `null` unchanged.
 
 Checks: `vitest run src/components/marketing/landing-apply-intake.test.tsx`.
+
+## D108 Job 3 — A061 programme start date label (PARTIAL) — 24 November 2026
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/app/dashboard/projects/schedule/client-page.tsx` | `<label htmlFor={useId()}>` on programme **Start date** + `type="date"` input `id`; retains `text-xs` settings chrome | Real a11y: label–control association (R1 rejected 1px-only filler) |
+| `src/app/dashboard/projects/schedule/planner-dates.test.tsx` | Label `for` matches date input `id` | Accessible control, not class-string mirror |
+| `src/app/dashboard/projects/schedule/schedule-control-palette.test.tsx` | `useId` mock for existing palette harness | Test harness only |
+
+Activity colours, calculations, save paths unchanged. Further A061 density/chrome — owner design pass.
+
+Checks: `vitest run src/app/dashboard/projects/schedule/planner-dates.test.tsx src/app/dashboard/projects/schedule/schedule-control-palette.test.tsx`.
 
 ## D108 R1 rejections (preserve branches, no PR)
 

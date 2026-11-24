@@ -45,6 +45,14 @@ describe("five-day detailed planner date presentation", () => {
         expect(input?.[1]).toBe("2026-10-19");
     });
 
+    it("associates the Start date label with the programme start date control", () => {
+        const html = render();
+        const labelMatch = html.match(/<label[^>]*for="([^"]+)"[^>]*>[\s\S]*?Start date/);
+        expect(labelMatch).not.toBeNull();
+        const inputId = labelMatch![1];
+        expect(html).toMatch(new RegExp(`<input[^>]*id="${inputId}"[^>]*type="date"`));
+    });
+
     it("finishes the reported three-stage programme on 6 November, not the next Monday", () => {
         const html = render();
         expect(html).toContain("6 Nov");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo, useEffect, useRef } from "react";
+import { useState, useTransition, useMemo, useEffect, useRef, useId } from "react";
 import { MAX_WORKING_DAYS, startDateInPastWarning } from "@/lib/simple-programme";
 import {
     autosaveProgrammePlannerDraftAction,
@@ -185,6 +185,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
     const expectedWorkingPattern = project.programme_working_pattern == null ? undefined : workingPattern;
     const plannerDraftStorageScope = plannerDraftViewerScope;
     const [isPending, startTransition] = useTransition();
+    const programmeStartDateInputId = useId();
     const [isDragging, setIsDragging] = useState(false);
     const [showLiveTracking, setShowLiveTracking] = useState(false);
 
@@ -884,9 +885,15 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
             <div className="flex items-center gap-4 flex-wrap bg-slate-800/40 border border-slate-700/50 rounded-xl px-4 py-3">
                 {/* Start date */}
                 <div className="flex items-center gap-2.5">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Start date</span>
+                    <label
+                        htmlFor={programmeStartDateInputId}
+                        className="text-xs font-semibold uppercase tracking-wider text-slate-400"
+                    >
+                        Start date
+                    </label>
                     <div className="relative">
                         <input
+                            id={programmeStartDateInputId}
                             type="date"
                             className="h-8 pl-3 pr-2 text-xs border border-slate-700 rounded-lg bg-slate-900/60 text-slate-200 focus:outline-none focus:border-emerald-500/60 cursor-pointer"
                             value={toInputDate(programmeStart)}
@@ -902,7 +909,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
 
                 {/* Working week */}
                 <div className="flex items-center gap-2.5">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Working week</span>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Working week</span>
                     <span className="text-xs text-slate-300" data-planner-saved-working-days>
                         {workingPattern?.weekdays.map(day => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][day]).join(", ")}
                     </span>
@@ -936,7 +943,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
 
             {/* ── Drag hint ── */}
             {phases.length > 0 && (
-                <div className="hidden lg:flex items-center gap-4 text-[11px] text-slate-400 flex-wrap">
+                <div className="hidden lg:flex items-center gap-4 text-xs text-slate-400 flex-wrap">
                     <span>Drag bar to move · Drag right edge to resize · Snaps to week</span>
                     {weekHeaders[0].weeks > 1 && (
                         <span>Grid columns group up to {weekHeaders[0].weeks} calendar weeks; the last column may be shorter. Weekly move and resize snapping is unchanged.</span>

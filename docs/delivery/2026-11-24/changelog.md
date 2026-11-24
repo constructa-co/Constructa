@@ -21,12 +21,12 @@
 | All `docs/marketing/drafts/*.md` | Bounded copy + URL policy | Review links on `constructa-nu.vercel.app`; www canonical labelled unverified (D89); approved attribution and draft-PDF / non-binding language only; remove unsupported margins/universal-loss/legal/send claims |
 | `pilot-review-plan-2026-11-24.md` | Measurement + review steps | Unpublished: no traffic/conversion data; no hosted-flow gate; no Plausible inference from #228 |
 
-## D105 Job 4 — A020/A037 — 24 November 2026
+## D105 Job 4 — A020/A037 (this branch: changelog only) — 24 November 2026
 
 | Item | Result | Evidence |
 | --- | --- | --- |
-| A037 example tags | **SKIP (Complete on main)** | `src/lib/case-study-example-tags.ts`, `example-tags-section.tsx`, `a037-example-tags.test.tsx` — explicit-chip persistence |
-| A020 resources gap | **SKIP** | Portfolio hub at `src/app/dashboard/resources/portfolio/` with allocations/demand; no durable gap identified without schema/feature scope |
+| A037 example tags | **No new source gap (register Not started)** | Existing tag source + persistence guard on `main` (`case-study-example-tags.ts`, `example-tags-section.tsx`, `a037-example-tags.test.tsx`). Do not mark Complete from source/tests alone; no newly verified hosted save in this pass. |
+| A020 resource portfolio | **Separate branch** `codex/d105-a020-resource-unavailable-20261124` | Read-failure UX fix (not on this docs-only branch). |
 | A024 privacy | **No change** | `src/app/privacy-policy/page.tsx` + tests; M.3 only if owner finds gap |
 
 Checks: docs-only branch; no app routes touched.

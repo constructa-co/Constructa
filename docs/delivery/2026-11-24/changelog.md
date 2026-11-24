@@ -94,13 +94,36 @@ Checks: `vitest run src/components/marketing/phase-one.test.tsx`; `npx tsc --noE
 
 Checks: `vitest run src/app/dashboard/projects/schedule/planner-dates.test.tsx`; `npx tsc --noEmit`.
 
+## D108 Job 1 — A101 newsletter preview copy (forms OFF) — 24 November 2026
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/components/marketing/newsletter-signup.tsx` | Static styled section when Kit form gated off; form unchanged when flag on | Public A101 surface without provider activation or email collection |
+| `src/components/marketing/landing-apply-intake.test.tsx` | Expect preview note, no form when disabled | Forms OFF boundary |
+
+**Register:** #125 Kit form remains gated (`CONSTRUCTA_NEWSLETTER_SIGNUP_ENABLED`). **Partial** — live provider setup still owner-held.
+
+**R1 follow-up (`842d` → `2da5be77`):** Preview copy simplified — “not available yet in this preview”, **Guides** link only; no Kit/privacy promises. Enabled form + review/preview `null` unchanged.
+
+Checks: `vitest run src/components/marketing/landing-apply-intake.test.tsx`.
+
 ## D108 Job 3 — A061 programme start date label (PARTIAL) — 24 November 2026
 
 | File | Change | Intent |
 | --- | --- | --- |
 | `src/app/dashboard/projects/schedule/client-page.tsx` | `<label htmlFor={useId()}>` on programme **Start date** + `type="date"` input `id`; retains `text-xs` settings chrome | Real a11y: label–control association (R1 rejected 1px-only filler) |
 | `src/app/dashboard/projects/schedule/planner-dates.test.tsx` | Label `for` matches date input `id` | Accessible control, not class-string mirror |
+| `src/app/dashboard/projects/schedule/schedule-control-palette.test.tsx` | `useId` mock for existing palette harness | Test harness only |
 
 Activity colours, calculations, save paths unchanged. Further A061 density/chrome — owner design pass.
 
 Checks: `vitest run src/app/dashboard/projects/schedule/planner-dates.test.tsx src/app/dashboard/projects/schedule/schedule-control-palette.test.tsx`.
+
+## D108 R1 rejections (preserve branches, no PR)
+
+| Branch | Decision | Reason |
+| --- | --- | --- |
+| `codex/d108-a096-a097-public-measurement-copy-20261124` (`a68ba1a5`) | **REJECT / preserve** | Privacy copy under **#227** hold; footer title / menu `aria-label` not demonstrated repair |
+| `codex/d108-a001-live-pipeline-link-20261124` (`58b6de2f`) | **REJECT / preserve** | Navigation link colour intentional per #264 rule; not primary chrome |
+| Job 2 retry on `main` | **SKIP** | No further non-gated public a11y gap identified post-#265 without #227/legal coupling |
+| Job 4 retry | **SKIP** | `a001-palette-audit.test.ts` — no `bg-blue-600 hover:bg-blue-700` primary actions under dashboard |

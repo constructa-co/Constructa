@@ -57,10 +57,28 @@ describe("five-day detailed planner date presentation", () => {
 
     it("labels every stage by its first and last working day", () => {
         const html = render();
-        expect(html).toContain("19 Oct</span>");
+        expect(html).toContain(">19 Oct</time>");
         expect(html).toContain("19 Oct – 23 Oct");
         expect(html).toContain("26 Oct – 30 Oct");
         expect(html).toContain("2 Nov – 6 Nov");
+    });
+
+    it("uses two-line 10px column headers for calc and working days without tiny subcaptions", () => {
+        const html = render();
+        expect(html).toMatch(/Calc<\/span>\s*<span[^>]*text-\[10px\][^>]*>days<\/span>/);
+        expect(html).toMatch(/Working<\/span>\s*<span[^>]*text-\[10px\][^>]*>days<\/span>/);
+        expect(html).not.toContain('text-[8px] font-normal normal-case tracking-normal text-slate-500">Working');
+        expect(html).not.toContain("Stage name");
+    });
+
+    it("matches desktop time dateTime values to the canonical displayPlan working dates", () => {
+        const html = render();
+        expect(html).toContain('dateTime="2026-10-19">19 Oct</time>');
+        expect(html).toContain('dateTime="2026-10-23">23 Oct</time>');
+        expect(html).toContain('dateTime="2026-10-26">26 Oct</time>');
+        expect(html).toContain('dateTime="2026-10-30">30 Oct</time>');
+        expect(html).toContain('dateTime="2026-11-02">2 Nov</time>');
+        expect(html).toContain('dateTime="2026-11-06">6 Nov</time>');
     });
 
     it("does not call the four-column minimum viewport the length of a one-week job", () => {

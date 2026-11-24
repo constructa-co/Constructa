@@ -884,7 +884,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
             <div className="flex items-center gap-4 flex-wrap bg-slate-800/40 border border-slate-700/50 rounded-xl px-4 py-3">
                 {/* Start date */}
                 <div className="flex items-center gap-2.5">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Start date</span>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Start date</span>
                     <div className="relative">
                         <input
                             type="date"
@@ -902,7 +902,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
 
                 {/* Working week */}
                 <div className="flex items-center gap-2.5">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Working week</span>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Working week</span>
                     <span className="text-xs text-slate-300" data-planner-saved-working-days>
                         {workingPattern?.weekdays.map(day => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][day]).join(", ")}
                     </span>
@@ -936,7 +936,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
 
             {/* ── Drag hint ── */}
             {phases.length > 0 && (
-                <div className="hidden lg:flex items-center gap-4 text-[11px] text-slate-400 flex-wrap">
+                <div className="hidden lg:flex items-center gap-4 text-xs text-slate-400 flex-wrap">
                     <span>Drag bar to move · Drag right edge to resize · Snaps to week</span>
                     {weekHeaders[0].weeks > 1 && (
                         <span>Grid columns group up to {weekHeaders[0].weeks} calendar weeks; the last column may be shorter. Weekly move and resize snapping is unchanged.</span>

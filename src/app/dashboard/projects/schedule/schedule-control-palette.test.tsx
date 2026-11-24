@@ -67,6 +67,13 @@ describe("detailed planner ordinary controls use the programme sage/ink", () => 
         expect(save.props.disabled).toBe(false); expect(text(save.props.children).trim()).toBe("Save to Proposal");
     });
 
+    it("labels programme settings with readable text-xs chrome, not 11px captions", () => {
+        const html = setup().html();
+        expect(html).toContain("Start date");
+        expect(html).toContain("Working week");
+        expect(html).not.toContain("text-[11px] font-semibold uppercase tracking-wider text-slate-400");
+    });
+
     it("shows the saved working-week pattern without legacy blue day-count toggles", () => {
         const tree = setup(example(), "5").parent();
         expect(tree.some(n => n.type === "span" && String(n.props["data-planner-saved-working-days"] ?? "") !== "")).toBe(true);

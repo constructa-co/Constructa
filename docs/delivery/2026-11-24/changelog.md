@@ -93,3 +93,14 @@ Checks: `vitest run src/components/marketing/phase-one.test.tsx`; `npx tsc --noE
 **Remaining A061:** Gantt bar density, settings strip polish, full desktop workspace — not this diff.
 
 Checks: `vitest run src/app/dashboard/projects/schedule/planner-dates.test.tsx`; `npx tsc --noEmit`.
+
+## D108 Job 3 — A061 programme settings strip readability (PARTIAL) — 24 November 2026
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/app/dashboard/projects/schedule/client-page.tsx` | Settings labels + desktop drag hint `text-[11px]` → `text-xs` | Professional planner chrome after #266 week-axis pass |
+| `src/app/dashboard/projects/schedule/schedule-control-palette.test.tsx` | Assert no legacy 11px settings labels | Bounded regression |
+
+Activity colours, calculations, save paths unchanged. Further A061 density/chrome — owner design pass.
+
+Checks: `vitest run src/app/dashboard/projects/schedule/schedule-control-palette.test.tsx`.

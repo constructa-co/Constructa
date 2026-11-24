@@ -93,3 +93,25 @@ Checks: `vitest run src/components/marketing/phase-one.test.tsx`; `npx tsc --noE
 **Remaining A061:** Gantt bar density, settings strip polish, full desktop workspace — not this diff.
 
 Checks: `vitest run src/app/dashboard/projects/schedule/planner-dates.test.tsx`; `npx tsc --noEmit`.
+
+## D108 Job 1 — A101 newsletter preview copy (forms OFF) — 24 November 2026
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/components/marketing/newsletter-signup.tsx` | Static styled section when Kit form gated off; form unchanged when flag on | Public A101 surface without provider activation or email collection |
+| `src/components/marketing/landing-apply-intake.test.tsx` | Expect preview note, no form when disabled | Forms OFF boundary |
+
+**Register:** #125 Kit form remains gated (`CONSTRUCTA_NEWSLETTER_SIGNUP_ENABLED`). **Partial** — live provider setup still owner-held.
+
+**R1 follow-up (`842d` → next head):** Preview copy simplified — “not available yet in this preview”, **Guides** link only; no Kit/privacy promises. Enabled form + review/preview `null` unchanged.
+
+Checks: `vitest run src/components/marketing/landing-apply-intake.test.tsx`.
+
+## D108 R1 rejections (preserve branches, no PR)
+
+| Branch | Decision | Reason |
+| --- | --- | --- |
+| `codex/d108-a096-a097-public-measurement-copy-20261124` (`a68ba1a5`) | **REJECT / preserve** | Privacy copy under **#227** hold; footer title / menu `aria-label` not demonstrated repair |
+| `codex/d108-a001-live-pipeline-link-20261124` (`58b6de2f`) | **REJECT / preserve** | Navigation link colour intentional per #264 rule; not primary chrome |
+| Job 2 retry on `main` | **SKIP** | No further non-gated public a11y gap identified post-#265 without #227/legal coupling |
+| Job 4 retry | **SKIP** | `a001-palette-audit.test.ts` — no `bg-blue-600 hover:bg-blue-700` primary actions under dashboard |

@@ -66,3 +66,15 @@ Branch synced with `origin/main` @ `ff855dee` (fast-forward) before article add.
 **After:** Any read error → `role="alert"` + reload link, no DB details. Legitimate empty data unchanged.
 
 Checks: `vitest run src/app/dashboard/resources/portfolio/page-read-outcomes.test.tsx`; `npx tsc --noEmit`.
+
+## D107 Job 2 — marketing mobile Apply nav (A102-class repair) — 24 November 2026
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `src/components/marketing/marketing-mobile-menu.tsx` | ~38 | Add `/apply` link **Apply to the founding cohort** with `closeOnSelection` | Small-viewport parity with header/footer; forms still held (#228) |
+| `src/components/marketing/phase-one.test.tsx` | ~47, ~82–83 | Expect Apply in mobile link list; 6 menu links | Regression for mobile nav + source wiring test |
+| `docs/delivery/2026-11-24/d107-batch-handoff.md` | — | Jobs 1–4 gaps, SKIP evidence, ACK | R1 PR/register; no worker merge |
+
+**D107 Jobs 1, 3, 4:** SKIP on `b2ea9f7c` — see handoff (A055 gates; A103 drafts indexed; A020/A037/A061 on main).
+
+Checks: `vitest run src/components/marketing/phase-one.test.tsx`; `npx tsc --noEmit`.

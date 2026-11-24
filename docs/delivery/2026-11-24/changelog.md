@@ -93,3 +93,14 @@ Checks: `vitest run src/components/marketing/phase-one.test.tsx`; `npx tsc --noE
 **Remaining A061:** Gantt bar density, settings strip polish, full desktop workspace — not this diff.
 
 Checks: `vitest run src/app/dashboard/projects/schedule/planner-dates.test.tsx`; `npx tsc --noEmit`.
+
+## D108 Job 1 — A101 newsletter preview copy (forms OFF) — 24 November 2026
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/components/marketing/newsletter-signup.tsx` | Static styled section when Kit form gated off; form unchanged when flag on | Public A101 surface without provider activation or email collection |
+| `src/components/marketing/landing-apply-intake.test.tsx` | Expect preview note, no form when disabled | Forms OFF boundary |
+
+**Register:** #125 Kit form remains gated (`CONSTRUCTA_NEWSLETTER_SIGNUP_ENABLED`). **Partial** — live provider setup still owner-held.
+
+Checks: `vitest run src/components/marketing/landing-apply-intake.test.tsx`.

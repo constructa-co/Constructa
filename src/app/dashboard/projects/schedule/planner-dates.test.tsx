@@ -71,6 +71,13 @@ describe("five-day detailed planner date presentation", () => {
         expect(html).not.toContain("Stage name");
     });
 
+    it("uses 10px week-axis chrome instead of 8–9px timeline subcaptions", () => {
+        const html = render();
+        expect(html).toContain('data-planner-week-start="1"');
+        expect(html).not.toContain('text-[9px] font-bold text-slate-400 leading-tight truncate');
+        expect(html).not.toContain('text-[8px] text-slate-400 leading-tight truncate hidden md:block');
+    });
+
     it("matches desktop time dateTime values to the canonical displayPlan working dates", () => {
         const html = render();
         expect(html).toContain('dateTime="2026-10-19">19 Oct</time>');

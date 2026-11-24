@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import Link from "next/link";
 import { redirect, unstable_rethrow } from "next/navigation";
 import PortfolioClient from "./portfolio-client";
 
@@ -12,12 +11,12 @@ function ResourcePortfolioUnavailable() {
   return (
     <div className="rounded-xl border border-red-500/30 bg-red-950/20 p-6 max-w-xl" role="alert">
       <p className="text-sm text-red-200">{RESOURCE_PORTFOLIO_UNAVAILABLE}</p>
-      <Link
+      <a
         href="/dashboard/resources/portfolio"
         className="inline-block mt-4 text-sm font-medium text-red-100 underline underline-offset-2 hover:text-white"
       >
         Reload resource portfolio
-      </Link>
+      </a>
     </div>
   );
 }

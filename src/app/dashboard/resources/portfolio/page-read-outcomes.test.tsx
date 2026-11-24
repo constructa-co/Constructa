@@ -1,4 +1,4 @@
-import { createElement, type ReactNode } from "react";
+import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -18,10 +18,6 @@ vi.mock("next/navigation", () => ({
   unstable_rethrow: (error: unknown) => {
     if (error instanceof Error && error.message.startsWith("NEXT_")) throw error;
   },
-}));
-vi.mock("next/link", () => ({
-  default: (props: { href: string; children?: ReactNode }) =>
-    createElement("a", { href: props.href }, props.children),
 }));
 vi.mock("./portfolio-client", () => ({
   default: (props: { projects: unknown[] }) =>
@@ -90,9 +86,9 @@ describe("Resource portfolio page read outcomes (A020)", () => {
     expect(markup).not.toMatch(/connection failure/i);
   });
 
-  it("fails closed when any one of the five reads errors, without surfacing database details", async () => {
+  it.each(TABLES)('fails closed when the "%s" read errors, without surfacing database details', async (table) => {
     const markup = await renderPage(() => {
-      setOutcome("staff_absence", { data: [], error: { message: "permission denied" } });
+      setOutcome(table, { data: [], error: { message: "permission denied" } });
     });
     expect(markup).toMatch(/resource portfolio could not be loaded/i);
     expect(markup).not.toMatch(/data-portfolio-client="stub"/);

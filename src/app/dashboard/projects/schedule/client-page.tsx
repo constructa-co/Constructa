@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo, useEffect, useRef } from "react";
+import { useState, useTransition, useMemo, useEffect, useRef, useId } from "react";
 import { MAX_WORKING_DAYS, startDateInPastWarning } from "@/lib/simple-programme";
 import {
     autosaveProgrammePlannerDraftAction,
@@ -185,6 +185,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
     const expectedWorkingPattern = project.programme_working_pattern == null ? undefined : workingPattern;
     const plannerDraftStorageScope = plannerDraftViewerScope;
     const [isPending, startTransition] = useTransition();
+    const programmeStartDateInputId = useId();
     const [isDragging, setIsDragging] = useState(false);
     const [showLiveTracking, setShowLiveTracking] = useState(false);
 
@@ -884,9 +885,15 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
             <div className="flex items-center gap-4 flex-wrap bg-slate-800/40 border border-slate-700/50 rounded-xl px-4 py-3">
                 {/* Start date */}
                 <div className="flex items-center gap-2.5">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Start date</span>
+                    <label
+                        htmlFor={programmeStartDateInputId}
+                        className="text-xs font-semibold uppercase tracking-wider text-slate-400"
+                    >
+                        Start date
+                    </label>
                     <div className="relative">
                         <input
+                            id={programmeStartDateInputId}
                             type="date"
                             className="h-8 pl-3 pr-2 text-xs border border-slate-700 rounded-lg bg-slate-900/60 text-slate-200 focus:outline-none focus:border-emerald-500/60 cursor-pointer"
                             value={toInputDate(programmeStart)}

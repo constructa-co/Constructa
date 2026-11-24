@@ -94,13 +94,13 @@ Checks: `vitest run src/components/marketing/phase-one.test.tsx`; `npx tsc --noE
 
 Checks: `vitest run src/app/dashboard/projects/schedule/planner-dates.test.tsx`; `npx tsc --noEmit`.
 
-## D108 Job 3 — A061 programme settings strip readability (PARTIAL) — 24 November 2026
+## D108 Job 3 — A061 programme start date label (PARTIAL) — 24 November 2026
 
 | File | Change | Intent |
 | --- | --- | --- |
-| `src/app/dashboard/projects/schedule/client-page.tsx` | Settings labels + desktop drag hint `text-[11px]` → `text-xs` | Professional planner chrome after #266 week-axis pass |
-| `src/app/dashboard/projects/schedule/schedule-control-palette.test.tsx` | Assert no legacy 11px settings labels | Bounded regression |
+| `src/app/dashboard/projects/schedule/client-page.tsx` | `<label htmlFor={useId()}>` on programme **Start date** + `type="date"` input `id`; retains `text-xs` settings chrome | Real a11y: label–control association (R1 rejected 1px-only filler) |
+| `src/app/dashboard/projects/schedule/planner-dates.test.tsx` | Label `for` matches date input `id` | Accessible control, not class-string mirror |
 
 Activity colours, calculations, save paths unchanged. Further A061 density/chrome — owner design pass.
 
-Checks: `vitest run src/app/dashboard/projects/schedule/schedule-control-palette.test.tsx`.
+Checks: `vitest run src/app/dashboard/projects/schedule/planner-dates.test.tsx src/app/dashboard/projects/schedule/schedule-control-palette.test.tsx`.

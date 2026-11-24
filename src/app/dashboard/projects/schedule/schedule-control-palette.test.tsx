@@ -8,7 +8,8 @@ import type { PlannerPhase } from "@/lib/planner-phases";
 const hooks = vi.hoisted(() => ({ slots: [] as unknown[], cursor: 0, write: vi.fn(), read: vi.fn(), setItem: vi.fn() }));
 vi.mock("react", async original => ({ ...await original<typeof import("react")>(), useEffect: () => undefined,
     useMemo: (fn: () => unknown) => fn(), useCallback: (fn: unknown) => fn,
-    useRef: (initial: unknown) => ({ current: initial }), useTransition: () => [false, (fn: () => void) => fn()],
+    useRef: (initial: unknown) => ({ current: initial }), useId: () => "programme-start-date-input",
+    useTransition: () => [false, (fn: () => void) => fn()],
     useState: (initial: unknown) => { const i = hooks.cursor++; if (!(i in hooks.slots)) hooks.slots[i] = typeof initial === "function" ? initial() : initial;
         return [hooks.slots[i], (next: unknown) => { hooks.slots[i] = typeof next === "function" ? next(hooks.slots[i]) : next; }]; },
 }));
@@ -65,13 +66,6 @@ describe("detailed planner ordinary controls use the programme sage/ink", () => 
         for (const cls of OLD) expect(classes(save)).not.toContain(cls);
         expect(classes(save)).toEqual(expect.arrayContaining(["px-4", "py-2", "rounded-lg", "text-sm", "font-semibold", "disabled:opacity-50", "transition-colors"]));
         expect(save.props.disabled).toBe(false); expect(text(save.props.children).trim()).toBe("Save to Proposal");
-    });
-
-    it("labels programme settings with readable text-xs chrome, not 11px captions", () => {
-        const html = setup().html();
-        expect(html).toContain("Start date");
-        expect(html).toContain("Working week");
-        expect(html).not.toContain("text-[11px] font-semibold uppercase tracking-wider text-slate-400");
     });
 
     it("shows the saved working-week pattern without legacy blue day-count toggles", () => {

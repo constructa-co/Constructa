@@ -1,5 +1,15 @@
 # Cursor change log
 
+## 2026-11-24 — D110 Claude SKIP + Kimi copy review sheet
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `docs/marketing/drafts/d110-customer-copy-review-sheet-2026-11-24.md` | new | Index A102/A103 assets; Rob decision table; 3 plain A101 preview alts (private) |
+| `docs/delivery/2026-11-24/d110-batch-handoff.md` | new | A038/A055/A063 SKIP + Kimi deliverable paths |
+| `docs/delivery/2026-11-24/changelog.md` | D110 section | Delivery log |
+
+No `src/` changes; no publication or forms activation.
+
 ## 2026-11-24 — D106 Job 1 A001 project-picker hero (A038 SKIP)
 
 | File | Change | Intent |

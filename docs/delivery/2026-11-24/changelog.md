@@ -1,3 +1,13 @@
+## D110 — Claude SKIP + Kimi review sheet — 24 November 2026
+
+| Item | Result | Evidence |
+| --- | --- | --- |
+| Claude A038 / A055 / A063 | **SKIP** | Gated Partial only; see `d110-batch-handoff.md` |
+| Kimi A102 / A103 index | **Adequate** | Existing `docs/marketing/drafts/*`; no duplicate articles |
+| Kimi A101 + decisions | **New private sheet** | `docs/marketing/drafts/d110-customer-copy-review-sheet-2026-11-24.md` (3 preview wording alts; no `src/` edits) |
+
+Branch: `codex/d110-customer-copy-review-20261124`. No PR by worker.
+
 ## D105 Job 1 — A055 post-#259 — 24 November 2026
 
 | Item | Result | Evidence |

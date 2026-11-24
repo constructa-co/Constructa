@@ -80,3 +80,16 @@ Checks: `vitest run src/app/dashboard/resources/portfolio/page-read-outcomes.tes
 **D107 Jobs 1, 3:** SKIP on `b2ea9f7c`. **A103:** register already Partial since D105 — no duplicate index. **Job 4 A020/A037:** SKIP. **A061:** separate `codex/d107-a061-programme-20261124`.
 
 Checks: `vitest run src/components/marketing/phase-one.test.tsx`; `npx tsc --noEmit`.
+
+## D107 Job 4 — A061 programme week-axis readability (PARTIAL) — 24 November 2026
+
+**Scope:** Desktop Gantt **week header** typography only — continues #260 grid-header pass; not P6 parity, not activity-tone changes, not calculations/dates/save paths.
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `src/app/dashboard/projects/schedule/client-page.tsx` | ~1042–1043 | Week label/date from 9px/8px → **10px** slate chrome aligned with phase column headers | Readable timeline axis on professional planner |
+| `src/app/dashboard/projects/schedule/planner-dates.test.tsx` | week-axis case | Assert no legacy 8–9px week-axis classes | Bounded regression |
+
+**Remaining A061:** Gantt bar density, settings strip polish, full desktop workspace — not this diff.
+
+Checks: `vitest run src/app/dashboard/projects/schedule/planner-dates.test.tsx`; `npx tsc --noEmit`.

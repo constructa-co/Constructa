@@ -1039,8 +1039,8 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                                 <div key={wk.weekIndex} data-planner-week-start={wk.weekIndex + 1} data-planner-week-span={wk.weeks}
                                     title={wk.range} aria-label={wk.range}
                                     className="shrink-0 min-w-0 text-center py-1.5 border-r border-slate-700/20 last:border-0" style={{ width: `${wk.weeks / totalWeeks * 100}%` }}>
-                                    <div className="text-[9px] font-bold text-slate-400 leading-tight truncate">{wk.label}</div>
-                                    <div className="text-[8px] text-slate-400 leading-tight truncate hidden md:block">{wk.date}</div>
+                                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-300 leading-tight truncate">{wk.label}</div>
+                                    <div className="text-[10px] text-slate-400 leading-tight truncate hidden md:block">{wk.date}</div>
                                     {wk.weeks === 1 && <div className="grid grid-cols-7 mt-1" aria-label="Calendar days Monday to Sunday">
                                         {[1, 2, 3, 4, 5, 6, 0].map(day => <span key={day} data-planner-calendar-day={day}
                                             data-working-day={workingPattern?.weekdays.includes(day) ? "true" : "false"}

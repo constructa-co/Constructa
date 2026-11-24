@@ -1,23 +1,25 @@
-# Facebook draft — programme before sharing (DRAFT)
+# Facebook draft — programme before sharing (DRAFT — UNPUBLISHED)
 
-**Status:** Private editorial draft only. Do not publish.
+**Status:** Private repository draft for Rob review only. Do not publish.
 
-**Primary guide:** [Programme and proposal before sharing](https://www.constructa.co/guides/programme-and-proposal-before-sharing)
+**Review links:** `https://constructa-nu.vercel.app/guides/...` (verified). Intended www canonical unverified pending D89 handoff.
+
+**Primary guide:** [Programme and proposal before sharing](https://constructa-nu.vercel.app/guides/programme-and-proposal-before-sharing)
 
 ---
 
-Pricing a job is only half the conversation. Clients also want to know when work starts and how long stages take.
+Read the programme beside the price before you share a preview. On the Programme tab you save working days, dependencies and a start date; the proposal preview uses that saved programme for timing.
 
-On Constructa’s Programme tab you set working days, dependencies and a start date. That saved programme is what the proposal preview uses for timing — not a separate spreadsheet.
+Quick checks:
 
-Quick check before you download a draft PDF:
+- Start date (or Day 1) fits the job you described on the brief
+- Working days per stage look achievable
+- “Starts after” dependencies match the sequence you expect on site
 
-- Start date (or Day 1) matches how you briefed the client verbally
-- Working days per stage look achievable for your crew
-- “Starts after” dependencies reflect real site sequence
+Downloading a draft PDF sends nothing to the client. Client response options ask for receipt or a non-binding intention to proceed, and neither is acceptance.
 
-Downloading the PDF does not send anything to the client. Draft responses ask for acknowledgement or a non-binding intention to proceed — not acceptance.
+Guide: https://constructa-nu.vercel.app/guides/programme-and-proposal-before-sharing
 
-Guide: https://www.constructa.co/guides/programme-and-proposal-before-sharing
+Related: [How saved job data connects](https://constructa-nu.vercel.app/guides/how-saved-job-data-connects)
 
-Related: [How saved job data connects](https://www.constructa.co/guides/how-saved-job-data-connects)
+AI-assisted draft guidance, not human-expert reviewed.

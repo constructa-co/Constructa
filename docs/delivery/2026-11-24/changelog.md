@@ -14,6 +14,13 @@
 | `docs/marketing/drafts/medium-brief-to-proposal-2026-11-24.md` | New | Long-form draft |
 | `docs/marketing/drafts/pilot-review-plan-2026-11-24.md` | New | Review plan; no publish/forms |
 
+### Job 3 copy repair (R1 — post `e56485ba`)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| All `docs/marketing/drafts/*.md` | Bounded copy + URL policy | Review links on `constructa-nu.vercel.app`; www canonical labelled unverified (D89); approved attribution and draft-PDF / non-binding language only; remove unsupported margins/universal-loss/legal/send claims |
+| `pilot-review-plan-2026-11-24.md` | Measurement + review steps | Unpublished: no traffic/conversion data; no hosted-flow gate; no Plausible inference from #228 |
+
 ## D105 Job 4 — A020/A037 — 24 November 2026
 
 | Item | Result | Evidence |

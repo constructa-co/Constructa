@@ -11,11 +11,8 @@ function newsletterFormEnabled() {
 
 // A101: optional updates list. Default-off: the form renders only when
 // CONSTRUCTA_NEWSLETTER_SIGNUP_ENABLED=1, and never in protected review or
-// preview deployments. When disabled, a static section explains the list
-// without collecting email (forms OFF). Subscribing posts the email address
-// straight to the email provider when the form is enabled; a submit is a
-// request to subscribe, not a confirmed subscription, and no measurement
-// event is attached to it.
+// preview deployments. When disabled, a static section explains that email
+// updates are not available yet (forms OFF) without collecting addresses.
 function showNewsletterPreview() {
   return (
     process.env.CONSTRUCTA_NEWSLETTER_SIGNUP_ENABLED !== "1"
@@ -51,27 +48,24 @@ export function NewsletterSignup() {
   }
 
   return (
-      <section
-        className={`${ui.theme} ${ui.section} ${ui.invitation}`}
-        data-reveal
-        data-newsletter-preview-note
-        aria-labelledby="newsletter-heading"
-      >
-        <p className={ui.eyebrow}>Optional updates</p>
-        <h2 id="newsletter-heading">Constructa updates</h2>
-        <p>
-          Product news and launch updates for construction businesses. This list
-          is separate from a Constructa account.
-        </p>
-        <p>
-          Email signup is not open in this preview. When Constructa enables the
-          optional form, addresses are sent to Kit (ConvertKit) as described in
-          the{" "}
-          <Link href="/privacy-policy" className={ui.textLink}>
-            privacy policy
-          </Link>
-          .
-        </p>
-      </section>
-    );
+    <section
+      className={`${ui.theme} ${ui.section} ${ui.invitation}`}
+      data-reveal
+      data-newsletter-preview-note
+      aria-labelledby="newsletter-heading"
+    >
+      <p className={ui.eyebrow}>Optional updates</p>
+      <h2 id="newsletter-heading">Constructa updates</h2>
+      <p>
+        Product news for construction businesses. Email updates are not available
+        yet in this preview.
+      </p>
+      <p>
+        <Link href="/guides" className={ui.textLink}>
+          Browse the guides
+        </Link>{" "}
+        for practical walkthroughs you can use now.
+      </p>
+    </section>
+  );
 }

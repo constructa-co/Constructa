@@ -22,11 +22,14 @@ describe("full-profile landing intake (repair #154)", () => {
 
   it("keeps the newsletter form as its own gated scope", () => {
     vi.stubEnv("CONSTRUCTA_NEWSLETTER_SIGNUP_ENABLED", "0");
-  vi.stubEnv("CONSTRUCTA_REVIEW_ONLY", "0");
-  vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("CONSTRUCTA_REVIEW_ONLY", "0");
+    vi.stubEnv("VERCEL_ENV", "production");
     const preview = renderToStaticMarkup(<NewsletterSignup />);
     expect(preview).toContain("data-newsletter-preview-note");
+    expect(preview).toContain("not available yet in this preview");
+    expect(preview).toMatch(/href="\/guides"/);
     expect(preview).not.toContain("convertkit.com");
+    expect(preview).not.toContain("privacy-policy");
     expect(preview).not.toContain("<form");
 
     vi.stubEnv("CONSTRUCTA_NEWSLETTER_SIGNUP_ENABLED", "1");

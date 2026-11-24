@@ -93,3 +93,12 @@ Checks: `vitest run src/components/marketing/phase-one.test.tsx`; `npx tsc --noE
 **Remaining A061:** Gantt bar density, settings strip polish, full desktop workspace — not this diff.
 
 Checks: `vitest run src/app/dashboard/projects/schedule/planner-dates.test.tsx`; `npx tsc --noEmit`.
+
+## D108 Job 4 — A001 live projects empty-state link — 24 November 2026
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/app/dashboard/live/page.tsx` | Empty portfolio CTA uses `corePipelineTextLinkSmThemed` not `text-blue-400` | Brand sage navigation after #264 picker chrome |
+| `src/app/dashboard/live/a001-live-empty-link.test.ts` | Source guard | Preserve status/chart blues elsewhere |
+
+Checks: `vitest run src/app/dashboard/live/a001-live-empty-link.test.ts`.

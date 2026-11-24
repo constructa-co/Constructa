@@ -11,6 +11,7 @@ import ProjectLiveClient from "./project-live-client";
 // prelims rows, PC/provisional sums, credits and the legacy total_cost
 // fallback behave exactly as on the P&L and billing pages.
 import { computeBudgetCost, computeContractSumValue } from "@/lib/financial";
+import { corePipelineTextLinkSmThemed } from "@/lib/core-editing-palette";
 
 export default async function LiveProjectsPage(props: { searchParams: Promise<{ projectId?: string }> }) {
     const searchParams = await props.searchParams;
@@ -91,7 +92,7 @@ export default async function LiveProjectsPage(props: { searchParams: Promise<{ 
                 </div>
                 <div className="text-center py-20 text-slate-500">
                     <p className="font-medium text-slate-400 mb-2">No projects yet</p>
-                    <a href="/dashboard/projects/new" className="text-blue-400 hover:underline text-sm">+ Create your first project</a>
+                    <a href="/dashboard/projects/new" className={corePipelineTextLinkSmThemed(true)}>+ Create your first project</a>
                 </div>
             </div>
         );

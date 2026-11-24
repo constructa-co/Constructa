@@ -37,6 +37,16 @@ Checks: `vitest run` on `planner-dates.test.tsx`, `planner-phone-phase-list.test
 | All `docs/marketing/drafts/*.md` | Bounded copy + URL policy | Review links on `constructa-nu.vercel.app`; www canonical labelled unverified (D89); approved attribution and draft-PDF / non-binding language only; remove unsupported margins/universal-loss/legal/send claims |
 | `pilot-review-plan-2026-11-24.md` | Measurement + review steps | Unpublished: no traffic/conversion data; no hosted-flow gate; no Plausible inference from #228 |
 
+### Job 3 completion — A103 pilot articles (post #260–#262 merge)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `docs/marketing/drafts/estimate-review-pilot-article-2026-11-24.md` | New (~400w) | Practical estimate review prose from approved `estimate-review` guide only |
+| `docs/marketing/drafts/programme-review-pilot-article-2026-11-24.md` | New (~400w) | Practical programme review prose from approved `programme-review` guide only |
+| `docs/marketing/drafts/pilot-review-plan-2026-11-24.md` | Assets table | Lists A102 social/Medium + A103 pilot articles; measurement NOT AVAILABLE |
+
+Branch synced with `origin/main` @ `ff855dee` (fast-forward) before article add. UNPUBLISHED handoff for Rob; no new routes, posts, or tests for copy.
+
 ## D105 Job 4 — A020 resource portfolio + A037 — 24 November 2026
 
 | Item | Result | Evidence |

@@ -12,11 +12,13 @@ Aligns with `docs/marketing/contractor-guide-pilot.md` and `docs/marketing/priva
 
 ## Assets in this folder
 
-| File | Channel | Guide slugs cited |
+| File | Channel / kind | Guide slugs cited |
 | --- | --- | --- |
-| `linkedin-saved-job-data-2026-11-24.md` | LinkedIn | `how-saved-job-data-connects`, `review-brief-and-price`, `programme-and-proposal-before-sharing` |
-| `facebook-programme-check-2026-11-24.md` | Facebook | `programme-and-proposal-before-sharing`, `how-saved-job-data-connects` |
-| `medium-brief-to-proposal-2026-11-24.md` | Medium | same three |
+| `linkedin-saved-job-data-2026-11-24.md` | LinkedIn (A102) | `how-saved-job-data-connects`, `review-brief-and-price`, `programme-and-proposal-before-sharing` |
+| `facebook-programme-check-2026-11-24.md` | Facebook (A102) | `programme-and-proposal-before-sharing`, `how-saved-job-data-connects` |
+| `medium-brief-to-proposal-2026-11-24.md` | Medium short (A102) | `how-saved-job-data-connects`, `review-brief-and-price`, `programme-and-proposal-before-sharing` |
+| `estimate-review-pilot-article-2026-11-24.md` | Pilot article (A103) | `estimate-review` |
+| `programme-review-pilot-article-2026-11-24.md` | Pilot article (A103) | `programme-review` |
 
 ## Review steps (bounded)
 

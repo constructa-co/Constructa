@@ -14,7 +14,7 @@ Constructa organises the figures you save on Estimating; it does not measure dra
 
 ## Credits versus allowances — different jobs in the sheet
 
-Two easy mix-ups show up in review accounts before sharing.
+Keep credits and allowances separate when checking the estimate.
 
 **Credits** are deductions or adjustments that reduce the price. They are not the same as a nominated-supplier allowance. For every credit, check the sign, the wording and what it does to the section total and the job total. Confirm it appears where you mean it to in the proposal preview, not buried where a client might miss it.
 

@@ -386,10 +386,21 @@ describe("preview", () => {
     it("charges VAT the same way in the preview as in the publication", () => {
         expect(vatFor({ is_vat_reverse_charge: true })).toEqual({ vatRate: 0, vatTreatment: "domestic_reverse_charge" });
         expect(vatFor({})).toEqual({ vatRate: 20, vatTreatment: "standard" });
+        vi.stubEnv("CONSTRUCTA_PROFILE_VAT_SETTINGS", "1");
+        expect(vatFor({}, { vat_registered: false, default_vat_rate: 20 })).toEqual({ vatRate: 0, vatTreatment: "standard" });
+        const profileRate = { vat_registered: true as const, default_vat_rate: 5 };
+        expect(vatFor({}, profileRate)).toEqual(vatFor({}, profileRate));
         const reverse = contextFrom({ is_vat_reverse_charge: true });
         const preview = buildPreviewSnapshot(reverse, draftFromProject(reverse.project, keys()), "acknowledgement", now)!;
         expect(preview.commercial.vat_amount).toBe(0);
         expect(preview.commercial.vat_treatment).toBe("domestic_reverse_charge");
+        const withProfile: ReviewContext = {
+            ...contextFrom(),
+            profile: { ...representativeInput().profile, ...profileRate },
+        };
+        const previewRated = buildPreviewSnapshot(withProfile, draftFromProject(withProfile.project, keys()), "acknowledgement", now)!;
+        expect(previewRated.commercial.vat_rate).toBe(5);
+        expect(vatFor(withProfile.project, withProfile.profile).vatRate).toBe(5);
     });
 });
 

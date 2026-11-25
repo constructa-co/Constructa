@@ -24,25 +24,67 @@
  *   3. = Total Construction Cost
  *   4. + Overhead             — totalConstruction × overhead_pct
  *   5. = Cost + Overhead
- *   6. + Risk                 — costPlusOverhead × risk_pct
+ *   6. + Risk                 — compound: costPlusOverhead × risk_pct; on_net: totalConstruction × risk_pct
  *   7. = Adjusted Total
- *   8. + Profit               — adjusted × profit_pct
+ *   8. + Profit               — compound: adjusted × profit_pct; on_net: totalConstruction × profit_pct
  *   9. = Pre-Discount Total
  *  10. − Discount             — preDiscount × discount_pct
  *  11. = Marked-up total
  *  12. + PC / provisional sums — at face value, no adjustment
  *  13. = Contract Sum (exc. VAT)  ← shown to client
  *
- * Overhead / Risk / Profit / Discount are compounded in that order;
- * they do NOT commute. Prelims-then-compound is the correct RICS
- * hierarchy. Changing any step breaks contractor trust.
+ * Two markup methods exist (D36), chosen per company and frozen on each
+ * estimate when it is created:
  *
- * Prime-cost and provisional sum lines (CON-016) bypass this hierarchy:
+ *   on_net    (default for new estimates) Overhead, Risk and Profit are each
+ *             a percentage of Total Construction Cost. They add; the order
+ *             does not matter.
+ *   compound  Overhead on net, Risk on (net + Overhead), Profit on
+ *             (net + Overhead + Risk). Under compound, the percentages do
+ *             NOT commute; prelims-then-compound is the correct RICS
+ *             hierarchy for legacy estimates.
+ *
+ * An estimate with no stored method predates the choice and was always
+ * compounded, so a missing value MUST read as compound. Anything else would
+ * silently re-price estimates and proposals already sent.
+ * Discount is always taken from the pre-discount total.
+ *
+ * Prime-cost and provisional sum lines (CON-016) bypass the markup hierarchy:
  * they are added to the contract sum at the exact face value typed, never
  * multiplied, so the client never reads a mark-up on an allowance.
  */
 
 import { isFaceValueLineType } from "@/lib/estimate-line-type";
+
+export type MarkupMethod = "on_net" | "compound";
+export const DEFAULT_MARKUP_METHOD: MarkupMethod = "on_net";
+/** What an estimate with no stored method means. Never change this. */
+export const LEGACY_MARKUP_METHOD: MarkupMethod = "compound";
+
+export function isMarkupMethod(v: unknown): v is MarkupMethod {
+    return v === "on_net" || v === "compound";
+}
+
+/** Stored value → method. Missing or unknown is the legacy compounded method. */
+export function resolveMarkupMethod(v: unknown): MarkupMethod {
+    return isMarkupMethod(v) ? v : LEGACY_MARKUP_METHOD;
+}
+
+/** Company setting → method for a NEW estimate. Missing or unknown is the new default. */
+export function markupMethodForNewEstimate(v: unknown): MarkupMethod {
+    return isMarkupMethod(v) ? v : DEFAULT_MARKUP_METHOD;
+}
+
+export const MARKUP_METHOD_LABEL: Record<MarkupMethod, string> = {
+    on_net: "On net cost",
+    compound: "Compounded",
+};
+
+/** One plain sentence for printing beside the totals. Contains no percentages. */
+export const MARKUP_METHOD_NOTE: Record<MarkupMethod, string> = {
+    on_net: "Calculation method: overhead, risk and profit are each calculated on net construction cost.",
+    compound: "Calculation method: overhead, risk and profit are compounded: each is calculated on the total before it.",
+};
 
 // ── Input types ──────────────────────────────────────────────────────────────
 
@@ -53,6 +95,8 @@ export interface EstimateInput {
     risk_pct?: number | string | null;
     profit_pct?: number | string | null;
     discount_pct?: number | string | null;
+    /** Absent or null = estimate predates the choice = compound. See resolveMarkupMethod. */
+    markup_method?: string | null;
     /** Legacy fallback when there are no line rows at all. */
     total_cost?: number | string | null;
 }
@@ -100,6 +144,8 @@ export interface ContractSumBreakdown {
     /** Prime-cost / provisional sum lines, added at face value after the mark-up. */
     faceValueTotal: number;
     contractSum: number;
+    /** The method actually applied. */
+    markupMethod: MarkupMethod;
     /** Handy multiplier for converting a single line rate into an all-in rate. */
     ohRiskProfitMultiplier: number;
 }
@@ -165,32 +211,34 @@ export function computeContractSum(
     const prelimsTotal =
         explicitPrelimsLines.length > 0 ? explicitPrelimsTotal : prelimsFromPct;
 
-    // 3. Total construction cost.
     const totalConstructionCost = constructionBase + prelimsTotal;
 
-    // 4-7. Overhead → Risk → Profit, compounded in that order.
     const overheadPct = toNumber(estimate.overhead_pct);
     const riskPct = toNumber(estimate.risk_pct);
     const profitPct = toNumber(estimate.profit_pct);
     const discountPct = toNumber(estimate.discount_pct);
 
+    const markupMethod = resolveMarkupMethod(estimate.markup_method);
+    const riskBase = markupMethod === "on_net"
+        ? totalConstructionCost
+        : totalConstructionCost * (1 + overheadPct / 100);
+    const profitBase = markupMethod === "on_net"
+        ? totalConstructionCost
+        : riskBase * (1 + riskPct / 100);
+
     const overheadAmount = totalConstructionCost * (overheadPct / 100);
-    const costPlusOverhead = totalConstructionCost + overheadAmount;
-    const riskAmount = costPlusOverhead * (riskPct / 100);
-    const adjustedTotal = costPlusOverhead + riskAmount;
-    const profitAmount = adjustedTotal * (profitPct / 100);
+    const riskAmount = riskBase * (riskPct / 100);
+    const profitAmount = profitBase * (profitPct / 100);
+    const adjustedTotal = totalConstructionCost + overheadAmount + riskAmount;
     const preDiscount = adjustedTotal + profitAmount;
     const discountAmount = preDiscount * (discountPct / 100);
 
     const contractSum = preDiscount - discountAmount + faceValueTotal;
 
-    // Multiplier used by the PDF to convert a raw line rate into an all-in
-    // rate displayed to the client (matches the same order of compounding).
-    const ohRiskProfitMultiplier =
-        (1 + overheadPct / 100) *
-        (1 + riskPct / 100) *
-        (1 + profitPct / 100) *
-        (1 - discountPct / 100);
+    const markupFactor = markupMethod === "on_net"
+        ? 1 + (overheadPct + riskPct + profitPct) / 100
+        : (1 + overheadPct / 100) * (1 + riskPct / 100) * (1 + profitPct / 100);
+    const ohRiskProfitMultiplier = markupFactor * (1 - discountPct / 100);
 
     return {
         directCost,
@@ -202,6 +250,7 @@ export function computeContractSum(
         discountAmount,
         faceValueTotal,
         contractSum,
+        markupMethod,
         ohRiskProfitMultiplier,
     };
 }

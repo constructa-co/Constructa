@@ -3,7 +3,7 @@ import { representativeInput } from "./__fixtures__/proposal";
 import { buildProposalDocument } from "./proposal-document";
 import { buildProposalPublicationSnapshot } from "./proposal-publication";
 import { buildPreviewSnapshot, draftFromProject, type ReviewContext } from "./proposal-review";
-import { sitePhotoOrigin, sitePhotosForJob } from "./proposal-site-photos";
+import { sitePhotoOrigin, sitePhotosAfterUpload, sitePhotosForJob } from "./proposal-site-photos";
 
 // Synthetic ids and a synthetic storage host. No real project, user or image.
 const USER = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -19,6 +19,21 @@ const BRANDING = stored(`${USER}/branding/3c3c3c3c-3c3c-4c3c-8c3c-3c3c3c3c3c3c.p
 const CASE_STUDY = stored(`${USER}/case-study/4d4d4d4d-4d4d-4d4d-8d4d-4d4d4d4d4d4d.jpg`);
 const OLDER_UPLOAD = stored("site-1700000000000.jpg");
 const HOSTED_ELSEWHERE = "https://images.example.test/bathroom-before.jpg";
+
+describe("CON-026 site photo upload target", () => {
+    it("prepends for cover so the first site photo is the cover image", () => {
+        expect(sitePhotosAfterUpload([{ url: "https://example.test/old.jpg", caption: "" }], "https://example.test/new.jpg", "cover")).toEqual([
+            { url: "https://example.test/new.jpg", caption: "" },
+            { url: "https://example.test/old.jpg", caption: "" },
+        ]);
+    });
+
+    it("appends for scope uploads", () => {
+        expect(sitePhotosAfterUpload([], "https://example.test/a.jpg", "scope")).toEqual([
+            { url: "https://example.test/a.jpg", caption: "" },
+        ]);
+    });
+});
 
 describe("D51 where a site photo was uploaded", () => {
     const job = { projectId: PROJECT, userId: USER };

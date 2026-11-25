@@ -5040,5 +5040,356 @@
     "grok": "No newmerge/staticcheck due; previousreviewsPASS no relaunch",
     "report": "08:00chatdelivered; inboxretrospectivecopy21:40afterrecovery",
     "next": "Recommend approvedhealthywalkthrough/ownerdecisions or newconcretedefect; readinessrevised+1day compressed finalbuffer; no liveexport."
+  },
+  "d113": {
+    "at": "2026-11-26T01:01:15.691098+04:00",
+    "rows": [
+      {
+        "pr": 176,
+        "head": "d85bf23bc2b0ca085f15b421643c34624847b221",
+        "mainAncestor": "ae746fc9ff04015828bbae87349137337f84aa38",
+        "behindMain": 0,
+        "runs": [
+          {
+            "id": 45696373367,
+            "name": "Secret scan",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696373312,
+            "name": "E2E",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696373438,
+            "name": "Supabase migration replay",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696373403,
+            "name": "D101 markup undo-reapply drill",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696373357,
+            "name": "Marketing production audit (read-only)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696373439,
+            "name": "Marketing a11y and speed (read-only)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696373453,
+            "name": "D38 CON browser ephemeral replay",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696373412,
+            "name": "CI",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696369735,
+            "name": "Secret scan",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ],
+        "migrationBlobsUnchangedFromD101": true,
+        "preview": "R1officialexactdeploymentlogs26Nov01:05allfive: previewmissingCONSTRUCTA_NONPROD_SUPABASE_PROJECT_REF andURL/anonkeyproductiontarget;guardstoppedbeforeuse. Settingsheld/nobypass.",
+        "draft": true,
+        "merged": false
+      },
+      {
+        "pr": 185,
+        "head": "3ed35bdf34158ee9ff61b1c2ed58a6acb0208be4",
+        "mainAncestor": "ae746fc9ff04015828bbae87349137337f84aa38",
+        "behindMain": 0,
+        "runs": [
+          {
+            "id": 45696748101,
+            "name": "Secret scan",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696748507,
+            "name": "E2E",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696748059,
+            "name": "D38 CON browser ephemeral replay",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696748005,
+            "name": "Marketing a11y and speed (read-only)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696748006,
+            "name": "D101 markup undo-reapply drill",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696747997,
+            "name": "Supabase migration replay",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696748075,
+            "name": "Marketing production audit (read-only)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696748206,
+            "name": "CI",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696734490,
+            "name": "Secret scan",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ],
+        "migrationBlobsUnchangedFromD101": true,
+        "preview": "R1officialexactdeploymentlogs26Nov01:05allfive: previewmissingCONSTRUCTA_NONPROD_SUPABASE_PROJECT_REF andURL/anonkeyproductiontarget;guardstoppedbeforeuse. Settingsheld/nobypass.",
+        "draft": true,
+        "merged": false
+      },
+      {
+        "pr": 222,
+        "head": "e0db914b8ad3113a45bea8543951b2f2857df560",
+        "mainAncestor": "ae746fc9ff04015828bbae87349137337f84aa38",
+        "behindMain": 0,
+        "runs": [
+          {
+            "id": 45696778319,
+            "name": "E2E",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696778363,
+            "name": "Marketing a11y and speed (read-only)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696778515,
+            "name": "D38 CON browser ephemeral replay",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696778374,
+            "name": "Supabase migration replay",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696778293,
+            "name": "Secret scan",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696778364,
+            "name": "D101 markup undo-reapply drill",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696778464,
+            "name": "Marketing production audit (read-only)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696778375,
+            "name": "CI",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696766940,
+            "name": "Secret scan",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ],
+        "migrationBlobsUnchangedFromD101": true,
+        "preview": "R1officialexactdeploymentlogs26Nov01:05allfive: previewmissingCONSTRUCTA_NONPROD_SUPABASE_PROJECT_REF andURL/anonkeyproductiontarget;guardstoppedbeforeuse. Settingsheld/nobypass.",
+        "draft": true,
+        "merged": false
+      },
+      {
+        "pr": 223,
+        "head": "ef675cb69eab770c7b27cfd2e8c7e5d8df4a007f",
+        "mainAncestor": "ae746fc9ff04015828bbae87349137337f84aa38",
+        "behindMain": 0,
+        "runs": [
+          {
+            "id": 45696913186,
+            "name": "Marketing production audit (read-only)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696913292,
+            "name": "Marketing a11y and speed (read-only)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696913129,
+            "name": "E2E",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696913223,
+            "name": "Secret scan",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696913209,
+            "name": "Supabase migration replay",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696913308,
+            "name": "D101 markup undo-reapply drill",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696913283,
+            "name": "D38 CON browser ephemeral replay",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696913264,
+            "name": "CI",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696901951,
+            "name": "Secret scan",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ],
+        "migrationBlobsUnchangedFromD101": true,
+        "preview": "R1officialexactdeploymentlogs26Nov01:05allfive: previewmissingCONSTRUCTA_NONPROD_SUPABASE_PROJECT_REF andURL/anonkeyproductiontarget;guardstoppedbeforeuse. Settingsheld/nobypass.",
+        "draft": true,
+        "merged": false
+      },
+      {
+        "pr": 224,
+        "head": "e70b5fcab1c9a1d38aa3010196ebe3310da6f419",
+        "mainAncestor": "ae746fc9ff04015828bbae87349137337f84aa38",
+        "behindMain": 0,
+        "runs": [
+          {
+            "id": 45696593008,
+            "name": "E2E",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696592966,
+            "name": "Secret scan",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696592970,
+            "name": "D101 markup undo-reapply drill",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696592996,
+            "name": "Supabase migration replay",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696592942,
+            "name": "Marketing a11y and speed (read-only)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696592892,
+            "name": "D38 CON browser ephemeral replay",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696592911,
+            "name": "CI",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696592931,
+            "name": "Marketing production audit (read-only)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 45696580701,
+            "name": "Secret scan",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ],
+        "migrationBlobsUnchangedFromD101": true,
+        "preview": "R1officialexactdeploymentlogs26Nov01:05allfive: previewmissingCONSTRUCTA_NONPROD_SUPABASE_PROJECT_REF andURL/anonkeyproductiontarget;guardstoppedbeforeuse. Settingsheld/nobypass.",
+        "draft": true,
+        "merged": false
+      }
+    ],
+    "result": "GITHUB_CI_DISPOSABLE_GREEN_PREVIEW_RED_NOT_UNQUALIFIED_MERGE_READY",
+    "e2e": "Draft status success; hosted-write-status/phase1 SKIPPED, NOT actualhostedjourney",
+    "mobile": "WORKER_REPORTED localmain build375px/collectionOFF/contrastsample/consoleclear; nothostedpreview; screenshotsremoteartifactpaths/uninspectedbyR1",
+    "journey": "Fullhostedbrief-estimate-programme-PDF NOTRUN/gated, no newdefectbranch",
+    "worker": "FINISHED20:38:52Z",
+    "sourceChanges": "Normalmain merges; no migrationblobchanges, existingPDFs222223185unchanged/preserved, no newPDFinclusionfinding",
+    "next": "No activeworker; allperPRresultsreportedbefore03:30 and publicbefore02:30. Auth/PDFjourneyNOTRUN due approvedisolatedtargethold, no realwrites. No duplicate checks.",
+    "previewCauseVerified": "R1officialexactdeploymentlogs26Nov01:05allfive: previewmissingCONSTRUCTA_NONPROD_SUPABASE_PROJECT_REF andURL/anonkeyproductiontarget;guardstoppedbeforeuse. Settingsheld/nobypass.",
+    "hostedPublic": {
+      "run": "run-b9933678-4c48-4f96-8fd2-ccb64d9086a6",
+      "state": "FINISHED",
+      "returnedAt": "2026-11-26T01:03:09+04:00",
+      "result": "WORKER_REPORTED actualpublic375x812 sixroutes nooverflow/consoleerrors;19discoveredpathsHTTP200;applyfieldset+submitdisabled/noaction/noPOST;h1/bodycontrastsamples18.8/21to1;no newdefectbranch",
+      "limits": "NotR1visualinspection/fullcontrastaudit;no auth/PDF/signup/formPOST; mainSHAcontextnotHTTPdeploySHA",
+      "artifacts": "/opt/cursor/artifacts/d113-hosted-375/hosted-report.json + sixhosted-*-375.png;d113-hosted-written-check.md"
+    }
   }
 }

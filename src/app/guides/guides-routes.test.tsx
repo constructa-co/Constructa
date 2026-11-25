@@ -13,6 +13,17 @@ import {
 import GuidesPage from './page';
 import GuideArticlePage, { generateStaticParams } from './[slug]/page';
 
+const EXPECTED_GUIDE_SLUG_ORDER = [
+  'how-saved-job-data-connects',
+  'review-brief-and-price',
+  'programme-and-proposal-before-sharing',
+  'estimate-review',
+  'programme-review',
+  'company-profile',
+  'scope-brief',
+  'proposal-review',
+] as const;
+
 const route = vi.hoisted(() => ({ pathname: '/guides' }));
 const notFoundMock = vi.hoisted(() => vi.fn(() => {
   throw new Error('NOT_FOUND');
@@ -57,15 +68,15 @@ describe('guides hub and articles', () => {
   it('presents the hub as an editorial index with numbered entries and updated dates', () => {
     const markup = hubMarkup();
     expect(markup).toContain('The review guide');
-    expect(markup.match(/aria-hidden="true">0[1-9]</g)).toHaveLength(7);
-    expect(markup.match(/Review checklist · Updated/g)).toHaveLength(7);
+    expect(markup.match(/aria-hidden="true">0[1-9]</g)).toHaveLength(8);
+    expect(markup.match(/Review checklist · Updated/g)).toHaveLength(8);
     for (const article of GUIDE_ARTICLES) {
       expect(markup).toMatch(
         new RegExp(`<time dateTime="${article.contentUpdatedIso}">${article.contentUpdatedDisplay}</time>`, 'i'),
       );
     }
     const headings = [...markup.matchAll(/<h([1-6])\b/g)].map(match => Number(match[1]));
-    expect(headings).toEqual([1, 2, ...Array(7).fill(3)]);
+    expect(headings).toEqual([1, 2, ...Array(8).fill(3)]);
   });
 
   it('renders each article with navigation, qualifications and preview-access handoff', async () => {
@@ -101,15 +112,9 @@ describe('guides hub and articles', () => {
   });
 
   it('generateStaticParams lists every authored slug once', () => {
-    expect(generateStaticParams()).toEqual([
-      { slug: 'review-brief-and-price' },
-      { slug: 'programme-and-proposal-before-sharing' },
-      { slug: 'estimate-review' },
-      { slug: 'programme-review' },
-      { slug: 'company-profile' },
-      { slug: 'scope-brief' },
-      { slug: 'proposal-review' },
-    ]);
+    expect(GUIDE_ARTICLES.map(article => article.slug)).toEqual([...EXPECTED_GUIDE_SLUG_ORDER]);
+    expect(getAllGuideSlugs()).toEqual([...EXPECTED_GUIDE_SLUG_ORDER]);
+    expect(generateStaticParams()).toEqual(EXPECTED_GUIDE_SLUG_ORDER.map(slug => ({ slug })));
   });
 
   it('binds step section aria-labelledby to one whitespace-free heading id and names recovery in the held note', () => {
@@ -130,16 +135,27 @@ describe('guides hub and articles', () => {
   });
 
   it('records transparent attribution and content updated metadata on every article', () => {
-    expect(getAllGuideSlugs()).toHaveLength(7);
+    expect(getAllGuideSlugs()).toHaveLength(8);
+    expect(getGuideArticle('how-saved-job-data-connects')).toMatchObject({
+      contentUpdatedIso: '2026-11-24',
+      contentUpdatedDisplay: '24 November 2026',
+    });
+    expect(getGuideArticle('scope-brief')).toMatchObject({
+      contentUpdatedIso: '2026-11-23',
+      contentUpdatedDisplay: '23 November 2026',
+    });
     for (const slug of getAllGuideSlugs()) {
       const article = getGuideArticle(slug);
-      expect(article).toMatchObject(GUIDE_ARTICLE_ATTRIBUTION);
+      expect(article).toMatchObject({
+        author: GUIDE_ARTICLE_ATTRIBUTION.author,
+        preparation: GUIDE_ARTICLE_ATTRIBUTION.preparation,
+      });
       const markup = renderToStaticMarkup(<GuideArticleView article={article!} />);
       expect(markup).toContain('Constructa');
       expect(markup).toContain('AI-assisted draft guidance');
       expect(markup).toContain('Not human-expert reviewed');
       expect(markup).toContain('Content updated date:');
-      expect(markup).toMatch(/<time datetime="2026-11-23">23 November 2026<\/time>/i);
+      expect(markup).toMatch(new RegExp(`<time datetime="${article!.contentUpdatedIso}">${article!.contentUpdatedDisplay}</time>`, 'i'));
       expect(markup).not.toMatch(/reviewed by|expert approval|Rob approved/i);
     }
   });

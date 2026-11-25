@@ -1,5 +1,49 @@
 # Cursor change log
 
+## 2026-11-24 — D106 Job 1 A001 project-picker hero (A038 SKIP)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/components/project-picker.tsx` | L71–72 emerald hero tile | A001 dashboard chrome; preserve proposal status blues |
+| `src/components/a001-workflow-standalone-controls-brand.test.ts` | Hero assertions | Regression |
+| `docs/delivery/2026-11-24/d106-job1-handoff.md` | Register handoff | A038 gated SKIP evidence |
+
+## 2026-11-24 — D104 marketing connected-journey guide + FAQ (draft, R1 repair)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/marketing-guides.ts` | Copy + 24 Nov date on new article only | Public wording; no implementation field names |
+| `src/app/components/FAQ.tsx` | FAQ copy repair | AI unavailable in preview; no gate jargon |
+| `src/app/guides/guides-routes.test.tsx` | Exact 8 slug order/count/headings | No weakened >= assertions |
+| `src/app/components/FAQ.test.tsx` | Copy guard | Regression |
+
+**Checks:** vitest guides-routes + FAQ. No pricing/legal/trial claims; no forms.
+
+## 2026-11-24 — D104 A055 pricing assistant scope_text alignment (draft, R1 repair)
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `src/lib/pricing-review.ts` | `pricingWorkFromSavedProject` | `scope_text` overrides brief work; revision includes `scopeText` | Job-aware pricing context matches proposal review |
+| `src/lib/server/pricing-request.ts` | verify select | Load/pass `scope_text` | Server fingerprint matches client |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | `pricingProject` | Pass saved proposal scope through assistant paths | Brief→estimate journey consistency |
+| `src/lib/job-assistant-client.ts`, `pricing-conversation.ts` | types | Optional `scope_text` on project snapshot | Transport typing |
+| `src/lib/pricing-review.test.ts` | new `it` | Override + blank fallback | |
+| `src/lib/server/pricing-request.test.ts` | new cases | Revision agree, detailed-scope stale, fallback | Server regression |
+| `src/app/dashboard/projects/costs/full-scope.tsx` | `onScopeSaved` | Notify parent after save | Assistant fingerprint refresh |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | `activeFullScope`, `pricingProject` | Authoritative saved full-scope object (null clears override) | Stale prop fallback fix |
+| `src/app/dashboard/projects/costs/full-scope-parent.test.tsx` | new `it` | Cleared scope → brief work without reload | A055 regression |
+
+**Checks:** `npm run typecheck`; vitest pricing-review, pricing-request, pricing-assistant-request.
+
+## 2026-11-24 — D103 A001 install banner mark tile (draft)
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `src/components/install-banner.tsx` | mark tile ~49 | `bg-blue-600` → `bg-[#c9efcf]` + ink “C” | PWA install chrome matches offline/hub sage mark; Install CTA already used `corePrimaryButton` |
+| `src/components/a001-workflow-standalone-controls-brand.test.ts` | install-banner `it` | Assert sage mark; forbid `bg-blue-600` on banner | Bounded regression |
+
+**Checks:** `npm run typecheck`; vitest `a001-workflow-standalone-controls-brand` + `a001-palette-audit`. No semantic status blues changed.
+
 ## 2026-11-23 — D101 ordered stack: repaired #222 `aad778ad` into #223
 
 | File | Change | Intent |
@@ -151,7 +195,6 @@
 | `docs/delivery/2026-11-20/approved-176-integration.md` | rollback § | Safer rollback semantics | No blind column drop / old app |
 
 **Checks:** NOT RUN (source-only lane; R1 owns git commit, CI, Sonnet, preview).
-
 ## 2026-11-21 — D81 CON-012 profile isolation (ephemeral replay, draft unverified in CI)
 
 | File | Lines (approx.) | Change | Intent |

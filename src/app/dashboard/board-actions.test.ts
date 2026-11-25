@@ -87,6 +87,13 @@ beforeEach(() => {
     mocks.appendHistory.mockReset().mockResolvedValue({ recorded: true });
 });
 describe("pipeline server mutation acknowledgement", () => {
+    it("does not append history or warn for an acknowledged same-status move", async () => {
+        setup("success", "Lead");
+        mocks.appendHistory.mockResolvedValue({ recorded: false, schemaGate: false });
+        expect(await updateStatusAction(project, "Lead")).toEqual({ success: true });
+        expect(mocks.appendHistory).not.toHaveBeenCalled();
+        expect(mocks.revalidate).toHaveBeenCalled();
+    });
     it.each(["error", "empty", "throw", "wrong-id", "wrong-status"] as const)("does not confirm an ordinary stage change on %s", async kind => {
         setup(kind);
         const result = await updateStatusAction(project, "Estimating");

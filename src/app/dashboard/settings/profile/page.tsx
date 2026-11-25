@@ -3,6 +3,7 @@ import { redirect, unstable_rethrow } from "next/navigation";
 import { Toaster } from "sonner";
 import CompanyProfilePresentation from "@/components/company-profile-presentation";
 import ProfileForm from "./profile-form";
+import { isProfileVatSettingsEnabled } from "@/lib/company-vat-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +54,11 @@ export default async function ProfilePage() {
             {profileUnavailable ? (
                 <ProfileUnavailable detail={profileDetail} />
             ) : (
-                <ProfileForm profile={profile!} userEmail={user.email || ""} />
+                <ProfileForm
+                    profile={profile!}
+                    userEmail={user.email || ""}
+                    vatSettingsEnabled={isProfileVatSettingsEnabled()}
+                />
             )}
         </CompanyProfilePresentation>
     );

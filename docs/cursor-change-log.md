@@ -44,6 +44,157 @@
 
 **Checks:** `npm run typecheck`; vitest `a001-workflow-standalone-controls-brand` + `a001-palette-audit`. No semantic status blues changed.
 
+## 2026-11-23 — D101 ordered stack: repaired #222 `aad778ad` into #223
+
+| File | Change | Intent |
+|------|--------|--------|
+| Merge | `codex/d59-con044-exact-main` `aad778ad` | Step 3 — #223 inherits #176 drill via final #185/#222 |
+
+## 2026-11-23 — D101 ordered stack: #222 into #223
+
+| File | Change | Intent |
+|------|--------|--------|
+| Merge | `codex/d59-con044-exact-main` `55005764` | Step 3 (first pass) — superseded by `aad778ad` drill carry |
+
+## 2026-11-23 — D101 PR #223 normal main integration (`codex/d59-con073-exact-main`)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| Costing + journey fixtures | merge | Main + D36 markup; on_net journey oracle | CON-073 append-only history unchanged |
+
+**Checks:** Cloud typecheck on merge head; hosted CI after push.
+
+## 2026-11-23 — D101 ordered stack: #185 tip `834381f` into #222 (drill carry)
+
+| File | Change | Intent |
+|------|--------|--------|
+| `.github/workflows/d101-markup-undo-drill.yml`, `scripts/d101/*` | added | Correct predecessor after stale `8dfd81ea` merge; #176 drill survives on #222 |
+
+## 2026-11-23 — D101 ordered stack: #185 into #222
+
+| File | Change | Intent |
+|------|--------|--------|
+| Merge | `cursor/d49-settings-con-018-025-026-ade5` `834381f6` | Step 2 — #222 contains final #176 + main via #185 |
+
+## 2026-11-23 — D101 PR #222 normal main integration (`codex/d59-con044-exact-main`)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| Costing conflict files | merge | Main VAT/BoQ + D36 markup note retained | CON-044 planner draft untouched |
+| `e2e/support/journey-data.ts` (+ test, D78) | on_net oracle | D78 browser parity after main merge | No weakened asserts |
+
+**Checks:** Cloud Node 24 suite on merge head; hosted CI pending PR #222 push.
+
+## 2026-11-23 — D101 ordered stack: final #176 into #185 (`f6dda4d5`)
+
+| File | Change | Intent |
+|------|--------|--------|
+| Merge | `origin/main` `d2085969` + `codex/d36-markup-package-20261116` `f6dda4d5` | Ordered source stack step 1; drill/rollback lock files from #176 retained |
+| `e2e/support/journey-data*` | conflict | on_net default + deposit/balance pins (no weakened asserts) |
+
+## 2026-11-20 — D68 approved schema sequence (CI fixture replay)
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `scripts/verify-migration-replay.sh` | baseline loop + D68 tail | Exclude six manifest filenames from sorted baseline; append fixtures in `manifest.tsv` order with SHA-256 and repo hash equality; per-PR `psql` stage checks and `d68-apply-receipt` lines | Ordered #176→#185→#222→#223→#224 proof without pre-applying planner from checkout |
+| `scripts/ci-replay-in-container.sh` | `prepare` | Copy `scripts/fixtures/d68-schema-sequence` when `manifest.tsv` present; validate fixture SQL exist | Container replay sees fixtures; no production migration copy |
+| `scripts/fixtures/d68-schema-sequence/manifest.tsv` | new | Tab-separated PR order + SHA-256 + source heads | Parse without Python/jq in container |
+| `scripts/test-replay-bootstrap.sh` | D68 branches | Optional fifth `docker cp`, workspace file count, expected replay path order, receipt grep guards | Preserve standard bootstrap when manifest absent |
+| `docs/delivery/2026-11-20/d68-schema-sequence.md` | new | Apply order, preview steps, non-destructive rollback SQL per PR | Operator apply-ready text (not executed) |
+
+**Checks:** NOT RUN (CI-only lane). **Workflow path** `scripts/fixtures/d68-schema-sequence/**` not added — R1 may extend `migration-replay.yml` triggers or pair with script commits.
+
+## 2026-11-23 — D101 PR #185 normal main integration (`cursor/d49-settings-con-018-025-026-ade5`)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| Costing + journey fixtures | merge | Main + D36 markup; on_net journey oracle | D78 disposable browser parity |
+
+**Checks:** Cloud Node 24 lint/type/build/SQL guards/unit shards on merge head; hosted CI on PR #185 after push.
+
+## 2026-11-20 — D68 PR #185 merge onto `main` `53167bc` (D68 source-only)
+
+| File | Lines (approx.) | Change | Intent |
+| --- | --- | --- | --- |
+| `src/lib/proposal-site-photos.ts` | full module | Combined D51 `sitePhotoOrigin` / `sitePhotosForJob` with CON-026 `sitePhotosAfterUpload` | Resolve add/add merge; keep main filtering + #185 cover prepend |
+| `src/lib/proposal-site-photos.test.ts` | full file | D51 origin/snapshot tests + CON-026 prepend/append cases | Single regression file for both behaviours |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | imports ~39–41 | Single import from `proposal-site-photos` | Post-merge hygiene |
+| `docs/delivery/2026-11-16/changelog.md` | header | Kept D49 #185 delivery rows + `CON-073` from main | Preserve both delivery logs |
+| `docs/delivery/2026-11-20/d68-185-prep.md` | new | Preview-test steps + non-destructive rollback SQL (text) | Handoff for draft #185 CI; owner applies only |
+
+**Checks:** NOT RUN (D68 CI-only lane). Root (R1) owns merge commit, fast-forward draft #185, and CI grade.
+
+## 2026-11-16 — D49 PR #185 blocker fixes (cursor/d49-settings-con-018-025-026-ade5)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/company-vat-settings.ts` | vat + select | Gate off → legacy 20%; gate on + `vat_registered` null → legacy; `profilePublicationSelectColumns` omits VAT cols until gate on | Safe pre-migration; preserve existing contractors |
+| `supabase/migrations/20261116103000_con018_profile_vat_settings.sql` | defaults | `vat_registered` nullable default NULL | No implied unregistered until user sets |
+| `src/app/dashboard/projects/proposal/page.tsx` | profile fetch | Shared `profilePublicationSelectColumns()` + typed cast | Preview/publish parity with `actions.ts` |
+| `src/app/dashboard/projects/proposal/actions.ts` | publish | Import shared column list | Same profile shape as proposal page |
+| `src/lib/proposal-site-photos.ts` | (new) | Prepend cover upload, append scope upload | CON-026 cover targets first site photo |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | upload | `sitePhotosAfterUpload(..., "cover" \| "scope")` | Cover slot = index 0 |
+| `src/app/dashboard/settings/profile/profile-form.tsx` | VAT toggle | `null` treated as registered in UI only | Matches legacy 20% until explicit opt-out |
+| `src/lib/company-vat-settings.test.ts`, `proposal-review.test.ts`, `proposal-site-photos.test.ts` | tests | VAT legacy/null/gate; preview/publish 5%; prepend cover | Claude block regressions |
+
+## 2026-11-16 — D49 CON-018 / CON-025 / CON-026 settings (cursor/d49-settings-con-018-025-026-ade5)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/company-vat-settings.ts` | (new) | Gate, normalise VAT number, `vatFromCompanyAndProject` | CON-018 company VAT rate/registration/reverse-charge defaults |
+| `supabase/migrations/20261116103000_con018_profile_vat_settings.sql` | (new) | `profiles` VAT columns | **OWNER/MIGRATION GATE — not applied** |
+| `src/lib/profile-update.ts` | vat_number + gated fields | Normalise VAT number; persist gated columns when `CONSTRUCTA_PROFILE_VAT_SETTINGS=1` | Safe pre-migration saves |
+| `src/app/dashboard/settings/profile/profile-form.tsx` | company basics | VAT on proposals fieldset when gate on | CON-018 UI |
+| `src/app/dashboard/settings/profile/page.tsx` | pass gate | `vatSettingsEnabled` prop | Deploy-time switch |
+| `src/lib/proposal-review.ts` | `vatFor` | Thread profile into company VAT helper | Proposal preview/publish parity |
+| `src/app/dashboard/projects/proposal/actions.ts` | publish | `vatFor(project, profile)` | Publish uses company VAT when enabled |
+| `src/lib/company-interview/storage-ready.ts` | (new) | Missing-table PostgREST codes | CON-025 |
+| `src/lib/company-interview/service.ts` | readAnswers/loadInterview | Treat missing interview storage as empty state | CON-025 no whole-page failure |
+| `src/app/dashboard/settings/profile/interview/page.tsx` | load try/catch | Fail closed to client load error UI | CON-025 |
+| `src/app/dashboard/projects/proposal/review-send-client.tsx` | cover section | Cover upload via `proposal-photos` path; site choice not blocked | CON-026 |
+| `src/app/dashboard/projects/proposal/a074-cover-photo-choice.test.tsx` | CON-026 case | Cover upload control regression | |
+| `src/lib/company-vat-settings.test.ts`, `storage-ready.test.ts`, `service.test.ts`, `proposal-review.test.ts` | tests | Focused regressions | |
+
+**Rollout gates (no live activation):**
+- CON-018: `CONSTRUCTA_PROFILE_VAT_SETTINGS=1` **and** migration `20261116103000_con018_profile_vat_settings.sql` applied by **Rob**.
+- CON-026 cover persistence unchanged: `CONSTRUCTA_PROPOSAL_COVER_PHOTO=1` **and** migration `20261114201500_a074_proposal_cover_photo.sql`.
+
+## 2026-11-23 — D100 D78 journey fixture on_net parity (`cursor/constructa-d100-pr176-normal-main-integration-68c5`)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `e2e/support/journey-data.ts` | `expectedPrice`, exports | Default `on_net` math on construction cost; optional `compound`; `JOURNEY_MARKUP_NOTE` | Match D36 default company/estimate behaviour; keep legacy compound pin |
+| `e2e/support/journey-data.test.ts` | (new) | Vitest pins on_net £10,515.40 and compound £10,754.13 totals | Regression without weakening browser assertions |
+| `e2e/d78-founding-journey.qa.ts` | ~160, ~203 | Assert running-total and draft-PDF calculation-method copy | Disposable D78 browser evidence |
+
+**Checks:** Cloud vitest `journey-data.test.ts` + full unit shards; hosted D38/D78 rerun pending R1 PR176 integration.
+
+## 2026-11-23 — D100 PR #176 normal main integration (`cursor/constructa-d100-pr176-normal-main-integration-68c5`)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/dashboard/projects/costs/boq-excel-export.ts` | imports, summary tail | Main `boqSummaryRows` + VAT via `vatFor`; retain D36 `MARKUP_METHOD_NOTE` row | BoQ export parity with proposal and markup wording |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | ~1698–1708 | Both markup-method note and programme prelims hint | Preserve D36 + main D96 hints |
+| `src/lib/simple-estimate.ts` | ~246–255 | `PriceVat` + `markup_method` on `EstimatePercentages` | Reverse-charge VAT + D36 summary |
+
+**Checks:** Cloud Node 24 lint/typecheck/build + SQL guards on merged head.
+
+## 2026-11-20 — PR #176 main integration merge conflict resolution (`codex/approved-176-integration-20261120`)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/financial.ts` | 36–99, 172–228 | D36 `on_net` / `compound` + main CON-016 inline comments | Single canonical contract sum |
+| `src/lib/simple-estimate.ts` | 15–19 | Both `evaluateDiscountSubmitGate` and `MarkupMethod` imports | Main discount gates + D36 summary |
+| `src/lib/proposal-publication.ts` | imports, fee items, case studies, site photos | `MARKUP_METHOD_NOTE`, `contractValueVatBasis`, main comments + D36 `calculation_note` | Publication snapshot parity |
+| `src/lib/case-library/proposal-wiring.test.ts` | 28–50 | Both main programme hash pin and D36 `calculation_note` pin | Preserve main wiring + D36 additive field |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | 1688–1696 | Markup note + main zero-adjustment guard | UI merge |
+| `src/app/dashboard/projects/costs/advanced-estimate.tsx` | 36–41 | Combined D36 + main imports | Advanced workspace |
+| `src/app/dashboard/projects/costs/boq-excel-export.ts` | 6–9 | Canonical sum + section grouping imports | BoQ export |
+| `src/lib/estimate-line-type.ts`, `proposal-site-photos.ts`, `proposal-site-photos.test.ts` | conflict tail | Marker cleanup only | Trivial UU |
+| `docs/delivery/2026-11-16/changelog.md` | whole | Merged delivery sections (no duplicate CON-073) | Both D36 and main notes |
+| `docs/delivery/2026-11-20/approved-176-integration.md` | rollback § | Safer rollback semantics | No blind column drop / old app |
+
+**Checks:** NOT RUN (source-only lane; R1 owns git commit, CI, Sonnet, preview).
 ## 2026-11-21 — D81 CON-012 profile isolation (ephemeral replay, draft unverified in CI)
 
 | File | Lines (approx.) | Change | Intent |
@@ -473,6 +624,7 @@
 | `src/app/dashboard/projects/costs/estimate-client.tsx` | advanced wrapper classes | Apply workspace layout classes | CON-032 |
 | `src/lib/*.test.ts`, `con-032-advanced-panel-layout.test.ts` | (new) | Focused CON-022/031/032 tests | No live data |
 | `package-lock.json` | revert | Restored to `868df15` main; drop accidental npm-install churn from first push | Keep P1 diff scoped to estimate work |
+
 ## 2026-11-16 — D46 P1 proposal CON-036/037/040 (cursor/d46-p1-proposal-con-036-037-040-445c)
 
 | File | Lines (approx.) | Change | Intent |

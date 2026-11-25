@@ -67,4 +67,11 @@ describe("A074 proposal cover photo choice (enabled)", () => {
         expect(html).toContain('id="review-cover-photo-illustrative_render"');
         expect(html).toMatch(/<input[^>]*id="review-cover-photo-illustrative_render"[^>]*checked/);
     });
+
+    it("CON-026 exposes cover upload in the cover section and does not disable the site choice", () => {
+        const html = review({ coverPhotoEnabled: true });
+        expect(html).toContain("data-review-cover-upload");
+        expect(html).toContain("Upload a site cover photo");
+        expect(html).not.toMatch(/id="review-cover-photo-site"[^>]*disabled/);
+    });
 });

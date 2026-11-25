@@ -44,7 +44,7 @@ describe('phase-one marketing integration', () => {
     const html = renderToStaticMarkup(<MarketingMobileMenu />);
     expect(html).toMatch(/^<details\b(?![^>]*\bopen\b)[^>]*><summary>Menu<\/summary>/);
     const links = [...html.matchAll(/<a\b[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/g)].map(match => [match[1], match[2]]);
-    expect(links).toEqual([['/features', 'Product'], ['/pricing', 'Preview access'], ['/about', 'About'], ['/guides', 'Guides'], ['/login', 'Sign in']]);
+    expect(links).toEqual([['/features', 'Product'], ['/pricing', 'Preview access'], ['/about', 'About'], ['/guides', 'Guides'], ['/apply', 'Apply to the founding cohort'], ['/login', 'Sign in']]);
   });
 
   it('closes the open mobile menu on selection without moving focus', () => {
@@ -79,8 +79,8 @@ describe('phase-one marketing integration', () => {
 
   it('wires selection and Escape to the close handler in source, not computed browser proof', () => {
     const source = readFileSync(new URL('./marketing-mobile-menu.tsx', import.meta.url), 'utf8');
-    expect(source.match(/<Link\b/g) ?? []).toHaveLength(5);
-    expect(source.match(/<Link\b[^>]*onClick=\{closeOnSelection\}/g) ?? []).toHaveLength(5);
+    expect(source.match(/<Link\b/g) ?? []).toHaveLength(6);
+    expect(source.match(/<Link\b[^>]*onClick=\{closeOnSelection\}/g) ?? []).toHaveLength(6);
     expect(source).toMatch(/event\.key === 'Escape'\) closeMobileMenu\(menu\.current, document\.activeElement\)/);
     expect(source).toContain("document.addEventListener('keydown', onKeyDown)");
     expect(source).toContain("document.removeEventListener('keydown', onKeyDown)");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo, useEffect, useRef } from "react";
+import { useState, useTransition, useMemo, useEffect, useRef, useId } from "react";
 import { MAX_WORKING_DAYS, startDateInPastWarning } from "@/lib/simple-programme";
 import {
     autosaveProgrammePlannerDraftAction,
@@ -185,6 +185,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
     const expectedWorkingPattern = project.programme_working_pattern == null ? undefined : workingPattern;
     const plannerDraftStorageScope = plannerDraftViewerScope;
     const [isPending, startTransition] = useTransition();
+    const programmeStartDateInputId = useId();
     const [isDragging, setIsDragging] = useState(false);
     const [showLiveTracking, setShowLiveTracking] = useState(false);
 
@@ -884,9 +885,15 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
             <div className="flex items-center gap-4 flex-wrap bg-slate-800/40 border border-slate-700/50 rounded-xl px-4 py-3">
                 {/* Start date */}
                 <div className="flex items-center gap-2.5">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Start date</span>
+                    <label
+                        htmlFor={programmeStartDateInputId}
+                        className="text-xs font-semibold uppercase tracking-wider text-slate-400"
+                    >
+                        Start date
+                    </label>
                     <div className="relative">
                         <input
+                            id={programmeStartDateInputId}
                             type="date"
                             className="h-8 pl-3 pr-2 text-xs border border-slate-700 rounded-lg bg-slate-900/60 text-slate-200 focus:outline-none focus:border-emerald-500/60 cursor-pointer"
                             value={toInputDate(programmeStart)}
@@ -902,7 +909,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
 
                 {/* Working week */}
                 <div className="flex items-center gap-2.5">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Working week</span>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Working week</span>
                     <span className="text-xs text-slate-300" data-planner-saved-working-days>
                         {workingPattern?.weekdays.map(day => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][day]).join(", ")}
                     </span>
@@ -936,7 +943,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
 
             {/* ── Drag hint ── */}
             {phases.length > 0 && (
-                <div className="hidden lg:flex items-center gap-4 text-[11px] text-slate-400 flex-wrap">
+                <div className="hidden lg:flex items-center gap-4 text-xs text-slate-400 flex-wrap">
                     <span>Drag bar to move · Drag right edge to resize · Snaps to week</span>
                     {weekHeaders[0].weeks > 1 && (
                         <span>Grid columns group up to {weekHeaders[0].weeks} calendar weeks; the last column may be shorter. Weekly move and resize snapping is unchanged.</span>
@@ -1020,16 +1027,18 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                     <div className="flex min-w-[444px] lg:min-w-[900px] border-b border-slate-700/50 bg-slate-900/40 lg:sticky lg:top-0 lg:z-40 lg:bg-slate-900">
                         <div className="flex shrink-0 w-full lg:w-auto lg:sticky lg:left-0 lg:z-10 lg:bg-slate-900">
                             <div className="w-[216px] shrink-0 border-r border-slate-700/50 px-3 py-2.5">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Phase / Trade</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-300">Phase / Trade</span>
                             </div>
-                            <div className="w-14 shrink-0 border-r border-slate-700/50 text-center py-2.5">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Calc</span>
+                            <div className="w-14 shrink-0 border-r border-slate-700/50 text-center py-2 leading-tight">
+                                <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-300">Calc</span>
+                                <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-300">days</span>
                             </div>
-                            <div className="w-16 shrink-0 border-r border-slate-700/50 text-center py-2.5">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Days</span>
+                            <div className="w-16 shrink-0 border-r border-slate-700/50 text-center py-2 leading-tight">
+                                <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-300">Working</span>
+                                <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-300">days</span>
                             </div>
                             <div className="w-[108px] shrink-0 border-r border-slate-700/50 text-center py-2.5">
-                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Starts After</span>
+                                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-300">Starts After</span>
                             </div>
                         </div>
                         <div className="hidden lg:flex flex-1">
@@ -1037,8 +1046,8 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                                 <div key={wk.weekIndex} data-planner-week-start={wk.weekIndex + 1} data-planner-week-span={wk.weeks}
                                     title={wk.range} aria-label={wk.range}
                                     className="shrink-0 min-w-0 text-center py-1.5 border-r border-slate-700/20 last:border-0" style={{ width: `${wk.weeks / totalWeeks * 100}%` }}>
-                                    <div className="text-[9px] font-bold text-slate-400 leading-tight truncate">{wk.label}</div>
-                                    <div className="text-[8px] text-slate-400 leading-tight truncate hidden md:block">{wk.date}</div>
+                                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-300 leading-tight truncate">{wk.label}</div>
+                                    <div className="text-[10px] text-slate-400 leading-tight truncate hidden md:block">{wk.date}</div>
                                     {wk.weeks === 1 && <div className="grid grid-cols-7 mt-1" aria-label="Calendar days Monday to Sunday">
                                         {[1, 2, 3, 4, 5, 6, 0].map(day => <span key={day} data-planner-calendar-day={day}
                                             data-working-day={workingPattern?.weekdays.includes(day) ? "true" : "false"}
@@ -1084,8 +1093,10 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                                                     ×
                                                 </button>
                                             </div>
-                                            <div className="hidden lg:flex text-[9px] text-slate-400 pl-[14px] mt-0.5 items-center gap-1.5">
-                                                <span>{fmtDate(phaseStart)} – {fmtDate(phaseEnd)}</span>
+                                            <div className="hidden lg:flex text-[10px] tabular-nums text-slate-300 pl-[14px] mt-0.5 items-center gap-1.5">
+                                                <time dateTime={displayStage?.start_date ?? toInputDate(phaseStart)}>{fmtDate(phaseStart)}</time>
+                                                <span aria-hidden="true">–</span>
+                                                <time dateTime={displayStage?.end_date ?? toInputDate(phaseEnd)}>{fmtDate(phaseEnd)}</time>
                                                 {phase.manhours > 0 && <span>· {Math.round(phase.manhours)}h</span>}
                                                 {isFinalWeek && <span className="text-yellow-500">★</span>}
                                                 {reviewStages.includes(idx) && <span data-planner-review-flag className="text-amber-400 font-semibold">Check days</span>}

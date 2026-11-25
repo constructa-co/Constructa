@@ -46,7 +46,7 @@ function stopped(signal: AbortSignal, fallback: string) {
  * holds them; the fingerprint is taken from exactly those, with the message.
  */
 export function createPricingRequestGenerator(
-    read: () => { project: { id: string; brief_scope: string }; estimate: Estimate | null },
+    read: () => { project: { id: string; brief_scope: string; scope_text?: string | null }; estimate: Estimate | null },
     request: (input: PricingTurnRequest) => Promise<unknown>,
 ): PricingConversationGenerator {
     return async ({ messages, signal }) => {

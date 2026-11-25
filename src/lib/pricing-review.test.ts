@@ -35,6 +35,21 @@ describe("source-bound pricing review", () => {
         const result = buildPricingReviewContext({ id: "job", brief_scope: "Work" }, null);
         expect(result.ok && result.value.estimateId).toBeNull();
     });
+    it("uses saved proposal scope on Estimating when scope_text is set", () => {
+        const brief = "Brief-only wording.\n\nSite, access and assumptions:\nNote.";
+        const override = "Proposal scope edited on Estimating.";
+        const result = buildPricingReviewContext({ id: "job", brief_scope: brief, scope_text: override }, null);
+        expect(result.ok && result.value.work).toBe(override);
+        const other = buildPricingReviewContext({ id: "job", brief_scope: brief, scope_text: null }, null);
+        expect(other.ok && other.value.work).toBe("Brief-only wording.");
+        if (!result.ok || !other.ok) throw new Error("expected ok contexts");
+        expect(result.value.revision).not.toBe(other.value.revision);
+    });
+    it("treats blank detailed scope as absent and uses brief work", () => {
+        const brief = "Brief work only.";
+        const result = buildPricingReviewContext({ id: "job", brief_scope: brief, scope_text: "   " }, null);
+        expect(result.ok && result.value.work).toBe(brief);
+    });
     it("refuses oversized source text without silently truncating it", () => {
         expect(buildPricingReviewContext({ id: "job", brief_scope: "x".repeat(20001) }, null).ok).toBe(false);
     });

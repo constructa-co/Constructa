@@ -21,7 +21,7 @@ describe("new line activity draft and confirmed-save contract", () => {
         const { store, server, save } = setup(" Kitchen ");
         expect(await save()).toBe(true);
         expect(server.saveLine).toHaveBeenCalledExactlyOnceWith({ projectId: "job", estimateId: "estimate", newEstimateId: "pending", lineId: "line", activity: "Kitchen",
-            line: { description: "Fit cupboards", quantity: 1, unit: "item", unit_rate: 100 } });
+            line: { description: "Fit cupboards", quantity: 1, unit: "item", unit_rate: 100, included: false } });
         expect(store.getState().estimates[0].estimate_lines[0].trade_section).toBe("Kitchen");
         expect(store.getState().ops.new.draft).toEqual(EMPTY_PRICE_LINE_DRAFT); expect(server.updateLine).not.toHaveBeenCalled();
         expect(currentSummary(store.getState())).toMatchObject({ linesTotal: 100 });

@@ -302,7 +302,7 @@ describe("expanded estimating table inline rate editing", () => {
     it("uses the existing explicit update controller and updates canonical totals after confirmation", async () => {
         open(); details(); change("quantity", "2.5"); change("rate", "40");
         await submit();
-        expect(current.update).toHaveBeenCalledExactlyOnceWith("estimate", "one", { description: "Walls one", quantity: 2.5, unit: "m2", unit_rate: 40 });
+        expect(current.update).toHaveBeenCalledExactlyOnceWith("estimate", "one", { description: "Walls one", quantity: 2.5, unit: "m2", unit_rate: 40, included: false });
         expect(current.state!.ops.one).toBeUndefined();
         expect(currentSummary(current.state!)).toMatchObject({ contractSum: 300, vat: 60, totalIncVat: 360 });
         expect(current.other).not.toHaveBeenCalled();

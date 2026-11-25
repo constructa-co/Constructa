@@ -32,11 +32,24 @@ describe("older-only proposals are exactly as they were", () => {
     it("pins the representative legacy selection with the regional calendar fields", async () => {
         const snapshot = buildProposalPublicationSnapshot(representativeInput());
         expect(snapshot.programme_plan?.duration_label).toBe("15 working days (3 weeks)");
+        // D36 adds the separately asserted calculation note. Removing that one
+        // field must recover the exact current-main legacy snapshot, including
+        // CON-058 labels, calendar, photo order, values and all other content.
+        delete snapshot.commercial.calculation_note;
         expect(await hashProposalContent(snapshot)).toBe("e769bc4faf2b82be3efd1fcb605ce094802767f1ddf59f76c8c4312aa7cc88ce");
         expect(await hashProposalPublication(snapshot)).toBe("3a92756f10b0134472e71753affa785b927f6e880046481446a433e78d15cb48");
         const legacyLabel = { ...snapshot, programme_plan: { ...snapshot.programme_plan!, duration_label: "3 weeks" } };
         expect(await hashProposalContent(legacyLabel)).toBe("2b0185bf6355f113239781dd87aaf9025648babacb72257a567a76c68161f8e4");
         expect(await hashProposalPublication(legacyLabel)).toBe("87b47a6df37223f114ac39b0c0aec56718554ebfe260f67aac11ab9a2895b314");
+    });
+
+    // D36: legacy compounded estimates gain only `calculation_note`; remainder of the snapshot is unchanged.
+    it("the representative proposal changes only by adding the calculation method", async () => {
+        const snapshot = buildProposalPublicationSnapshot(representativeInput());
+        expect(snapshot.commercial.calculation_note).toContain("are compounded");
+        delete snapshot.commercial.calculation_note;
+        expect(await hashProposalContent(snapshot)).toBe("e769bc4faf2b82be3efd1fcb605ce094802767f1ddf59f76c8c4312aa7cc88ce");
+        expect(await hashProposalPublication(snapshot)).toBe("3a92756f10b0134472e71753affa785b927f6e880046481446a433e78d15cb48");
     });
 
     it.each([[[]], [["o1"]], [["1"]], [[2, "o5"]], [["o1", "o2", "o3", "o4", "o5", "o6", "o7"]], [["nope"]], [null], [["o7", "o1"]]])("selection %j: the case studies are today's selection, with no library, an empty one, or a full one", (selected) => {

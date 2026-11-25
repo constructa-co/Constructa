@@ -26,6 +26,7 @@ import {
     type SimpleResult,
     type UpdatePriceLineResult,
 } from "@/lib/simple-estimate";
+import { companyMarkupMethod } from "@/lib/server/company-markup-method";
 import { recalcEstimateTotal } from "./estimate-total";
 import { toEstimate, toEstimateLine } from "./estimate-mapping";
 import { mapLegacyCostLibraryRow, mapMomRowsToCostLibrary } from "@/lib/cost-library-catalog";
@@ -51,8 +52,13 @@ const LineSchema = z.object({
     description: z.string().trim().min(1).max(MAX_DESCRIPTION_LENGTH),
     quantity: z.number().positive().max(MAX_LINE_QUANTITY),
     unit: z.string().trim().min(1).max(MAX_UNIT_LENGTH),
-    unit_rate: z.number().positive().max(MAX_LINE_AMOUNT),
-}).refine((line) => lineTotal(line.quantity, line.unit_rate) <= MAX_LINE_AMOUNT);
+    unit_rate: z.number().min(0).max(MAX_LINE_AMOUNT),
+    included: z.boolean().default(false),
+}).refine(
+    (line) => line.unit_rate > 0 || line.included,
+    { message: "A zero rate requires Included (not charged)." },
+).refine((line) => lineTotal(line.quantity, line.unit_rate) <= MAX_LINE_AMOUNT)
+.transform((line) => ({ ...line, included: line.included && line.unit_rate === 0 }));
 
 const SaveLineSchema = z.object({
     projectId: z.string().uuid(),
@@ -151,6 +157,7 @@ export async function saveSimplePriceLineAction(request: SavePriceLineRequest): 
                     id: newEstimateId,
                     project_id: projectId,
                     organization_id: project.organization_id ?? null,
+                    markup_method: await companyMarkupMethod(supabase, user.id),
                     version_name: "Estimate v1",
                     total_cost: 0,
                     prelims_pct: 0,
@@ -194,6 +201,7 @@ export async function saveSimplePriceLineAction(request: SavePriceLineRequest): 
             line_total: lineTotal(line.quantity, line.unit_rate),
             line_type: "general",
             pricing_mode: "simple",
+            included: line.included,
         });
 
         if (lineError && lineError.code !== UNIQUE_VIOLATION) {
@@ -232,6 +240,7 @@ export async function saveSimplePriceLineAction(request: SavePriceLineRequest): 
             || !matchesStoredNumber(savedLine.line_total, lineTotal(line.quantity, line.unit_rate))
             || savedLine.line_type !== "general"
             || savedLine.pricing_mode !== "simple"
+            || savedLine.included !== line.included
         )) return {
             ok: false,
             error: "This line was already saved with different details. Your draft is still here. Reload to reconcile it; no saved price was overwritten.",
@@ -289,7 +298,7 @@ export async function updateSimplePriceLineAction(
 
         const { data: current } = await supabase
             .from("estimate_lines")
-            .select("id, pricing_mode, quantity, unit_rate, description, unit")
+            .select("id, pricing_mode, quantity, unit_rate, description, unit, included")
             .eq("id", lineId)
             .eq("estimate_id", estimateId)
             .maybeSingle();
@@ -306,16 +315,18 @@ export async function updateSimplePriceLineAction(
                 unit: parsed.data.unit,
                 unit_rate: parsed.data.unit_rate,
                 line_total: lineTotal(parsed.data.quantity, parsed.data.unit_rate),
+                included: parsed.data.included,
             })
             .eq("id", lineId)
             .eq("estimate_id", estimateId);
         update = current.quantity === null ? update.is("quantity", null) : update.eq("quantity", current.quantity);
         update = current.unit_rate === null ? update.is("unit_rate", null) : update.eq("unit_rate", current.unit_rate);
         update = current.description === null ? update.is("description", null) : update.eq("description", current.description);
+        update = current.included === undefined ? update : update.eq("included", current.included);
         update = current.unit === null ? update.is("unit", null) : update.eq("unit", current.unit);
 
         const { data: updated, error } = await update
-            .select("id, description, quantity, unit, unit_rate, line_total")
+            .select("id, description, quantity, unit, unit_rate, line_total, included")
             .maybeSingle();
         if (error) {
             console.error("[updateSimplePriceLineAction] failed", { estimateId, code: error.code });

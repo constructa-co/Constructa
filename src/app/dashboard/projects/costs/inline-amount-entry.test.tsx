@@ -110,7 +110,7 @@ describe("inline saved one-price editing", () => {
     });
     it("uses exactly one existing update after explicit Save,retaining source section/resources/identity", async () => {
         open(); change("amount", "1234.50"); change("description", "Specialist finishing"); await submit();
-        expect(current.update).toHaveBeenCalledExactlyOnceWith("estimate", "one", { description: "Specialist finishing", quantity: 1, unit: "item", unit_rate: 1234.5 });
+        expect(current.update).toHaveBeenCalledExactlyOnceWith("estimate", "one", { description: "Specialist finishing", quantity: 1, unit: "item", unit_rate: 1234.5, included: false });
         expect(current.state!.estimates[0].estimate_lines[0]).toMatchObject({ id: "one", estimate_id: "estimate", trade_section: "Decoration", pricing_mode: "simple", line_type: "general", estimate_line_components: [] });
         expect(current.state!.ops.one).toBeUndefined(); expect(currentSummary(current.state!).contractSum).toBe(1434.5);
         expect(current.other).not.toHaveBeenCalled();
@@ -205,7 +205,7 @@ describe("inline saved one-price editing", () => {
         current.state!.estimates[0].estimate_lines[0].trade_section = "Preliminaries";
         open(); change("amount", "300"); await submit();
         expect(current.state!.estimates[0].estimate_lines[0].trade_section).toBe("Preliminaries");
-        expect(current.update).toHaveBeenCalledExactlyOnceWith("estimate", "one", { description: "Walls one", quantity: 1, unit: "item", unit_rate: 300 });
+        expect(current.update).toHaveBeenCalledExactlyOnceWith("estimate", "one", { description: "Walls one", quantity: 1, unit: "item", unit_rate: 300, included: false });
     });
     it("keeps two form IDs independent and escapes literal contractor wording", () => {
         open(); open("two"); change("description", "<script> =2*4");

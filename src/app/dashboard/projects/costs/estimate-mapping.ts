@@ -7,6 +7,7 @@ export function toEstimateLine(row: any): EstimateLine {
     return {
         ...row,
         pricing_mode: row.pricing_mode || "simple",
+        included: row.included === true,
         estimate_line_components: row.estimate_line_components || [],
     };
 }

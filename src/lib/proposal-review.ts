@@ -30,6 +30,7 @@ import {
     parseProposalCoverPhotoChoice,
     type ProposalCoverPhotoChoice,
 } from "@/lib/proposal-cover-photo";
+import { vatFromCompanyAndProject } from "@/lib/company-vat-settings";
 import {
     buildProposalPublicationSnapshot,
     sanitisePhotos,
@@ -520,7 +521,7 @@ export function buildPreviewSnapshot(
             termsProfileVersion: PROPOSAL_TERMS_PROFILE_VERSION,
             resolvedTerms: draftTerms(draft),
             responseKind,
-            ...vatFor(context.project),
+            ...vatFor(context.project, context.profile),
             ...(context.caseStudyLibrary ? { caseStudyLibrary: { userId: context.caseStudyLibrary.userId, rows: context.caseStudyLibrary.rows } } : {}),
         }, { allowIncomplete: true });
     } catch {
@@ -529,10 +530,11 @@ export function buildPreviewSnapshot(
 }
 
 /** VAT as the publication states it. Used by the preview and by the real publish. */
-export function vatFor(project: { is_vat_reverse_charge?: boolean | null }) {
-    return project.is_vat_reverse_charge === true
-        ? { vatRate: 0, vatTreatment: "domestic_reverse_charge" as const }
-        : { vatRate: 20, vatTreatment: "standard" as const };
+export function vatFor(
+    project: { is_vat_reverse_charge?: boolean | null },
+    profile?: ProposalPublicationProfileInput | null,
+) {
+    return vatFromCompanyAndProject(project, profile);
 }
 
 // ── AI wording ───────────────────────────────────────────────────────────────

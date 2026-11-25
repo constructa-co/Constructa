@@ -6,8 +6,10 @@ import {
     buildBlankProjectGraph,
     parseBlankProjectInput,
     resolveBlankProjectCreation,
+    stampCompanyMarkupOnEstimateSeeds,
     type CreateBlankProjectResult,
 } from "@/lib/blank-project";
+import { companyMarkupMethod } from "@/lib/server/company-markup-method";
 
 /**
  * Creates a blank project through the atomic, idempotent creation RPC. The
@@ -24,11 +26,12 @@ export async function createBlankProjectAction(
     const graph = buildBlankProjectGraph(parsed.input);
 
     try {
-        const { supabase } = await requireAuth();
+        const { supabase, user } = await requireAuth();
+        const markupMethod = user ? await companyMarkupMethod(supabase, user.id) : "on_net";
         const { data, error } = await supabase.rpc("create_phase1_project_graph", {
             p_request_id: graph.requestId,
             p_project: graph.project,
-            p_estimates: graph.estimates,
+            p_estimates: stampCompanyMarkupOnEstimateSeeds(graph.estimates, markupMethod),
         });
         const result = resolveBlankProjectCreation(data, error);
         if (!result.success) {

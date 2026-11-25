@@ -145,7 +145,7 @@ const request = (overrides: Record<string, unknown> = {}) => ({
     estimateId: null,
     newEstimateId: NEW_ESTIMATE_ID,
     lineId: LINE_ID,
-    line: { description: "Bathroom refit", quantity: 1, unit: "item", unit_rate: 2500 },
+    line: { description: "Bathroom refit", quantity: 1, unit: "item", unit_rate: 2500, included: false },
     ...overrides,
 });
 
@@ -167,6 +167,7 @@ describe("saveSimplePriceLineAction — lazy estimate creation", () => {
             project_id: PROJECT_ID,
             organization_id: ORG_ID,
             version_name: "Estimate v1",
+            markup_method: "on_net",
             total_cost: 2500,
             prelims_pct: 0,
             overhead_pct: 0,
@@ -211,9 +212,19 @@ describe("saveSimplePriceLineAction — lazy estimate creation", () => {
     it("multiplies quantity by rate for the stored line total", async () => {
         const db = fakeDb();
         useDb(db);
-        await saveSimplePriceLineAction(request({ line: { description: "Wall tiling", quantity: 12.5, unit: "m2", unit_rate: 45.5 } }));
+        await saveSimplePriceLineAction(request({ line: { description: "Wall tiling", quantity: 12.5, unit: "m2", unit_rate: 45.5, included: false } }));
         expect(db.tables.estimate_lines[0].line_total).toBe(568.75);
         expect(db.tables.estimates[0].total_cost).toBe(568.75);
+    });
+
+    it("persists included with a deliberate zero-rate line (CON-068)", async () => {
+        const db = fakeDb();
+        useDb(db);
+        const result = await saveSimplePriceLineAction(request({
+            line: { description: "Existing roof tiles", quantity: 1, unit: "item", unit_rate: 0, included: true },
+        }));
+        expect(result.ok).toBe(true);
+        expect(db.tables.estimate_lines[0]).toMatchObject({ unit_rate: 0, included: true, line_total: 0 });
     });
 
     it("does not touch the database for a line with no description or price", async () => {
@@ -221,10 +232,10 @@ describe("saveSimplePriceLineAction — lazy estimate creation", () => {
         useDb(db);
 
         for (const line of [
-            { description: " ", quantity: 1, unit: "item", unit_rate: 2500 },
-            { description: "x", quantity: 1, unit: "item", unit_rate: 0 },
-            { description: "x", quantity: -1, unit: "item", unit_rate: 10 },
-            { description: "x", quantity: 1, unit: " ", unit_rate: 10 },
+            { description: " ", quantity: 1, unit: "item", unit_rate: 2500, included: false },
+            { description: "x", quantity: 1, unit: "item", unit_rate: 0, included: false },
+            { description: "x", quantity: -1, unit: "item", unit_rate: 10, included: false },
+            { description: "x", quantity: 1, unit: " ", unit_rate: 10, included: false },
         ]) {
             expect((await saveSimplePriceLineAction(request({ line }))).ok).toBe(false);
         }
@@ -418,7 +429,7 @@ describe("lost-acknowledgement new-line retry identity", () => {
         { unit_rate: 1500 },
     ])("does not acknowledge an older stored row for changed fields %j", async change => {
         const db = fakeDb(); useDb(db);
-        const original = { description: "Bathroom refit", quantity: 1, unit: "item", unit_rate: 1000 };
+        const original = { description: "Bathroom refit", quantity: 1, unit: "item", unit_rate: 1000, included: false };
         db.failNext("estimate_lines", "select");
         expect(await saveSimplePriceLineAction(request({ line: original }))).toMatchObject({ ok: false });
         expect(db.tables.estimate_lines).toHaveLength(1);
@@ -454,7 +465,7 @@ describe("lost-acknowledgement new-line retry identity", () => {
         const db = fakeDb(); useDb(db);
         expect((await saveSimplePriceLineAction(request())).ok).toBe(true);
         Object.assign(db.tables.estimate_lines[0], { quantity: "1.0000", unit_rate: "2500.00", line_total: "2500.00" });
-        expect(await saveSimplePriceLineAction(request({ line: { description: "  Bathroom refit  ", quantity: 1, unit: " item ", unit_rate: 2500 } }))).toMatchObject({ ok: true });
+        expect(await saveSimplePriceLineAction(request({ line: { description: "  Bathroom refit  ", quantity: 1, unit: " item ", unit_rate: 2500, included: false } }))).toMatchObject({ ok: true });
         expect(db.tables.estimate_lines).toHaveLength(1);
         expect(db.log).not.toContain("update:estimate_lines");
     });
@@ -473,7 +484,7 @@ describe("edit, delete and adjustments", () => {
         const db = seeded();
         useDb(db);
 
-        const result = await updateSimplePriceLineAction(NEW_ESTIMATE_ID, LINE_ID, { description: "Bathroom refit", quantity: 1, unit: "item", unit_rate: 3000 });
+        const result = await updateSimplePriceLineAction(NEW_ESTIMATE_ID, LINE_ID, { description: "Bathroom refit", quantity: 1, unit: "item", unit_rate: 3000, included: false });
 
         expect(result).toMatchObject({ ok: true, line: { id: LINE_ID, unit_rate: 3000, line_total: 3000 } });
         expect(db.tables.estimates[0].total_cost).toBe(3100);
@@ -484,7 +495,7 @@ describe("edit, delete and adjustments", () => {
         useDb(db);
         db.failNext("estimate_lines", "update");
 
-        const result = await updateSimplePriceLineAction(NEW_ESTIMATE_ID, LINE_ID, { description: "Changed", quantity: 1, unit: "item", unit_rate: 3000 });
+        const result = await updateSimplePriceLineAction(NEW_ESTIMATE_ID, LINE_ID, { description: "Changed", quantity: 1, unit: "item", unit_rate: 3000, included: false });
 
         expect(result).toEqual({ ok: false, error: LINE_SAVE_ERROR });
         expect(db.tables.estimate_lines[0]).toMatchObject({ description: "Bathroom refit", unit_rate: 2500 });
@@ -502,6 +513,7 @@ describe("edit, delete and adjustments", () => {
             quantity: 1,
             unit: "item",
             unit_rate: 3000,
+            included: false,
         });
 
         expect(result.ok).toBe(false);
@@ -513,7 +525,7 @@ describe("edit, delete and adjustments", () => {
         const db = seeded();
         useDb(db);
 
-        const result = await updateSimplePriceLineAction(NEW_ESTIMATE_ID, OTHER_LINE_ID, { description: "x", quantity: 1, unit: "item", unit_rate: 1 });
+        const result = await updateSimplePriceLineAction(NEW_ESTIMATE_ID, OTHER_LINE_ID, { description: "x", quantity: 1, unit: "item", unit_rate: 1, included: false });
 
         expect(result.ok).toBe(false);
         expect(db.tables.estimate_lines[1]).toMatchObject({ unit_rate: 50, line_total: 100 });

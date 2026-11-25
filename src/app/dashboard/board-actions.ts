@@ -50,18 +50,20 @@ async function confirmedStageWrite(
         return { success: false, error: PIPELINE_CHANGE_UNCONFIRMED };
     }
     let historyWarning: string | undefined;
-    try {
-        const history = await appendPipelineStageHistory(supabase, {
-            projectId,
-            userId,
-            fromStatus,
-            toStatus: update.status,
-        });
-        if (!history.recorded) {
+    if (fromStatus !== update.status) {
+        try {
+            const history = await appendPipelineStageHistory(supabase, {
+                projectId,
+                userId,
+                fromStatus,
+                toStatus: update.status,
+            });
+            if (!history.recorded) {
+                historyWarning = PIPELINE_HISTORY_UNRECORDED;
+            }
+        } catch {
             historyWarning = PIPELINE_HISTORY_UNRECORDED;
         }
-    } catch {
-        historyWarning = PIPELINE_HISTORY_UNRECORDED;
     }
     // A cache failure after the returned-row acknowledgement must not turn
     // an already confirmed database write into an "unsaved" response.

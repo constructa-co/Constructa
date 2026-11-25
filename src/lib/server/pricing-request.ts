@@ -113,7 +113,7 @@ async function verifyPricingRequest(request: z.infer<typeof RequestSchema>): Pro
         if (!user.id || verified.id !== request.projectId || verified.user_id !== user.id) return fail(unavailable());
 
         const { data: project, error: projectError } = await supabase.from("projects")
-            .select("id, user_id, brief_scope, status, is_archived, proposal_status, proposal_accepted_at")
+            .select("id, user_id, brief_scope, scope_text, status, is_archived, proposal_status, proposal_accepted_at")
             .eq("id", request.projectId).eq("user_id", user.id).single();
         if (projectError || !project || project.id !== request.projectId || project.user_id !== user.id
             || getPrecontractEditLockReason(project) || (project.brief_scope !== null && typeof project.brief_scope !== "string")) return fail(unavailable());
@@ -137,7 +137,9 @@ async function verifyPricingRequest(request: z.infer<typeof RequestSchema>): Pro
             estimate = selected;
         }
 
-        const context = buildPricingReviewContext({ id: project.id, brief_scope: project.brief_scope ?? "" }, estimate, request.message);
+        const context = buildPricingReviewContext({
+            id: project.id, brief_scope: project.brief_scope ?? "", scope_text: project.scope_text ?? null,
+        }, estimate, request.message);
         if (!context.ok) return fail(unavailable());
         const revision = createHash("sha256").update(context.value.revision).digest("hex");
         if (revision !== request.expectedRevision) return fail(stale());

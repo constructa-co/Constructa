@@ -17,14 +17,23 @@ type Result<T> = { ok: true; value: T } | { ok: false; error: string };
 export const PRICING_REVIEW_STALE = "The job or estimate changed after this was prepared. Review the current work before starting a draft.";
 export const PRICING_REVIEW_OPEN = "Finish or cancel the open estimating work before starting another draft.";
 
+/** Proposal scope saved on Estimating overrides brief work (same rule as proposal review). */
+export function pricingWorkFromSavedProject(project: { brief_scope: string; scope_text?: string | null }): string {
+    return project.scope_text?.trim() ? project.scope_text.trim() : splitScope(project.brief_scope).work;
+}
+
 /** No calls or writes. This is a client review guard, not server authorisation. */
-export function buildPricingReviewContext(project: { id: string; brief_scope: string }, estimate: Estimate | null, contractorMessage = ""): Result<PricingReviewContext> {
+export function buildPricingReviewContext(
+    project: { id: string; brief_scope: string; scope_text?: string | null },
+    estimate: Estimate | null,
+    contractorMessage = "",
+): Result<PricingReviewContext> {
     if (!project.id || (estimate && estimate.project_id !== project.id)) return { ok: false, error: "This estimate does not belong to the current job." };
-    const { work } = splitScope(project.brief_scope);
+    const work = pricingWorkFromSavedProject(project);
     if (work.length > MAX_SCOPE_LENGTH || contractorMessage.length > MAX_SCOPE_LENGTH) return { ok: false, error: "The source text is too long for this review. Your saved wording is unchanged." };
     const lines = estimate?.estimate_lines ?? [];
     if (lines.some(line => line.estimate_id !== estimate?.id)) return { ok: false, error: "A price line does not belong to the selected estimate." };
-    const revision = JSON.stringify({ projectId: project.id, briefScope: project.brief_scope, contractorMessage, estimate: estimate ? {
+    const revision = JSON.stringify({ projectId: project.id, briefScope: project.brief_scope, scopeText: project.scope_text ?? null, contractorMessage, estimate: estimate ? {
         id: estimate.id, projectId: estimate.project_id, isActive: estimate.is_active, clientBoQ: estimate.is_client_boq,
         overhead: estimate.overhead_pct, profit: estimate.profit_pct, risk: estimate.risk_pct, prelims: estimate.prelims_pct,
         discount: estimate.discount_pct, total: estimate.total_cost,

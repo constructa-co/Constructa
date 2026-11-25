@@ -7,7 +7,8 @@ import type { PlannerPhase } from "@/lib/planner-phases";
 const hooks = vi.hoisted(() => ({ slots: [] as unknown[], cursor: 0, write: vi.fn(), read: vi.fn() }));
 vi.mock("react", async original => ({ ...await original<typeof import("react")>(), useEffect: () => undefined,
     useMemo: (fn: () => unknown) => fn(), useCallback: (fn: unknown) => fn,
-    useRef: (initial: unknown) => ({ current: initial }), useTransition: () => [false, (fn: () => void) => fn()],
+    useRef: (initial: unknown) => ({ current: initial }), useId: () => "programme-start-date-input",
+    useTransition: () => [false, (fn: () => void) => fn()],
     useState: (initial: unknown) => { const i = hooks.cursor++; if (!(i in hooks.slots)) hooks.slots[i] = typeof initial === "function" ? initial() : initial;
         return [hooks.slots[i], (next: unknown) => { hooks.slots[i] = typeof next === "function" ? next(hooks.slots[i]) : next; }]; },
 }));

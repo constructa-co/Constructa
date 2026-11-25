@@ -68,8 +68,8 @@ export default function ProjectPicker({ projects, targetPath, title, description
         <div className="max-w-2xl mx-auto px-6 py-12">
             {/* Header */}
             <div className="text-center mb-8">
-                <div className="w-12 h-12 bg-blue-600/20 border border-blue-500/30 rounded-xl flex items-center justify-center mx-auto mb-4">
-                    <FolderOpen className="w-6 h-6 text-blue-400" />
+                <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <FolderOpen className="w-6 h-6 text-emerald-400" />
                 </div>
                 <h1 className="text-2xl font-bold text-slate-100">{title}</h1>
                 <p className="text-slate-400 text-sm mt-1">

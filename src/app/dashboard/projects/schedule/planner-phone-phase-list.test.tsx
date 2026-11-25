@@ -35,8 +35,9 @@ function phoneStageDates(html: string) {
 }
 
 function desktopInlineDates(html: string) {
-    return [...html.matchAll(/class="hidden lg:flex text-\[9px\][^"]*"[^>]*>\s*<span>([^<]+)<\/span>/g)]
-        .map(match => match[1].trim());
+    return [...html.matchAll(
+        /<time[^>]*>(\d{1,2} \w{3})<\/time>\s*<span aria-hidden="true">–<\/span>\s*<time[^>]*>(\d{1,2} \w{3})<\/time>/g,
+    )].map(match => `${match[1]} – ${match[2]}`);
 }
 
 afterEach(() => {

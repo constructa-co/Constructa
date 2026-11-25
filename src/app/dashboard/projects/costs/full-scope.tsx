@@ -10,9 +10,9 @@ import { savePricingFullScopeAction } from "../proposal/actions";
 type State = { projectId: string; context: string; saved: PricingFullScopeSource; draft: string; editing: boolean; pending: boolean; uncertain: boolean; message: string };
 const patchState = (state: State, patch: Partial<State>): State => ({ ...state, ...patch });
 
-export default function PricingFullScopeEditor({ projectId, source, lockReason, styles: s, onWorkChange, save = savePricingFullScopeAction }: {
+export default function PricingFullScopeEditor({ projectId, source, lockReason, styles: s, onWorkChange, onScopeSaved, save = savePricingFullScopeAction }: {
     projectId: string; source: PricingFullScopeSource; lockReason: string | null; styles: WorkspaceStyles;
-    onWorkChange: (open: boolean) => void; save?: typeof savePricingFullScopeAction;
+    onWorkChange: (open: boolean) => void; onScopeSaved?: (saved: PricingFullScopeSource) => void; save?: typeof savePricingFullScopeAction;
 }) {
     const context = JSON.stringify({ projectId, source });
     const latest = useRef({ projectId, source, context, lockReason });
@@ -35,6 +35,7 @@ export default function PricingFullScopeEditor({ projectId, source, lockReason, 
             if (!result.source || !sameFullScopeSource(result.source, { ...fresh.saved, scope_text: fresh.draft.trim() || null })) throw Error("Scope acknowledgement differs");
             if (latest.current.context !== fresh.context && !sameFullScopeSource(latest.current.source, result.source)) throw Error("Scope or brief changed while saving");
             store.dispatch({ context: latest.current.context, saved: result.source, draft: pricingFullScopeDraft(result.source), pending: false, editing: false, message: "Scope saved for the proposal." });
+            onScopeSaved?.(result.source);
             onWorkChange(false);
         } catch {
             if (!active.current) return;

@@ -50,6 +50,7 @@ vi.mock("react", async importOriginal => {
             entry.deps = deps; entry.effect = effect;
         },
         useTransition: () => [false, (callback: () => unknown) => callback()],
+        useId: () => "programme-start-date-input",
     };
 });
 vi.mock("./actions", () => ({

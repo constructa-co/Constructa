@@ -44,24 +44,40 @@ const round2 = (value: number) => Math.round(value * 100) / 100;
 export const gbp = (value: number) =>
     `£${value.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+export type JourneyMarkupMethod = "on_net" | "compound";
+
+/** Substrings the UI and draft PDF must show for each markup method (no percentages). */
+export const JOURNEY_MARKUP_NOTE: Record<JourneyMarkupMethod, string> = {
+    on_net: "calculated on net construction cost",
+    compound: "compounded: each is calculated on the total before it",
+};
+
 /**
- * Preliminaries are priced as their own line, so no preliminaries percentage
- * applies. Overhead, then risk, then profit are each added on top of the
- * running figure, and VAT is added to the result.
+ * Preliminaries are priced as their own line, so construction cost is direct
+ * lines plus preliminaries (8120 in this fixture). New sign-up defaults to
+ * on_net: overhead, risk and profit are each a percentage of that construction
+ * cost. Pass `compound` for the legacy stacked method (unit-test coverage).
  */
-export function expectedPrice() {
-    const lines = PRICE.onePrice.amount + PRICE.measured.quantity * PRICE.measured.rate + PRICE.preliminaries.amount;
-    const overhead = lines * (PRICE.overheadPct / 100);
-    const risk = (lines + overhead) * (PRICE.riskPct / 100);
-    const profit = (lines + overhead + risk) * (PRICE.profitPct / 100);
-    const beforeVat = round2(lines + overhead + risk + profit);
+export function expectedPrice(markupMethod: JourneyMarkupMethod = "on_net") {
+    const construction =
+        PRICE.onePrice.amount + PRICE.measured.quantity * PRICE.measured.rate + PRICE.preliminaries.amount;
+    const overhead = construction * (PRICE.overheadPct / 100);
+    const risk =
+        markupMethod === "on_net"
+            ? construction * (PRICE.riskPct / 100)
+            : (construction + overhead) * (PRICE.riskPct / 100);
+    const profit =
+        markupMethod === "on_net"
+            ? construction * (PRICE.profitPct / 100)
+            : (construction + overhead + risk) * (PRICE.profitPct / 100);
+    const beforeVat = round2(construction + overhead + risk + profit);
     const vat = round2(beforeVat * (PRICE.vatPct / 100));
     // The last payment stage takes the rounding, so the stages add up to the price.
     const deposit = round2(beforeVat * (Number(PAYMENT_STAGES[0].share) / 100));
     return {
         deposit: gbp(deposit),
         balance: gbp(round2(beforeVat - deposit)),
-        lines: gbp(lines),
+        lines: gbp(construction),
         overhead: gbp(round2(overhead)),
         risk: gbp(round2(risk)),
         profit: gbp(round2(profit)),

@@ -181,6 +181,96 @@ SELECT EXISTS (
 DO $$ BEGIN RAISE EXCEPTION 'Authenticated brief save did not persist.'; END $$;
 \endif
 
+-- CON-044: the planner draft is durable server state, scoped to its owner, and
+-- separate from the proposal baseline (programme_phases).
+UPDATE public.projects
+   SET programme_phases = '[{"name":"Published stage","manualDays":5}]'::jsonb
+ WHERE id = :'smoke_project_id'::uuid;
+
+UPDATE public.projects
+   SET programme_planner_draft = '{"phases":[{"name":"Draft stage","manualDays":9}],"start_date":"2027-02-01","saved_at":"2027-01-01T00:00:00Z"}'::jsonb
+ WHERE id = :'smoke_project_id'::uuid;
+
+RESET ROLE;
+
+-- A different signed-in user must neither read nor change the owner's draft.
+INSERT INTO auth.users (id, email, raw_user_meta_data)
+VALUES (
+  '10000000-0000-0000-0000-000000000002',
+  'phase1-smoke-other@example.test',
+  '{"full_name":"Other Smoke"}'::jsonb
+);
+
+SET LOCAL ROLE authenticated;
+SELECT set_config(
+  'request.jwt.claim.sub',
+  '10000000-0000-0000-0000-000000000002',
+  true
+);
+
+DO $$
+DECLARE
+  v_rows integer;
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM public.projects
+     WHERE creation_request_id = '20000000-0000-0000-0000-000000000001'
+  ) THEN
+    RAISE EXCEPTION 'Another user can read the owner project and its planner draft.';
+  END IF;
+  UPDATE public.projects
+     SET programme_planner_draft = NULL
+   WHERE creation_request_id = '20000000-0000-0000-0000-000000000001';
+  GET DIAGNOSTICS v_rows = ROW_COUNT;
+  IF v_rows <> 0 THEN
+    RAISE EXCEPTION 'Another user changed the owner planner draft.';
+  END IF;
+END;
+$$;
+
+RESET ROLE;
+
+-- In the same transaction, restore the owner role context and read the draft; the draft
+-- write left the published programme untouched.
+SET LOCAL ROLE authenticated;
+SELECT set_config(
+  'request.jwt.claim.sub',
+  '10000000-0000-0000-0000-000000000001',
+  true
+);
+
+SELECT EXISTS (
+  SELECT 1
+    FROM public.projects
+   WHERE id = :'smoke_project_id'::uuid
+     AND programme_planner_draft #>> '{phases,0,name}' = 'Draft stage'
+     AND programme_planner_draft ->> 'start_date' = '2027-02-01'
+     AND programme_phases #>> '{0,name}' = 'Published stage'
+) AS smoke_planner_draft_stored
+\gset
+\if :smoke_planner_draft_stored
+\else
+DO $$ BEGIN RAISE EXCEPTION 'Planner draft was not stored, owner-readable and separate from programme_phases.'; END $$;
+\endif
+
+-- Clearing the draft (as saving to proposal does) leaves the published programme.
+UPDATE public.projects
+   SET programme_planner_draft = NULL
+ WHERE id = :'smoke_project_id'::uuid;
+
+SELECT EXISTS (
+  SELECT 1
+    FROM public.projects
+   WHERE id = :'smoke_project_id'::uuid
+     AND programme_planner_draft IS NULL
+     AND programme_phases #>> '{0,name}' = 'Published stage'
+) AS smoke_planner_draft_cleared
+\gset
+\if :smoke_planner_draft_cleared
+\else
+DO $$ BEGIN RAISE EXCEPTION 'Clearing the planner draft altered programme_phases or did not clear.'; END $$;
+\endif
+
 SELECT *
   FROM public.publish_proposal_publication(
     :'smoke_project_id'::uuid,

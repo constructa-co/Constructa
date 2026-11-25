@@ -3,7 +3,7 @@
 
 import type { Estimate, EstimateLine } from "./types";
 import { requireLaunchCapability } from "@/lib/launch-profile";
-import { computeContractSum, roundMoney } from "@/lib/financial";
+import { computeContractSum, MARKUP_METHOD_NOTE, roundMoney } from "@/lib/financial";
 import { vatFor } from "@/lib/proposal-review";
 import { groupLinesBySection, orderedEstimateSections } from "@/lib/estimate-batch-sections";
 
@@ -124,6 +124,10 @@ export async function exportBoQToExcel(estimate: Estimate, project?: BoQExportPr
     const valueCol = colCount - 1; // last
 
     const summaryRows = boqSummaryRows(estimate, project);
+    if (estimate.overhead_pct > 0 || estimate.risk_pct > 0 || estimate.profit_pct > 0) {
+        const { markupMethod } = computeContractSum(estimate, lines);
+        summaryRows.push([MARKUP_METHOD_NOTE[markupMethod], ""]);
+    }
 
     for (const [label, value] of summaryRows) {
         const row: Row = Array(colCount).fill("");

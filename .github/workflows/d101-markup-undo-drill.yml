@@ -1,0 +1,53 @@
+name: D101 markup undo-reapply drill
+
+# Disposable-database drill for PR #176: apply both D36 markup migrations,
+# roll back, verify the previous behaviour, roll forward, verify parity.
+# Reads only the checkout; the database is the job's own throwaway Postgres
+# service container. No hosted database, customer data or secrets.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/d101-markup-undo-drill.yml"
+      - "scripts/d101/**"
+      - "scripts/rollback/d36-markup-method/**"
+      - "supabase/migrations/20261115120000_d36_markup_method.sql"
+      - "supabase/migrations/20261116140000_d36_phase1_project_graph_markup_method.sql"
+
+permissions:
+  contents: read
+
+jobs:
+  undo-reapply-drill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: supabase/postgres@sha256:edb20149b36e92c915f13b24ae04fed35e6e0a19a6bd6e06d54ed4afbce5c931
+        env:
+          POSTGRES_USER: supabase_admin
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: constructa_replay
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U supabase_admin -d constructa_replay"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Print the exact candidate
+        run: git rev-parse HEAD && sha256sum supabase/migrations/20261115120000_d36_markup_method.sql supabase/migrations/20261116140000_d36_phase1_project_graph_markup_method.sql
+      - name: Prepare the workspace in the Postgres container
+        env:
+          REPLAY_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+          REPLAY_EXPECTED_PG_MAJOR: "17"
+          MIGRATION_DATABASE_URL: postgresql://supabase_admin:postgres@localhost:5432/constructa_replay
+        run: bash scripts/ci-replay-in-container.sh prepare
+      - name: Run the apply, rollback, verify, roll-forward drill
+        env:
+          REPLAY_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+          MIGRATION_DATABASE_URL: postgresql://supabase_admin:postgres@localhost:5432/constructa_replay
+        run: bash scripts/d101/run-in-container.sh

@@ -152,8 +152,8 @@ describe('phase-one product screenshots', () => {
   it('zooms each desktop capture into its readable band only on larger screens', () => {
     const styles = source('./product-screenshots.module.css');
     expect(styles).toContain('@media (min-width: 601px)');
-    expect(styles).toContain('.zoomEstimate img { transform: translateY(-40%); }');
-    expect(styles).toContain('.zoomProgramme img { transform: translateY(-29%) scale(1.6); }');
+    expect(styles).toContain('.zoomEstimate img { transform: translateY(-34%); }');
+    expect(styles).toContain('.zoomProgramme img { transform: translateY(-26%) scale(1.45); }');
     expect(styles).toContain('overflow: hidden');
     expect(styles).not.toContain('@media (max-width: 600px)');
   });

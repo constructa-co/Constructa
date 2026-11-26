@@ -8,6 +8,7 @@ import { MarketingMobileMenu } from './marketing-mobile-menu';
 import { ProductReviewGuide } from './product-review-guide';
 import { ProductScreenshots } from './product-screenshots';
 import ui from './phase-one.module.css';
+import spacing from './product-page-spacing.module.css';
 
 const stages = [
   { number: '01', title: 'Scope first.', label: 'Brief', description: 'Write down the work, refer to the drawings and note the quantities before you price anything.', detail: 'Your job brief, scope and quantities.' },
@@ -172,8 +173,8 @@ export function PhaseOneHome() {
 
 export function PhaseOneFeatures() {
   return (
-    <div className={`${ui.theme} ${ui.root}`}>
-      <section className={ui.pageIntro} data-reveal>
+    <div className={`${ui.theme} ${ui.root} ${spacing.productFlow}`}>
+      <section className={`${ui.pageIntro} ${spacing.pageIntroTight}`} data-reveal>
         <p className={ui.eyebrow}>The phase-one product</p>
         <h1>From first hello.<br /><em>To a considered proposal.</em></h1>
         <p>Start with your company and the job brief. Build quantities × rates, allow for preliminaries and risk, then set working days and sequence. Review the resulting proposal and draft PDF before sharing anything.</p>

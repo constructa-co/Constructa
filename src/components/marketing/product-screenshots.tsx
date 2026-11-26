@@ -49,7 +49,7 @@ export function CapturePicture({ capture }: { capture: (typeof captures)[number]
 export function ProductScreenshots() {
   return (
     <section id="product-screenshots" aria-labelledby="product-screenshots-title" className={`${ui.section} ${shots.screenshots}`} data-reveal>
-      <div className={ui.sectionIntro}>
+      <div className={`${ui.sectionIntro} ${shots.introTight}`}>
         <p className={ui.eyebrow}>Example screens</p>
         <h2 id="product-screenshots-title">Two example screens.<br />From the current review interface.</h2>
         <p>A closer look at two steps in the guide above: setting price percentages on an estimate, and saving a programme ready for proposal review.</p>

@@ -1,5 +1,19 @@
 # Cursor change log
 
+## 2026-11-28 — D120 source parser R1 regression repairs
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/boq-workbook.ts` | R1 formula v:"" blank; R2 empty desc unresolved; R3 split total classification | Claude targeted verification |
+| `src/lib/boq-workbook.contract.test.ts` | Referenced blank desc; mixed bill Σ; cached "" formula | Regression |
+
+## 2026-11-28 — D120 source branch parser repairs (274/276 review)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/boq-workbook.ts` | M1 uncached formula malformed; M2 ref/desc/unit errors; M3 priced ref total rows; L2 TBC unresolved | Bounded Claude review on source branch |
+| `src/lib/boq-workbook.contract.test.ts` | Focused regression cases | M1–M3 + L2 |
+
 ## 2026-11-27 — D116 public enquiry email on cohort footer and pricing
 
 | File | Change | Intent |

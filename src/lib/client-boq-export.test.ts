@@ -9,6 +9,7 @@ import {
     CLIENT_BOQ_ROUNDING_RECONCILIATION_LABEL,
     ClientBoQExportError,
     buildClientBoQWorkbook,
+    createClientBoQWorkbook,
     buildClientSafeBoQLines,
     clientBoQDisplayRate,
     clientBoQSummaryRows,
@@ -116,6 +117,21 @@ describe("client-safe BoQ export", () => {
         expect(text).not.toContain("SENTINEL_SOURCE_TENDER");
         expect(roundTrip.SheetNames).toEqual(["Client BoQ"]);
         expect(inspectClientBoQWorkbookForLeaks(wb)).toEqual([]);
+    });
+
+    it("allows client descriptions that mention overhead words but still flags internal summary labels", () => {
+        const e = estimate([
+            line({ description: "Overhead (high level) cabling allowance", line_total: 500 }),
+        ]);
+        expect(() => buildClientBoQWorkbook(e)).not.toThrow();
+        expect(inspectClientBoQWorkbookForLeaks(buildClientBoQWorkbook(e))).toEqual([]);
+
+        const tainted = createClientBoQWorkbook([
+            ["Ref", "Description", "Qty", "Unit", "Rate (£)", "Total (£)"],
+            ["", "", "", "", "Overhead (10%)", "500.00"],
+        ]);
+        const leaks = inspectClientBoQWorkbookForLeaks(tainted);
+        expect(leaks.some((l) => l.includes("internal summary label"))).toBe(true);
     });
 
     it("rejects serialized files that contain custom workbook metadata (Custprops)", () => {

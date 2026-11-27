@@ -27,9 +27,9 @@ Blocked messages:
 
 ### Export a client BOQ
 
-The client copy is a fresh workbook containing Ref, Description, Qty, Unit, all-in rate and Total, plus VAT from the job’s existing VAT treatment. It contains no internal cost build-ups, margin percentages, supplier notes, hidden sheets or private metadata. Its total must match the approved contract sum to the penny.
+The client copy is a fresh workbook containing Ref, Description, Qty, Unit, all-in rate and Total, plus VAT from the job’s existing VAT treatment. It contains no internal cost build-ups, margin percentages, supplier notes, hidden sheets or private metadata. Its total must match the estimate’s contract sum to the penny (current browser estimate, not publication acceptance state).
 
-Suggested refusal: “Export not created. The client total does not match the contract sum to the penny. Review the figures and try again.”
+Suggested refusal: “Export not created. The client total does not match the estimate’s contract sum to the penny. Review the figures and try again.”
 
 Suggested buttons: “Download client workbook”; “Internal export — not for client”.
 

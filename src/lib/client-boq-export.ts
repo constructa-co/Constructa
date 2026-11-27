@@ -286,6 +286,17 @@ function cellText(v: unknown): string {
     return String(v);
 }
 
+/** Label column index (0-based) for generated summary rows — margin patterns apply here only. */
+export const CLIENT_BOQ_SUMMARY_LABEL_COL = 4;
+
+function columnIndexFromCellKey(key: string): number | null {
+    const m = /^([A-Z]+)(\d+)$/.exec(key);
+    if (!m) return null;
+    let c = 0;
+    for (const ch of m[1]) c = c * 26 + (ch.charCodeAt(0) - 64);
+    return c - 1;
+}
+
 /** Returns human-readable leak descriptions (empty when clean). */
 export function inspectClientBoQWorkbookForLeaks(workbook: WorkBook): string[] {
     const leaks: string[] = [];
@@ -307,10 +318,12 @@ export function inspectClientBoQWorkbookForLeaks(workbook: WorkBook): string[] {
             if (cell?.c) {
                 leaks.push(`cell comment at ${name}!${key}`);
             }
+            const col = columnIndexFromCellKey(key);
+            if (col !== CLIENT_BOQ_SUMMARY_LABEL_COL) continue;
             const text = cellText(cell?.v);
             for (const pattern of FORBIDDEN_SUMMARY_LABELS) {
                 if (pattern.test(text)) {
-                    leaks.push(`internal label in ${name}!${key}: ${text}`);
+                    leaks.push(`internal summary label in ${name}!${key}: ${text}`);
                 }
             }
         }

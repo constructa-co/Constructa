@@ -1,5 +1,13 @@
 # Cursor change log
 
+## 2026-11-28 — D121 R1 follow-ups L1/O2 (PR 277)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/client-boq-export.ts` | Forbidden margin scan on summary label col only (L1) | Legit descriptions with “Overhead …” |
+| `src/lib/client-boq-export.test.ts` | Positive + negative summary label scan | Regression |
+| `docs/help/import-reconciliation-client-boq-export.md` | Estimate’s contract sum wording (O2) | No publication gate |
+
 ## 2026-11-28 — D121 serialized inspect must not sanitise before scan
 
 | File | Change | Intent |

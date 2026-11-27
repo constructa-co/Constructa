@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-11-27 — D117 A061 programme manhours KPI person-days copy
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/app/dashboard/projects/schedule/client-page.tsx` | Manhours KPI sublabel ~L932 | Person-days of labour; crew note via `title` |
+| `src/app/dashboard/projects/schedule/schedule-control-palette.test.tsx` | KPI copy regression | A061 |
+
 ## 2026-11-24 — D106 Job 1 A001 project-picker hero (A038 SKIP)
 
 | File | Change | Intent |

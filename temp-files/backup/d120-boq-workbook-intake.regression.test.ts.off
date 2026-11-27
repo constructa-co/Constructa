@@ -1,0 +1,181 @@
+/**
+ * Pending intake regression — enable at src/lib/boq-workbook-intake.regression.test.ts
+ * only after R1 transfers src/lib/boq-workbook.ts.
+ *
+ * FINAL rules (no boq-workbook.d.ts, no describe.skip):
+ * - Duplicate provenance = same sheet + same source_row imported/accounted twice.
+ * - Identical item text on different source rows is legitimate (do not dedupe).
+ */
+import * as XLSX from "xlsx";
+import { describe, expect, it } from "vitest";
+import type { BoQSheetInput, BoQWorkbookExtraction } from "@/lib/boq-workbook";
+import {
+    extractBoQWorkbook,
+    workbookInputFromSheetJS,
+    boqWorkbookImportBlockers,
+} from "@/lib/boq-workbook";
+import {
+    BOQ_WORKBOOK_CLIENT_ROW_CAP,
+    BOQ_WORKBOOK_SERVER_AI_ROW_CAP,
+    BOQ_WORKBOOK_SCENARIO_IDS,
+    type BoqWorkbookScenarioId,
+    encodeBoqWorkbookScenarioToXlsx,
+    getBoqWorkbookScenario,
+    headerRow,
+    type BoqWorkbookSheet,
+    dataRow,
+    synthRef,
+} from "@/lib/__fixtures__/boq-workbook";
+
+type BoQSourceRowDisposition = BoQWorkbookExtraction["rows"][number];
+
+function gridsToSheetInputs(sheets: BoqWorkbookSheet[]): BoQSheetInput[] {
+    return sheets.map((sheet) => ({
+        name: sheet.name,
+        rows: sheet.rows.map((row) => row.map((cell) => cell)),
+        merges: sheet.merges,
+    }));
+}
+
+function provenanceKey(sheet: string, row: number): string {
+    return `${sheet}:${row}`;
+}
+
+function duplicateProvenanceKeys(extraction: BoQWorkbookExtraction): string[] {
+    const keys = extraction.lines.map((l) => provenanceKey(l.source_sheet, l.source_row));
+    return keys.filter((k, i) => keys.indexOf(k) !== i);
+}
+
+function itemDispositions(extraction: BoQWorkbookExtraction): BoQSourceRowDisposition[] {
+    return extraction.rows.filter((r) => r.kind === "item");
+}
+
+describe("boq-workbook intake regression (SYNTH fixtures)", () => {
+    function extractFromGrid(id: BoqWorkbookScenarioId): BoQWorkbookExtraction {
+        const fixture = getBoqWorkbookScenario(id);
+        return extractBoQWorkbook({
+            filename: `SYNTH-${id}.xlsx`,
+            sheets: gridsToSheetInputs(fixture.sheets),
+        });
+    }
+
+    function extractFromSheetJS(id: BoqWorkbookScenarioId): BoQWorkbookExtraction {
+        const buffer = encodeBoqWorkbookScenarioToXlsx(id);
+        const workbook = XLSX.read(buffer, { type: "array" });
+        return extractBoQWorkbook(workbookInputFromSheetJS(`SYNTH-${id}.xlsx`, workbook));
+    }
+
+    it.each(BOQ_WORKBOOK_SCENARIO_IDS.filter((id) => id !== "csv-single-tab-baseline"))(
+        "scenario %s extracts via grid and SheetJS adapter with consistent sheet count",
+        (id) => {
+            const fromGrid = extractFromGrid(id);
+            const fromXlsx = extractFromSheetJS(id);
+            const fixture = getBoqWorkbookScenario(id);
+            expect(fromGrid.reconciliation.sheetCount).toBe(fixture.sheets.length);
+            expect(fromXlsx.reconciliation.sheetCount).toBe(fixture.sheets.length);
+        },
+    );
+
+    it("multi-tab-over-200 retains markers beyond legacy 150/200 capture caps", () => {
+        const extraction = extractFromSheetJS("multi-tab-over-200");
+        const marker150 = extraction.lines.find((l) => l.description?.includes("MARKER-150"));
+        const marker200 = extraction.lines.find((l) => l.description?.includes("MARKER-200"));
+        expect(marker150, "API defect candidate: row-150 marker missing").toBeDefined();
+        expect(marker200, "API defect candidate: row-200 marker missing").toBeDefined();
+        expect(marker150!.source_row).toBeGreaterThanOrEqual(BOQ_WORKBOOK_SERVER_AI_ROW_CAP);
+        expect(marker200!.source_row).toBeGreaterThan(BOQ_WORKBOOK_CLIENT_ROW_CAP);
+    });
+
+    it("allows identical description text on different source rows without false duplicate mismatch", () => {
+        const shared = "SYNTH-BQ repeated line description";
+        const sheet: BoqWorkbookSheet = {
+            name: "SYNTH-Identical-Text",
+            rows: [
+                headerRow(),
+                dataRow({
+                    ref: synthRef(10, 1),
+                    section: "SYNTH",
+                    description: shared,
+                    quantity: "1",
+                    unit: "nr",
+                    rate: "10",
+                    total: "10",
+                }),
+                dataRow({
+                    ref: synthRef(10, 2),
+                    section: "SYNTH",
+                    description: shared,
+                    quantity: "3",
+                    unit: "nr",
+                    rate: "10",
+                    total: "30",
+                }),
+            ],
+        };
+        const extraction = extractBoQWorkbook({
+            filename: "SYNTH-identical-text.xlsx",
+            sheets: gridsToSheetInputs([sheet]),
+        });
+        const matches = extraction.lines.filter((l) => l.description === shared);
+        expect(matches.length).toBe(2);
+        expect(matches[0].source_row).not.toBe(matches[1].source_row);
+        expect(duplicateProvenanceKeys(extraction)).toHaveLength(0);
+    });
+
+    it("detects duplicate provenance when the same sheet+source_row is imported more than once", () => {
+        const extraction = extractFromSheetJS("multi-tab-over-200");
+        const dupKeys = duplicateProvenanceKeys(extraction);
+        expect(
+            dupKeys,
+            "API defect candidate: duplicate sheet+source_row on multiple lines",
+        ).toHaveLength(0);
+    });
+
+    it("item disposition lineIndex references match line source provenance", () => {
+        const extraction = extractFromGrid("merged-repeated-headers");
+        for (const row of itemDispositions(extraction)) {
+            if (row.lineIndex == null) continue;
+            const line = extraction.lines[row.lineIndex];
+            expect(line?.source_sheet).toBe(row.sheet);
+            expect(line?.source_row).toBe(row.row);
+        }
+    });
+
+    it("reconciliation counts align with disposition rows (no omitted duplicate account records)", () => {
+        const extraction = extractFromGrid("multi-tab-over-200");
+        expect(extraction.reconciliation.totals.importedLines).toBe(extraction.lines.length);
+        const items = itemDispositions(extraction);
+        expect(
+            items.length,
+            "API defect candidate: item disposition count ≠ imported lines",
+        ).toBe(extraction.lines.length);
+        for (const sheetRec of extraction.reconciliation.sheets) {
+            const dispositions = extraction.rows.filter((r) => r.sheet === sheetRec.name);
+            const accounted =
+                sheetRec.blankRows +
+                sheetRec.itemRows +
+                sheetRec.headingRows +
+                sheetRec.excludedRows +
+                sheetRec.unresolvedRows;
+            expect(
+                accounted,
+                `API defect candidate: unaccounted rows on ${sheetRec.name}`,
+            ).toBeLessThanOrEqual(sheetRec.sourceRows);
+            expect(dispositions.length).toBeGreaterThanOrEqual(accounted - sheetRec.blankRows);
+        }
+    });
+
+    it("line-total mismatch fixture increments mismatchRows, separate from provenance duplicate", () => {
+        const extraction = extractFromGrid("reconciliation-mismatch");
+        expect(extraction.reconciliation.sheets[0].mismatchRows).toBeGreaterThanOrEqual(1);
+        expect(duplicateProvenanceKeys(extraction)).toHaveLength(0);
+    });
+
+    it("boqWorkbookImportBlockers reports duplicate provenance or coverage failure when present", () => {
+        const extraction = extractFromSheetJS("multi-tab-over-200");
+        const blockers = boqWorkbookImportBlockers(extraction);
+        if (duplicateProvenanceKeys(extraction).length > 0 || !extraction.reconciliation.balanced) {
+            expect(blockers.length).toBeGreaterThan(0);
+        }
+    });
+});

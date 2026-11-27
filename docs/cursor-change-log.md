@@ -10,9 +10,8 @@
 
 **Receipt:** `39bdcab9` — build + typecheck + 10 fixture self-checks. Phase 2 waits on API; no PR.
 
-| `src/lib/boq-workbook.d.ts` | R1 API snapshot types | Typecheck until `boq-workbook.ts` transfer |
-| `src/lib/boq-workbook-intake.regression.test.ts` | Draft intake regression (skipped until impl) | All-tab markers, disposition, coverage, blockers |
-| `src/lib/__fixtures__/boq-workbook.ts` | export `headerRow` / `dataRow` | Duplicate-provenance probe in regression |
+| R1 pause | Removed `boq-workbook.d.ts` + skipped `src` regression | No typecheck scaffolding without impl |
+| `temp-files/backup/d120-boq-workbook-intake.regression.test.ts.off` | Pending regression (provenance ≠ text dedupe) | Enable as `src/lib/boq-workbook-intake.regression.test.ts` after transfer |
 
 ## 2026-11-27 — D116 public enquiry email on cohort footer and pricing
 

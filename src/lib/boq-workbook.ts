@@ -278,8 +278,34 @@ function sameMap(a: ColumnMap, b: ColumnMap): boolean {
     return ROLE_ORDER.every((r) => a[r] === b[r]);
 }
 
-const TOTAL_ROW =
-    /^(sub[\s-]*total|total|grand total|page total|section total|carried\b|brought\b|c\s*\/\s*f\b|b\s*\/\s*f\b|vat\b)|\b(carried (forward|to|over)|brought forward|to collection|to (main )?summary|total carried|total brought)\b/i;
+/** Subtotal phrases — always a total row, even when a ref column is populated. */
+const TOTAL_PHRASE_ALWAYS =
+    /\b(carried (forward|to|over)|brought forward|to collection|to (main )?summary|total carried|total brought)\b/i;
+/** Leading patterns that are totals unless the row is a priced line item (ref + amount). */
+const TOTAL_LEADING_STRICT =
+    /^(sub[\s-]*total|grand total|page total|section total|carried\b|brought\b|c\s*\/\s*f\b|b\s*\/\s*f\b|vat\b)/i;
+
+function isPricedReferencedRow(row: RowInfo): boolean {
+    return (
+        Boolean(row.ref) &&
+        (row.total.value !== null || row.rate.value !== null || row.qty.value !== null)
+    );
+}
+
+/** Total / collection row (excluded), not a priced bill item. */
+function isTotalDispositionRow(row: RowInfo): boolean {
+    if (row.unit || row.qty.value !== null) return false;
+    const text = (row.description || row.lead).trim();
+    if (!text) return false;
+    if (TOTAL_PHRASE_ALWAYS.test(text)) return true;
+    if (TOTAL_LEADING_STRICT.test(text)) return true;
+    if (!row.ref && /^collection$/i.test(text)) return true;
+    if (!row.ref && /^total$/i.test(text)) return true;
+    if (isPricedReferencedRow(row)) return false;
+    if (/^(total|collection)\b/i.test(text)) return true;
+    if (!row.ref && /\btotal\b/i.test(text) && row.rate.value === null) return true;
+    return false;
+}
 /** Words that mean "no figure here" in a quantity, rate or total cell. */
 const NOTE_MARKER = /^(tbc|tba|to be confirmed|to be advised|incl\.?|included|inc\.?|n\/?a|nil|rate only|provisional|ps|pc)$/i;
 const EXCLUDED_MARKER = /^(excluded|excl\.?|not used|not required|by others|omitted|omit)$/i;
@@ -294,7 +320,7 @@ const QTY_WITH_UNIT = /^(-?[\d,]*\.?\d+)\s*([A-Za-z][A-Za-z0-9²³/.]{0,9})$/;
 
 function numberCell(cell: Cell): BoQNumberCell {
     if (cell.error) return { value: null, malformed: true };
-    if (cell.formula && (cell.value === null || cell.value === "")) {
+    if (cell.formula && cell.value === null) {
         return { value: null, malformed: true };
     }
     if (typeof cell.value === "number") {
@@ -516,6 +542,14 @@ export function extractBoQWorkbook(input: BoQWorkbookInput, options: BoQWorkbook
                 for (const r of o.rows) set(r, "excluded", "marked_excluded");
                 return;
             }
+            const finalDescription = o.texts.join(" ").replace(/\s+/g, " ").trim();
+            const descriptionBlocked = Boolean(o.descriptionError || v.descriptionError);
+            if (!finalDescription && !descriptionBlocked) {
+                const reason: BoQRowReason =
+                    v.hasNumber || Boolean(o.ref) ? "values_without_description" : "item_without_values";
+                for (const r of o.rows) set(r, "unresolved", reason);
+                return;
+            }
             const parse_warnings: string[] = [];
             if (o.refError || v.refError) parse_warnings.push("client_ref");
             if (o.descriptionError || v.descriptionError) parse_warnings.push("description");
@@ -533,7 +567,7 @@ export function extractBoQWorkbook(input: BoQWorkbookInput, options: BoQWorkbook
             lines.push({
                 client_ref: o.ref,
                 section: sheetLabel,
-                description: o.texts.join(" ").replace(/\s+/g, " ").trim(),
+                description: finalDescription,
                 quantity,
                 unit: v.unit || "item",
                 unit_rate,
@@ -585,15 +619,7 @@ export function extractBoQWorkbook(input: BoQWorkbookInput, options: BoQWorkbook
             const wasBlank = lastBlank;
             lastBlank = false;
 
-            const totalText = row.description || row.lead;
-            const pricedReferenced =
-                Boolean(row.ref) &&
-                (row.total.value !== null || row.rate.value !== null || row.qty.value !== null);
-            const looksTotal =
-                !pricedReferenced &&
-                (TOTAL_ROW.test(totalText) ||
-                    (!row.ref && /\btotal\b/i.test(totalText) && row.rate.value === null));
-            if (looksTotal && !row.unit && row.qty.value === null) {
+            if (isTotalDispositionRow(row)) {
                 close();
                 noteDepth = null;
                 set(i, "excluded", "total_row");

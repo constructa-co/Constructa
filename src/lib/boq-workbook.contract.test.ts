@@ -246,10 +246,17 @@ describe("Claude review fixes — uncached formulas, field errors, priced refs, 
     const sheet = (rows: BoQCellInput[][]) =>
         extractBoQWorkbook({ filename: "f.xlsx", sheets: [{ name: "Bill", rows: [["Ref", "Description", "Qty", "Unit", "Rate", "Total"], ...rows] }] });
 
-    it("M1: uncached quantity formula is malformed and blocks import (not defaulted to qty 1)", () => {
-        const ex = sheet([["A", "Measured works", { v: null, formula: true }, "item", 12, 120]]);
-        expect(ex.lines[0].quantity).toBeNull();
-        expect(ex.lines[0].parse_warnings).toContain("quantity");
+    it("M1/R1: uncached formula (v null) is malformed; cached empty string formula is a valid blank", () => {
+        const ex = sheet([
+            ["", "Prelim heading", { v: "", formula: true }, "heading", null, null],
+            ["B", "Measured area", { v: "", formula: true }, "m2", 5, 50],
+            ["C", "Measured works", { v: null, formula: true }, "item", 12, 120],
+        ]);
+        const area = ex.lines.find((l) => l.client_ref === "B")!;
+        expect(area.parse_warnings).toBeUndefined();
+        expect(area.quantity).toBeNull();
+        expect(area.line_total).toBe(50);
+        expect(ex.lines.find((l) => l.client_ref === "C")!.parse_warnings).toContain("quantity");
         expect(boqWorkbookImportBlockers(ex).join(" ")).toMatch(/unreadable/);
     });
 
@@ -273,17 +280,37 @@ describe("Claude review fixes — uncached formulas, field errors, priced refs, 
         expect(boqWorkbookImportBlockers(ex).length).toBeGreaterThan(0);
     });
 
-    it("M3: referenced priced lines starting with Collection are items, not total rows", () => {
+    it("M3/R3: priced Collection/Total items import; phrase totals and bare Collection exclude", () => {
         const ex = sheet([
             ["A2", "Collection and disposal of arisings", null, null, null, 250],
             ["A3", "Total station setting out", null, null, null, 400],
+            ["A99", "Total carried to collection", null, null, null, 50],
+            ["", "Collection", null, null, null, 50],
             ["", "Total carried to collection", null, null, null, 650],
         ]);
         expect(ex.lines.map((l) => [l.client_ref, l.line_total])).toEqual([
             ["A2", 250],
             ["A3", 400],
         ]);
-        expect(ex.rows.find((r) => r.preview.includes("carried to collection"))?.reason).toBe("total_row");
+        const sum = ex.lines.reduce((s, l) => s + l.line_total, 0);
+        expect(sum).toBe(650);
+        expect(ex.rows.filter((r) => r.reason === "total_row").length).toBeGreaterThanOrEqual(3);
+    });
+
+    it("R2: referenced blank description with figures does not emit an empty description line", () => {
+        const ex = sheet([
+            ["A5", "", 10, "m2", 5, 50],
+            ["A4", "", "TBC", "m2", null, null],
+        ]);
+        expect(ex.lines).toHaveLength(0);
+        expect(ex.rows.find((r) => r.preview.startsWith("A5"))).toMatchObject({
+            kind: "unresolved",
+            reason: "values_without_description",
+        });
+        expect(ex.rows.find((r) => r.preview.startsWith("A4"))).toMatchObject({
+            kind: "unresolved",
+            reason: "values_without_description",
+        });
     });
 
     it("L2: marker-only TBC with no description is unresolved, not note text", () => {

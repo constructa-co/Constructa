@@ -120,6 +120,18 @@ describe("programme costs review panel", () => {
         expect(html).toContain("/dashboard/projects/schedule?projectId=job");
     });
 
+    it("labels the hire item as client-visible and previews the exact client wording", () => {
+        const html = render([LABOUR], { initialInputs: INPUTS });
+        expect(html).toContain("Plant item description (shown to client)");
+        expect(html).toContain("Shown to the client. Do not enter supplier names, private rates or terms.");
+        expect(html).toMatch(/<input id="programme-hire-item-h-dumper"[^>]*aria-describedby="programme-hire-item-help-h-dumper"/);
+        expect(html).toContain("The client sees: “Plant hire – 3 t dumper” and “Delivery and collection – 3 t dumper”");
+        expect(html).toContain("exactly what the client sees on the proposal and the client BoQ");
+        // The review lists those same descriptions as the lines that would be written.
+        expect(html).toMatch(/data-programme-cost-line="hire:h-dumper"[^>]*><dt[^>]*>Plant hire – 3 t dumper /);
+        expect(html).not.toMatch(/>Item\s*</);
+    });
+
     it("blocks applying while other estimate work is open", () => {
         const html = render([LABOUR], { initialInputs: INPUTS, blockedReason: "Save or cancel your open estimate work first." });
         expect(html).toContain("Save or cancel your open estimate work first.");

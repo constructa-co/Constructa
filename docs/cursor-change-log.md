@@ -1,5 +1,13 @@
 # Cursor change log
 
+## 2026-11-28 — D121 client-safe export R1 final (rates + help doc)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/client-boq-export.ts` | Up to 8dp display rate; precision note on sheet; drop runtime sentinels | Usable all-in rates; construction guarantees only |
+| `src/lib/client-boq-export.test.ts` | Fractional qty 3 / £1; test-owned sentinels | R1 final bounded repair |
+| `docs/help/import-reconciliation-client-boq-export.md` | Kimi wording (markdown only) | Help copy, no UI gates |
+
 ## 2026-11-28 — D121 client-safe export R1 fixes
 
 | File | Change | Intent |

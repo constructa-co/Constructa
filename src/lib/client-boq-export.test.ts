@@ -3,9 +3,9 @@ import * as XLSX from "xlsx";
 import { computeContractSumValue, roundMoney } from "@/lib/financial";
 import { vatFor } from "@/lib/proposal-review";
 import {
-    CLIENT_BOQ_CONFIDENTIALITY_SENTINELS,
     CLIENT_BOQ_EXPORT_FILENAME,
     CLIENT_BOQ_EXPORT_TITLE,
+    CLIENT_BOQ_RATE_PRECISION_NOTE,
     CLIENT_BOQ_ROUNDING_RECONCILIATION_LABEL,
     ClientBoQExportError,
     buildClientBoQWorkbook,
@@ -18,6 +18,12 @@ import {
 } from "./client-boq-export";
 import { boqSummaryRows } from "@/app/dashboard/projects/costs/boq-excel-export";
 import type { Estimate, EstimateLine } from "@/app/dashboard/projects/costs/types";
+
+const CONFIDENTIALITY_TEST_SENTINELS = [
+    "SENTINEL_INTERNAL_VERSION",
+    "SENTINEL_INTERNAL_SUPPLIER_NOTE",
+    "SENTINEL_INTERNAL_MARGIN_PCT",
+] as const;
 
 function line(over: Partial<EstimateLine>): EstimateLine {
     return {
@@ -101,9 +107,10 @@ describe("client-safe BoQ export", () => {
             .filter((k) => !k.startsWith("!"))
             .map((k) => String(sheet[k]?.v ?? ""))
             .join("\n");
-        for (const sentinel of CLIENT_BOQ_CONFIDENTIALITY_SENTINELS) {
+        for (const sentinel of CONFIDENTIALITY_TEST_SENTINELS) {
             expect(text).not.toContain(sentinel);
         }
+        expect(text).toContain(CLIENT_BOQ_RATE_PRECISION_NOTE);
         expect(text).toContain(CLIENT_BOQ_EXPORT_TITLE);
         expect(text).not.toContain(e.version_name!);
         expect(text).not.toContain("SENTINEL_SOURCE_TENDER");
@@ -126,16 +133,29 @@ describe("client-safe BoQ export", () => {
         }
     });
 
-    it("clientBoQDisplayRate keeps totals authoritative when no rate ties to the penny", () => {
-        const awkward = clientBoQDisplayRate(3, 1);
-        expect(awkward.unit_rate).toBeNull();
-        expect(awkward.total_authoritative).toBe(true);
+    it("clientBoQDisplayRate shows precise all-in rate when qty × rate ties to the penny", () => {
+        const fractional = clientBoQDisplayRate(3, 1);
+        expect(fractional.unit_rate).not.toBeNull();
+        expect(roundMoney(3 * fractional.unit_rate!)).toBe(1);
+        expect(fractional.total_authoritative).toBe(false);
         const tidy = clientBoQDisplayRate(3, 1.5);
         expect(tidy.unit_rate).toBe(0.5);
         expect(roundMoney(3 * tidy.unit_rate!)).toBe(1.5);
         const lump = clientBoQDisplayRate(0, 250);
         expect(lump.unit_rate).toBeNull();
         expect(lump.total_authoritative).toBe(true);
+    });
+
+    it("exports non-blank all-in rate for qty 3 / £1 face-value line", () => {
+        const e = estimate(
+            [line({ quantity: 3, line_total: 1, line_type: "pc_sum", description: "SYNTH fractional allowance" })],
+            { overhead_pct: 0, profit_pct: 0, risk_pct: 0, prelims_pct: 0 },
+        );
+        const { exportLines } = buildClientSafeBoQLines(e, e.estimate_lines);
+        expect(exportLines).toHaveLength(1);
+        expect(exportLines[0].line_total).toBe(1);
+        expect(exportLines[0].unit_rate).not.toBeNull();
+        expect(roundMoney(3 * exportLines[0].unit_rate!)).toBe(1);
     });
 
     it("adds an explicit rounding reconciliation line instead of silently adjusting a priced line", () => {

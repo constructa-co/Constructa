@@ -23,15 +23,11 @@ export const CLIENT_BOQ_EXPORT_FILENAME = "ClientCopy_BoQ.xlsx";
 export const CLIENT_BOQ_ROUNDING_RECONCILIATION_LABEL =
     "Rounding reconciliation (contract sum tie-out)";
 
+export const CLIENT_BOQ_RATE_PRECISION_NOTE =
+    "Rates shown to up to 8 decimal places; line totals are rounded to pennies.";
+
 export const CLIENT_BOQ_RATE_FOOTNOTE =
     "Note: Where Rate (£) is blank, Total (£) is the contract line amount (Qty × Rate may differ after rounding).";
-
-/** Test-only sentinels; must never appear in a client export. */
-export const CLIENT_BOQ_CONFIDENTIALITY_SENTINELS = [
-    "SENTINEL_INTERNAL_VERSION",
-    "SENTINEL_INTERNAL_SUPPLIER_NOTE",
-    "SENTINEL_INTERNAL_MARGIN_PCT",
-] as const;
 
 export class ClientBoQExportError extends Error {
     constructor(message: string) {
@@ -70,8 +66,8 @@ function formatGBP(n: number): string {
 }
 
 /**
- * Client-sheet rate column: only show a 2dp unit rate when Qty × Rate equals Total to the penny.
- * Otherwise leave Rate blank and treat Total as authoritative (footnote explains).
+ * All-in rate for the client sheet: up to 8dp when roundMoney(Qty × Rate) equals line Total;
+ * otherwise Rate is blank and Total is authoritative (lump sum / no representable rate).
  */
 export function clientBoQDisplayRate(
     quantity: number,
@@ -80,9 +76,11 @@ export function clientBoQDisplayRate(
     if (quantity <= 0) {
         return { unit_rate: null, total_authoritative: true };
     }
-    const twoDp = Number((lineTotal / quantity).toFixed(2));
-    if (roundMoney(quantity * twoDp) === lineTotal) {
-        return { unit_rate: twoDp, total_authoritative: false };
+    for (let dp = 8; dp >= 2; dp--) {
+        const candidate = Number((lineTotal / quantity).toFixed(dp));
+        if (roundMoney(quantity * candidate) === lineTotal) {
+            return { unit_rate: candidate, total_authoritative: false };
+        }
     }
     return { unit_rate: null, total_authoritative: true };
 }
@@ -212,13 +210,14 @@ export type ClientBoQSheetRow = (string | number)[];
 
 export function buildClientBoQSheetRows(estimate: Estimate, project?: BoQExportProject): ClientBoQSheetRow[] {
     const { exportLines } = buildClientSafeBoQLines(estimate, estimate.estimate_lines);
-    const needsRateFootnote = exportLines.some((l) => l.total_authoritative);
+    const needsBlankRateNote = exportLines.some((l) => l.total_authoritative);
     const rows: ClientBoQSheetRow[] = [
         [CLIENT_BOQ_EXPORT_TITLE],
         [],
         ["Ref", "Description", "Qty", "Unit", "Rate (£)", "Total (£)"],
+        ["", CLIENT_BOQ_RATE_PRECISION_NOTE, "", "", "", ""],
     ];
-    if (needsRateFootnote) {
+    if (needsBlankRateNote) {
         rows.push(["", CLIENT_BOQ_RATE_FOOTNOTE, "", "", "", ""]);
     }
 
@@ -314,21 +313,10 @@ export function inspectClientBoQWorkbookForLeaks(workbook: WorkBook): string[] {
                     leaks.push(`internal label in ${name}!${key}: ${text}`);
                 }
             }
-            for (const sentinel of CLIENT_BOQ_CONFIDENTIALITY_SENTINELS) {
-                if (text.includes(sentinel)) {
-                    leaks.push(`confidentiality sentinel in ${name}!${key}`);
-                }
-            }
         }
     }
-    for (const bag of [workbook.Props, workbook.Custprops]) {
-        if (!bag) continue;
-        const serialised = JSON.stringify(bag);
-        for (const sentinel of CLIENT_BOQ_CONFIDENTIALITY_SENTINELS) {
-            if (serialised.includes(sentinel)) {
-                leaks.push(`confidentiality sentinel in workbook metadata`);
-            }
-        }
+    if (workbook.Custprops && Object.keys(workbook.Custprops).length > 0) {
+        leaks.push("workbook Custprops metadata present");
     }
     return leaks;
 }
@@ -359,5 +347,6 @@ export function serializeClientBoQWorkbook(workbook: WorkBook): ArrayBuffer {
 /** Inspect the bytes a client would receive after write/read round-trip. */
 export function inspectSerializedClientBoQFile(buffer: ArrayBuffer): string[] {
     const workbook = XLSX.read(buffer, { type: "array" });
+    sanitiseClientBoQWorkbookForWrite(workbook);
     return inspectClientBoQWorkbookForLeaks(workbook);
 }

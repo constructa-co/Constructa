@@ -52,10 +52,16 @@ function appliedLinesFrom(inputs: ProgrammeCostInputs, source = PROGRAMME): Esti
     }));
 }
 
+// INPUTS with its D121 hire anchors bound to the stage names they were set against.
+const NAMED_INPUTS: ProgrammeCostInputs = {
+    ...INPUTS,
+    hires: [{ ...INPUTS.hires[0], onHire: { kind: "stage_start", stage: 0, stageName: "Groundworks" }, offHire: { kind: "stage_finish", stage: 1, stageName: "Drainage" } }],
+};
+
 // One day crew of 1 operative × 8 h shared by both stages. Groundworks needs 8 h a day, Drainage 16 h:
 // 24 h on 3–5 March and 16 h on 8–9 March against 8 h available.
 const CREW_INPUTS: ProgrammeCostInputs = {
-    ...INPUTS,
+    ...NAMED_INPUTS,
     stages: [
         { name: "Groundworks", shifts: ["day"], costedOperatives: null, crewByShift: { day: "gang-a", night: null } },
         { name: "Drainage", shifts: ["day"], costedOperatives: null, crewByShift: { day: "gang-a", night: null } },
@@ -66,7 +72,12 @@ const CREW_INPUTS: ProgrammeCostInputs = {
 describe("programme costs draft", () => {
     it("round-trips applied settings through the editable draft", () => {
         const draft = draftFromInputs(INPUTS);
-        expect(inputsFromDraft(draft, INPUTS.stages)).toEqual({ ok: true, inputs: INPUTS });
+        // A D121 anchor comes back bound to the name of the stage it was set against; the price is unchanged.
+        expect(inputsFromDraft(draft, INPUTS.stages)).toEqual({ ok: true, inputs: NAMED_INPUTS });
+        const before = computeProgrammeCosts(PROGRAMME, INPUTS);
+        const after = computeProgrammeCosts(PROGRAMME, NAMED_INPUTS);
+        expect(after.ok && before.ok && after.result.signature === before.result.signature).toBe(true);
+        expect(inputsFromDraft(draftFromInputs(NAMED_INPUTS), INPUTS.stages)).toEqual({ ok: true, inputs: NAMED_INPUTS });
         expect(inputsFromDraft(draftFromInputs(CREW_INPUTS), CREW_INPUTS.stages)).toEqual({ ok: true, inputs: CREW_INPUTS });
     });
 
@@ -78,7 +89,7 @@ describe("programme costs draft", () => {
         for (const stage of v1.stages) { delete stage.dayCrew; delete stage.nightCrew; }
         const upgraded = upgradeStoredDraft(JSON.parse(JSON.stringify(v1)));
         expect(upgraded).toMatchObject({ version: 2, crews: [], stages: [{ dayCrew: "", nightCrew: "" }, { dayCrew: "", nightCrew: "" }] });
-        expect(inputsFromDraft(upgraded!, INPUTS.stages)).toEqual({ ok: true, inputs: INPUTS });
+        expect(inputsFromDraft(upgraded!, INPUTS.stages)).toEqual({ ok: true, inputs: NAMED_INPUTS });
         expect(upgradeStoredDraft({ version: 3, stages: [], hires: [] })).toBeNull();
     });
 
@@ -223,6 +234,31 @@ describe("programme costs review panel", () => {
         const html = render([LABOUR], { initialInputs: { ...named, stages: [named.stages[0], { ...named.stages[1], name: "Drain runs" }] }, programme: renamed });
         expect(html).toContain('data-off-hire-status="refused"');
         expect(html).toContain("renamed or moved");
+    });
+
+    it("never lets a D121 hire (no stage names) follow a renamed or reordered stage, in the hire table or the price", () => {
+        // INPUTS' hire is a D121 anchor: end of stage 1 ("Drainage"), no stage name stored.
+        const renamed = { ...PROGRAMME, programme_phases: [PROGRAMME.programme_phases[0], { ...PROGRAMME.programme_phases[1], name: "Drain runs" }] };
+        const reordered = { ...PROGRAMME, programme_phases: [{ ...PROGRAMME.programme_phases[1], startOffset: 0 }, { ...PROGRAMME.programme_phases[0], startOffset: 0 }] };
+        for (const programme of [renamed, reordered]) {
+            const html = render([LABOUR], { initialInputs: INPUTS, programme });
+            expect(html).toContain('data-off-hire-status="refused"');
+            expect(html).toContain("data-programme-costs-errors");
+            expect(html).toContain("renamed or moved");
+            expect(html).not.toContain("data-programme-costs-ack");
+        }
+        // The same through a D121 draft stored in the browser, aligned to the renamed programme as the panel does.
+        const stored = JSON.parse(JSON.stringify(draftFromInputs(INPUTS))) as Record<string, unknown> & { stages: Record<string, unknown>[]; hires: Record<string, unknown>[] };
+        stored.version = 1;
+        delete stored.crews;
+        for (const hire of stored.hires) { delete hire.onStageName; delete hire.offStageName; }
+        const upgraded = upgradeStoredDraft(stored)!;
+        const currentStages = [{ name: "Groundworks" }, { name: "Drain runs" }];
+        const aligned = { ...upgraded, stages: currentStages.map((stage, index) => (upgraded.stages[index]?.name === stage.name ? upgraded.stages[index] : { name: stage.name, day: true, night: false, costed: "", dayCrew: "", nightCrew: "" })) };
+        const parsed = inputsFromDraft(aligned, currentStages);
+        if (!parsed.ok) throw new Error(parsed.errors.join());
+        expect(parsed.inputs.hires[0].offHire).toEqual({ kind: "stage_finish", stage: 1, stageName: "Drainage" });
+        expect(computeProgrammeCosts(renamed, parsed.inputs)).toMatchObject({ ok: false });
     });
 
     it("blocks applying while other estimate work is open", () => {

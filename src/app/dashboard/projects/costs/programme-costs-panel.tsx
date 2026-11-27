@@ -97,6 +97,22 @@ function newCrew(index: number): CrewDraft {
     return { id: randomId("c"), name: `Crew ${index + 1}`, shift: "day", operatives: "", hours: "" };
 }
 
+/**
+ * A D121 hire anchor stores only a stage position. Before the draft's stages
+ * are lined up with the current programme, bind each unnamed anchor to the
+ * name of the stage it was set against, from the settings' own stage list.
+ * A renamed, removed or reordered stage then no longer matches and the hire
+ * is refused until its stage is chosen again; it never follows the stage
+ * that now happens to be in that position. An anchor with no stage on record
+ * gets an empty name, which matches no stage, so it is refused too.
+ */
+function bindAnchorNames(hire: HireDraft, ownStageNames: readonly string[]): HireDraft {
+    const bound = { ...hire };
+    if (bound.onKind !== "date" && bound.onStageName === undefined) bound.onStageName = ownStageNames[Number(bound.onStage)] ?? "";
+    if (bound.offKind !== "date" && bound.offStageName === undefined) bound.offStageName = ownStageNames[Number(bound.offStage)] ?? "";
+    return bound;
+}
+
 export function draftFromInputs(inputs: ProgrammeCostInputs): ProgrammeCostsDraft {
     const draft = emptyDraft();
     draft.stages = inputs.stages.map((stage) => ({
@@ -109,7 +125,7 @@ export function draftFromInputs(inputs: ProgrammeCostInputs): ProgrammeCostsDraf
     }));
     for (const floor of inputs.gangFloors) draft.gang[floor.shift] = { min: String(floor.minimumPaidGang), rate: penceText(floor.operativeDayRatePence) };
     for (const entry of inputs.supervision) draft.supervision[entry.shift] = penceText(entry.ratePerShiftPence);
-    draft.hires = inputs.hires.map((hire) => ({
+    draft.hires = inputs.hires.map((hire): HireDraft => ({
         id: hire.id, description: hire.description, unit: hire.unit, rate: penceText(hire.ratePence),
         chargeableDays: hire.chargeableDays ?? "", partPeriodRule: hire.partPeriodRule ?? "", minimumPeriods: String(hire.minimumPeriods),
         onKind: hire.onHire.kind === "date" ? "date" : "stage_start", onStage: hire.onHire.kind === "date" ? "0" : String(hire.onHire.stage), onDate: hire.onHire.kind === "date" ? hire.onHire.date : "",
@@ -117,7 +133,7 @@ export function draftFromInputs(inputs: ProgrammeCostInputs): ProgrammeCostsDraf
         offKind: hire.offHire.kind === "date" ? "date" : "stage_finish", offStage: hire.offHire.kind === "date" ? "0" : String(hire.offHire.stage), offDate: hire.offHire.kind === "date" ? hire.offHire.date : "",
         ...(hire.offHire.kind !== "date" && hire.offHire.stageName !== undefined ? { offStageName: hire.offHire.stageName } : {}),
         offHireRule: hire.offHireRule ?? "", offHireDays: String(hire.offHireDays), delivery: penceText(hire.deliveryPence), collection: penceText(hire.collectionPence),
-    }));
+    })).map((hire) => bindAnchorNames(hire, inputs.stages.map((stage) => stage.name)));
     return draft;
 }
 
@@ -257,7 +273,7 @@ export function upgradeStoredDraft(value: unknown): ProgrammeCostsDraft | null {
         stages: parsed.stages.map((stage) => ({ ...stage, dayCrew: stage.dayCrew ?? "", nightCrew: stage.nightCrew ?? "" })),
         gang: parsed.gang,
         supervision: parsed.supervision,
-        hires: parsed.hires,
+        hires: parsed.hires.map((hire) => bindAnchorNames(hire, parsed.stages!.map((stage) => stage.name))),
         crews: Array.isArray(parsed.crews) ? parsed.crews : [],
     };
 }

@@ -1,5 +1,13 @@
 # Cursor change log
 
+## 2026-11-28 — D121 client-safe export R1 fixes
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/client-boq-export.ts` | Generic title/filename; explicit rounding line; 2dp-only display rate (else blank Total); serialized inspect | R1 review f5cc8b8d |
+| `src/lib/client-boq-export.test.ts` | Sentinels, fractional qty, rounding line, reject large gap | Confidentiality + money |
+| `advanced-estimate.tsx` | `.catch(toast.error)` on export | Blocked export UX |
+
 ## 2026-11-28 — D121 client-safe BoQ Excel export
 
 | File | Change | Intent |

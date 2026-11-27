@@ -14,6 +14,25 @@ import type { Estimate, EstimateLine } from "@/app/dashboard/projects/costs/type
 /** The one job setting the export needs: how VAT is charged on this job. */
 export type BoQExportProject = { is_vat_reverse_charge?: boolean | null };
 
+/** Fixed client-facing workbook title (no internal version labels). */
+export const CLIENT_BOQ_EXPORT_TITLE = "Client BoQ";
+
+/** Fixed download name — never embeds `version_name` or source filename. */
+export const CLIENT_BOQ_EXPORT_FILENAME = "ClientCopy_BoQ.xlsx";
+
+export const CLIENT_BOQ_ROUNDING_RECONCILIATION_LABEL =
+    "Rounding reconciliation (contract sum tie-out)";
+
+export const CLIENT_BOQ_RATE_FOOTNOTE =
+    "Note: Where Rate (£) is blank, Total (£) is the contract line amount (Qty × Rate may differ after rounding).";
+
+/** Test-only sentinels; must never appear in a client export. */
+export const CLIENT_BOQ_CONFIDENTIALITY_SENTINELS = [
+    "SENTINEL_INTERNAL_VERSION",
+    "SENTINEL_INTERNAL_SUPPLIER_NOTE",
+    "SENTINEL_INTERNAL_MARGIN_PCT",
+] as const;
+
 export class ClientBoQExportError extends Error {
     constructor(message: string) {
         super(message);
@@ -27,9 +46,11 @@ export type ClientBoQExportLine = {
     description: string;
     quantity: number;
     unit: string;
-    /** All-in unit rate (margins in rate, not shown separately). */
-    unit_rate: number;
+    /** Shown rate when Qty × Rate ties to Total; otherwise null and Total is authoritative. */
+    unit_rate: number | null;
     line_total: number;
+    is_rounding_reconciliation?: boolean;
+    total_authoritative?: boolean;
 };
 
 const FORBIDDEN_SUMMARY_LABELS = [
@@ -46,6 +67,24 @@ const REVERSE_CHARGE_NOTE =
 
 function formatGBP(n: number): string {
     return n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/**
+ * Client-sheet rate column: only show a 2dp unit rate when Qty × Rate equals Total to the penny.
+ * Otherwise leave Rate blank and treat Total as authoritative (footnote explains).
+ */
+export function clientBoQDisplayRate(
+    quantity: number,
+    lineTotal: number,
+): { unit_rate: number | null; total_authoritative: boolean } {
+    if (quantity <= 0) {
+        return { unit_rate: null, total_authoritative: true };
+    }
+    const twoDp = Number((lineTotal / quantity).toFixed(2));
+    if (roundMoney(quantity * twoDp) === lineTotal) {
+        return { unit_rate: twoDp, total_authoritative: false };
+    }
+    return { unit_rate: null, total_authoritative: true };
 }
 
 /**
@@ -68,6 +107,7 @@ export function buildClientSafeBoQLines(
         unit: string;
         amount_ex_vat: number;
         line_type?: string;
+        roundingReconciliation?: boolean;
     };
 
     const items: Item[] = lines
@@ -102,20 +142,22 @@ export function buildClientSafeBoQLines(
     if (items.length > 0) {
         const itemTotal = roundMoney(items.reduce((sum, line) => sum + line.amount_ex_vat, 0));
         const residual = roundMoney(contractSum - itemTotal);
-        const residualIndex = items.reduce(
-            (last, line, index) => (line.line_type ? last : index),
-            -1,
-        );
-        if (residualIndex >= 0) {
-            items[residualIndex].amount_ex_vat = roundMoney(items[residualIndex].amount_ex_vat + residual);
-        } else if (residual !== 0) {
+        if (residual !== 0) {
+            const markedUpCount = items.filter((line) => !line.line_type).length || 1;
+            const maxRounding = roundMoney(Math.min(1, markedUpCount * 0.02));
+            if (Math.abs(residual) > maxRounding) {
+                throw new ClientBoQExportError(
+                    `Contract sum tie-out gap of £${formatGBP(residual)} exceeds the rounding tolerance (£${formatGBP(maxRounding)}). Use internal export for review.`,
+                );
+            }
             items.push({
                 client_ref: "",
                 section: "General",
-                description: "Price adjustment",
+                description: CLIENT_BOQ_ROUNDING_RECONCILIATION_LABEL,
                 quantity: 1,
                 unit: "sum",
                 amount_ex_vat: residual,
+                roundingReconciliation: true,
             });
         }
     }
@@ -123,8 +165,7 @@ export function buildClientSafeBoQLines(
     const exportLines: ClientBoQExportLine[] = items.map((item) => {
         const qty = item.quantity;
         const line_total = item.amount_ex_vat;
-        const unit_rate =
-            qty > 0 ? roundMoney(line_total / qty) : line_total;
+        const { unit_rate, total_authoritative } = clientBoQDisplayRate(qty, line_total);
         return {
             client_ref: item.client_ref,
             section: item.section,
@@ -133,6 +174,8 @@ export function buildClientSafeBoQLines(
             unit: item.unit,
             unit_rate,
             line_total,
+            ...(item.roundingReconciliation ? { is_rounding_reconciliation: true } : {}),
+            ...(total_authoritative ? { total_authoritative: true } : {}),
         };
     });
 
@@ -169,11 +212,15 @@ export type ClientBoQSheetRow = (string | number)[];
 
 export function buildClientBoQSheetRows(estimate: Estimate, project?: BoQExportProject): ClientBoQSheetRow[] {
     const { exportLines } = buildClientSafeBoQLines(estimate, estimate.estimate_lines);
+    const needsRateFootnote = exportLines.some((l) => l.total_authoritative);
     const rows: ClientBoQSheetRow[] = [
-        [estimate.version_name || "Client BoQ"],
+        [CLIENT_BOQ_EXPORT_TITLE],
         [],
         ["Ref", "Description", "Qty", "Unit", "Rate (£)", "Total (£)"],
     ];
+    if (needsRateFootnote) {
+        rows.push(["", CLIENT_BOQ_RATE_FOOTNOTE, "", "", "", ""]);
+    }
 
     const bySection = new Map<string, ClientBoQExportLine[]>();
     for (const line of exportLines) {
@@ -206,7 +253,7 @@ export function buildClientBoQSheetRows(estimate: Estimate, project?: BoQExportP
                 line.description,
                 line.quantity,
                 line.unit,
-                line.unit_rate !== 0 ? line.unit_rate : "",
+                line.unit_rate != null && line.unit_rate !== 0 ? line.unit_rate : "",
                 line.line_total !== 0 ? line.line_total : "",
             ]);
         }
@@ -257,23 +304,29 @@ export function inspectClientBoQWorkbookForLeaks(workbook: WorkBook): string[] {
         }
         for (const key of Object.keys(ws)) {
             if (key.startsWith("!")) continue;
-            const raw = ws[key]?.v;
-            const text = cellText(raw);
+            const cell = ws[key];
+            if (cell?.c) {
+                leaks.push(`cell comment at ${name}!${key}`);
+            }
+            const text = cellText(cell?.v);
             for (const pattern of FORBIDDEN_SUMMARY_LABELS) {
                 if (pattern.test(text)) {
                     leaks.push(`internal label in ${name}!${key}: ${text}`);
                 }
             }
-            if (/\bsupplier\b/i.test(text) && /\bINTERNAL_SUPPLIER\b/.test(text)) {
-                leaks.push(`supplier leak in ${name}!${key}`);
+            for (const sentinel of CLIENT_BOQ_CONFIDENTIALITY_SENTINELS) {
+                if (text.includes(sentinel)) {
+                    leaks.push(`confidentiality sentinel in ${name}!${key}`);
+                }
             }
         }
     }
-    if (workbook.Custprops) {
-        for (const value of Object.values(workbook.Custprops)) {
-            const text = cellText(value);
-            if (/INTERNAL_|supplier|margin|contingency|overhead|profit_pct/i.test(text)) {
-                leaks.push(`internal custom property: ${text.slice(0, 80)}`);
+    for (const bag of [workbook.Props, workbook.Custprops]) {
+        if (!bag) continue;
+        const serialised = JSON.stringify(bag);
+        for (const sentinel of CLIENT_BOQ_CONFIDENTIALITY_SENTINELS) {
+            if (serialised.includes(sentinel)) {
+                leaks.push(`confidentiality sentinel in workbook metadata`);
             }
         }
     }
@@ -295,4 +348,16 @@ export function buildClientBoQWorkbook(estimate: Estimate, project?: BoQExportPr
     }
     sanitiseClientBoQWorkbookForWrite(wb);
     return wb;
+}
+
+export function serializeClientBoQWorkbook(workbook: WorkBook): ArrayBuffer {
+    const copy = { ...workbook, Sheets: { ...workbook.Sheets }, SheetNames: [...workbook.SheetNames] };
+    sanitiseClientBoQWorkbookForWrite(copy);
+    return XLSX.write(copy, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
+}
+
+/** Inspect the bytes a client would receive after write/read round-trip. */
+export function inspectSerializedClientBoQFile(buffer: ArrayBuffer): string[] {
+    const workbook = XLSX.read(buffer, { type: "array" });
+    return inspectClientBoQWorkbookForLeaks(workbook);
 }

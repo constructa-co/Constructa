@@ -1751,11 +1751,17 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                     <>
                                         <button
                                             type="button"
-                                            onClick={() =>
+                                            onClick={() => {
                                                 exportClientBoQToExcel(currentEstimate, {
                                                     is_vat_reverse_charge: isVatReverseCharge,
-                                                })
-                                            }
+                                                }).catch((err) => {
+                                                    toast.error(
+                                                        err instanceof Error
+                                                            ? err.message
+                                                            : "Client BoQ export could not complete.",
+                                                    );
+                                                });
+                                            }}
                                             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors"
                                         >
                                             <FileDown className="w-4 h-4" />
@@ -1763,11 +1769,15 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() =>
+                                            onClick={() => {
                                                 exportBoQToExcel(currentEstimate, {
                                                     is_vat_reverse_charge: isVatReverseCharge,
-                                                })
-                                            }
+                                                }).catch((err) => {
+                                                    toast.error(
+                                                        err instanceof Error ? err.message : "Export could not complete.",
+                                                    );
+                                                });
+                                            }}
                                             className="flex items-center gap-2 px-3 py-2 border border-slate-600 text-slate-300 hover:bg-slate-800 text-sm font-medium rounded-lg transition-colors"
                                         >
                                             <FileDown className="w-4 h-4" />

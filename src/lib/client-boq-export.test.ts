@@ -1,12 +1,20 @@
 import { describe, expect, it } from "vitest";
 import * as XLSX from "xlsx";
-import { computeContractSumValue } from "@/lib/financial";
+import { computeContractSumValue, roundMoney } from "@/lib/financial";
 import { vatFor } from "@/lib/proposal-review";
 import {
+    CLIENT_BOQ_CONFIDENTIALITY_SENTINELS,
+    CLIENT_BOQ_EXPORT_FILENAME,
+    CLIENT_BOQ_EXPORT_TITLE,
+    CLIENT_BOQ_ROUNDING_RECONCILIATION_LABEL,
+    ClientBoQExportError,
     buildClientBoQWorkbook,
     buildClientSafeBoQLines,
+    clientBoQDisplayRate,
     clientBoQSummaryRows,
     inspectClientBoQWorkbookForLeaks,
+    inspectSerializedClientBoQFile,
+    serializeClientBoQWorkbook,
 } from "./client-boq-export";
 import { boqSummaryRows } from "@/app/dashboard/projects/costs/boq-excel-export";
 import type { Estimate, EstimateLine } from "@/app/dashboard/projects/costs/types";
@@ -28,11 +36,12 @@ function line(over: Partial<EstimateLine>): EstimateLine {
     };
 }
 
-function estimate(lines: EstimateLine[]): Estimate {
+function estimate(lines: EstimateLine[], over: Partial<Estimate> = {}): Estimate {
     return {
         id: "e",
         project_id: "p",
-        version_name: "SYNTH v1",
+        version_name: "SENTINEL_INTERNAL_VERSION — margin working",
+        client_boq_filename: "SENTINEL_SOURCE_TENDER.xlsx",
         overhead_pct: 10,
         profit_pct: 15,
         risk_pct: 5,
@@ -43,6 +52,7 @@ function estimate(lines: EstimateLine[]): Estimate {
         is_active: true,
         is_client_boq: true,
         estimate_lines: lines,
+        ...over,
     };
 }
 
@@ -60,24 +70,45 @@ describe("client-safe BoQ export", () => {
         expect(Math.round(sum * 100) / 100).toBe(contractSum);
     });
 
-    it("does not surface internal notes or margin summary labels in the workbook", () => {
+    it("omits internal version, filename and component notes from the workbook and serialized file", () => {
         const e = estimate([
             line({
-                notes: "INTERNAL_SUPPLIER: SYNTH-Merchant-99",
+                notes: "SENTINEL_INTERNAL_SUPPLIER_NOTE: SYNTH-Merchant-99",
                 description: "SYNTH visible description only",
+                estimate_line_components: [
+                    {
+                        id: "c1",
+                        estimate_line_id: "l",
+                        component_type: "labour",
+                        description: "SENTINEL_INTERNAL_MARGIN_PCT 42%",
+                        quantity: 1,
+                        unit: "hr",
+                        unit_rate: 50,
+                        line_total: 50,
+                        manhours_per_unit: 1,
+                        total_manhours: 1,
+                        sort_order: 0,
+                    },
+                ],
             }),
         ]);
         const wb = buildClientBoQWorkbook(e);
-        const leaks = inspectClientBoQWorkbookForLeaks(wb);
-        expect(leaks).toEqual([]);
-        const sheet = wb.Sheets["Client BoQ"];
+        const buf = serializeClientBoQWorkbook(wb);
+        expect(inspectSerializedClientBoQFile(buf)).toEqual([]);
+        const roundTrip = XLSX.read(buf, { type: "array" });
+        const sheet = roundTrip.Sheets["Client BoQ"];
         const text = Object.keys(sheet)
             .filter((k) => !k.startsWith("!"))
             .map((k) => String(sheet[k]?.v ?? ""))
-            .join(" ");
-        expect(text).not.toMatch(/INTERNAL_SUPPLIER|Overhead \(|Profit \(|Risk \(/);
-        expect(text).toContain("SYNTH visible description only");
-        expect(wb.SheetNames).toEqual(["Client BoQ"]);
+            .join("\n");
+        for (const sentinel of CLIENT_BOQ_CONFIDENTIALITY_SENTINELS) {
+            expect(text).not.toContain(sentinel);
+        }
+        expect(text).toContain(CLIENT_BOQ_EXPORT_TITLE);
+        expect(text).not.toContain(e.version_name!);
+        expect(text).not.toContain("SENTINEL_SOURCE_TENDER");
+        expect(roundTrip.SheetNames).toEqual(["Client BoQ"]);
+        expect(inspectClientBoQWorkbookForLeaks(wb)).toEqual([]);
     });
 
     it("client summary shows contract sum and VAT only; internal export still shows margins", () => {
@@ -95,12 +126,48 @@ describe("client-safe BoQ export", () => {
         }
     });
 
-    it("produces a single visible sheet with no comments in the serialized file", () => {
-        const wb = buildClientBoQWorkbook(estimate([line({ line_total: 2000 })]));
-        const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
-        const roundTrip = XLSX.read(buf, { type: "array" });
-        expect(roundTrip.SheetNames).toEqual(["Client BoQ"]);
-        expect(inspectClientBoQWorkbookForLeaks(roundTrip)).toEqual([]);
+    it("clientBoQDisplayRate keeps totals authoritative when no rate ties to the penny", () => {
+        const awkward = clientBoQDisplayRate(3, 1);
+        expect(awkward.unit_rate).toBeNull();
+        expect(awkward.total_authoritative).toBe(true);
+        const tidy = clientBoQDisplayRate(3, 1.5);
+        expect(tidy.unit_rate).toBe(0.5);
+        expect(roundMoney(3 * tidy.unit_rate!)).toBe(1.5);
+        const lump = clientBoQDisplayRate(0, 250);
+        expect(lump.unit_rate).toBeNull();
+        expect(lump.total_authoritative).toBe(true);
+    });
+
+    it("adds an explicit rounding reconciliation line instead of silently adjusting a priced line", () => {
+        const e = estimate(
+            [
+                line({ description: "SYNTH strip out", line_total: 1010.1 }),
+                line({ description: "SYNTH fit kitchen", line_total: 1010.1 }),
+                line({ line_total: 7500, line_type: "pc_sum", description: "SYNTH PC kitchen" }),
+            ],
+            { overhead_pct: 10, profit_pct: 15, risk_pct: 0, prelims_pct: 0 },
+        );
+        const { exportLines } = buildClientSafeBoQLines(e, e.estimate_lines);
+        const strip = exportLines.find((l) => l.description.includes("strip out"))!;
+        const kitchen = exportLines.find((l) => l.description.includes("fit kitchen"))!;
+        const expectedMarked = roundMoney(1010.1 * 1.265);
+        expect(strip.line_total).toBe(expectedMarked);
+        expect(kitchen.line_total).toBe(expectedMarked);
+        expect(exportLines.find((l) => l.line_total === 7500)?.description).toContain("PC");
+        const rounding = exportLines.find((l) => l.is_rounding_reconciliation);
+        expect(rounding?.description).toBe(CLIENT_BOQ_ROUNDING_RECONCILIATION_LABEL);
+        expect(rounding?.line_total).not.toBe(0);
+        const sum = exportLines.reduce((s, l) => s + l.line_total, 0);
+        expect(sum).toBe(computeContractSumValue(e, e.estimate_lines));
+    });
+
+    it("rejects unexplained tie-out gaps beyond rounding tolerance", () => {
+        const e = estimate([], { total_cost: 5000, prelims_pct: 10, overhead_pct: 0, profit_pct: 0, risk_pct: 0 });
+        expect(() => buildClientSafeBoQLines(e, [])).toThrow(ClientBoQExportError);
+    });
+
+    it("uses fixed client filename constant", () => {
+        expect(CLIENT_BOQ_EXPORT_FILENAME).toBe("ClientCopy_BoQ.xlsx");
     });
 
     it("reverse-charge jobs match vatFor and omit VAT money rows", () => {

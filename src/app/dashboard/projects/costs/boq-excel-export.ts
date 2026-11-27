@@ -6,7 +6,12 @@ import { requireLaunchCapability } from "@/lib/launch-profile";
 import { computeContractSum, roundMoney } from "@/lib/financial";
 import { vatFor } from "@/lib/proposal-review";
 import { groupLinesBySection, orderedEstimateSections } from "@/lib/estimate-batch-sections";
-import { buildClientBoQWorkbook, type BoQExportProject } from "@/lib/client-boq-export";
+import {
+    buildClientBoQWorkbook,
+    CLIENT_BOQ_EXPORT_FILENAME,
+    ClientBoQExportError,
+    type BoQExportProject,
+} from "@/lib/client-boq-export";
 
 export type { BoQExportProject };
 
@@ -155,11 +160,11 @@ export async function exportBoQToExcel(estimate: Estimate, project?: BoQExportPr
 export async function exportClientBoQToExcel(estimate: Estimate, project?: BoQExportProject): Promise<void> {
     requireLaunchCapability("client-boq-import");
     const XLSX = await import("xlsx");
-    const wb = buildClientBoQWorkbook(estimate, project);
-    const base =
-        estimate.is_client_boq && estimate.client_boq_filename
-            ? estimate.client_boq_filename.replace(/\.[^.]+$/, "")
-            : (estimate.version_name || "Estimate").replace(/[^a-z0-9]/gi, "_");
-    const filename = `ClientCopy_${base}.xlsx`;
-    XLSX.writeFile(wb, filename);
+    try {
+        const wb = buildClientBoQWorkbook(estimate, project);
+        XLSX.writeFile(wb, CLIENT_BOQ_EXPORT_FILENAME);
+    } catch (error) {
+        if (error instanceof ClientBoQExportError) throw error;
+        throw new ClientBoQExportError(error instanceof Error ? error.message : "Client BoQ export failed.");
+    }
 }

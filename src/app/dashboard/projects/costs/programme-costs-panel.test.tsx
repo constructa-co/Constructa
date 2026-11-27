@@ -223,6 +223,8 @@ describe("programme costs review panel", () => {
         // Drainage now finishes Thu 1 April 2027 (20 working days, Easter skipped): 23 calendar days later.
         expect(html).toContain('data-off-hire-off="2027-04-01"');
         expect(html).toContain("(moved +23 days)");
+        expect(html).toContain("The hire costs saved on the estimate stay unchanged: this version adds programme costs once and cannot update them.");
+        expect(html).not.toContain("To use the new dates");
         expect(html).toContain("On the estimate: 4 × week");
         expect(html).toContain("Plant hire – 3 t dumper (£480.00)");
         expect(html).not.toContain("data-programme-costs-ack");

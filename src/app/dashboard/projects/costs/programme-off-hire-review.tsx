@@ -40,7 +40,6 @@ export function OffHireReview({ schedule, s }: { schedule: OffHireSchedule; s: W
             {review && (
                 <p className={`text-sm ${s.errorText}`} role="status" data-off-hire-moved>
                     The programme has moved hire dates since these hire costs were added. The hire costs saved on the estimate stay unchanged: this version adds programme costs once and cannot update them.
-                    To use the new dates, delete the programme cost lines from the estimate and apply again.
                 </p>
             )}
             <div className="overflow-x-auto">

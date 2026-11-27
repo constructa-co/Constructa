@@ -232,9 +232,11 @@ describe("boq-workbook intake — SYNTH fixture regression", () => {
     it("unbalanced ledger would block import (protection via blockers)", () => {
         const extraction = extractGrid("multi-tab-over-200");
         expect(extraction.reconciliation.balanced).toBe(true);
-        if (!extraction.reconciliation.balanced) {
-            expect(boqWorkbookImportBlockers(extraction)).toContain("Row reconciliation does not balance.");
-        }
+        const faulted: BoQWorkbookExtraction = {
+            ...extraction,
+            reconciliation: { ...extraction.reconciliation, balanced: false },
+        };
+        expect(boqWorkbookImportBlockers(faulted)).toContain("Row reconciliation does not balance.");
     });
 
     it("includeSheets limits contributing tabs", () => {

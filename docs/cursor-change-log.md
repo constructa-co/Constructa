@@ -1,5 +1,9 @@
 # Cursor change log
 
+## 2026-11-27 — D120 unbalanced-ledger blocker test fix
+
+| `src/lib/boq-workbook-intake.regression.test.ts` | Fault-inject `balanced: false`; assert blocker unconditionally | R1 review: dead `if (!balanced)` branch |
+
 ## 2026-11-27 — D120 phase 2 intake regression (post-merge 8dfecac7)
 
 | File | Change | Intent |

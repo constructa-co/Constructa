@@ -373,7 +373,7 @@ export default function ProgrammeCostsPanel({
     const statusText: Record<typeof status, string> = {
         not_applied: "Not on the estimate.",
         up_to_date: "On the estimate and matching the saved programme.",
-        review: "The saved programme has changed since these costs were added. The estimate still carries the earlier figures until you review and apply.",
+        review: "The saved programme has changed since these costs were added. The costs saved on the estimate stay unchanged: this version cannot update them.",
         inconsistent: "The estimate has more than one set of programme cost lines, which may charge the same cost twice. Delete the extra lines from the estimate.",
     };
     const scheduleHref = `/dashboard/projects/schedule?projectId=${encodeURIComponent(projectId)}`;
@@ -634,10 +634,10 @@ export default function ProgrammeCostsPanel({
                                     <p>
                                         {applied.signature === priced.result.signature
                                             ? "These programme costs are on the estimate."
-                                            : "The figures above differ from the programme cost lines on the estimate. The estimate keeps its lines until you change them."}
+                                            : "The figures above differ from the programme cost lines on the estimate. Those lines stay unchanged."}
                                     </p>
                                     <p>
-                                        This version adds programme costs once and does not replace them. To use new figures, delete these lines from the estimate, then apply again here:
+                                        This version adds programme costs once and cannot update or replace them. These lines stay on the estimate as they are:
                                     </p>
                                     <ul className="list-disc pl-5">{appliedLines.map((line) => <li key={line.id}>{line.description} ({formatGBP(Number(line.line_total) || 0)})</li>)}</ul>
                                 </div>

@@ -145,8 +145,11 @@ describe("programme costs review panel", () => {
         const longer = { ...PROGRAMME, programme_phases: [PROGRAMME.programme_phases[0], { ...PROGRAMME.programme_phases[1], calculatedDays: 8 }] };
         const html = render([LABOUR, ...applied], { programme: longer });
         expect(html).toContain('data-programme-costs-status="review"');
-        expect(html).toContain("The estimate still carries the earlier figures until you review and apply.");
-        expect(html).toContain("The estimate keeps its lines until you change them.");
+        expect(html).toContain("The costs saved on the estimate stay unchanged: this version cannot update them.");
+        expect(html).toContain("The figures above differ from the programme cost lines on the estimate. Those lines stay unchanged.");
+        expect(html).toContain("This version adds programme costs once and cannot update or replace them. These lines stay on the estimate as they are:");
+        // No delete-first or review-and-apply guidance: replacing an applied set is not supported.
+        expect(html).not.toMatch(/delete these lines|apply again|until you review and apply/);
         expect(html).toContain("Site supervision – day shifts (£1,260.00)");
         expect(html).not.toContain("data-programme-costs-ack");
     });

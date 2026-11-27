@@ -14,6 +14,8 @@ import {
     alignStageInputs,
     computeProgrammeCosts,
     derivedCostedOperatives,
+    hireClientDescription,
+    hireTransportClientDescription,
     hireUnitLabel,
     parseProgrammeCostInputs,
     planProgrammeCostApplication,
@@ -522,9 +524,20 @@ export default function ProgrammeCostsPanel({
                                     const periodic = hire.unit === "week" || hire.unit === "four_week" || hire.unit === "month";
                                     return (
                                         <div key={hire.id} className={`${s.inset} p-3 grid gap-2 sm:grid-cols-3`} data-programme-cost-hire>
-                                            <label className={`text-sm ${s.body} sm:col-span-2`}>Item
-                                                <input value={hire.description} maxLength={200} onChange={(e) => setHire(index, { description: e.target.value })} className={field} />
-                                            </label>
+                                            <div className="sm:col-span-2">
+                                                <label className={`text-sm ${s.body}`} htmlFor={`programme-hire-item-${hire.id}`}>Plant item description (shown to client)</label>
+                                                <input id={`programme-hire-item-${hire.id}`} value={hire.description} maxLength={200} aria-describedby={`programme-hire-item-help-${hire.id}`}
+                                                    onChange={(e) => setHire(index, { description: e.target.value })} className={field} data-programme-cost-hire-item />
+                                                <p id={`programme-hire-item-help-${hire.id}`} className={`mt-1 text-sm ${s.muted}`} data-programme-cost-hire-item-help>
+                                                    Shown to the client. Do not enter supplier names, private rates or terms.
+                                                </p>
+                                                {hire.description.trim() && (
+                                                    <p className={`mt-1 text-sm ${s.body}`} data-programme-cost-hire-client-wording>
+                                                        The client sees: “{hireClientDescription(hire.description.trim())}”
+                                                        {(hire.delivery.trim() || hire.collection.trim()) ? <> and “{hireTransportClientDescription(hire.description.trim())}”</> : null}
+                                                    </p>
+                                                )}
+                                            </div>
                                             <label className={`text-sm ${s.body}`}>Supplier bills per
                                                 <select value={hire.unit} onChange={(e) => setHire(index, { unit: e.target.value as HireUnit })} className={field}>
                                                     {HIRE_UNITS.map((unit) => <option key={unit} value={unit}>{hireUnitLabel(unit)}</option>)}
@@ -656,6 +669,11 @@ function ProgrammeCostsReview({ priced, plan, s }: {
     return (
         <div className="space-y-3" data-programme-costs-review>
             <h3 className={`text-base font-semibold ${s.heading}`}>Preliminaries these settings give</h3>
+            {result.lines.length > 0 && (
+                <p className={`text-sm ${s.muted}`} data-programme-costs-client-wording-note>
+                    Each description below is exactly what the client sees on the proposal and the client BoQ. Rates and settings stay internal.
+                </p>
+            )}
             {result.lines.length === 0 ? (
                 <p className={`text-sm ${s.muted}`}>No programme costs: nothing is charged with these settings.</p>
             ) : (

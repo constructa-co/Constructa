@@ -512,7 +512,12 @@ export function hireCost(
 export interface ProgrammeCostLine {
     /** Stable identity of the cost this line carries, e.g. "gang:day" or "hire:abc". */
     key: string;
-    /** Client-safe wording: no rates, margins or supplier terms. */
+    /**
+     * Client-visible wording. The template text adds no rates, margins or
+     * supplier terms; a hire's item text is the contractor's own and goes to
+     * the client as typed, so the panel labels that field client-visible and
+     * previews the exact wording.
+     */
     description: string;
     quantity: number;
     unit: string;
@@ -525,6 +530,16 @@ const HIRE_UNIT_LABEL: Record<HireUnit, string> = { day: "day", week: "week", fo
 
 export function hireUnitLabel(unit: HireUnit): string {
     return HIRE_UNIT_LABEL[unit];
+}
+
+/** The exact client-visible description of a hire line. The item text is shown to the client as typed. */
+export function hireClientDescription(item: string): string {
+    return `Plant hire – ${item}`;
+}
+
+/** The exact client-visible description of a hire's delivery and collection line. */
+export function hireTransportClientDescription(item: string): string {
+    return `Delivery and collection – ${item}`;
 }
 
 export interface ProgrammeCostResult {
@@ -598,11 +613,11 @@ export function computeProgrammeCosts(source: ProgrammeCostSource, rawInputs: un
     }
     for (const hire of hires) {
         if (hire.hirePence > 0) {
-            lines.push({ key: `hire:${hire.id}`, description: `Plant hire – ${hire.description}`, quantity: hire.periods, unit: HIRE_UNIT_LABEL[hire.unit], unitRatePence: hire.ratePence, totalPence: hire.hirePence });
+            lines.push({ key: `hire:${hire.id}`, description: hireClientDescription(hire.description), quantity: hire.periods, unit: HIRE_UNIT_LABEL[hire.unit], unitRatePence: hire.ratePence, totalPence: hire.hirePence });
         }
         const transport = hire.deliveryPence + hire.collectionPence;
         if (transport > 0) {
-            lines.push({ key: `hire:${hire.id}:transport`, description: `Delivery and collection – ${hire.description}`, quantity: 1, unit: "sum", unitRatePence: transport, totalPence: transport });
+            lines.push({ key: `hire:${hire.id}:transport`, description: hireTransportClientDescription(hire.description), quantity: 1, unit: "sum", unitRatePence: transport, totalPence: transport });
         }
     }
 

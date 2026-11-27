@@ -1,12 +1,16 @@
 # BOQ workbook intake — test contract (D120 fixtures, pause before module tests)
 
-Status: **fixtures only** on branch `codex/d120-boq-workbook-tests-20261127`. Production
-all-tab workbook intake is owned separately; do not assert against guessed module paths here.
+Status: **fixtures only, paused** on branch `codex/d120-boq-workbook-tests-20261127`
+(HEAD `39bdcab9` — R1 fixture receipt). Production all-tab workbook intake is owned by Claude
+locally; do not assert against guessed module paths here.
+
+**Acceptance boundary:** `boq-workbook-fixtures.test.ts` is factory self-check only. It is **not**
+import regression acceptance for all-tab intake.
 
 ## Fixture factory
 
 - **Module:** `src/lib/__fixtures__/boq-workbook.ts`
-- **Smoke:** `src/lib/__fixtures__/boq-workbook-fixtures.test.ts` (factory integrity only; no production imports)
+- **Smoke:** `src/lib/__fixtures__/boq-workbook-fixtures.test.ts` (encode/grid integrity only)
 
 ## Capture limits (current `main` behaviour — fixtures encode these boundaries)
 
@@ -27,7 +31,7 @@ new module exists.
 | `multi-tab-over-200` | Three tabs; primary tab 215 data rows; markers at 150/200; secondary tabs smaller |
 | `empty-middle-tab` | Non-empty → **empty** → non-empty sheet order |
 | `merged-repeated-headers` | Repeated header bands + merged title row (XLSX `!merges`) |
-| `reconciliation-mismatch` | Qty × rate ≠ stated total on numbered synthetic lines |
+| `reconciliation-mismatch` | **Line total:** qty × rate ≠ stated total (`total_mismatch` semantics today) |
 | `csv-single-tab-baseline` | Same logical grid as CSV bytes (no XLSX) |
 
 All descriptions/refs use the `SYNTH-BQ-*` prefix — no private client filenames or site data.
@@ -43,9 +47,13 @@ Likely responsibilities to cover with fixtures:
 1. Enumerate **every** worksheet (not first sheet only).
 2. Skip or flag **empty** tabs without aborting the workbook.
 3. Collapse **repeated / merged header** bands into one logical header per tab.
-4. Return **source row index** (sheet name + 1-based row) per imported line for reconciliation.
-5. Emit **workbook-level warnings** when source cell totals disagree with normalized `qty × rate`
-   (same semantics as `total_mismatch` on `ClientBoQLine` / `EstimateBatchCsvLine`).
+4. Return **source row provenance** (sheet name + 1-based row, and stable source key) per imported line.
+5. **Source row coverage reconciliation** (primary “reconciliation mismatch” for phase 2): compare
+   imported lines to the source grid — dropped rows, duplicate imports, unaccounted source rows,
+   imported vs source **counts** per sheet and workbook. Emit warnings when coverage does not match.
+6. **Line total reconciliation** (keep separate): when qty/rate cells parse, flag `total_mismatch`
+   when stated total ≠ qty × rate (same as `ClientBoQLine` / `EstimateBatchCsvLine` today).
+   The existing `reconciliation-mismatch` fixture targets (6) only.
 
 **Proposed import path (placeholder):** `src/lib/boq-workbook-intake.ts`  
 **Proposed export name (placeholder):** `parseBoqWorkbookAllTabs(input: ArrayBuffer | BoqWorkbookSheet[]): BoqWorkbookIntakeResult`
@@ -54,16 +62,25 @@ Likely responsibilities to cover with fixtures:
 
 | File | Scope |
 | --- | --- |
-| `src/lib/boq-workbook-intake.test.ts` | All scenarios: tab count, row counts, markers 150/200, empty tab, headers, mismatches |
-| `src/lib/__fixtures__/boq-workbook-integration.test.ts` | Optional: wire to server action only if R1 exposes a **non-AI** entry (e.g. `rows[][]` per sheet) |
+| `src/lib/boq-workbook-intake.test.ts` | Import regression only: tab coverage, caps 150/200, empty tab, headers, **source row coverage**, line total_mismatch |
+
+Do not add parallel test-only scaffolding modules; extend fixtures only when the contract names
+the shapes needed for dropped/duplicate/unaccounted cases.
 
 ### Proposed assertions (shared shape — align types with R1)
 
 ```ts
 // Illustrative only — types/names from Claude contract, not this repo yet.
-expect(result.warnings).toContainEqual(expect.objectContaining({ code: "total_mismatch" }));
-expect(result.lines.find(l => l.source.row === 151)).toBeDefined(); // beyond 150 AI slice
-expect(result.lines.find(l => l.description.includes("SYNTH-BQ-MARKER-200"))).toBeDefined();
+
+// Source row coverage (phase 2 primary reconciliation)
+expect(result.sourceReconciliation.importedCount).toBe(result.sourceReconciliation.accountedSourceRows);
+expect(result.warnings).toContainEqual(expect.objectContaining({ code: "source_row_dropped" })); // when fixture supplies gap
+
+// Line total (existing scenario `reconciliation-mismatch`)
+expect(result.lines[0].total_mismatch).toMatchObject({ stated: 999, computed: 120 });
+
+// Beyond-cap discovery
+expect(result.lines.find((l) => l.source.row === 151)).toBeDefined();
 expect(result.skippedSheets).toContain("SYNTH-Empty-Tab");
 ```
 
@@ -75,5 +92,10 @@ expect(result.skippedSheets).toContain("SYNTH-Empty-Tab");
 
 ## Phase 2 gate
 
-**Pause here** until R1 posts the actual module path, function names, and result type. Then implement
-`boq-workbook-intake.test.ts` against that contract using `getBoqWorkbookScenario()` / XLSX buffers.
+**Paused** until R1 posts the actual module path, function names, and result type (Claude API).
+Then:
+
+1. Implement `boq-workbook-intake.test.ts` against that contract (import regression acceptance).
+2. Add fixture scenario(s) for dropped/duplicate/unaccounted source rows **only as required** by
+   the contract — not ahead of it.
+3. Keep `reconciliation-mismatch` for line `total_mismatch`; add source-coverage regression separately.

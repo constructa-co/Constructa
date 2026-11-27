@@ -5,8 +5,10 @@
 | File | Change | Intent |
 | --- | --- | --- |
 | `src/lib/__fixtures__/boq-workbook.ts` | Scenario factory, XLSX/CSV encoding, >200 rows, empty tab, merged headers, mismatch rows | TEST/FIXTURE lane for all-tab BOQ intake; no production edits |
-| `src/lib/__fixtures__/boq-workbook-test-contract.md` | Test contract + proposed API paths | Pause gate for R1 / Claude module contract |
-| `src/lib/__fixtures__/boq-workbook-fixtures.test.ts` | Factory smoke only | Validates fixtures; no guessed production APIs |
+| `src/lib/__fixtures__/boq-workbook-test-contract.md` | Test contract + proposed API paths; R1 clarification: source row coverage vs line total_mismatch | Pause gate for Claude module contract |
+| `src/lib/__fixtures__/boq-workbook-fixtures.test.ts` | Factory smoke only | Not import regression acceptance |
+
+**Receipt:** `39bdcab9` — build + typecheck + 10 fixture self-checks. Phase 2 waits on API; no PR.
 
 ## 2026-11-27 — D116 public enquiry email on cohort footer and pricing
 

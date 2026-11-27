@@ -1,5 +1,18 @@
 # Cursor change log
 
+## 2026-11-28 — D120 source branch parser repairs (274/276 review)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/boq-workbook.ts` | M1 uncached formula malformed; M2 ref/desc/unit errors; M3 priced ref total rows; L2 TBC unresolved | Bounded Claude review on source branch |
+| `src/lib/boq-workbook.contract.test.ts` | Focused regression cases | M1–M3 + L2 |
+
+## 2026-11-28 — D120 merge parser repairs into test branch
+
+| Action | Detail |
+| --- | --- |
+| Merge `a5592e18` | into `codex/d120-boq-workbook-tests-20261127`; changelog conflict resolved (both entries kept) |
+
 ## 2026-11-27 — D120 unbalanced-ledger blocker test fix
 
 | `src/lib/boq-workbook-intake.regression.test.ts` | Fault-inject `balanced: false`; assert blocker unconditionally | R1 review: dead `if (!balanced)` branch |

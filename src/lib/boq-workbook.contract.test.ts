@@ -150,7 +150,7 @@ describe("figures are read, never guessed", () => {
             ["A", "Testing", 1, "item", { v: null, w: "#REF!", formula: true, error: true }, { v: null, formula: true }],
             ["", "", null, null, null, 120],
         ]);
-        expect(ex.lines[0].parse_warnings).toEqual(["unit_rate"]);
+        expect(ex.lines[0].parse_warnings).toEqual(["unit_rate", "line_total"]);
         expect(ex.reconciliation.totals).toMatchObject({ errorCells: 1, uncachedFormulaCells: 1, warningRows: 1, unresolvedRows: 1 });
         expect(ex.rows[2]).toMatchObject({ kind: "unresolved", reason: "values_without_description" });
         expect(boqWorkbookImportBlockers(ex)).toContain("1 item(s) have unreadable quantities, rates or totals.");
@@ -239,6 +239,61 @@ describe("SheetJS adapter (in-memory workbook, cached values only)", () => {
         const ex = extractBoQWorkbook(input);
         expect(ex.reconciliation.sheets[0]).toMatchObject({ usedRange: "B2:D4", sourceRows: 3, uncachedFormulaCells: 1, errorCells: 1, headerRow: 2 });
         expect(ex.rows.map((r) => r.row)).toEqual([2, 3, 4]);
+    });
+});
+
+describe("Claude review fixes — uncached formulas, field errors, priced refs, TBC markers", () => {
+    const sheet = (rows: BoQCellInput[][]) =>
+        extractBoQWorkbook({ filename: "f.xlsx", sheets: [{ name: "Bill", rows: [["Ref", "Description", "Qty", "Unit", "Rate", "Total"], ...rows] }] });
+
+    it("M1: uncached quantity formula is malformed and blocks import (not defaulted to qty 1)", () => {
+        const ex = sheet([["A", "Measured works", { v: null, formula: true }, "item", 12, 120]]);
+        expect(ex.lines[0].quantity).toBeNull();
+        expect(ex.lines[0].parse_warnings).toContain("quantity");
+        expect(boqWorkbookImportBlockers(ex).join(" ")).toMatch(/unreadable/);
+    });
+
+    it("M2: Excel errors on ref, description, unit and continuation description warn and skip error text", () => {
+        const ex = sheet([
+            ["A", "Primary line", 1, "nr", 10, 10],
+            ["", { v: null, w: "#REF!", formula: true, error: true }, null, null, null, null],
+            [
+                { v: null, w: "#REF!", formula: true, error: true },
+                { v: null, w: "#REF!", formula: true, error: true },
+                2,
+                { v: null, w: "#VALUE!", formula: true, error: true },
+                5,
+                10,
+            ],
+        ]);
+        expect(ex.lines[0].description).toBe("Primary line");
+        expect(ex.lines[0].parse_warnings).toEqual(["description"]);
+        expect(ex.lines[1].parse_warnings).toEqual(["client_ref", "description", "unit"]);
+        expect(ex.lines[1].description).not.toContain("#REF!");
+        expect(boqWorkbookImportBlockers(ex).length).toBeGreaterThan(0);
+    });
+
+    it("M3: referenced priced lines starting with Collection are items, not total rows", () => {
+        const ex = sheet([
+            ["A2", "Collection and disposal of arisings", null, null, null, 250],
+            ["A3", "Total station setting out", null, null, null, 400],
+            ["", "Total carried to collection", null, null, null, 650],
+        ]);
+        expect(ex.lines.map((l) => [l.client_ref, l.line_total])).toEqual([
+            ["A2", 250],
+            ["A3", 400],
+        ]);
+        expect(ex.rows.find((r) => r.preview.includes("carried to collection"))?.reason).toBe("total_row");
+    });
+
+    it("L2: marker-only TBC with no description is unresolved, not note text", () => {
+        const ex = sheet([
+            ["", "", null, null, null, "TBC"],
+            ["", "", "TBC", "item", null, null],
+        ]);
+        expect(ex.rows[1]).toMatchObject({ kind: "unresolved", reason: "item_without_values" });
+        expect(ex.rows[2]).toMatchObject({ kind: "unresolved", reason: "item_without_values" });
+        expect(ex.lines).toHaveLength(0);
     });
 });
 

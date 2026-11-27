@@ -1,5 +1,13 @@
 # Cursor change log
 
+## 2026-11-27 — D120 BOQ workbook synthetic fixtures (pause before intake module tests)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/__fixtures__/boq-workbook.ts` | Scenario factory, XLSX/CSV encoding, >200 rows, empty tab, merged headers, mismatch rows | TEST/FIXTURE lane for all-tab BOQ intake; no production edits |
+| `src/lib/__fixtures__/boq-workbook-test-contract.md` | Test contract + proposed API paths | Pause gate for R1 / Claude module contract |
+| `src/lib/__fixtures__/boq-workbook-fixtures.test.ts` | Factory smoke only | Validates fixtures; no guessed production APIs |
+
 ## 2026-11-27 — D116 public enquiry email on cohort footer and pricing
 
 | File | Change | Intent |

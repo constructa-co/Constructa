@@ -5,6 +5,7 @@ import {
     computeProgrammeCosts,
     gangFloorUplift,
     hireCost,
+    parseProgrammeCostInputs,
     planProgrammeCostApplication,
     programmeCostLineNote,
     programmeCostStatus,
@@ -30,13 +31,21 @@ const SOURCE: ProgrammeCostSource = {
     ],
 };
 
-const DAY_ONLY: StageShiftInput[] = [
+// D121 (v1) stage settings. Every fixture below goes through the parser that
+// reads notes of lines applied before D122, so these tests also prove old
+// settings still read and price exactly as they did.
+type V1Stage = Omit<StageShiftInput, "crewByShift">;
+type V1Patch = Partial<Omit<ProgrammeCostInputs, "version" | "stages" | "crews">> & { stages?: V1Stage[] };
+
+const DAY_ONLY: V1Stage[] = [
     { name: "Groundworks", shifts: ["day"], costedOperatives: null },
     { name: "Drainage", shifts: ["day"], costedOperatives: null },
 ];
 
-function inputs(patch: Partial<ProgrammeCostInputs> = {}): ProgrammeCostInputs {
-    return { version: 1, stages: DAY_ONLY, gangFloors: [], supervision: [], hires: [], ...patch };
+function inputs(patch: V1Patch = {}): ProgrammeCostInputs {
+    const parsed = parseProgrammeCostInputs({ version: 1, stages: DAY_ONLY, gangFloors: [], supervision: [], hires: [], ...patch });
+    if (!parsed.ok) throw new Error(parsed.errors.join("; "));
+    return parsed.inputs;
 }
 
 function hire(patch: Partial<HireInput> = {}): HireInput {
@@ -49,7 +58,7 @@ function hire(patch: Partial<HireInput> = {}): HireInput {
     };
 }
 
-function compute(patch: Partial<ProgrammeCostInputs> = {}, source: ProgrammeCostSource = SOURCE) {
+function compute(patch: V1Patch = {}, source: ProgrammeCostSource = SOURCE) {
     const outcome = computeProgrammeCosts(source, inputs(patch));
     if (!outcome.ok) throw new Error(outcome.errors.join("; "));
     return outcome.result;
@@ -81,8 +90,8 @@ describe("programme as working shift-days", () => {
         const outcome = computeProgrammeCosts(renamed, inputs());
         expect(outcome.ok).toBe(false);
         expect(alignStageInputs([{ name: "Excavation" }, { name: "Drainage" }], DAY_ONLY)).toEqual([
-            { name: "Excavation", shifts: ["day"], costedOperatives: null },
-            DAY_ONLY[1],
+            { name: "Excavation", shifts: ["day"], costedOperatives: null, crewByShift: { day: null, night: null } },
+            { ...DAY_ONLY[1], crewByShift: { day: null, night: null } },
         ]);
     });
 
@@ -122,7 +131,7 @@ describe("minimum paid gang: a cost floor charged once per unique date and shift
     });
 
     it("uses the contractor's stated costed operatives over the derived figure", () => {
-        const stages: StageShiftInput[] = [
+        const stages: V1Stage[] = [
             { name: "Groundworks", shifts: ["day"], costedOperatives: 3 },
             { name: "Drainage", shifts: ["day"], costedOperatives: 0 },
         ];
@@ -142,7 +151,7 @@ describe("minimum paid gang: a cost floor charged once per unique date and shift
     });
 
     it("prices day and night shifts separately, each at its own rate", () => {
-        const stages: StageShiftInput[] = [
+        const stages: V1Stage[] = [
             { name: "Groundworks", shifts: ["day"], costedOperatives: null },
             { name: "Drainage", shifts: ["day", "night"], costedOperatives: null },
         ];
@@ -175,7 +184,7 @@ describe("supervision: one charge per unique working date and shift", () => {
     });
 
     it("keeps supervision separate from the gang floor and counts night shifts on their own", () => {
-        const stages: StageShiftInput[] = [
+        const stages: V1Stage[] = [
             { name: "Groundworks", shifts: ["day"], costedOperatives: null },
             { name: "Drainage", shifts: ["day", "night"], costedOperatives: null },
         ];
@@ -241,7 +250,7 @@ describe("supplier hire: the supplier's billing basis, minimum hire and off-hire
         expect(priced({ unit: "per_hire", minimumPeriods: 2 })).toMatchObject({ ok: false });
         expect(priced({ onHire: { kind: "stage_start", stage: 1 }, offHire: { kind: "date", date: "2027-03-02" } })).toMatchObject({ ok: false });
         expect(priced({ offHire: { kind: "stage_finish", stage: 7 } })).toMatchObject({ ok: false });
-        const outcome = computeProgrammeCosts(SOURCE, inputs({ hires: [hire({ unit: "fortnight" as never })] }));
+        const outcome = computeProgrammeCosts(SOURCE, { version: 1, stages: DAY_ONLY, gangFloors: [], supervision: [], hires: [hire({ unit: "fortnight" as never })] });
         expect(outcome.ok).toBe(false);
     });
 

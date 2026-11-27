@@ -35,9 +35,9 @@ const SOURCE = {
     ],
 };
 const INPUTS: ProgrammeCostInputs = {
-    version: 1,
-    stages: [{ name: "Groundworks", shifts: ["day"], costedOperatives: null }, { name: "Drainage", shifts: ["day"], costedOperatives: null }],
-    gangFloors: [], supervision: [{ shift: "day", ratePerShiftPence: 18_000 }], hires: [],
+    version: 2,
+    stages: [{ name: "Groundworks", shifts: ["day"], costedOperatives: null, crewByShift: { day: null, night: null } }, { name: "Drainage", shifts: ["day"], costedOperatives: null, crewByShift: { day: null, night: null } }],
+    gangFloors: [], supervision: [{ shift: "day", ratePerShiftPence: 18_000 }], hires: [], crews: [],
 };
 const LABOUR = { id: "labour", estimate_id: ESTIMATE, trade_section: "Groundworks", description: "Excavate trench", quantity: 1, unit_rate: 1000, line_total: 1000, notes: null };
 

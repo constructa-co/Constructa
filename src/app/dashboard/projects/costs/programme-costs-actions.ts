@@ -10,6 +10,8 @@ import {
     PROGRAMME_COST_SECTION,
     acknowledgementMatches,
     computeProgrammeCosts,
+    hireDatesForNote,
+    hireIdFromLineKey,
     planProgrammeCostApplication,
     programmeCostLineNote,
 } from "@/lib/programme-costs";
@@ -109,8 +111,11 @@ export async function applyProgrammeCostsAction(request: ApplyProgrammeCostsRequ
         if (!acknowledgementMatches(acknowledgement, result.signature, plan)) return { ok: false, error: STALE, stale: true };
         if (result.lines.length === 0) return { ok: false, error: "These settings give no programme costs, so there is nothing to add." };
 
+        const hiresById = new Map(result.hires.map((hire) => [hire.id, hire]));
         const rows = result.lines.map((line) => {
             const unitRate = line.unitRatePence / 100;
+            const hireId = hireIdFromLineKey(line.key);
+            const hire = hireId ? hiresById.get(hireId) : undefined;
             return {
                 id: lineId(estimateId, result.signature, line.key),
                 estimate_id: estimateId,
@@ -123,7 +128,9 @@ export async function applyProgrammeCostsAction(request: ApplyProgrammeCostsRequ
                 line_type: "general",
                 // Internal record of what this line was worked out from. Never shown to the client.
                 // Every line carries the settings, so deleting any one of them does not lose them.
-                notes: programmeCostLineNote(line, result.signature, outcome.inputs),
+                // Hire lines also record the planned on-hire, off-hire and charged-to dates, so a later
+                // programme change can show how far they moved. Planned dates only: nothing is booked.
+                notes: programmeCostLineNote(line, result.signature, outcome.inputs, hire ? hireDatesForNote(hire) : undefined),
             };
         });
         // One insert: the set is written whole or not at all.

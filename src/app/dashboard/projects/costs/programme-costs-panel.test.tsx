@@ -16,8 +16,8 @@ const PROGRAMME = {
     ],
 };
 const INPUTS: ProgrammeCostInputs = {
-    version: 1,
-    stages: [{ name: "Groundworks", shifts: ["day"], costedOperatives: null }, { name: "Drainage", shifts: ["day", "night"], costedOperatives: 1.5 }],
+    version: 2,
+    stages: [{ name: "Groundworks", shifts: ["day"], costedOperatives: null, crewByShift: { day: null, night: null } }, { name: "Drainage", shifts: ["day", "night"], costedOperatives: 1.5, crewByShift: { day: null, night: null } }],
     gangFloors: [{ shift: "day", minimumPaidGang: 3, operativeDayRatePence: 25_000 }],
     supervision: [{ shift: "day", ratePerShiftPence: 18_000 }],
     hires: [{
@@ -25,6 +25,7 @@ const INPUTS: ProgrammeCostInputs = {
         minimumPeriods: 4, onHire: { kind: "stage_start", stage: 0 }, offHire: { kind: "stage_finish", stage: 1 },
         offHireRule: "collection_date", offHireDays: 2, deliveryPence: 6_500, collectionPence: 6_500,
     }],
+    crews: [],
 };
 const LABOUR: EstimateLine = {
     id: "labour", estimate_id: "estimate", description: "Excavate trench", quantity: 1, unit: "item", unit_rate: 1000, line_total: 1000,

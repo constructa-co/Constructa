@@ -1,4 +1,5 @@
 section.screenshots { padding-top: 0; }
+.introTight { margin-bottom: 20px; }
 .qualification { max-width: 1280px; margin: 0 0 32px; padding: 20px 24px; border: 1px dashed #526455; border-radius: 10px; color: #c0cdc3; font-size: 15px; line-height: 1.7; }
 .figures { display: grid; gap: 48px; }
 .figure { min-width: 0; max-width: 1280px; margin: 0; }
@@ -17,10 +18,15 @@ section.screenshots { padding-top: 0; }
 .figure .capturedLine { color: #c0cdc3; font-size: 14px; }
 .figure .zoomNote { color: #8f9a92; font-size: 14px; }
 @media (min-width: 601px) {
-  .viewport { height: 0; padding-top: 62.5%; }
+  .viewport { height: 0; padding-top: 56%; }
   .viewport img { position: absolute; top: 0; left: 0; transform-origin: left top; }
-  .zoomEstimate { padding-top: 70%; }
-  .zoomEstimate img { transform: translateY(-40%); }
-  .zoomProgramme img { transform: translateY(-29%) scale(1.6); }
+  .zoomEstimate img { transform: translateY(-34%); }
+  .zoomProgramme img { transform: translateY(-26%) scale(1.45); }
 }
-@media (max-width: 800px) { .qualification { padding: 18px 16px; margin-bottom: 24px; }.figures { gap: 36px; }.figure figcaption { grid-template-columns: 1fr; gap: 14px; padding-top: 16px; } }
+@media (max-width: 800px) {
+  .qualification { padding: 16px 14px; margin-bottom: 16px; }
+  .figures { gap: 22px; }
+  .figure figcaption { grid-template-columns: 1fr; gap: 10px; padding-top: 10px; }
+  .zoomNote { display: none; }
+  .frameBar { padding: 8px 12px; }
+}

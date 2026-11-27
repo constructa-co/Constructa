@@ -1,5 +1,20 @@
 # Cursor change log
 
+## 2026-11-26 — D115 product page vertical spacing (blank-band polish)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/components/marketing/product-page-spacing.module.css` | NEW `productFlow`, `pageIntroTight`; **repair** `:global(#product-review-guide)` / `:global(#product-screenshots)` | CSS modules hashed raw `#id` selectors on commit `a92b2c44` — spacing rules never matched DOM |
+| `src/components/marketing/product-screenshots.module.css` | Viewport ratio 56%, transform tweaks, mobile gaps / hide `zoomNote` | Less letterbox blank on desktop; shorter mobile tail |
+| `src/components/marketing/product-screenshots.tsx` | `introTight` class | Smaller intro margin under screenshots heading |
+| `src/components/marketing/phase-one.tsx` | `productFlow` + `pageIntroTight` on `PhaseOneFeatures` | Scope spacing fix to product route bundle |
+| `src/components/marketing/product-screenshots.test.tsx` | Updated transform assertions | Match CSS |
+| `temp-files/d115-handoff-20261126.md` | Handoff | R1 review dimensions |
+
+**Checks:** `npm run build`, `npx tsc --noEmit`, vitest product-screenshots + phase-one; Playwright before/after metrics (hosted vs local synthetic).
+
+**Evidence (PR269 review):** `docs/evidence/d115-product-spacing/` — lossless before/after PNG comparisons at 375 and 1440, metrics JSON, `README.md`.
+
 ## 2026-11-24 — D106 Job 1 A001 project-picker hero (A038 SKIP)
 
 | File | Change | Intent |

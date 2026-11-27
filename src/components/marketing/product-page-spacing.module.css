@@ -1,0 +1,38 @@
+/* Phase-one /product and /features only — tighter vertical rhythm between guide, captures and CTA. */
+.productFlow :global(#product-review-guide) {
+  padding-top: 48px;
+  padding-bottom: 28px;
+}
+
+.productFlow :global(#product-screenshots) {
+  padding-top: 24px;
+  padding-bottom: 20px;
+}
+
+.productFlow > section:last-of-type {
+  padding: 48px 24px;
+}
+
+.pageIntroTight {
+  padding-bottom: 32px;
+}
+
+@media (max-width: 800px) {
+  .pageIntroTight {
+    padding-bottom: 24px;
+  }
+
+  .productFlow :global(#product-review-guide) {
+    padding-top: 32px;
+    padding-bottom: 16px;
+  }
+
+  .productFlow :global(#product-screenshots) {
+    padding-top: 16px;
+    padding-bottom: 12px;
+  }
+
+  .productFlow > section:last-of-type {
+    padding: 40px 18px;
+  }
+}

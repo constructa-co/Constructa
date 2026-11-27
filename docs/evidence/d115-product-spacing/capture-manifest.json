@@ -1,0 +1,8 @@
+{
+  "branch": "codex/d115-product-spacing-20261126",
+  "repair_head": "36b98ba62886f3807d522c7ba5f8e8cb01ac1631",
+  "before_host": "https://constructa-nu.vercel.app/product (main ae746)",
+  "after_host": "http://127.0.0.1:3456/product (local next start, synthetic)",
+  "method": "Playwright networkidle + 1.2s + full scroll + settle; public GET only",
+  "full_captures_untracked": "temp-files/d115-review/*-product-full.png"
+}

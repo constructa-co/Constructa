@@ -18,10 +18,11 @@ describe("marketing footer contact navigation", () => {
     vi.unstubAllEnvs();
   });
 
-  it("routes footer Get in touch to /contact while cohort contact stays mailto-only and full profile keeps the legacy form", () => {
+  it("routes footer Get in touch to /contact and lists the public enquiry address while cohort contact stays mailto-only", () => {
     const footerHtml = renderToStaticMarkup(<MarketingFooter />);
     expect(footerHtml).toContain('href="/contact">Get in touch</a>');
-    expect(footerHtml).not.toContain("mailto:hello@constructa.co");
+    expect(footerHtml).toContain('href="mailto:hello@constructa.co"');
+    expect(footerHtml).toContain("hello@constructa.co");
 
     vi.stubEnv("NEXT_PUBLIC_CONSTRUCTA_LAUNCH_PROFILE", "cohort");
     const cohortMarkup = renderToStaticMarkup(ContactPage());

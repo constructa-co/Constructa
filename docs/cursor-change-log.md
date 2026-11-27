@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-11-27 — D116 public enquiry email on cohort footer and pricing
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/components/marketing/phase-one.tsx` | `hello@constructa.co` in `MarketingFooter` nav and `PhaseOnePricing` | Visible public address where only `/contact` link existed |
+| `src/components/marketing/marketing-footer-contact-nav.test.tsx` | Footer expects mailto | Regression |
+
 ## 2026-11-24 — D106 Job 1 A001 project-picker hero (A038 SKIP)
 
 | File | Change | Intent |

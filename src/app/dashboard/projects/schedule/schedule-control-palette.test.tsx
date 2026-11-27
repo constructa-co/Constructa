@@ -179,6 +179,13 @@ describe("detailed planner ordinary controls use the programme sage/ink", () => 
         expect(html).not.toMatch(/critical path/i);
     });
 
+    it("labels the manhours KPI as person-days of labour, not programme working days", () => {
+        const html = setup(example(), "5").html();
+        expect(html).toContain("120h");
+        expect(html).toContain("15 person-days of labour");
+        expect(html).not.toMatch(/>15 working days</);
+    });
+
     it("source: only the named ordinary literals changed; meaningful blues remain", () => {
         const source = readFileSync(path.join(process.cwd(), "src/app/dashboard/projects/schedule/client-page.tsx"), "utf8");
         expect(source.split("\n").length).toBeGreaterThan(1200);

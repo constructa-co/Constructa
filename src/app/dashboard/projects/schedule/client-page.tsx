@@ -525,6 +525,11 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
     useEffect(() => { axisDaysRef.current = axisDays; }, [axisDays]);
 
     const totalManhours = phases.reduce((s, p) => s + p.manhours, 0);
+    const productiveHoursPerDay = jobProductiveMinutesPerDay(workingPattern) / 60;
+    const personDaysOfLabour =
+        totalManhours > 0 && productiveHoursPerDay > 0
+            ? Math.round(totalManhours / productiveHoursPerDay)
+            : 0;
     const displayPlan = plannerDisplayPlan(toInputDate(programmeStart), phases, daysPerWeek, workingPattern, bankHolidayDivision);
     const reviewStages = plannerReviewStageIndexes(phases);
     // Stage offsets are relative to the plan's first activity, not the weekly axis.
@@ -929,13 +934,17 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                         {
                             label: "Manhours",
                             value: totalManhours > 0 ? `${Math.round(totalManhours)}h` : "—",
-                            sub: totalManhours > 0 ? `${Math.round(totalManhours / (jobProductiveMinutesPerDay(workingPattern) / 60))} working days` : "No manhours",
+                            sub: totalManhours > 0 ? `${personDaysOfLabour} person-days of labour` : "No manhours",
+                            subTitle:
+                                totalManhours > 0
+                                    ? "Total manhours divided by this job's productive hours per day — one person's effort, not how long the programme runs with your crew."
+                                    : undefined,
                         },
-                    ].map(({ label, value, sub }) => (
+                    ].map(({ label, value, sub, subTitle }) => (
                         <div key={label} className="bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-3">
                             <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">{label}</p>
                             <p className="text-base font-bold text-white">{value}</p>
-                            <p className="text-[10px] text-slate-400 mt-0.5">{sub}</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5" title={subTitle}>{sub}</p>
                         </div>
                     ))}
                 </div>

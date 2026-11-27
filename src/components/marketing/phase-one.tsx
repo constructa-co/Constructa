@@ -9,6 +9,9 @@ import { ProductReviewGuide } from './product-review-guide';
 import { ProductScreenshots } from './product-screenshots';
 import ui from './phase-one.module.css';
 
+/** Public website enquiry address (mailbox not verified on this task). */
+const PUBLIC_ENQUIRY_EMAIL = 'hello@constructa.co';
+
 const stages = [
   { number: '01', title: 'Scope first.', label: 'Brief', description: 'Write down the work, refer to the drawings and note the quantities before you price anything.', detail: 'Your job brief, scope and quantities.' },
   { number: '02', title: 'Price the work.', label: 'Estimate', description: 'Use your own labour, materials, plant and subcontract rates. Allow for preliminaries, overheads, risk and profit, then check the total.', detail: 'Quantities × rates; preliminaries as priced lines or a percentage.' },
@@ -49,6 +52,7 @@ export function MarketingFooter() {
           <Link href="/apply">Apply to the founding cohort</Link><Link href="/login">Sign in</Link>
           <Link href="/terms-of-service">Terms</Link><Link href="/privacy-policy">Privacy</Link>
           <Link href="/contact">Get in touch</Link>
+          <a href={`mailto:${PUBLIC_ENQUIRY_EMAIL}`}>{PUBLIC_ENQUIRY_EMAIL}</a>
         </nav>
       </div>
       <div className={ui.footerBottom}><span>Constructa © 2026</span><span>Phase one review · Company. Price. Programme. Proposal.</span></div>
@@ -207,6 +211,12 @@ export function PhaseOnePricing() {
           Want access but not signed in yet? <Link href="/apply" className={ui.textLink}>Apply to the founding cohort <ArrowRight size={16} aria-hidden="true" /></Link>
           {' · '}
           <Link href="/contact" className={ui.textLink}>Questions about preview access <ArrowRight size={16} aria-hidden="true" /></Link>
+        </p>
+        <p>
+          General enquiries:{' '}
+          <a href={`mailto:${PUBLIC_ENQUIRY_EMAIL}`} className={ui.textLink}>
+            {PUBLIC_ENQUIRY_EMAIL}
+          </a>
         </p>
         <p>
           The full picture lives on the home page:{' '}

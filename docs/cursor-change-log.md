@@ -14,6 +14,12 @@
 | `src/lib/boq-workbook.ts` | M1 uncached formula malformed; M2 ref/desc/unit errors; M3 priced ref total rows; L2 TBC unresolved | Bounded Claude review on source branch |
 | `src/lib/boq-workbook.contract.test.ts` | Focused regression cases | M1–M3 + L2 |
 
+## 2026-11-28 — D120 merge R1–R3 repairs into test branch
+
+| Action | Detail |
+| --- | --- |
+| Merge `f070995e` | into `codex/d120-boq-workbook-tests-20261127` after Claude targeted verification |
+
 ## 2026-11-28 — D120 merge parser repairs into test branch
 
 | Action | Detail |

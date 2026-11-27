@@ -1,5 +1,47 @@
 # Cursor change log
 
+## 2026-11-28 — D121 R1 follow-ups L1/O2 (PR 277)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/client-boq-export.ts` | Forbidden margin scan on summary label col only (L1) | Legit descriptions with “Overhead …” |
+| `src/lib/client-boq-export.test.ts` | Positive + negative summary label scan | Regression |
+| `docs/help/import-reconciliation-client-boq-export.md` | Estimate’s contract sum wording (O2) | No publication gate |
+
+## 2026-11-28 — D121 serialized inspect must not sanitise before scan
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/client-boq-export.ts` | Drop pre-inspect sanitise on `inspectSerializedClientBoQFile` | Avoid false PASS on metadata leaks |
+| `src/lib/client-boq-export.test.ts` | Negative Custprops round-trip test | Serialized bytes inspected unchanged |
+
+## 2026-11-28 — D121 client-safe export R1 final (rates + help doc)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/client-boq-export.ts` | Up to 8dp display rate; precision note on sheet; drop runtime sentinels | Usable all-in rates; construction guarantees only |
+| `src/lib/client-boq-export.test.ts` | Fractional qty 3 / £1; test-owned sentinels | R1 final bounded repair |
+| `docs/help/import-reconciliation-client-boq-export.md` | Kimi wording (markdown only) | Help copy, no UI gates |
+
+## 2026-11-28 — D121 client-safe export R1 fixes
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/client-boq-export.ts` | Generic title/filename; explicit rounding line; 2dp-only display rate (else blank Total); serialized inspect | R1 review f5cc8b8d |
+| `src/lib/client-boq-export.test.ts` | Sentinels, fractional qty, rounding line, reject large gap | Confidentiality + money |
+| `advanced-estimate.tsx` | `.catch(toast.error)` on export | Blocked export UX |
+
+## 2026-11-28 — D121 client-safe BoQ Excel export
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/client-boq-export.ts` | All-in lines, tie-out, fresh workbook, leak scan | Client copy per architecture note §4 |
+| `src/lib/client-boq-export.test.ts` | Confidentiality + money reconciliation | SYNTH fixtures only |
+| `src/app/dashboard/projects/costs/boq-excel-export.ts` | `exportClientBoQToExcel` | Wire client path; keep internal export |
+| `src/app/dashboard/projects/costs/advanced-estimate.tsx` | Client copy + Internal export buttons | Existing client BoQ banner flow |
+
+**Reuse:** `computeContractSum`, `vatFor`, publication-style marked-up lines; internal `boqSummaryRows` unchanged.
+
 ## 2026-11-27 — D116 public enquiry email on cohort footer and pricing
 
 | File | Change | Intent |

@@ -3,35 +3,61 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const workflow = readFileSync(path.resolve(import.meta.dirname, "../../../.github/workflows/e2e.yml"), "utf8");
-function enabled(job: string, event: string, head: string, draft = false) {
-    const expression = workflow.match(new RegExp(`^  ${job}:\\n    (?:#[^\\n]*\\n    )*if: \\$\\{\\{ (.*?) \\}\\}`, "m"))?.[1];
+function enabled(job: string, values: Record<string, string | boolean> = {}) {
+    const block = workflow.split(`  ${job}:\n`)[1]?.split(/\n  [a-z][a-z0-9-]*:/)[0];
+    const expression = block?.match(/^    if: \$\{\{ (.*?) \}\}/m)?.[1];
     expect(expression).toBeDefined();
-    const substituted = expression!
-        .replaceAll("github.event_name", JSON.stringify(event))
-        .replaceAll("github.head_ref", JSON.stringify(head))
-        .replaceAll("github.event.pull_request.draft", JSON.stringify(draft));
-    // Evaluate only the exact checked-in boolean expression, not application input.
+    const defaults = {
+        "github.event_name": "pull_request",
+        "inputs.verified_isolated_target": false,
+        "inputs.verified_isolated_project_ref": "",
+        "vars.E2E_SUPABASE_PROJECT_REF": "",
+        "needs.verify-isolated-target.outputs.verified": "",
+        ...values,
+    };
+    let substituted = expression!.replaceAll("always()", "true");
+    for (const [key, value] of Object.entries(defaults)) {
+        substituted = substituted.replaceAll(key, JSON.stringify(value));
+    }
+    // Evaluate only the checked-in boolean expression, never application input.
     return Function(`"use strict";return (${substituted});`)() as boolean;
 }
 
-describe("explicit review-head hosted-write gate", () => {
-    it.each(["backup/welcome-first-slice-20261018", "codex/phase1-integration-review-20261023", "codex/remove-public-mcp-20261023", "cursor/rc-integration-20261108"])("records NOT_RUN rather than automatic hosted writes for %s", head => {
-        expect(enabled("hosted-write-status", "pull_request", head)).toBe(true);
-        expect(enabled("phase1", "pull_request", head)).toBe(false);
+const verifiedManual = {
+    "github.event_name": "workflow_dispatch",
+    "inputs.verified_isolated_target": true,
+    "inputs.verified_isolated_project_ref": "isolated-example",
+    "vars.E2E_SUPABASE_PROJECT_REF": "isolated-example",
+};
+
+describe("verified isolated hosted-write gate", () => {
+    it("never verifies or runs hosted writes on pull requests, even with matching configuration", () => {
+        expect(enabled("verify-isolated-target", { ...verifiedManual, "github.event_name": "pull_request" })).toBe(false);
+        expect(enabled("phase1")).toBe(false);
+        expect(enabled("hosted-write-status")).toBe(true);
+        expect(workflow).not.toContain("github.event.pull_request.draft");
+        expect(workflow).not.toContain("github.head_ref");
     });
-    it.each(["main", "feature/unrelated", "codex/phase1-integration-review-20261023-other", "cursor/rc-integration-20261108-other"])("retains the original other-branch path for %s", head => {
-        expect(enabled("hosted-write-status", "pull_request", head)).toBe(false);
-        expect(enabled("phase1", "pull_request", head)).toBe(true);
+    it.each([
+        {},
+        { "inputs.verified_isolated_target": false },
+        { "inputs.verified_isolated_project_ref": "" },
+        { "vars.E2E_SUPABASE_PROJECT_REF": "" },
+        { "inputs.verified_isolated_project_ref": "wrong-target" },
+    ])("does not opt into a manual verification with absent or mismatched consent/target: %j", override => {
+        const values = Object.keys(override).length ? { ...verifiedManual, ...override } : { "github.event_name": "workflow_dispatch" };
+        expect(enabled("verify-isolated-target", values)).toBe(false);
     });
-    it("retains separately authorised manual dispatch without calling it an execution", () => {
-        expect(enabled("hosted-write-status", "workflow_dispatch", "")).toBe(false);
-        expect(enabled("phase1", "workflow_dispatch", "")).toBe(true);
-        expect(workflow).toContain("Hosted Phase 1 journey: NOT_RUN");
-    });
-    it("records NOT_RUN for draft pull requests and blocks hosted Phase 1 until ready for review", () => {
-        expect(enabled("draft-pull-request-status", "pull_request", "codex/example", true)).toBe(true);
-        expect(enabled("phase1", "pull_request", "main", true)).toBe(false);
-        expect(enabled("phase1", "pull_request", "main", false)).toBe(true);
-        expect(workflow).toContain("Draft pull requests cannot start hosted account/data writes");
+    it("requires existing configuration validation before the hosted job is eligible", () => {
+        expect(enabled("verify-isolated-target", verifiedManual)).toBe(true);
+        expect(workflow).toContain("verified: ${{ steps.configuration.outcome == 'success' }}");
+        expect(workflow).toContain("run: npx playwright test --list");
+        for (const verified of ["", "false"]) {
+            expect(enabled("phase1", { "needs.verify-isolated-target.outputs.verified": verified })).toBe(false);
+            expect(enabled("hosted-write-status", { "needs.verify-isolated-target.outputs.verified": verified })).toBe(true);
+        }
+        expect(enabled("phase1", { "needs.verify-isolated-target.outputs.verified": "true" })).toBe(true);
+        expect(enabled("hosted-write-status", { "needs.verify-isolated-target.outputs.verified": "true" })).toBe(false);
+        expect(workflow).toContain("Hosted Phase 1 journey: SKIPPED, not PASS");
     });
 });

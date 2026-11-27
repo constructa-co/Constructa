@@ -45,7 +45,7 @@ export function OffHireReview({ schedule, s }: { schedule: OffHireSchedule; s: W
             <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                     <thead>
-                        <tr className={s.muted}><th>Item</th><th>On hire</th><th>Planned off-hire</th><th>Supplier charges to</th><th>Billed</th></tr>
+                        <tr className={s.muted}><th>Plant item</th><th>On hire</th><th>Planned off-hire</th><th>Supplier charges to</th><th>Billed</th></tr>
                     </thead>
                     <tbody>
                         {schedule.rows.map((row) => row.status === "refused" ? (
@@ -71,7 +71,7 @@ export function OffHireReview({ schedule, s }: { schedule: OffHireSchedule; s: W
                                 <td data-off-hire-billed>
                                     {billedText(row)}
                                     {row.applied?.savedPeriods != null && row.applied.savedPeriods !== row.periods && (
-                                        <span className={`block ${s.errorText}`}>On the estimate: {row.applied.savedPeriods} × {hireUnitLabel(row.unit)}</span>
+                                        <span className={`block ${s.errorText}`}>{`On the estimate: ${row.applied.savedPeriods} × ${hireUnitLabel(row.unit)}`}</span>
                                     )}
                                 </td>
                             </tr>

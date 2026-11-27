@@ -102,6 +102,20 @@ describe("applying programme costs to the estimate (first apply only, insert onl
         expect(mocks.recalc).toHaveBeenCalledOnce();
     });
 
+    it("records the planned hire dates in each hire line's internal note", async () => {
+        const inputs = { ...INPUTS, hires: [{ id: "h1", description: "3 t dumper", unit: "week" as const, ratePence: 12_000, chargeableDays: null, partPeriodRule: "whole_period" as const, minimumPeriods: 1, onHire: { kind: "stage_start" as const, stage: 0, stageName: "Groundworks" }, offHire: { kind: "stage_finish" as const, stage: 1, stageName: "Drainage" }, offHireRule: "collection_date" as const, offHireDays: 2, deliveryPence: 5_000, collectionPence: 0 }] };
+        const outcome = computeProgrammeCosts(SOURCE, inputs);
+        if (!outcome.ok) throw new Error(outcome.errors.join());
+        const plan = planProgrammeCostApplication(mocks.estimate!, mocks.lines as never, outcome.result.lines);
+        const result = await applyProgrammeCostsAction({ projectId: PROJECT, estimateId: ESTIMATE, inputs, acknowledgement: { signature: outcome.result.signature, beforePence: plan.beforePence, afterPence: plan.afterPence } });
+        expect(result).toMatchObject({ ok: true });
+        const notes = Object.fromEntries(mocks.inserted[0].map((row) => { const note = JSON.parse(row.notes as string); return [note.key, note]; }));
+        const dates = { onHire: "2027-03-01", offHire: "2027-03-09", chargedTo: "2027-03-11" };
+        expect(notes["hire:h1"].hire).toEqual(dates);
+        expect(notes["hire:h1:transport"].hire).toEqual(dates);
+        expect(notes["supervision:day"].hire).toBeUndefined();
+    });
+
     it("gives a repeated request for the same reviewed set the same line ids, so the database rejects a second copy", async () => {
         const { acknowledgement } = reviewed();
         await applyProgrammeCostsAction({ projectId: PROJECT, estimateId: ESTIMATE, inputs: INPUTS, acknowledgement });

@@ -1,0 +1,11 @@
+{
+  "guide": {
+    "paddingTop": "48px",
+    "paddingBottom": "28px"
+  },
+  "shots": {
+    "paddingTop": "24px",
+    "paddingBottom": "20px"
+  },
+  "scrollHeight": 5367
+}

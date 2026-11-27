@@ -13,6 +13,8 @@
 
 **Checks:** `npm run build`, `npx tsc --noEmit`, vitest product-screenshots + phase-one; Playwright before/after metrics (hosted vs local synthetic).
 
+**Evidence (PR269 review):** `docs/evidence/d115-product-spacing/` — lossless before/after PNG comparisons at 375 and 1440, metrics JSON, `README.md`.
+
 ## 2026-11-24 — D106 Job 1 A001 project-picker hero (A038 SKIP)
 
 | File | Change | Intent |

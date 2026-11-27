@@ -73,14 +73,14 @@ describe("a job with no programme", () => {
         expect(opening.phases).toEqual([
             { name: "Works on site", calculatedDays: 5, manualDays: null, manhours: 40, startOffset: 0 },
             { name: "Tiling", calculatedDays: 4, manualDays: null, manhours: 32, startOffset: 7 },
-            { name: "Preliminaries", calculatedDays: 5, manualDays: null, manhours: 0, startOffset: 14 },
+            { name: "Preliminaries", calculatedDays: 0, manualDays: null, manhours: 0, needsReview: true, startOffset: 14 },
         ]);
     });
 
-    it("still offers placeholder stages when the estimate has lines but no labour hours", () => {
+    it("still offers named stages, flagged for review with no length, when the estimate has lines but no labour hours", () => {
         expect(plannerPhasesOnOpen([], simpleEstimate, 5)).toEqual({
             origin: "suggested",
-            phases: [{ name: "Works on site", calculatedDays: 5, manualDays: null, manhours: 0, startOffset: 0 }],
+            phases: [{ name: "Works on site", calculatedDays: 0, manualDays: null, manhours: 0, needsReview: true, startOffset: 0 }],
         });
         expect(plannerPhasesOnOpen([], null, 5)).toEqual({ phases: [], origin: "empty" });
     });
@@ -92,9 +92,9 @@ describe("a job with no programme", () => {
         expect(suggestedStageName(" Tiling ")).toBe("Tiling");
         expect(estimateSuggestedPhases(labourEstimate, 5).map((phase) => phase.name)).not.toContain("General");
 
-        // What the server suggests for a simple estimate: one section, a placeholder week.
-        const fromServer = [{ name: "General", calculatedDays: 5, manualDays: null, manhours: 0, startOffset: 0 }];
-        expect(sequenceSuggestedPhases(fromServer, 5)).toEqual([{ name: "Works on site", calculatedDays: 5, manualDays: null, manhours: 0, startOffset: 0 }]);
+        // What the server suggests for a simple estimate: one section, no length yet, flagged for review.
+        const fromServer = [{ name: "General", calculatedDays: 0, manualDays: null, manhours: 0, needsReview: true, startOffset: 0 }];
+        expect(sequenceSuggestedPhases(fromServer, 5)).toEqual([{ name: "Works on site", calculatedDays: 0, manualDays: null, manhours: 0, needsReview: true, startOffset: 0 }]);
     });
 
     it("places suggested stages one after another on the planner's weekly grid", () => {

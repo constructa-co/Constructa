@@ -147,8 +147,12 @@ type EstimateSectionRollup = {
 };
 
 /**
- * Unsequenced stages from estimate lines: labour durations, named placeholders
- * when lines have no hours, and review flags for explicit zero-quantity work.
+ * Unsequenced stages from estimate lines: labour durations where the estimate
+ * has hours, otherwise a named stage with no length flagged for review. A
+ * section with work but no labour hours gives nothing to size it from, so it
+ * is not given a stand-in length that could be saved and sent as if worked
+ * out; like explicit zero-quantity work, it stays unresolved until the
+ * contractor sets its days.
  */
 export function estimateSectionsFromWork(
     estimate: PlannerEstimate | null | undefined,
@@ -181,14 +185,6 @@ export function estimateSectionsFromWork(
                     manhours: rollup.totalManhours,
                 };
             }
-            if (rollup.linesWithWork > 0) {
-                return {
-                    name: stageName,
-                    calculatedDays: WORKING_DAYS_PER_WEEK,
-                    manualDays: null,
-                    manhours: 0,
-                };
-            }
             return {
                 name: stageName,
                 calculatedDays: 0,
@@ -199,7 +195,7 @@ export function estimateSectionsFromWork(
         });
 }
 
-/** Stages worked out from estimate work: labour hours per section, or named placeholders when hours are missing. */
+/** Stages worked out from estimate work: labour hours per section, or named stages flagged for review when hours are missing. */
 export function estimateSuggestedPhases(estimate: PlannerEstimate | null | undefined, daysPerWeek: number, startDate?: string, workingPattern?: unknown): PlannerPhase[] {
     return sequenceSuggestedPhases(
         estimateSectionsFromWork(estimate, workingPattern), daysPerWeek, startDate, workingPattern,

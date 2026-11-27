@@ -279,7 +279,7 @@ function sameMap(a: ColumnMap, b: ColumnMap): boolean {
 }
 
 const TOTAL_ROW =
-    /^(sub[\s-]*total|total|grand total|page total|section total|collection|carried\b|brought\b|c\s*\/\s*f\b|b\s*\/\s*f\b|vat\b)|\b(carried (forward|to|over)|brought forward|to collection|to (main )?summary|total carried|total brought)\b/i;
+    /^(sub[\s-]*total|total|grand total|page total|section total|carried\b|brought\b|c\s*\/\s*f\b|b\s*\/\s*f\b|vat\b)|\b(carried (forward|to|over)|brought forward|to collection|to (main )?summary|total carried|total brought)\b/i;
 /** Words that mean "no figure here" in a quantity, rate or total cell. */
 const NOTE_MARKER = /^(tbc|tba|to be confirmed|to be advised|incl\.?|included|inc\.?|n\/?a|nil|rate only|provisional|ps|pc)$/i;
 const EXCLUDED_MARKER = /^(excluded|excl\.?|not used|not required|by others|omitted|omit)$/i;
@@ -294,6 +294,9 @@ const QTY_WITH_UNIT = /^(-?[\d,]*\.?\d+)\s*([A-Za-z][A-Za-z0-9²³/.]{0,9})$/;
 
 function numberCell(cell: Cell): BoQNumberCell {
     if (cell.error) return { value: null, malformed: true };
+    if (cell.formula && (cell.value === null || cell.value === "")) {
+        return { value: null, malformed: true };
+    }
     if (typeof cell.value === "number") {
         return Number.isFinite(cell.value) ? { value: cell.value, malformed: false } : { value: null, malformed: true };
     }
@@ -340,6 +343,9 @@ type RowInfo = {
     rate: BoQNumberCell;
     total: BoQNumberCell;
     hasValues: boolean;
+    refError: boolean;
+    descriptionError: boolean;
+    unitError: boolean;
 };
 
 function readRow(cells: Cell[], map: ColumnMap, width: number): RowInfo {
@@ -351,13 +357,21 @@ function readRow(cells: Cell[], map: ColumnMap, width: number): RowInfo {
     const nextMapped = Object.values(map).filter((c) => (c as number) > descCol).reduce((m, c) => Math.min(m, c as number), width);
     const parts: string[] = [];
     let depth = -1;
+    let descriptionError = false;
     for (let c = descCol; c < nextMapped; c++) {
-        const text = (cells[c] ?? EMPTY_CELL).text;
+        const cell = cells[c] ?? EMPTY_CELL;
+        if (cell.error) {
+            descriptionError = true;
+            continue;
+        }
+        const text = cell.text;
         if (!text) continue;
         if (depth < 0) depth = c - descCol;
         parts.push(text);
     }
     const description = parts.join(" ").replace(/\s+/g, " ").trim();
+    const refCell = at("ref");
+    const unitCell = at("unit");
 
     const notes: string[] = [];
     let markedExcluded = false;
@@ -400,6 +414,9 @@ function readRow(cells: Cell[], map: ColumnMap, width: number): RowInfo {
         rate,
         total,
         hasValues,
+        refError: refCell.error,
+        descriptionError,
+        unitError: unitCell.error,
     };
 }
 
@@ -461,7 +478,18 @@ export function extractBoQWorkbook(input: BoQWorkbookInput, options: BoQWorkbook
         let heading: string | undefined;
         let headingRow = -2;
 
-        type Open = { rows: number[]; ref: string; texts: string[]; depth: number; values?: RowInfo; valueRow?: number; lastRow: number };
+        type Open = {
+            rows: number[];
+            ref: string;
+            texts: string[];
+            depth: number;
+            values?: RowInfo;
+            valueRow?: number;
+            lastRow: number;
+            refError?: boolean;
+            descriptionError?: boolean;
+            unitError?: boolean;
+        };
         let open: Open | null = null;
         /** A bulleted note paragraph: its following text rows are note text, not headings. */
         let noteDepth: number | null = null;
@@ -489,6 +517,9 @@ export function extractBoQWorkbook(input: BoQWorkbookInput, options: BoQWorkbook
                 return;
             }
             const parse_warnings: string[] = [];
+            if (o.refError || v.refError) parse_warnings.push("client_ref");
+            if (o.descriptionError || v.descriptionError) parse_warnings.push("description");
+            if (o.unitError || v.unitError) parse_warnings.push("unit");
             if (v.qty.malformed) parse_warnings.push("quantity");
             if (v.rate.malformed) parse_warnings.push("unit_rate");
             if (v.total.malformed) parse_warnings.push("line_total");
@@ -555,9 +586,13 @@ export function extractBoQWorkbook(input: BoQWorkbookInput, options: BoQWorkbook
             lastBlank = false;
 
             const totalText = row.description || row.lead;
+            const pricedReferenced =
+                Boolean(row.ref) &&
+                (row.total.value !== null || row.rate.value !== null || row.qty.value !== null);
             const looksTotal =
-                TOTAL_ROW.test(totalText) ||
-                (!row.ref && /\btotal\b/i.test(totalText) && row.rate.value === null);
+                !pricedReferenced &&
+                (TOTAL_ROW.test(totalText) ||
+                    (!row.ref && /\btotal\b/i.test(totalText) && row.rate.value === null));
             if (looksTotal && !row.unit && row.qty.value === null) {
                 close();
                 noteDepth = null;
@@ -578,7 +613,13 @@ export function extractBoQWorkbook(input: BoQWorkbookInput, options: BoQWorkbook
             }
             noteDepth = null;
 
-            if (!row.description) {
+            if (!row.description && !row.ref) {
+                if (open?.values && row.descriptionError) {
+                    open.descriptionError = true;
+                    open.rows.push(i);
+                    open.lastRow = i;
+                    continue;
+                }
                 if (row.hasValues && open && !open.values) {
                     open.values = row;
                     open.valueRow = i;
@@ -588,7 +629,9 @@ export function extractBoQWorkbook(input: BoQWorkbookInput, options: BoQWorkbook
                 }
                 close();
                 const descAbs = `${firstRow + i}:${firstCol + map.description!}`;
+                const markerOnlyNoDesc = row.notes.length > 0 && !row.hasNumber;
                 if (row.hasNumber) set(i, "unresolved", "values_without_description");
+                else if (markerOnlyNoDesc) set(i, "unresolved", "item_without_values");
                 else if (coveredFromAbove.has(descAbs)) set(i, "excluded", "merged_continuation");
                 else set(i, "excluded", "note_text");
                 continue;
@@ -599,7 +642,16 @@ export function extractBoQWorkbook(input: BoQWorkbookInput, options: BoQWorkbook
 
             if (row.ref) {
                 close();
-                open = { rows: [i], ref: row.ref, texts: [row.description], depth: row.depth, lastRow: i };
+                open = {
+                    rows: [i],
+                    ref: row.ref,
+                    texts: [row.description],
+                    depth: row.depth,
+                    lastRow: i,
+                    ...(row.refError ? { refError: true } : {}),
+                    ...(row.descriptionError ? { descriptionError: true } : {}),
+                    ...(row.unitError ? { unitError: true } : {}),
+                };
                 if (values) { open.values = row; open.valueRow = i; }
                 continue;
             }
@@ -613,7 +665,8 @@ export function extractBoQWorkbook(input: BoQWorkbookInput, options: BoQWorkbook
                 continue;
             }
             if (open && open.values && !values && !wasBlank && row.depth >= open.depth && row.depth > 0) {
-                open.texts.push(row.description);
+                if (row.descriptionError) open.descriptionError = true;
+                if (row.description) open.texts.push(row.description);
                 open.rows.push(i);
                 open.lastRow = i;
                 continue;

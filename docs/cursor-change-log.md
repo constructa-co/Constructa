@@ -4,7 +4,7 @@
 
 | File | Change | Intent |
 | --- | --- | --- |
-| `src/components/marketing/product-page-spacing.module.css` | NEW `productFlow`, `pageIntroTight` | Tighter section padding on `/product` and `/features` only |
+| `src/components/marketing/product-page-spacing.module.css` | NEW `productFlow`, `pageIntroTight`; **repair** `:global(#product-review-guide)` / `:global(#product-screenshots)` | CSS modules hashed raw `#id` selectors on commit `a92b2c44` — spacing rules never matched DOM |
 | `src/components/marketing/product-screenshots.module.css` | Viewport ratio 56%, transform tweaks, mobile gaps / hide `zoomNote` | Less letterbox blank on desktop; shorter mobile tail |
 | `src/components/marketing/product-screenshots.tsx` | `introTight` class | Smaller intro margin under screenshots heading |
 | `src/components/marketing/phase-one.tsx` | `productFlow` + `pageIntroTight` on `PhaseOneFeatures` | Scope spacing fix to product route bundle |

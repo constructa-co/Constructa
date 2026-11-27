@@ -1,10 +1,10 @@
 /* Phase-one /product and /features only — tighter vertical rhythm between guide, captures and CTA. */
-.productFlow #product-review-guide {
+.productFlow :global(#product-review-guide) {
   padding-top: 48px;
   padding-bottom: 28px;
 }
 
-.productFlow #product-screenshots {
+.productFlow :global(#product-screenshots) {
   padding-top: 24px;
   padding-bottom: 20px;
 }
@@ -22,12 +22,12 @@
     padding-bottom: 24px;
   }
 
-  .productFlow #product-review-guide {
+  .productFlow :global(#product-review-guide) {
     padding-top: 32px;
     padding-bottom: 16px;
   }
 
-  .productFlow #product-screenshots {
+  .productFlow :global(#product-screenshots) {
     padding-top: 16px;
     padding-bottom: 12px;
   }

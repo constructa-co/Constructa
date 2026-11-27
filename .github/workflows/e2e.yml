@@ -16,6 +16,14 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
+      verified_isolated_target:
+        description: Confirm a separately authorised, freshly verified isolated target (never production)
+        type: boolean
+        default: false
+      verified_isolated_project_ref:
+        description: Public project reference of that verified isolated target
+        type: string
+        default: ""
       evidence:
         description: Run the full viewport matrix with evidence capture
         type: boolean
@@ -29,27 +37,47 @@ permissions:
   contents: read
 
 jobs:
-  hosted-write-status:
-    if: ${{ github.event_name == 'pull_request' && (github.head_ref == 'backup/welcome-first-slice-20261018' || github.head_ref == 'codex/phase1-integration-review-20261023' || github.head_ref == 'codex/remove-public-mcp-20261023' || github.head_ref == 'cursor/rc-integration-20261108') }}
+  verify-isolated-target:
+    # Pull requests (draft or ready) NEVER opt into hosted writes. A manual
+    # run needs fresh operator verification AND the existing fail-closed
+    # configuration checks before the hosted job can even start.
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.verified_isolated_target == true && inputs.verified_isolated_project_ref != '' && vars.E2E_SUPABASE_PROJECT_REF != '' && inputs.verified_isolated_project_ref == vars.E2E_SUPABASE_PROJECT_REF }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      verified: ${{ steps.configuration.outcome == 'success' }}
+    env:
+      E2E_SUPABASE_PROJECT_REF: ${{ vars.E2E_SUPABASE_PROJECT_REF }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.E2E_SUPABASE_SERVICE_ROLE_KEY }}
+      E2E_BRIEF_AI_MODE: disabled
     steps:
-      - name: Record hosted journey NOT_RUN
-        run: |
-          echo 'Hosted Phase 1 journey: NOT_RUN. These review branches require a separately authorised manual run with verified disposable target, labelled identity and write controls.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # Discovery loads readE2EEnv: approved ref, URL, JWT roles/ref and
+      # loopback app target, without launching a browser or writing data.
+      - name: Verify isolated configuration without hosted writes
+        id: configuration
+        continue-on-error: true
+        run: npx playwright test --list
 
-  draft-pull-request-status:
-    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft == true }}
+  hosted-write-status:
+    needs: verify-isolated-target
+    if: ${{ always() && needs.verify-isolated-target.outputs.verified != 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Record draft pull request NOT_RUN
+      - name: Report hosted phase1 SKIPPED (not PASS)
         run: |
-          echo 'Hosted Phase 1 journey: NOT_RUN. Draft pull requests cannot start hosted account/data writes. Convert the pull request to ready for review only after an authorised review of the workflow guard and disposable target.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Hosted Phase 1 journey: SKIPPED, not PASS. No hosted signup/data-write smoke ran. A separately authorised manual run must explicitly identify a freshly verified isolated target and pass the existing configuration guard.' >> "$GITHUB_STEP_SUMMARY"
 
   phase1:
-    # Rob-approved source-only gate: these explicit review heads cannot start
-    # hosted account/data writes automatically. Draft pull requests are blocked
-    # until ready for review. Other branches and CI are unchanged.
-    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false && github.head_ref != 'backup/welcome-first-slice-20261018' && github.head_ref != 'codex/phase1-integration-review-20261023' && github.head_ref != 'codex/remove-public-mcp-20261023' && github.head_ref != 'cursor/rc-integration-20261108') }}
+    needs: verify-isolated-target
+    if: ${{ needs.verify-isolated-target.outputs.verified == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:

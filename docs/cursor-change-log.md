@@ -1,5 +1,16 @@
 # Cursor change log
 
+## 2026-11-28 — D121 client-safe BoQ Excel export
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/client-boq-export.ts` | All-in lines, tie-out, fresh workbook, leak scan | Client copy per architecture note §4 |
+| `src/lib/client-boq-export.test.ts` | Confidentiality + money reconciliation | SYNTH fixtures only |
+| `src/app/dashboard/projects/costs/boq-excel-export.ts` | `exportClientBoQToExcel` | Wire client path; keep internal export |
+| `src/app/dashboard/projects/costs/advanced-estimate.tsx` | Client copy + Internal export buttons | Existing client BoQ banner flow |
+
+**Reuse:** `computeContractSum`, `vatFor`, publication-style marked-up lines; internal `boqSummaryRows` unchanged.
+
 ## 2026-11-27 — D116 public enquiry email on cohort footer and pricing
 
 | File | Change | Intent |

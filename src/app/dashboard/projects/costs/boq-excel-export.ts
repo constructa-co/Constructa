@@ -6,13 +6,13 @@ import { requireLaunchCapability } from "@/lib/launch-profile";
 import { computeContractSum, roundMoney } from "@/lib/financial";
 import { vatFor } from "@/lib/proposal-review";
 import { groupLinesBySection, orderedEstimateSections } from "@/lib/estimate-batch-sections";
+import { buildClientBoQWorkbook, type BoQExportProject } from "@/lib/client-boq-export";
+
+export type { BoQExportProject };
 
 function formatGBP(n: number): string {
     return n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
-
-/** The one job setting the export needs: how VAT is charged on this job. */
-export type BoQExportProject = { is_vat_reverse_charge?: boolean | null };
 
 const REVERSE_CHARGE_NOTE = "The VAT domestic reverse charge applies to these works. The customer accounts for the VAT to HMRC.";
 
@@ -148,5 +148,18 @@ export async function exportBoQToExcel(estimate: Estimate, project?: BoQExportPr
         ? `Priced_${estimate.client_boq_filename.replace(/\.[^.]+$/, "")}.xlsx`
         : `${(estimate.version_name || "Estimate").replace(/[^a-z0-9]/gi, "_")}.xlsx`;
 
+    XLSX.writeFile(wb, filename);
+}
+
+/** Client copy: all-in rates, no margin rows; fresh workbook only. */
+export async function exportClientBoQToExcel(estimate: Estimate, project?: BoQExportProject): Promise<void> {
+    requireLaunchCapability("client-boq-import");
+    const XLSX = await import("xlsx");
+    const wb = buildClientBoQWorkbook(estimate, project);
+    const base =
+        estimate.is_client_boq && estimate.client_boq_filename
+            ? estimate.client_boq_filename.replace(/\.[^.]+$/, "")
+            : (estimate.version_name || "Estimate").replace(/[^a-z0-9]/gi, "_");
+    const filename = `ClientCopy_${base}.xlsx`;
     XLSX.writeFile(wb, filename);
 }

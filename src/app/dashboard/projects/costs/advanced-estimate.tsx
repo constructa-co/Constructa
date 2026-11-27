@@ -24,7 +24,7 @@ import { Plus, Trash2, Check, Star, Loader2, ClipboardList, FileDown } from "luc
 import BuildUpPanel from "./build-up-panel";
 import VisionTakeoff from "@/app/dashboard/foundations/vision-takeoff";
 import BoQImport from "./boq-import";
-import { exportBoQToExcel } from "./boq-excel-export";
+import { exportBoQToExcel, exportClientBoQToExcel } from "./boq-excel-export";
 import { isCapabilityEnabled } from "@/lib/launch-profile";
 import { formatGBP, parseAdvancedQuantityDraft, type AdvancedRunningTotalDraft } from "@/lib/simple-estimate";
 import { computeAdvancedRunningTotalDraft } from "@/lib/advanced-running-total-draft";
@@ -1748,14 +1748,32 @@ export default function AdvancedEstimate({ estimates, setEstimates, activeTab, s
                                     </button>
                                 )}
                                 {showClientBoQImport && (
-                                    <button
-                                        type="button"
-                                        onClick={() => exportBoQToExcel(currentEstimate, { is_vat_reverse_charge: isVatReverseCharge })}
-                                        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors"
-                                    >
-                                        <FileDown className="w-4 h-4" />
-                                        Export to Excel
-                                    </button>
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                exportClientBoQToExcel(currentEstimate, {
+                                                    is_vat_reverse_charge: isVatReverseCharge,
+                                                })
+                                            }
+                                            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition-colors"
+                                        >
+                                            <FileDown className="w-4 h-4" />
+                                            Client copy (Excel)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                exportBoQToExcel(currentEstimate, {
+                                                    is_vat_reverse_charge: isVatReverseCharge,
+                                                })
+                                            }
+                                            className="flex items-center gap-2 px-3 py-2 border border-slate-600 text-slate-300 hover:bg-slate-800 text-sm font-medium rounded-lg transition-colors"
+                                        >
+                                            <FileDown className="w-4 h-4" />
+                                            Internal export
+                                        </button>
+                                    </>
                                 )}
                             </div>
                         </div>

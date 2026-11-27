@@ -1,5 +1,15 @@
 # Cursor change log
 
+## 2026-11-28 — D122 local BOQ regression pack (SYNTH only in CI)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/boq-local-regression.ts` | Manifest loader, sha256/mtime, sanitized runner | Rob-local opt-in via `BOQ_LOCAL_MANIFEST_PATH` |
+| `src/lib/boq-local-regression.synth.test.ts` | CI SYNTH controls | No real workbook PASS from cloud |
+| `src/lib/boq-local-regression.local.test.ts` | Skipped unless env set | NOT_RUN never PASS |
+| `docs/delivery/2026-11-28/d122-local-boq-regression-manifest-contract.md` | Manifest API for R1 | Early contract |
+| `src/lib/__fixtures__/boq-local-manifest.synth.example.json` | SYNTH fixture manifest | Grid-derived counts only |
+
 ## 2026-11-28 — D120 source parser R1 regression repairs
 
 | File | Change | Intent |

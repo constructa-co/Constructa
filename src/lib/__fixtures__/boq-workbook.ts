@@ -79,7 +79,7 @@ export function markerDescription(token: "MARKER-150" | "MARKER-200"): string {
     return `${SYNTH_PREFIX}-${token} boundary row for intake tests`;
 }
 
-function headerRow(): string[] {
+export function headerRow(): string[] {
     return [
         BOQ_WORKBOOK_HEADER_LABELS.ref,
         BOQ_WORKBOOK_HEADER_LABELS.section,
@@ -91,7 +91,7 @@ function headerRow(): string[] {
     ];
 }
 
-function dataRow(args: {
+export function dataRow(args: {
     ref: string;
     section: string;
     description: string;

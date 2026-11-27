@@ -1,8 +1,8 @@
 # BOQ workbook intake — test contract (D120 fixtures, pause before module tests)
 
-Status: **fixtures only, paused** on branch `codex/d120-boq-workbook-tests-20261127`
-(HEAD `39bdcab9` — R1 fixture receipt). Production all-tab workbook intake is owned by Claude
-locally; do not assert against guessed module paths here.
+Status: **draft regression prepared, execution gated** on branch `codex/d120-boq-workbook-tests-20261127`.
+`src/lib/boq-workbook.ts` transfers from Claude/R1 when ready; `boq-workbook.d.ts` is an API
+snapshot only (remove when implementation lands). Worker must not edit production module.
 
 **Acceptance boundary:** `boq-workbook-fixtures.test.ts` is factory self-check only. It is **not**
 import regression acceptance for all-tab intake.
@@ -55,8 +55,9 @@ Likely responsibilities to cover with fixtures:
    when stated total ≠ qty × rate (same as `ClientBoQLine` / `EstimateBatchCsvLine` today).
    The existing `reconciliation-mismatch` fixture targets (6) only.
 
-**Proposed import path (placeholder):** `src/lib/boq-workbook-intake.ts`  
-**Proposed export name (placeholder):** `parseBoqWorkbookAllTabs(input: ArrayBuffer | BoqWorkbookSheet[]): BoqWorkbookIntakeResult`
+**Actual module (R1, local Claude):** `src/lib/boq-workbook.ts`  
+**Exports:** `extractBoQWorkbook`, `workbookInputFromSheetJS`, `boqWorkbookImportBlockers`  
+**Draft tests:** `src/lib/boq-workbook-intake.regression.test.ts` (`describe.skip` until `boq-workbook.ts` exists)
 
 ### Proposed test files (after contract)
 

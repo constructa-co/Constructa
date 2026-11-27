@@ -344,9 +344,8 @@ export function serializeClientBoQWorkbook(workbook: WorkBook): ArrayBuffer {
     return XLSX.write(copy, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
 }
 
-/** Inspect the bytes a client would receive after write/read round-trip. */
+/** Inspect serialized bytes as read from disk — no sanitisation (must reflect actual file content). */
 export function inspectSerializedClientBoQFile(buffer: ArrayBuffer): string[] {
     const workbook = XLSX.read(buffer, { type: "array" });
-    sanitiseClientBoQWorkbookForWrite(workbook);
     return inspectClientBoQWorkbookForLeaks(workbook);
 }

@@ -118,6 +118,15 @@ describe("client-safe BoQ export", () => {
         expect(inspectClientBoQWorkbookForLeaks(wb)).toEqual([]);
     });
 
+    it("rejects serialized files that contain custom workbook metadata (Custprops)", () => {
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["SYNTH tainted"]]), "Client BoQ");
+        wb.Custprops = { SYNTH_PRIVATE_META: "SENTINEL_INTERNAL_SUPPLIER_NOTE" };
+        const bytes = XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
+        const leaks = inspectSerializedClientBoQFile(bytes);
+        expect(leaks.some((l) => l.includes("Custprops"))).toBe(true);
+    });
+
     it("client summary shows contract sum and VAT only; internal export still shows margins", () => {
         const e = estimate([line({ line_total: 1000 })]);
         const clientRows = clientBoQSummaryRows(e);

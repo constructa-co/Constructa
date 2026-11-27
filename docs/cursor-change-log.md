@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-11-28 — D121 serialized inspect must not sanitise before scan
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/client-boq-export.ts` | Drop pre-inspect sanitise on `inspectSerializedClientBoQFile` | Avoid false PASS on metadata leaks |
+| `src/lib/client-boq-export.test.ts` | Negative Custprops round-trip test | Serialized bytes inspected unchanged |
+
 ## 2026-11-28 — D121 client-safe export R1 final (rates + help doc)
 
 | File | Change | Intent |

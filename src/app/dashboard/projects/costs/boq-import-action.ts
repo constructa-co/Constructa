@@ -1,7 +1,6 @@
 "use server";
 
 import { requireEditableProjectAccess } from "@/lib/supabase/project-resource-access";
-import { generateJSON } from "@/lib/ai";
 import { revalidatePath } from "next/cache";
 import OpenAI from "openai";
 import { CreateBoQEstimateSchema, parseInput } from "@/lib/validation/schemas";
@@ -116,53 +115,17 @@ Rules:
     }
 }
 
-// ─── Excel BoQ Parser ─────────────────────────────────────────────────────────
-// Accepts parsed rows from SheetJS (done client-side), uses GPT to interpret
-// column structure and extract lines.
-
-export async function parseBoQFromExcelDataAction(
-    rows: string[][],   // first 200 rows as string arrays from SheetJS
-    filename: string
-): Promise<{ success: boolean; boq?: ParsedClientBoQ; error?: string }> {
-    requireLaunchCapability("client-boq-import");
-    try {
-        // Convert rows to a readable text table for GPT
-        const tableText = rows
-            .slice(0, 150)
-            .map((row) => row.map((cell) => String(cell ?? "").trim()).join("\t"))
-            .join("\n");
-
-        const result = await generateJSON<{ lines: ClientBoQLine[] }>(
-            `You are a UK construction estimator parsing a client Bill of Quantities exported from Excel.
-
-The spreadsheet data (tab-separated) is:
-${tableText}
-
-Identify the column structure (ref, section/heading, description, quantity, unit, rate, total) and extract ALL line items.
-Preserve the client's exact item references and section headings.
-If a cell is blank or "-", use null for quantities and 0 for rates.
-
-Return JSON: { "lines": [{ "client_ref": "", "section": "", "description": "", "quantity": null, "unit": "item", "unit_rate": 0, "line_total": 0 }] }`
-        );
-
-        const lines = normalizeClientBoQLines(result.lines || []);
-        const sections = batchSectionHeadings(lines);
-
-        return {
-            success: true,
-            boq: { filename, sections, lines, totalLines: lines.length },
-        };
-    } catch (err: any) {
-        return { success: false, error: err.message || "Excel parsing failed" };
-    }
-}
+// ─── Excel BoQ ────────────────────────────────────────────────────────────────
+// Spreadsheets (.xlsx/.xls, and CSVs the batch reader cannot read) are read
+// deterministically in the browser by src/lib/boq-workbook.ts: every tab, every
+// row, with a row reconciliation shown before import. No AI and no row cap.
 
 // ─── Create estimate from parsed BoQ ─────────────────────────────────────────
 
 export async function createBoQEstimateAction(
     projectId: string,
     boq: ParsedClientBoQ
-): Promise<{ success: boolean; estimateId?: string; error?: string }> {
+): Promise<{ success: boolean; estimateId?: string; importedLines?: number; error?: string }> {
     requireLaunchCapability("client-boq-import");
   const warned = boq.lines.filter((line) => line.parse_warnings?.length);
     if (warned.length) {
@@ -170,6 +133,13 @@ export async function createBoQEstimateAction(
             success: false,
             error: `${warned.length} row(s) have unreadable quantities, rates or totals. Fix them in the file or remove those rows before importing.`,
         };
+    }
+    if (boq.totalLines !== boq.lines.length) {
+        return { success: false, error: `The preview listed ${boq.totalLines} line(s) but ${boq.lines.length} were sent. Nothing was imported.` };
+    }
+    const blank = boq.lines.filter((line) => !line.description?.trim()).length;
+    if (blank) {
+        return { success: false, error: `${blank} line(s) have no description. Nothing was imported.` };
     }
     try {
         parseInput(CreateBoQEstimateSchema, { projectId, boq }, "client BoQ import");
@@ -197,22 +167,16 @@ export async function createBoQEstimateAction(
 
     if (estErr || !estimate) return { success: false, error: estErr?.message || "Failed to create estimate" };
 
-    // The client BoQ supersedes any previous estimate — deactivate all others first
-    await supabase.from("estimates").update({ is_active: false }).eq("project_id", projectId).neq("id", estimate.id);
-    await supabase.from("estimates").update({ is_active: true }).eq("id", estimate.id);
-
-    // Insert lines — skip blank description rows, keep section headers
-    const linesToInsert = boq.lines
-        .filter((l) => l.description?.trim())
-        .map((l) => {
-            const unit = (l.unit || "item").trim() || "item";
-            const quantity = l.quantity ?? 1;
-            // Never trust a posted total that disagrees with qty × rate: the row
-            // would read "2 × £10 = £25" and change on its first edit.
-            const line_total = Number.isFinite(l.line_total)
-                ? reconcileBoQLineTotal(l.quantity, l.unit_rate || 0, l.line_total).line_total
-                : quantity * (l.unit_rate || 0);
-            return {
+    // Insert every previewed line; none is filtered out here (descriptions were checked above).
+    const linesToInsert = boq.lines.map((l) => {
+        const unit = (l.unit || "item").trim() || "item";
+        const quantity = l.quantity ?? 1;
+        // Never trust a posted total that disagrees with qty × rate: the row
+        // would read "2 × £10 = £25" and change on its first edit.
+        const line_total = Number.isFinite(l.line_total)
+            ? reconcileBoQLineTotal(l.quantity, l.unit_rate || 0, l.line_total).line_total
+            : quantity * (l.unit_rate || 0);
+        return {
             estimate_id: estimate.id,
             trade_section: l.section || "General",
             client_ref: l.client_ref || null,
@@ -224,14 +188,26 @@ export async function createBoQEstimateAction(
             pricing_mode: "simple",
             line_type: "general",
         };
-        });
+    });
 
-    if (linesToInsert.length > 0) {
-        const { error: linesErr } = await supabase
-            .from("estimate_lines")
-            .insert(linesToInsert);
-        if (linesErr) console.error("Insert BoQ lines error:", linesErr);
+    const { data: insertedLines, error: linesErr } = await supabase
+        .from("estimate_lines")
+        .insert(linesToInsert)
+        .select("id");
+    const importedLines = Array.isArray(insertedLines) ? insertedLines.length : 0;
+    if (linesErr || importedLines !== linesToInsert.length) {
+        // The new estimate stays inactive, so the previous active estimate is untouched.
+        return {
+            success: false,
+            error: linesErr?.message
+                ? `Lines were not saved: ${linesErr.message}`
+                : `Only ${importedLines} of ${linesToInsert.length} lines were saved. The previous estimate is still active.`,
+        };
     }
+
+    // The client BoQ supersedes any previous estimate — only once all its lines are in.
+    await supabase.from("estimates").update({ is_active: false }).eq("project_id", projectId).neq("id", estimate.id);
+    await supabase.from("estimates").update({ is_active: true }).eq("id", estimate.id);
 
     // Auto-advance project status
     const { data: proj } = await supabase.from("projects").select("status").eq("id", projectId).single();
@@ -241,5 +217,5 @@ export async function createBoQEstimateAction(
 
     revalidatePath(`/dashboard/projects/costs?projectId=${projectId}`);
 
-    return { success: true, estimateId: estimate.id };
+    return { success: true, estimateId: estimate.id, importedLines };
 }

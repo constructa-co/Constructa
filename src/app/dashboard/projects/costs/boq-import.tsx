@@ -1,9 +1,18 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useMemo } from "react";
 import { Upload, FileSpreadsheet, FileText, Loader2, AlertTriangle, X, CheckCircle, ChevronDown, ChevronRight, ClipboardList } from "lucide-react";
-import { parseBoQFromPdfAction, parseBoQFromExcelDataAction, createBoQEstimateAction, type ParsedClientBoQ } from "./boq-import-action";
+import { parseBoQFromPdfAction, createBoQEstimateAction, type ParsedClientBoQ } from "./boq-import-action";
 import { parseEstimateBatchCsv } from "@/lib/estimate-batch-csv";
+import {
+    BOQ_ROW_REASON_LABEL,
+    BOQ_SHEETJS_READ_OPTIONS,
+    boqWorkbookImportBlockers,
+    extractBoQWorkbook,
+    workbookInputFromSheetJS,
+    type BoQWorkbookExtraction,
+    type BoQWorkbookInput,
+} from "@/lib/boq-workbook";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -17,11 +26,13 @@ async function loadPdfJs() {
     return pdfjs;
 }
 
-async function renderPdfToBase64Pages(file: File): Promise<string[]> {
+const MAX_PDF_PAGES = 10;
+
+async function renderPdfToBase64Pages(file: File): Promise<{ pages: string[]; totalPages: number }> {
     const pdfjs = await loadPdfJs();
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-    const pagesToRender = Math.min(pdf.numPages, 10);
+    const pagesToRender = Math.min(pdf.numPages, MAX_PDF_PAGES);
     const pages: string[] = [];
     for (let i = 1; i <= pagesToRender; i++) {
         const page = await pdf.getPage(i);
@@ -33,20 +44,37 @@ async function renderPdfToBase64Pages(file: File): Promise<string[]> {
         await page.render({ canvasContext: ctx as any, viewport, canvas }).promise;
         pages.push(canvas.toDataURL("image/jpeg", 0.85));
     }
-    return pages;
+    return { pages, totalPages: pdf.numPages };
 }
 
 // ─── Load SheetJS dynamically ─────────────────────────────────────────────────
 
-async function parseExcelFile(file: File): Promise<string[][]> {
+/** Reads every tab of the workbook (cached values only; formulas and macros are never run). */
+async function readWorkbookFile(file: File): Promise<BoQWorkbookInput> {
     const XLSX = await import("xlsx");
     const arrayBuffer = await file.arrayBuffer();
-    const workbook = XLSX.read(arrayBuffer, { type: "array" });
-    // Use first sheet
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    const rows: string[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" }) as string[][];
-    return rows.slice(0, 200); // cap at 200 rows for AI
+    const workbook = XLSX.read(arrayBuffer, { type: "array", ...BOQ_SHEETJS_READ_OPTIONS });
+    return workbookInputFromSheetJS(file.name, workbook);
+}
+
+function boqFromExtraction(extraction: BoQWorkbookExtraction): ParsedClientBoQ {
+    return {
+        filename: extraction.filename,
+        sections: extraction.sections,
+        // Provenance stays in the preview; the saved line keeps the existing estimate fields.
+        lines: extraction.lines.map((l) => ({
+            client_ref: l.client_ref,
+            section: l.section,
+            description: l.description,
+            quantity: l.quantity,
+            unit: l.unit,
+            unit_rate: l.unit_rate,
+            line_total: l.line_total,
+            ...(l.parse_warnings ? { parse_warnings: l.parse_warnings } : {}),
+            ...(l.total_mismatch ? { total_mismatch: l.total_mismatch } : {}),
+        })),
+        totalLines: extraction.lines.length,
+    };
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -68,10 +96,42 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
     const [error, setError] = useState<string | null>(null);
     const [boq, setBoq] = useState<ParsedClientBoQ | null>(null);
     const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+    const [workbook, setWorkbook] = useState<BoQWorkbookInput | null>(null);
+    const [includeSheets, setIncludeSheets] = useState<string[] | null>(null);
+    const [acknowledged, setAcknowledged] = useState(false);
+    const [rowList, setRowList] = useState<"excluded" | "unresolved" | null>(null);
+    const [pdfNotice, setPdfNotice] = useState<string | null>(null);
+    const [importedCount, setImportedCount] = useState<number | null>(null);
+
+    const extraction = useMemo(
+        () => (workbook ? extractBoQWorkbook(workbook, includeSheets ? { includeSheets } : {}) : null),
+        [workbook, includeSheets],
+    );
+    const blockers = extraction ? boqWorkbookImportBlockers(extraction) : [];
+    const recon = extraction?.reconciliation ?? null;
+    const needsAck = Boolean(recon && recon.totals.unresolvedRows > 0);
+
+    function toggleSheet(name: string) {
+        if (!workbook || !extraction) return;
+        const current = extraction.reconciliation.sheets.filter((s) => s.selected).map((s) => s.sheet);
+        const next = current.includes(name) ? current.filter((n) => n !== name) : [...current, name];
+        const nextExtraction = extractBoQWorkbook(workbook, { includeSheets: next });
+        const parsed = boqFromExtraction(nextExtraction);
+        setIncludeSheets(next);
+        setAcknowledged(false);
+        setBoq(parsed);
+        setExpandedSections(new Set(parsed.sections.slice(0, 3)));
+    }
 
     async function processFile(file: File) {
         setError(null);
         setBoq(null);
+        setWorkbook(null);
+        setIncludeSheets(null);
+        setAcknowledged(false);
+        setRowList(null);
+        setPdfNotice(null);
+        setImportedCount(null);
 
         if (file.size > MAX_SIZE_BYTES) {
             setError(`File is ${(file.size / 1024 / 1024).toFixed(0)}MB — please keep files under 25MB.`);
@@ -91,29 +151,22 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
         try {
             let result: { success: boolean; boq?: ParsedClientBoQ; error?: string };
 
-            if (isExcel) {
-                if (file.name.match(/\.csv$/i)) {
-                    const batch = parseEstimateBatchCsv(await file.text());
-                    if (batch.ok) {
-                        result = {
-                            success: true,
-                            boq: {
-                                filename: file.name,
-                                sections: batch.sections,
-                                lines: batch.lines,
-                                totalLines: batch.lines.length,
-                            },
-                        };
-                    } else {
-                        const rows = await parseExcelFile(file);
-                        result = await parseBoQFromExcelDataAction(rows, file.name);
-                    }
-                } else {
-                    const rows = await parseExcelFile(file);
-                    result = await parseBoQFromExcelDataAction(rows, file.name);
-                }
+            const batch = file.name.match(/\.csv$/i) ? parseEstimateBatchCsv(await file.text()) : null;
+            if (batch?.ok) {
+                result = {
+                    success: true,
+                    boq: { filename: file.name, sections: batch.sections, lines: batch.lines, totalLines: batch.lines.length },
+                };
+            } else if (isExcel) {
+                // Every tab, every row, deterministically; the reconciliation is shown before import.
+                const input = await readWorkbookFile(file);
+                setWorkbook(input);
+                result = { success: true, boq: boqFromExtraction(extractBoQWorkbook(input)) };
             } else {
-                const pages = await renderPdfToBase64Pages(file);
+                const { pages, totalPages } = await renderPdfToBase64Pages(file);
+                if (totalPages > pages.length) {
+                    setPdfNotice(`Only the first ${pages.length} of ${totalPages} PDF pages were read. Items on pages ${pages.length + 1}–${totalPages} are not in this preview — split the PDF or use the spreadsheet.`);
+                }
                 result = await parseBoQFromPdfAction(pages, file.name);
             }
 
@@ -135,6 +188,7 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
 
     async function handleImport() {
         if (!boq) return;
+        if (extraction && (blockers.length || (needsAck && !acknowledged))) return;
         setState("importing");
         try {
             const result = await createBoQEstimateAction(projectId, boq);
@@ -143,6 +197,7 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
                 setState("error");
                 return;
             }
+            setImportedCount(result.importedLines ?? boq.lines.length);
             setState("done");
             onImported(result.estimateId, boq.filename);
         } catch (err: any) {
@@ -174,6 +229,8 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
     const warnedLines = boq?.lines.filter((l) => l.parse_warnings?.length) ?? [];
     const mismatchedTotals = boq?.lines.filter((l) => l.total_mismatch).length ?? 0;
     const linesBlank = boq?.lines.filter((l) => l.quantity == null && l.description?.trim() && !l.parse_warnings?.length).length ?? 0;
+    const importDisabled = warnedLines.length > 0 || (extraction !== null && (blockers.length > 0 || (needsAck && !acknowledged)));
+    const listedRows = extraction && rowList ? extraction.rows.filter((r) => r.kind === rowList) : [];
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
@@ -240,13 +297,140 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
                         <div className="py-12 text-center">
                             <Loader2 className="w-8 h-8 text-emerald-400 animate-spin mx-auto mb-3" />
                             <p className="text-white font-medium text-sm">Parsing your BoQ…</p>
-                            <p className="text-slate-500 text-xs mt-1">AI is reading sections, references and quantities</p>
+                            <p className="text-slate-500 text-xs mt-1">Reading every tab, section, reference and quantity</p>
                         </div>
                     )}
 
                     {/* Preview */}
                     {state === "preview" && boq && (
                         <>
+                            {pdfNotice && (
+                                <p className="text-amber-300 text-xs flex items-start gap-1.5" data-boq-pdf-page-limit>
+                                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                                    {pdfNotice}
+                                </p>
+                            )}
+
+                            {extraction && recon && (
+                                <div className="border border-slate-700 rounded-xl overflow-hidden" data-boq-reconciliation data-boq-balanced={recon.balanced ? "true" : "false"}>
+                                    <div className="px-4 py-2.5 bg-slate-800/80 border-b border-slate-700">
+                                        <p className="text-xs font-semibold text-slate-300">
+                                            Read {recon.sheetCount} tab{recon.sheetCount === 1 ? "" : "s"} · {recon.totals.sourceRows} rows
+                                        </p>
+                                        <p className="text-xs text-slate-400 mt-1" data-boq-reconciliation-totals>
+                                            {extraction.lines.length} items to import (from {recon.totals.itemRows + recon.totals.continuationRows} rows)
+                                            {" · "}{recon.totals.headingRows} headings
+                                            {" · "}<button type="button" className="underline decoration-dotted hover:text-slate-200" onClick={() => setRowList(rowList === "excluded" ? null : "excluded")}>{recon.totals.excludedRows} excluded</button>
+                                            {" · "}<button type="button" className={`underline decoration-dotted hover:text-slate-200 ${recon.totals.unresolvedRows ? "text-amber-300" : ""}`} onClick={() => setRowList(rowList === "unresolved" ? null : "unresolved")}>{recon.totals.unresolvedRows} unresolved</button>
+                                            {" · "}{recon.totals.blankRows} blank
+                                            {recon.balanced ? " — every row accounted for" : " — DOES NOT BALANCE"}
+                                        </p>
+                                        {(recon.totals.uncachedFormulaCells > 0 || recon.totals.errorCells > 0) && (
+                                            <p className="text-xs text-amber-400/80 mt-1">
+                                                Saved values only — formulas are not recalculated.
+                                                {recon.totals.uncachedFormulaCells > 0 && ` ${recon.totals.uncachedFormulaCells} formula cell(s) had no saved value.`}
+                                                {recon.totals.errorCells > 0 && ` ${recon.totals.errorCells} cell(s) hold Excel errors such as #REF!.`}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="max-h-48 overflow-y-auto">
+                                        <table className="w-full text-xs">
+                                            <thead className="text-slate-500 bg-slate-900/60 sticky top-0">
+                                                <tr>
+                                                    <th className="text-left font-medium px-3 py-1.5">Import</th>
+                                                    <th className="text-left font-medium px-2 py-1.5">Tab</th>
+                                                    <th className="text-right font-medium px-2 py-1.5">Rows</th>
+                                                    <th className="text-right font-medium px-2 py-1.5">Items</th>
+                                                    <th className="text-right font-medium px-2 py-1.5">Excluded</th>
+                                                    <th className="text-right font-medium px-3 py-1.5">Unresolved</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-800">
+                                                {recon.sheets.map((sheet) => (
+                                                    <tr key={sheet.index} data-boq-sheet={sheet.sheet} data-boq-sheet-status={sheet.status}>
+                                                        <td className="px-3 py-1.5">
+                                                            <input
+                                                                type="checkbox"
+                                                                aria-label={`Import tab ${sheet.sheet}`}
+                                                                checked={sheet.selected}
+                                                                disabled={sheet.headerRow === null}
+                                                                onChange={() => toggleSheet(sheet.sheet)}
+                                                            />
+                                                        </td>
+                                                        <td className="px-2 py-1.5 text-slate-300">
+                                                            {sheet.sheet}
+                                                            <span className="text-slate-500">
+                                                                {sheet.hidden ? " · hidden" : ""}
+                                                                {sheet.status === "summary" ? " · summary" : ""}
+                                                                {sheet.status === "unmapped" ? " · no column header" : ""}
+                                                                {sheet.status === "non_boq" ? " · cover/notes" : ""}
+                                                                {sheet.status === "empty" ? " · empty" : ""}
+                                                                {sheet.ignoredColumns.length ? ` · unused columns ${sheet.ignoredColumns.join(", ")}` : ""}
+                                                            </span>
+                                                            {sheet.warningRows > 0 && <span className="text-amber-400"> · {sheet.warningRows} unreadable</span>}
+                                                            {sheet.overLimitRows > 0 && <span className="text-amber-400" data-boq-sheet-over-limit={sheet.overLimitRows}> · {sheet.overLimitRows} too long to import</span>}
+                                                        </td>
+                                                        <td className="px-2 py-1.5 text-right text-slate-400 font-mono">{sheet.sourceRows}</td>
+                                                        <td className="px-2 py-1.5 text-right text-slate-200 font-mono">{sheet.itemRows}</td>
+                                                        <td className="px-2 py-1.5 text-right text-slate-400 font-mono">{sheet.excludedRows}</td>
+                                                        <td className={`px-3 py-1.5 text-right font-mono ${sheet.unresolvedRows ? "text-amber-300" : "text-slate-400"}`}>{sheet.unresolvedRows}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {rowList && (
+                                        <div className="border-t border-slate-700 max-h-48 overflow-y-auto" data-boq-row-list={rowList}>
+                                            {listedRows.length === 0 ? (
+                                                <p className="px-4 py-2 text-xs text-slate-500">No {rowList} rows.</p>
+                                            ) : listedRows.map((r) => (
+                                                <div key={`${r.sheet}:${r.row}`} className="flex gap-3 px-4 py-1 text-xs">
+                                                    <span className="text-slate-500 font-mono whitespace-nowrap">{r.sheet}!{r.row}</span>
+                                                    <span className="text-slate-400 whitespace-nowrap">{r.reason ? BOQ_ROW_REASON_LABEL[r.reason] : ""}</span>
+                                                    <span className="text-slate-300 truncate">{r.preview}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {recon.contributingSheets > 1 && (
+                                        <p className="px-4 py-2 border-t border-slate-700 text-xs text-slate-400">
+                                            Items come from {recon.contributingSheets} tabs. Workbooks often repeat the same items on several tabs (build-up, BOQ, quote) — untick the tabs that are not the bill.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
+                            {extraction && recon && recon.totals.overLimitRows > 0 && (
+                                <div className="border border-amber-700/50 rounded-lg max-h-40 overflow-y-auto" data-boq-over-limit-list>
+                                    {extraction.lines.filter((l) => l.over_limit).map((l) => (
+                                        <div key={`${l.source_sheet}:${l.source_row}`} className="flex gap-3 px-3 py-1 text-xs">
+                                            <span className="text-slate-500 font-mono whitespace-nowrap">{l.source_sheet}!{l.source_row}{l.source_row_end !== l.source_row ? `–${l.source_row_end}` : ""}</span>
+                                            <span className="text-amber-300 whitespace-nowrap">
+                                                {l.over_limit!.map((o) => `${o.field.replace("_", " ")} ${o.length}/${o.limit}`).join(", ")}
+                                            </span>
+                                            <span className="text-slate-300 truncate">{l.description}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {extraction && blockers.length > 0 && (
+                                <div className="bg-red-900/20 border border-red-700/50 rounded-lg p-3 space-y-1" data-boq-import-blockers>
+                                    {blockers.map((b) => (
+                                        <p key={b} className="text-red-300 text-xs flex items-start gap-1.5">
+                                            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />{b}
+                                        </p>
+                                    ))}
+                                </div>
+                            )}
+
+                            {extraction && recon && needsAck && (
+                                <label className="flex items-start gap-2 text-xs text-amber-200" data-boq-unresolved-ack>
+                                    <input type="checkbox" checked={acknowledged} onChange={(e) => setAcknowledged(e.target.checked)} className="mt-0.5" />
+                                    I have reviewed the {recon.totals.unresolvedRows} unresolved row(s). They will not be imported.
+                                </label>
+                            )}
+
                             {/* Summary strip */}
                             <div className="grid grid-cols-3 gap-3">
                                 <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 text-center">
@@ -352,7 +536,9 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
                     {state === "done" && (
                         <div className="py-12 text-center">
                             <CheckCircle className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
-                            <p className="text-white font-medium">BoQ imported successfully</p>
+                            <p className="text-white font-medium" data-boq-imported-count={importedCount ?? undefined}>
+                                BoQ imported successfully{importedCount !== null && boq ? ` — ${importedCount} of ${boq.lines.length} lines saved` : ""}
+                            </p>
                             <p className="text-slate-400 text-sm mt-1">Add your rates in the estimate, then export to Excel</p>
                         </div>
                     )}
@@ -364,15 +550,15 @@ export default function BoQImport({ projectId, onImported, onClose }: Props) {
                         {state === "preview" ? (
                             <>
                                 <button
-                                    onClick={() => { setState("idle"); setBoq(null); setError(null); }}
+                                    onClick={() => { setState("idle"); setBoq(null); setError(null); setWorkbook(null); setIncludeSheets(null); setAcknowledged(false); setRowList(null); setPdfNotice(null); }}
                                     className="text-sm text-slate-500 hover:text-slate-400 transition-colors"
                                 >
                                     Upload different file
                                 </button>
                                 <button
                                     onClick={handleImport}
-                                    disabled={warnedLines.length > 0}
-                                    title={warnedLines.length > 0 ? "Fix unreadable rows before importing" : undefined}
+                                    disabled={importDisabled}
+                                    title={importDisabled ? "Resolve the items listed above before importing" : undefined}
                                     className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
                                 >
                                     <ClipboardList className="w-4 h-4" />

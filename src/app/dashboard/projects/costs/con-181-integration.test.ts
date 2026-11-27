@@ -112,7 +112,8 @@ describe("CON-181 integration paths", () => {
                 eq: () => builder,
                 neq: () => builder,
                 single: async () => ({ data: table === "estimates" ? { id: "estimate-1" } : { status: "Estimating" }, error: null }),
-                then: (resolve: (v: unknown) => unknown) => Promise.resolve(resolve({ data: null, error: null })),
+                then: (resolve: (v: unknown) => unknown) =>
+                    Promise.resolve(resolve({ data: table === "estimate_lines" ? inserted.map((_, id) => ({ id })) : null, error: null })),
             };
             return builder;
         };
@@ -128,7 +129,7 @@ describe("CON-181 integration paths", () => {
                 { ...line, description: "Provisional sum", quantity: null, unit_rate: 0, line_total: 500 },
             ],
         });
-        expect(result).toMatchObject({ success: true, estimateId: "estimate-1" });
+        expect(result).toMatchObject({ success: true, estimateId: "estimate-1", importedLines: 3 });
         expect(inserted.map(row => row.line_total)).toEqual([20, 20, 500]);
     });
 

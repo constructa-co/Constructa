@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-11-27 — D120 phase 2 intake regression (post-merge 8dfecac7)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/boq-workbook-intake.regression.test.ts` | (new) 17 tests on SYNTH fixtures | All-tab, >200, NRM continuation, over-limit, formula, blockers |
+| Merge `8dfecac7` | into test branch | Real `boq-workbook.ts` + contract tests (no worker prod edits) |
+
 ## 2026-11-27 — D120 BOQ workbook synthetic fixtures (pause before intake module tests)
 
 | File | Change | Intent |

@@ -1,43 +1,36 @@
 # BOQ workbook intake — test contract (D120)
 
-**Paused** until R1 transfers `src/lib/boq-workbook.ts`. No placeholder `boq-workbook.d.ts`
-and no skipped regression in final accepted source.
+**Phase 2 active** on `codex/d120-boq-workbook-tests-20261127` after merge of implementation
+`8dfecac7` from `codex/d120-all-tab-boq-import-20261127`.
 
-## Fixtures (shipped)
+## Fixtures
 
-- `src/lib/__fixtures__/boq-workbook.ts` — SYNTH multi-tab scenarios (`39bdcab9` factory)
-- `src/lib/__fixtures__/boq-workbook-fixtures.test.ts` — factory smoke only (not intake acceptance)
+- `src/lib/__fixtures__/boq-workbook.ts` — SYNTH multi-tab scenarios
+- `src/lib/__fixtures__/boq-workbook-fixtures.test.ts` — factory encode smoke only
 
-## Pending regression (not in `src/` until module lands)
+## Regression acceptance
 
-- Draft (R1-reviewed semantics): `temp-files/backup/d120-boq-workbook-intake.regression.test.ts.off` (rename to `.ts` under `src/lib/` after transfer)
-- **Enable as:** `src/lib/boq-workbook-intake.regression.test.ts` after transfer
-- **Imports:** real `@/lib/boq-workbook` only
+- `src/lib/boq-workbook-intake.regression.test.ts` — fixture-driven intake (this lane)
+- `src/lib/boq-workbook.contract.test.ts` — implementation contract suite (Claude source)
 
-### API (R1 / Claude)
+### API
 
-- `extractBoQWorkbook(input: { filename, sheets: BoQSheetInput[] })`
-- `workbookInputFromSheetJS(filename, workbook)` — SheetJS `XLSX.read` buffer
-- `boqWorkbookImportBlockers(extraction, maxLines = 2000)`
+- `extractBoQWorkbook(input, { includeSheets? })`
+- `workbookInputFromSheetJS` + `BOQ_SHEETJS_READ_OPTIONS`
+- `boqWorkbookImportBlockers(extraction)` — `BOQ_IMPORT_MAX_LINES` (2000) / `BOQ_IMPORT_MAX_SECTIONS` (100)
+- Line fields: `source_row_end`, `heading`, `value_notes`, `over_limit`, `continuationRows` in reconciliation totals
 
-### Reconciliation semantics for tests
+### Test semantics (do not weaken)
 
-| Concept | Meaning |
+| Topic | Assert |
 | --- | --- |
-| **Line total mismatch** | qty × rate ≠ stated total (`mismatchRows` / line fields) — keep `reconciliation-mismatch` fixture |
-| **Source row coverage** | Every source row accounted; dropped/duplicate **account**; counts vs dispositions |
-| **Duplicate provenance** | Same **sheet + source_row (1-based)** imported or accounted **twice** |
-| **Not a duplicate** | Identical item text on **different** source rows — must remain two lines |
-
-Regression must assert **provenance key collision**, **lineIndex ↔ line**, and **per-sheet count balance** —
-not description or cell-value uniqueness.
-
-### Scenarios to exercise when enabled
-
-`multi-tab-over-200` (beyond 150/200), `empty-middle-tab`, `merged-repeated-headers`,
-`reconciliation-mismatch`, grid + SheetJS paths.
+| Source ledger | One `sheet!row` disposition per source row; `reconciliation.balanced` |
+| Duplicate provenance | Same `source_sheet` + `source_row` on two **lines** only |
+| Identical text | Two different `source_row` values — two lines |
+| NRM layout | `continuation` + `item` share `lineIndex`; line `source_row`/`source_row_end` span |
+| Line total mismatch | `total_mismatch` + `mismatchRows`; not necessarily a blocker |
+| Over-limit / errors | `over_limit`, `blockers`; uncached formula / `errorCells` |
 
 ## Gate
 
-No further test commits until `boq-workbook.ts` is on branch. On enable: run intake regression;
-report `API defect candidate` findings before production edits. No PR until R1 workflow check.
+Report failing assertions as API defects before production edits. No PR from this lane until R1 workflow check.

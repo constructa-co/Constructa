@@ -1,5 +1,13 @@
 # Cursor change log
 
+## 2026-11-28 — D122 runner false-PASS fixes + numeric digest contract
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/boq-local-regression.ts` | nonempty_rows, tab_coverage, expected_has_blockers, numeric digest, post-extract mtime | R1 review ca3fa85c |
+| `src/lib/boq-local-regression.synth.test.ts` | Negative SYNTH controls | Omitted tab, wrong nonempty, blockers |
+| `docs/delivery/2026-11-28/d122-local-boq-regression-manifest-contract.md` | Canonical digest + field table | R1 private manifest prep |
+
 ## 2026-11-28 — D122 local BOQ regression pack (SYNTH only in CI)
 
 | File | Change | Intent |

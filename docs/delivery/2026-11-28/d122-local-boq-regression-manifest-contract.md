@@ -1,99 +1,60 @@
 # D122 — Local BOQ workbook regression manifest (contract)
 
 **Branch lane:** `codex/d122-local-boq-regression-20261128`  
-**Parser pin:** same bytes as combined D120 test branch `73eb2eb` (parser commit `f070995e`).  
-**Authority:** R1 runs this pack **locally** on Rob’s Mac against private Rev04 workbooks. Cloud agents author **generic code + SYNTH controls only** — never claim PASS on real tender files from cloud.
+**Parser pin:** combined D120 test branch `73eb2eb` / `f070995e`.  
+**Authority:** R1 runs **locally** on Rob’s Mac with private manifests. Cloud: SYNTH only.
 
-## Purpose
+## Manifest fields (`schema_version`: 1)
 
-Execute the all-tab BoQ extractor on each workbook and compare **source/ledger coverage**, tab inventory, reconciliation balance, and (when supplied) **independent** line expectations. Report mismatch **codes** only in CI logs; monetary and tender text stay in R1’s private manifest/results.
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `workbooks[].id` | yes | Stable label in reports (no tender names in repo examples). |
+| `workbooks[].source` | yes | `{ kind: "fixture", scenario_id }` (SYNTH) or `{ kind: "file", path }` (private). |
+| `workbooks[].sha256` | file: yes | Lowercase hex of full file bytes before parse. |
+| `workbooks[].tab_count` | yes | Must equal adapter tab count. |
+| `workbooks[].require_all_tabs_listed` | default true | When true, `sheets[]` must name **every** tab exactly once (`tab_coverage` if any omit/extra). |
+| `workbooks[].sheets[].name` | yes | Tab name. |
+| `workbooks[].sheets[].source_rows` | optional | Used-range row count from parser reconciliation. |
+| `workbooks[].sheets[].nonempty_rows` | optional | **Source-input** rows with any non-empty cell (formulas, errors, text, `0`, `false` — not parser `blankRows`). |
+| `workbooks[].sheets[].numeric_cell_count` | optional | Count of finite numeric cached values on tab. |
+| `workbooks[].sheets[].numeric_cells_sha256` | optional | Canonical digest (below). |
+| `workbooks[].expectations.expected_has_blockers` | optional | **Boolean only:** `true` if `boqWorkbookImportBlockers` non-empty; `false` if clean. |
+| `workbooks[].expectations.selected_line_total_sum_cents` | optional | Sum of selected import line totals in pence (independent bill). Mismatch → `line_total_sum_cents` (no amounts logged). |
 
-## Opt-in execution
+Removed: `blocker_reason_categories` (was not enforced per category).
 
-| Context | Behaviour |
-| --- | --- |
-| **CI / cloud** | Runs `boq-local-regression.synth.test.ts` only (SYNTH fixtures). |
-| **Rob local** | Set `BOQ_LOCAL_MANIFEST_PATH` to an absolute path of a **private** JSON manifest (not committed). |
-| **Unset env** | `boq-local-regression.local.test.ts` is **skipped** — status `NOT_RUN`, never PASS. |
+## Numeric cell digest (all tabs, cached numerics only)
 
-No network, no upload of workbooks, no hosted writes.
+For each finite numeric cell in `workbookInputFromSheetJS` adapter `rows`:
 
-## Manifest (`schema_version`: 1)
+1. Absolute **1-based** row = `(firstRow ?? 0) + gridRow + 1`
+2. Absolute **1-based** col = `(firstCol ?? 0) + gridCol + 1`
+3. Token: `{row}:{col}:{hex}` where `hex` is IEEE-754 **big-endian** `double` for `v` (`Buffer.writeDoubleBE`)
+4. Sort tokens by row, then column
+5. `numeric_cells_sha256 = sha256(tokens.join("\n"))` — **no** trailing newline
 
-```json
-{
-  "schema_version": 1,
-  "workbooks": [
-    {
-      "id": "generic-workbook-id",
-      "source": { "kind": "file", "path": "/absolute/private/path/on/mac/SYNTH-or-rev04.xlsx" },
-      "sha256": "64-char-hex-lowercase",
-      "tab_count": 6,
-      "include_sheets": ["Bill 2", "Bill 3"],
-      "sheets": [
-        {
-          "name": "Bill 2",
-          "source_rows": 120,
-          "used_range": "A1:H120",
-          "nonempty_rows": 95,
-          "row_coverage_balanced": true,
-          "selected": true,
-          "expected_item_rows": 42,
-          "hidden": false
-        }
-      ],
-      "expectations": {
-        "reconciliation_balanced": true,
-        "total_item_rows": 42,
-        "blocker_reason_categories": [],
-        "lines": [
-          {
-            "client_ref": "A1",
-            "source_sheet": "Bill 2",
-            "source_row": 10,
-            "quantity": 2,
-            "unit": "nr",
-            "line_total": 300
-          }
-        ]
-      }
-    }
-  ]
-}
+R1 may generate expected digests from raw XML typed `v` with Python `struct.pack(">d", v)`.
+
+Implementation: `numericCellsDigestForSheet()` in `src/lib/boq-local-regression.ts`.
+
+## File integrity
+
+- `sha256` checked before parse.
+- For `file` sources, `mtime` captured before read and re-checked **after** full extraction; mismatch → `mtime`.
+
+## Check codes
+
+`sha256`, `mtime`, `tab_count`, `tab_coverage`, `source_rows`, `nonempty_rows`, `used_range`, `balanced`, `ledger_unique`, `item_rows`, `line_count`, `line_ref`, `line_qty`, `line_unit`, `line_total`, `line_total_sum_cents`, `blockers`, `numeric_count`, `numeric_digest`
+
+## Local run
+
+```bash
+export BOQ_LOCAL_MANIFEST_PATH=/absolute/path/private-manifest.json
+npm run test -- src/lib/boq-local-regression.local.test.ts
 ```
 
-### `source`
+Unset env → `NOT_RUN`, never PASS.
 
-| `kind` | Use |
-| --- | --- |
-| `fixture` | In-repo SYNTH only: `{ "kind": "fixture", "scenario_id": "csv-single-tab-baseline" }`. Optional `sha256` — verified against encoded bytes when present. |
-| `file` | **Private manifests only:** `{ "kind": "file", "path": "/absolute/..." }`. `sha256` **required**. Original **mtime** must be unchanged after read (no writes). |
+## SYNTH example
 
-### Independent expectations (R1)
-
-- Tab counts, `source_rows`, `used_range`, and line `line_total` / `quantity` must come from **Rob’s independent XML inventory**, not from the parser under test.
-- `blocker_reason_categories`: optional list of coarse categories (e.g. `import_blockers`, `unbalanced`) — not full blocker prose.
-
-### SheetJS read (unchanged)
-
-`BOQ_SHEETJS_READ_OPTIONS`: cached values only; formulas present but **not evaluated**; no VBA/styles.
-
-## Runner API (`src/lib/boq-local-regression.ts`)
-
-- `loadBoqLocalManifest(path)` — parse JSON.
-- `runBoqLocalRegression(manifest)` → `BoqWorkbookCheckResult[]` (sanitized summaries + `codes_failed`).
-- `assertBoqLocalRegression(results)` — throws on failure (local vitest).
-
-### Check codes (public)
-
-`sha256`, `mtime`, `tab_count`, `source_rows`, `used_range`, `balanced`, `ledger_unique`, `item_rows`, `line_count`, `line_ref`, `line_qty`, `line_unit`, `line_total`, `blockers`
-
-## SYNTH example (committed)
-
-`src/lib/__fixtures__/boq-local-manifest.synth.example.json` — fixture sources and **grid-derived** row counts only; no tender names or private paths.
-
-## Cloud agent constraints
-
-- Do not commit real filenames, client names, or £ amounts from Rev04.
-- Do not auto-generate private expectations from `extractBoQWorkbook` output for R1 manifests.
-- Defects found during SYNTH work → report case to R1; **no parser edits** on D122 without separate authorisation.
+`src/lib/__fixtures__/boq-local-manifest.synth.example.json`

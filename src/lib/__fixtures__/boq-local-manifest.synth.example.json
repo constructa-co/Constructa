@@ -5,10 +5,12 @@
       "id": "synth-csv-single-tab-baseline",
       "source": { "kind": "fixture", "scenario_id": "csv-single-tab-baseline" },
       "tab_count": 1,
+      "require_all_tabs_listed": true,
       "sheets": [
         {
           "name": "SYNTH-Tab-6",
           "source_rows": 9,
+          "nonempty_rows": 9,
           "row_coverage_balanced": true,
           "selected": true
         }
@@ -16,17 +18,19 @@
       "expectations": {
         "reconciliation_balanced": true,
         "total_item_rows": 8,
-        "blocker_reason_categories": []
+        "expected_has_blockers": false
       }
     },
     {
       "id": "synth-reconciliation-mismatch",
       "source": { "kind": "fixture", "scenario_id": "reconciliation-mismatch" },
       "tab_count": 1,
+      "require_all_tabs_listed": true,
       "sheets": [
         {
           "name": "SYNTH-Mismatch",
           "source_rows": 2,
+          "nonempty_rows": 2,
           "row_coverage_balanced": true,
           "selected": true
         }
@@ -34,7 +38,7 @@
       "expectations": {
         "reconciliation_balanced": true,
         "total_item_rows": 1,
-        "blocker_reason_categories": []
+        "expected_has_blockers": false
       }
     }
   ]

@@ -82,10 +82,10 @@ describe("getEstimatePhasesAction uses the same suggestions as the planner", () 
         await expect(getEstimatePhasesAction(PROJECT_ID)).rejects.toThrow("working days");
     });
 
-    it("still offers placeholder stages when no line has labour hours", async () => {
+    it("offers a named stage flagged for review, not a stand-in length, when no line has labour hours", async () => {
         setup([{ trade_section: "Drawing items", quantity: 4, estimate_line_components: [] }]);
         const [stage] = await getEstimatePhasesAction(PROJECT_ID);
-        expect(stage).toMatchObject({ name: "Drawing items", calculatedDays: 5, manhours: 0 });
+        expect(stage).toMatchObject({ name: "Drawing items", calculatedDays: 0, manualDays: null, manhours: 0, needsReview: true });
     });
 
     it("CON-028 action regression wires shared placeholders when dated suggestion returns empty", async () => {
@@ -99,6 +99,6 @@ describe("getEstimatePhasesAction uses the same suggestions as the planner", () 
             undefined,
             sixHourDays,
         ));
-        expect(phases[0]).toMatchObject({ name: "Drawing items", calculatedDays: 5, manhours: 0, startOffset: 0 });
+        expect(phases[0]).toMatchObject({ name: "Drawing items", calculatedDays: 0, manhours: 0, needsReview: true, startOffset: 0 });
     });
 });

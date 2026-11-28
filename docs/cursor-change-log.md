@@ -1,5 +1,15 @@
 # Cursor change log
 
+## 2026-11-28 — D124 public capture timing + limitations (PR 281)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `docs/temp-files/d124-public-capture.ts` | reveal + lazy img wait | Distinguish capture timing from held CSS spacing |
+| `docs/temp-files/d124-brand-visual-capture.spec.ts` | public prep hook | Re-capture landing/product/pricing/login PNGs |
+| `docs/evidence/d124-brand-review/capture-notes.json` | per-route blockers | R1 asset/load vs -29% held layout |
+| `docs/evidence/d124-brand-review/png/landing_*.png` | larger loaded captures | Review-capture images decoded |
+| `docs/delivery/2026-11-28/d124-brand-visual-review.md` | limitations table | No blanket whole-app PASS |
+
 ## 2026-11-28 — D124 workflow SYNTH component visuals (PR 281)
 
 | File | Change | Intent |

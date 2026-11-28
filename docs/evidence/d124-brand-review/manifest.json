@@ -91,9 +91,12 @@
   ],
   "harness": [
     "docs/temp-files/d124-brand-visual-capture.spec.ts",
+    "docs/temp-files/d124-public-capture.ts",
     "docs/temp-files/d124-playwright.config.mjs",
     "docs/temp-files/d124-build-fixture-bundles.mjs",
     "docs/temp-files/d124-build-contact-sheets.py"
   ],
+  "captureNotes": "docs/evidence/d124-brand-review/capture-notes.json",
+  "limitations": "Public landing corrected for reveal/lazy-load timing; product held -29% zoom / 62.5% viewport spacing is intentional CSS. See capture-notes interpretation. Not a whole-app brand PASS.",
   "report": "docs/delivery/2026-11-28/d124-brand-visual-review.md"
 }

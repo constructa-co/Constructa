@@ -50,9 +50,20 @@ Build: `node docs/temp-files/d124-build-fixture-bundles.mjs` → `/tmp/construct
 | `contactsheet-real-routes-375.png` / `-1440.png` | landing, product, pricing, login |
 | `contactsheet-synth-workflow-375.png` / `-1440.png` | dashboard, estimate, programme, proposal (component fixtures) |
 
-## Brand drift inspection (281 @ 5a65d1b4)
+## Capture limitations (not a whole-app PASS)
 
-Workflow SYNTH PNGs reviewed at this pass: sage/emerald KPI and CTA chrome on Home and Estimate; planner sage bars on Programme; proposal editor dark workspace. **No additional palette code changes** required from this pass.
+| Topic | Finding |
+| --- | --- |
+| Landing `#review-captures` | **Prior** full-page shots could show large empty bands below the hero because `data-reveal` sections stayed hidden and below-fold `img` were lazy-decoded before screenshot. **Corrected in harness only:** force `reveal-in`, scroll, wait for both review-capture images (`capture-notes.json`). Home figures do **not** use the product `.viewport` padding box (`heldViewportBoxOnHome: false`). |
+| Product `#product-screenshots` | **Intentional held CSS spacing:** `.viewport` `padding-top: 62.5%` (estimate `70%`); programme crop `translateY(-29%)` in `product-screenshots.module.css`. May look like empty margin above the visible crop — **not** treated as missing assets when images report `complete` in notes. |
+| Workflow SYNTH | Component fixtures only; no signed-in Next route; see manifest `SYNTH_COMPONENT_VISUAL`. |
+| Brand palette | Workflow SYNTH frames show sage/emerald/dark chrome consistent with 281. **No product spacing/CSS/marketing copy changes** in this pass. **No blanket “zero drift whole app” verdict** — public pages still need human R1 pass on contact sheets + individual PNGs. |
+
+Diagnostic log: `docs/evidence/d124-brand-review/capture-notes.json`
+
+## Brand drift inspection (281 @ 5a65d1b4) — bounded
+
+Palette spot-check on committed PNGs + SYNTH workflow frames only. No additional palette commits from this pass; landing capture timing fix does not alter shipped CSS.
 
 ## Re-run (local only)
 

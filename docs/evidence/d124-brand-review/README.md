@@ -2,7 +2,8 @@
 
 Committed SYNTH screenshot pack for R1 image inspection. **Source SHA:** `5a65d1b45cea73ea068a9fcf77dc1dc87410aaca`.
 
-- **Manifest:** `manifest.json` — routes, viewports, `REAL_RENDER` vs `SYNTHETIC_*` per route
+- **Manifest:** `manifest.json` — routes, viewports, render classes, limitations
+- **Capture notes:** `capture-notes.json` — lazy/reveal diagnostics vs product held `-29%` / `62.5%` spacing
 - **PNG frames:** `png/`
 - **Contact sheets:** `contactsheet-*.png` (downscaled composites; inspect raw PNGs for pixel truth)
 - **Narrative report:** `docs/delivery/2026-11-28/d124-brand-visual-review.md`

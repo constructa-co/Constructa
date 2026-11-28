@@ -1,6 +1,12 @@
 import { mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { test } from "@playwright/test";
+import {
+    CAPTURE_NOTES_PATH,
+    preparePublicRouteForCapture,
+    writeCaptureNotes,
+    type CaptureDiagnostic,
+} from "./d124-public-capture";
 
 const OUT = path.join(process.cwd(), "docs/evidence/d124-brand-review/png");
 const BASE = process.env.D124_BASE_URL ?? "http://127.0.0.1:3010";
@@ -63,6 +69,8 @@ const FIXTURE_HTML = (title: string) =>
 
 mkdirSync(OUT, { recursive: true });
 
+const publicCaptureNotes: CaptureDiagnostic[] = [];
+
 async function captureSynthComponent(
     page: import("@playwright/test").Page,
     route: (typeof SYNTH_COMPONENT_ROUTES)[number],
@@ -88,7 +96,11 @@ for (const vp of VIEWPORTS) {
 
         for (const route of PUBLIC_ROUTES) {
             test(`${route.id} — ${route.path}`, async ({ page }) => {
-                await page.goto(`${BASE}${route.path}`, { waitUntil: "networkidle", timeout: 60_000 });
+                await page.goto(`${BASE}${route.path}`, { waitUntil: "domcontentloaded", timeout: 60_000 });
+                await page.waitForLoadState("networkidle", { timeout: 60_000 }).catch(() => undefined);
+                const diag = await preparePublicRouteForCapture(page, route.id);
+                diag.viewport = vp.tag;
+                publicCaptureNotes.push(diag);
                 await page.screenshot({
                     path: path.join(OUT, `${route.id}_${vp.tag}.png`),
                     fullPage: true,
@@ -125,3 +137,12 @@ for (const vp of VIEWPORTS) {
         }
     });
 }
+
+test.afterAll(() => {
+    if (publicCaptureNotes.length > 0) {
+        writeCaptureNotes(CAPTURE_NOTES_PATH, publicCaptureNotes, {
+            sourceSha: SHA,
+            capturedAt: new Date().toISOString().slice(0, 10),
+        });
+    }
+});

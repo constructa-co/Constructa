@@ -133,6 +133,8 @@ describe("applying programme costs to the estimate (first apply only, insert onl
         const { acknowledgement } = reviewed();
         const result = await applyProgrammeCostsAction({ projectId: PROJECT, estimateId: ESTIMATE, inputs: INPUTS, acknowledgement });
         expect(result).toMatchObject({ ok: false, alreadyApplied: true });
+        expect(result.ok ? "" : result.error).toBe("Programme costs are already on this estimate. This version adds programme costs once and cannot update or replace them. The lines on the estimate stay unchanged.");
+        expect(result.ok ? "" : result.error).not.toMatch(/delete|apply again|apply the new figures|first, then/i);
         expect(mocks.deleted).toEqual([]);
         expect(mocks.inserted).toEqual([]);
         expect(mocks.recalc).not.toHaveBeenCalled();

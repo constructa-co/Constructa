@@ -12,23 +12,50 @@ import ProjectLiveClient from "./project-live-client";
 // fallback behave exactly as on the P&L and billing pages.
 import { computeBudgetCost, computeContractSumValue } from "@/lib/financial";
 import { liveFigures, totalOrUnavailable, type LiveUnavailable } from "./live-data";
+import { readComplete, readCompleteForIds, type CompleteRead } from "./live-read";
 
 // D124 N2.5: a failed read must never render as an empty or £0 position.
-// Critical reads (the project list, the project, its estimates) throw to the
-// dashboard error boundary. Secondary reads (cost entries, invoices,
-// variations) are reported as unavailable, and every figure that depends on
-// them shows as unavailable rather than zero.
+// Critical reads (the project list, the project, its estimates and their
+// lines) throw to the dashboard error boundary. Secondary reads (cost entries,
+// invoices, variations) are reported as unavailable, and every figure that
+// depends on them shows as unavailable rather than zero.
+//
+// D130: an incomplete read counts as a failed one. The database API returns at
+// most 1,000 rows with no error, so every list read here goes through
+// readComplete (./live-read), which pages in a fixed order and proves it holds
+// every counted row before any total is built from it.
 function failed(scope: string, error: unknown): never {
     console.error(`[live] ${scope} query failed`, error);
     throw new Error(`Live Projects could not load ${scope}.`);
 }
 
-function secondary<T>(scope: string, result: { data: T[] | null; error: unknown }): T[] | null {
-    if (result.error) {
-        console.error(`[live] ${scope} query failed`, result.error);
+function critical<T>(scope: string, read: CompleteRead<T>): T[] {
+    if (!read.ok) return failed(scope, { reason: read.reason, detail: read.detail });
+    return read.rows;
+}
+
+function secondary<T>(scope: string, read: CompleteRead<T>): T[] | null {
+    if (!read.ok) {
+        console.error(`[live] ${scope} query failed`, { reason: read.reason, detail: read.detail });
         return null;
     }
-    return result.data ?? [];
+    return read.rows;
+}
+
+/** The estimate the page prices from: the active one, else the earliest. Estimates arrive oldest first. */
+function pickEstimate<E extends { is_active?: boolean | null }>(estimates: readonly E[]): E | null {
+    return estimates.find((e) => e.is_active) ?? estimates[0] ?? null;
+}
+
+function groupBy<R>(rows: readonly R[], key: (row: R) => string): Map<string, R[]> {
+    const groups = new Map<string, R[]>();
+    for (const row of rows) {
+        const id = key(row);
+        const group = groups.get(id);
+        if (group) group.push(row);
+        else groups.set(id, [row]);
+    }
+    return groups;
 }
 
 export default async function LiveProjectsPage(props: { searchParams: Promise<{ projectId?: string }> }) {
@@ -42,27 +69,36 @@ export default async function LiveProjectsPage(props: { searchParams: Promise<{ 
 
     // ── Per-project live view ─────────────────────────────────────────────────
     if (projectId) {
-        const [projectResult, estimatesResult, expensesResult, invoicesResult, variationsResult] = await Promise.all([
+        const [projectResult, estimatesRead, expensesRead, invoicesRead, variationsRead] = await Promise.all([
             supabase.from("projects").select("id, name, client_name, site_address, start_date, project_type").eq("id", projectId).eq("user_id", user.id).single(),
-            supabase.from("estimates").select("*, estimate_lines(*)").eq("project_id", projectId),
-            supabase.from("project_expenses").select("*").eq("project_id", projectId).order("expense_date", { ascending: false }),
-            supabase.from("invoices").select("*").eq("project_id", projectId).order("created_at", { ascending: false }),
-            supabase.from("variations").select("*").eq("project_id", projectId).order("created_at", { ascending: false }),
+            // Oldest first, so the fallback when none is active is the first estimate made.
+            readComplete<any>((from, to) => supabase.from("estimates").select("*", { count: "exact" }).eq("project_id", projectId)
+                .order("created_at", { ascending: true }).order("id", { ascending: true }).range(from, to)),
+            readComplete<any>((from, to) => supabase.from("project_expenses").select("*", { count: "exact" }).eq("project_id", projectId)
+                .order("expense_date", { ascending: false }).order("id", { ascending: false }).range(from, to)),
+            readComplete<any>((from, to) => supabase.from("invoices").select("*", { count: "exact" }).eq("project_id", projectId)
+                .order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to)),
+            readComplete<any>((from, to) => supabase.from("variations").select("*", { count: "exact" }).eq("project_id", projectId)
+                .order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to)),
         ]);
 
         // PGRST116 is "no row": the project is not this user's or does not exist.
         if (projectResult.error && projectResult.error.code !== "PGRST116") failed("this project", projectResult.error);
         const project = projectResult.data;
         if (!project) redirect("/dashboard/live");
-        if (estimatesResult.error) failed("this project's estimates", estimatesResult.error);
 
-        const estimates = estimatesResult.data ?? [];
-        const expenses = secondary("cost entries", expensesResult);
-        const invoices = secondary("invoices", invoicesResult);
-        const variations = secondary("variations", variationsResult);
+        const estimates = critical("this project's estimates", estimatesRead);
+        const expenses = secondary("cost entries", expensesRead);
+        const invoices = secondary("invoices", invoicesRead);
+        const variations = secondary("variations", variationsRead);
 
-        const activeEstimate = estimates.find((e: any) => e.is_active) ?? estimates[0] ?? null;
-        const lines: any[] = activeEstimate?.estimate_lines ?? [];
+        const activeEstimate = pickEstimate(estimates);
+        // The lines are read on their own, page by page, rather than embedded in
+        // the estimate read, so a large estimate is never priced from part of it.
+        const lines: any[] = activeEstimate
+            ? critical("this project's estimate lines", await readComplete<any>((from, to) => supabase.from("estimate_lines")
+                .select("*", { count: "exact" }).eq("estimate_id", activeEstimate.id).order("id", { ascending: true }).range(from, to)))
+            : [];
         const figures = liveFigures({
             contractValue: activeEstimate ? computeContractSumValue(activeEstimate, lines) : 0,
             budgetCost: activeEstimate ? computeBudgetCost(activeEstimate, lines) : 0,
@@ -88,14 +124,13 @@ export default async function LiveProjectsPage(props: { searchParams: Promise<{ 
     }
 
     // ── Portfolio overview ────────────────────────────────────────────────────
-    const { data: projectRows, error: projectsError } = await supabase
+    const projects = critical("your projects", await readComplete<any>((from, to) => supabase
         .from("projects")
-        .select("id, name, client_name, project_type, site_address, proposal_status, potential_value, start_date, created_at")
+        .select("id, name, client_name, project_type, site_address, proposal_status, potential_value, start_date, created_at", { count: "exact" })
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-    if (projectsError) failed("your projects", projectsError);
-    const projects = projectRows ?? [];
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to)));
 
     if (projects.length === 0) {
         return (
@@ -114,42 +149,61 @@ export default async function LiveProjectsPage(props: { searchParams: Promise<{ 
 
     const projectIds = projects.map(p => p.id);
 
-    const [expensesResult, invoicesResult, variationsResult, estimatesResult] = await Promise.all([
-        supabase.from("project_expenses").select("project_id, amount").in("project_id", projectIds),
-        supabase.from("invoices").select("project_id, amount, status").in("project_id", projectIds),
-        supabase.from("variations").select("project_id, amount, status").in("project_id", projectIds),
-        supabase.from("estimates")
-            .select("project_id, total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, discount_pct, is_active, estimate_lines(trade_section, line_total, line_type)")
-            .in("project_id", projectIds),
+    const [expensesRead, invoicesRead, variationsRead, estimatesRead] = await Promise.all([
+        readCompleteForIds<any>(projectIds, (ids, from, to) => supabase.from("project_expenses")
+            .select("id, project_id, amount", { count: "exact" }).in("project_id", ids).order("id", { ascending: true }).range(from, to)),
+        readCompleteForIds<any>(projectIds, (ids, from, to) => supabase.from("invoices")
+            .select("id, project_id, amount, status", { count: "exact" }).in("project_id", ids).order("id", { ascending: true }).range(from, to)),
+        readCompleteForIds<any>(projectIds, (ids, from, to) => supabase.from("variations")
+            .select("id, project_id, amount, status", { count: "exact" }).in("project_id", ids).order("id", { ascending: true }).range(from, to)),
+        // Oldest first within each project, so the fallback when none is active is the first estimate made.
+        readCompleteForIds<any>(projectIds, (ids, from, to) => supabase.from("estimates")
+            .select("id, project_id, total_cost, overhead_pct, profit_pct, risk_pct, prelims_pct, discount_pct, is_active, created_at", { count: "exact" })
+            .in("project_id", ids).order("created_at", { ascending: true }).order("id", { ascending: true }).range(from, to)),
     ]);
 
     // Without estimates every contract value and margin would fall back to a guess.
-    if (estimatesResult.error) failed("your estimates", estimatesResult.error);
-    const allEstimates = estimatesResult.data ?? [];
-    const allExpenses = secondary("cost entries", expensesResult);
-    const allInvoices = secondary("invoices", invoicesResult);
-    const allVariations = secondary("variations", variationsResult);
+    const estimatesByProject = groupBy(critical("your estimates", estimatesRead), (e) => e.project_id);
+    const activeByProject = new Map<string, any>();
+    for (const proj of projects) {
+        const activeEst = pickEstimate(estimatesByProject.get(proj.id) ?? []);
+        if (activeEst) activeByProject.set(proj.id, activeEst);
+    }
+    // Only the priced estimate's lines are needed, read in full or not at all.
+    const linesByEstimate = groupBy(
+        critical("your estimate lines", await readCompleteForIds<any>([...activeByProject.values()].map((e) => e.id), (ids, from, to) => supabase
+            .from("estimate_lines").select("id, estimate_id, trade_section, line_total, line_type", { count: "exact" })
+            .in("estimate_id", ids).order("id", { ascending: true }).range(from, to))),
+        (line) => line.estimate_id,
+    );
+
+    const allExpenses = secondary("cost entries", expensesRead);
+    const allInvoices = secondary("invoices", invoicesRead);
+    const allVariations = secondary("variations", variationsRead);
     const unavailable: LiveUnavailable = { costs: allExpenses === null, invoices: allInvoices === null, variations: allVariations === null };
+    const expensesByProject = allExpenses && groupBy(allExpenses, (e) => e.project_id);
+    const invoicesByProject = allInvoices && groupBy(allInvoices, (i) => i.project_id);
+    const variationsByProject = allVariations && groupBy(allVariations, (v) => v.project_id);
 
     // Build enriched project data
     const enriched = projects.map(proj => {
-        const estimates = allEstimates.filter(e => e.project_id === proj.id);
-        const activeEst = estimates.find(e => e.is_active) ?? estimates[0] ?? null;
+        const activeEst = activeByProject.get(proj.id) ?? null;
 
         let contractValue = Number(proj.potential_value) || 0;
         let budgetCost = 0;
 
         if (activeEst) {
-            contractValue = computeContractSumValue(activeEst, activeEst.estimate_lines ?? []);
-            budgetCost = computeBudgetCost(activeEst, activeEst.estimate_lines ?? []);
+            const lines = linesByEstimate.get(activeEst.id) ?? [];
+            contractValue = computeContractSumValue(activeEst, lines);
+            budgetCost = computeBudgetCost(activeEst, lines);
         }
 
         const figures = liveFigures({
             contractValue,
             budgetCost,
-            expenses: allExpenses && allExpenses.filter(e => e.project_id === proj.id),
-            invoices: allInvoices && allInvoices.filter(i => i.project_id === proj.id),
-            variations: allVariations && allVariations.filter(v => v.project_id === proj.id),
+            expenses: expensesByProject && (expensesByProject.get(proj.id) ?? []),
+            invoices: invoicesByProject && (invoicesByProject.get(proj.id) ?? []),
+            variations: variationsByProject && (variationsByProject.get(proj.id) ?? []),
         });
 
         return {

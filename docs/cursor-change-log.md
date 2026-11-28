@@ -1,12 +1,15 @@
 # Cursor change log
 
-## 2026-11-28 — D124 brand visual review (PR 281 @ 5a65d1b4)
+## 2026-11-28 — D124 brand evidence pack (PR 281 @ 5a65d1b4)
 
 | File | Change | Intent |
 | --- | --- | --- |
-| `temp-files/d124-brand-review/*.png` | 16 screenshots 375/1440 | Local SYNTH visual pack |
-| `docs/delivery/2026-11-28/d124-brand-visual-review.md` | Route matrix + drift notes | R1 evidence |
-| `docs/temp-files/d124-brand-visual-capture.spec.ts` | Playwright capture harness | Reproducible local capture |
+| `docs/evidence/d124-brand-review/png/*.png` | 16 frames 375/1440 | Committed SYNTH pack for R1 image inspect |
+| `docs/evidence/d124-brand-review/manifest.json` | SHA/viewports/route class | REAL_RENDER vs SYNTHETIC_* per route |
+| `docs/evidence/d124-brand-review/contactsheet-*.png` | Bounded composites | Quick review; pixel truth in `png/` |
+| `docs/delivery/2026-11-28/d124-brand-visual-review.md` | Per-route class table | Blocked ≠ coverage; no auth redirect credit |
+| `docs/temp-files/d124-brand-visual-capture.spec.ts` | Output → `docs/evidence/.../png` | Local/test-only harness |
+| `docs/temp-files/d124-build-contact-sheets.py` | Pillow contact sheets | Local rebuild helper |
 
 ## 2026-11-28 — D122 F2792 local integration gate (no false PASS)
 

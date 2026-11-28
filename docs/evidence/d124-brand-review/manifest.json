@@ -1,0 +1,98 @@
+{
+  "id": "d124-brand-review",
+  "sourceSha": "5a65d1b45cea73ea068a9fcf77dc1dc87410aaca",
+  "branch": "codex/d123-brand-consistency-20261128",
+  "pr": 281,
+  "capturedAt": "2026-11-28",
+  "captureMode": "SYNTH_LOCAL_UNPUBLISHED",
+  "baseUrl": "http://127.0.0.1:3010",
+  "harness": [
+    "docs/temp-files/d124-brand-visual-capture.spec.ts",
+    "docs/temp-files/d124-playwright.config.mjs"
+  ],
+  "exclusions": [
+    "No private identities or client data",
+    "No authenticated session screenshots counted as coverage",
+    "No secrets or .env values",
+    "Pricing page local-only; not production publication"
+  ],
+  "viewports": [
+    { "tag": "375", "width": 375, "height": 812 },
+    { "tag": "1440", "width": 1440, "height": 900 }
+  ],
+  "renderClasses": {
+    "REAL_RENDER": "Full page capture of the requested public route; counts toward brand visual review.",
+    "SYNTHETIC_RUNTIME_BLOCKED": "Capture taken but workflow surface did not render (missing local Supabase/runtime). Does not count as brand coverage; PNG retained for R1 inspection only.",
+    "SYNTHETIC_AUTH_BLOCKED": "Would apply if middleware redirected away from requested path (e.g. login). Not claimed as dashboard/programme coverage."
+  },
+  "routes": [
+    {
+      "id": "landing",
+      "path": "/",
+      "renderClass": "REAL_RENDER",
+      "coverage": true,
+      "png": { "375": "png/landing_375.png", "1440": "png/landing_1440.png" }
+    },
+    {
+      "id": "product",
+      "path": "/product",
+      "renderClass": "REAL_RENDER",
+      "coverage": true,
+      "png": { "375": "png/product_375.png", "1440": "png/product_1440.png" }
+    },
+    {
+      "id": "pricing",
+      "path": "/pricing",
+      "renderClass": "REAL_RENDER",
+      "coverage": true,
+      "notes": "Unpublished local dev only",
+      "png": { "375": "png/pricing_375.png", "1440": "png/pricing_1440.png" }
+    },
+    {
+      "id": "login",
+      "path": "/login",
+      "renderClass": "REAL_RENDER",
+      "coverage": true,
+      "notes": "Public sign-in form only; no credentials entered",
+      "png": { "375": "png/login_375.png", "1440": "png/login_1440.png" }
+    },
+    {
+      "id": "dashboard",
+      "path": "/dashboard/home",
+      "renderClass": "SYNTHETIC_RUNTIME_BLOCKED",
+      "coverage": false,
+      "blockedReason": "Local dev missing Supabase/env; page did not render authenticated home",
+      "png": { "375": "png/dashboard_375.png", "1440": "png/dashboard_1440.png" }
+    },
+    {
+      "id": "estimate",
+      "path": "/dashboard/projects/costs",
+      "renderClass": "SYNTHETIC_RUNTIME_BLOCKED",
+      "coverage": false,
+      "blockedReason": "Same as dashboard",
+      "png": { "375": "png/estimate_375.png", "1440": "png/estimate_1440.png" }
+    },
+    {
+      "id": "programme",
+      "path": "/dashboard/projects/schedule",
+      "renderClass": "SYNTHETIC_RUNTIME_BLOCKED",
+      "coverage": false,
+      "blockedReason": "Same as dashboard",
+      "png": { "375": "png/programme_375.png", "1440": "png/programme_1440.png" }
+    },
+    {
+      "id": "proposal",
+      "path": "/dashboard/projects/proposal",
+      "renderClass": "SYNTHETIC_RUNTIME_BLOCKED",
+      "coverage": false,
+      "blockedReason": "Same as dashboard",
+      "png": { "375": "png/proposal_375.png", "1440": "png/proposal_1440.png" }
+    }
+  ],
+  "contactSheets": [
+    "contactsheet-real-routes-375.png",
+    "contactsheet-real-routes-1440.png",
+    "contactsheet-synthetic-blocked-workflow.png"
+  ],
+  "report": "docs/delivery/2026-11-28/d124-brand-visual-review.md"
+}

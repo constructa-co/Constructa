@@ -2,7 +2,7 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { test } from "@playwright/test";
 
-const OUT = path.join(process.cwd(), "temp-files/d124-brand-review");
+const OUT = path.join(process.cwd(), "docs/evidence/d124-brand-review/png");
 const BASE = process.env.D124_BASE_URL ?? "http://127.0.0.1:3010";
 const SHA = process.env.D124_SHA ?? "5a65d1b45cea73ea068a9fcf77dc1dc87410aaca";
 

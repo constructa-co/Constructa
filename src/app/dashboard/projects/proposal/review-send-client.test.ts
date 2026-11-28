@@ -99,6 +99,13 @@ describe("Review and Send", () => {
         expect([...positions].sort((a, b) => a - b)).toEqual(positions);
     });
 
+    it("renders emerald accent on native choice radios and checkboxes", () => {
+        const nativeInputs = html.match(/<input[^>]*type="(?:radio|checkbox)"[^>]*>/g) ?? [];
+        const sized = nativeInputs.filter((tag) => /w-5/.test(tag) && /h-5/.test(tag));
+        expect(sized.length).toBeGreaterThanOrEqual(3);
+        expect(sized.every((tag) => tag.includes("accent-emerald-600"))).toBe(true);
+    });
+
     it("reuses what the app already holds instead of asking for it again", () => {
         expect(html).toContain("We are a family firm fitting bathrooms and kitchens");
         expect(html).toContain("Shower room, 3 Sample Street");

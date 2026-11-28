@@ -85,7 +85,7 @@ import { useTheme } from "@/lib/theme-context";
 import { useReducerStore } from "@/lib/use-reducer-store";
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import { BEFORE_PROJECT_NAVIGATION } from "@/lib/project-navigation";
-import { coreFocusVisibleRing, coreSelectedChoiceBorder } from "@/lib/core-editing-palette";
+import { coreFocusVisibleRing, coreFormAccent, coreSelectedChoiceBorder } from "@/lib/core-editing-palette";
 import { workspaceStyles, type WorkspaceStyles } from "@/lib/workspace-styles";
 import {
     getProposalPublicationAction,
@@ -766,7 +766,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                             id={id}
                                             type="radio"
                                             name="review-cover-photo"
-                                            className="mt-1 w-5 h-5 flex-shrink-0"
+                                            className={`mt-1 w-5 h-5 flex-shrink-0 ${coreFormAccent}`}
                                             checked={draft.coverPhoto === choice}
                                             disabled={busy || disabled}
                                             onChange={() => edit({ coverPhoto: choice })}
@@ -832,7 +832,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                             <label className={`flex items-start gap-3 min-h-11 py-2 text-base ${s.body}`}>
                                                 <input
                                                     type="checkbox"
-                                                    className="mt-1 w-5 h-5 flex-shrink-0"
+                                                    className={`mt-1 w-5 h-5 flex-shrink-0 ${coreFormAccent}`}
                                                     checked={checked}
                                                     disabled={busy}
                                                     onChange={() => edit({
@@ -987,7 +987,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                                     <input
                                                         type="radio"
                                                         name="payment-preset"
-                                                        className="mt-1 w-5 h-5 flex-shrink-0"
+                                                        className={`mt-1 w-5 h-5 flex-shrink-0 ${coreFormAccent}`}
                                                         checked={chosen}
                                                         onChange={() => choosePayment(preset.kind)}
                                                     />
@@ -1268,7 +1268,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                     <input
                                         type="radio"
                                         name="response-kind"
-                                        className="mt-1 w-5 h-5 flex-shrink-0"
+                                        className={`mt-1 w-5 h-5 flex-shrink-0 ${coreFormAccent}`}
                                         checked={chosen}
                                         onChange={() => store.dispatch({ type: "response/choose", kind })}
                                     />
@@ -1372,7 +1372,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                             <label className={`flex items-start gap-3 min-h-11 py-1 text-base ${s.body}`}>
                                 <input
                                     type="checkbox"
-                                    className="mt-1 w-5 h-5 flex-shrink-0"
+                                    className={`mt-1 w-5 h-5 flex-shrink-0 ${coreFormAccent}`}
                                     checked={deliverByEmail}
                                     disabled={state.send.status === "publishing"}
                                     onChange={(e) => {
@@ -1402,7 +1402,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                             <label className={`flex items-start gap-3 min-h-11 py-1 text-base ${s.body}`}>
                                 <input
                                     type="checkbox"
-                                    className="mt-1 w-5 h-5 flex-shrink-0"
+                                    className={`mt-1 w-5 h-5 flex-shrink-0 ${coreFormAccent}`}
                                     checked={emailRecipientConfirmed}
                                     disabled={state.send.status === "publishing"}
                                     onChange={(e) => setEmailRecipientConfirmed(e.target.checked)}
@@ -1461,7 +1461,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                             <input
                                 ref={confirmRef}
                                 type="checkbox"
-                                className="mt-1 w-5 h-5 flex-shrink-0"
+                                className={`mt-1 w-5 h-5 flex-shrink-0 ${coreFormAccent}`}
                                 checked={state.confirmed}
                                 disabled={!readiness.ready || state.send.status === "publishing"}
                                 aria-describedby={block && block !== "publishing" ? "send-block-reason" : undefined}
@@ -1541,7 +1541,7 @@ export default function ReviewSendClient({ context, caseStudies, lockReason, est
                                         <label className={`flex items-start gap-3 min-h-11 py-1 text-base ${s.body}`}>
                                             <input
                                                 type="checkbox"
-                                                className="mt-1 w-5 h-5 flex-shrink-0"
+                                                className={`mt-1 w-5 h-5 flex-shrink-0 ${coreFormAccent}`}
                                                 checked={retryEmailConfirmed}
                                                 disabled={state.delivery.status === "sending"}
                                                 onChange={(e) => setRetryEmailConfirmed(e.target.checked)}

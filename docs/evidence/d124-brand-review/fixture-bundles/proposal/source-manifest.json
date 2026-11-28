@@ -1,0 +1,660 @@
+{
+  "format": "constructa-source-fingerprints/v1",
+  "note": "Provenance only: SHA-256 content fingerprints of the source files compiled into this bundle.",
+  "sourceFingerprints": [
+    {
+      "path": "/agent/repos/Constructa/e2e/local-phase1/d124-brand-proposal-entry.tsx",
+      "sha256": "6e7a44931bd15ced3b59652def4031ff30271dd116c6eeca968f8b6159fac227"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/react/jsx-runtime.js",
+      "sha256": "b392951a77d0a2e6a6bd017e49d768481ae5b63c4109c6c31f622cf7b2433edc"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/react/cjs/react-jsx-runtime.production.js",
+      "sha256": "1e46f15002696985e80c61d47aaa30dabb03c954270a690f5f7dfbbacfa9002b"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/react/cjs/react-jsx-runtime.development.js",
+      "sha256": "706e324b21fcd94fb728da71b374694d0727d0baee4126011cea583f54e09106"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/react/index.js",
+      "sha256": "60caffdecbdc5db3bc4ec4e83df9488345ccb271d07533b9210bf5750918d97e"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/react/cjs/react.production.js",
+      "sha256": "6b28feb9dbe9781ab1e1b64dea7b29a7c70f03d2dc10eaa966363053d8a9b4e5"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/react/cjs/react.development.js",
+      "sha256": "97bef56f30daa05320514ea220d7d03eb765635519ff2d5650c4887772aa5767"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/react-dom/client.js",
+      "sha256": "00e348ab3d6bc2eef908345d0bc4e008c95bcfecec060dfda5c4967953761396"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/react-dom/cjs/react-dom-client.production.js",
+      "sha256": "8a8147c1cebdb19d82fd11bdb76391be9b20d00edf67cc8e8b30f44e850ce693"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/scheduler/index.js",
+      "sha256": "145965504d60007bc25486ab930b0367867dcd5d579ccd343c148d69349a7cfb"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/scheduler/cjs/scheduler.production.js",
+      "sha256": "679adff761d31e9426604f80c0e99be44a3e6f4c6834b0218ecf0312a67c171f"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/scheduler/cjs/scheduler.development.js",
+      "sha256": "646eb671c8585382baff16daf92fe16a4cdd10dcf1a363c58b2ae1f6bf3a2b8d"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/react-dom/index.js",
+      "sha256": "ba1a3e33489f868371561777607e3ee5091df0f7ea3f1a10f789d6b86e4c1505"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/react-dom/cjs/react-dom.production.js",
+      "sha256": "fd016e2c887f97b82f466ca435ae259d08cf7d4e7fef37e087963336d4770c01"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/react-dom/cjs/react-dom.development.js",
+      "sha256": "e4ca31557a0d93a3750438e2f78905d0ce39eff1391a6ff6df12de3a2c332f11"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/react-dom/cjs/react-dom-client.development.js",
+      "sha256": "c10b5e5ad37ca22c88b58bf4ada9a3b655ab79934c0b5cc6bad26f42c774584f"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/theme-context.tsx",
+      "sha256": "8e629be9d83a2743feca9ee42a150a5f747422c4d9418a8dfca50b578046bcf2"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/app/dashboard/projects/proposal/review-send-client.tsx",
+      "sha256": "2de4e21521f6984c4ea86e5c2772c79af2dfca30eb1167e5eba5bdb605139101"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/components/proposal-workspace.module.css",
+      "sha256": "ba5b1b6824b21461d2088fcacfdbe882eee6966e1fbff8858dc6f8f2a8ff766f"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/lucide-react/dist/cjs/lucide-react.js",
+      "sha256": "dc77f398272c9d6ad3fe5716df0d7291ee673f9e542ba07991150f67384f55a3"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/job-working-local.ts",
+      "sha256": "0cd4aec20953724df8e085d066b24211c467c9cfaf86eaaf9e13a4cc565456c1"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/relative-programme.ts",
+      "sha256": "6e35d9010c0efb0ec225321c7919fff7d6609d68780beb21955b52867325dd84"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/programme-plan.ts",
+      "sha256": "f8a8eb7dc441d9fb29cf0293cf426d733612452797ef531d2a63f69b4ccc3809"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/programme-date.ts",
+      "sha256": "59be3e89e5cedf30dfc93a8936e4aaf63d810e72f5bf532a710579126ad0a713"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/job-working-pattern.ts",
+      "sha256": "8de7046b0446647d789c9b1c0fdd4c2a66051e4550c7fa497e2ed0c54af7777b"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/uk-bank-holidays.ts",
+      "sha256": "a8f3826f4c0465017385e03bbd7cb0282ab65a6b6823ac4915ea38e4b7b23988"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/data/uk-bank-holidays-bundled.json",
+      "sha256": "538b3482c28b85ecd2db606a0d5ae6ad17248900b6498700ce0a48d26a3ecde6"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/simple-programme.ts",
+      "sha256": "d6c994fbfb605f7d323fe1ae5afa51110ec2d011cfe27bdd7047d71ec0f4209f"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/working-pattern-canonical.ts",
+      "sha256": "47dddeec79a23924359939eec3216497b78dc9b4996591ea34f0eb124873cf17"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/working-pattern-draft.ts",
+      "sha256": "e73f970768166dfa9d330ebd83e836704f27d595243eedf30db3c3cec5396ae7"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/programme-calendar.ts",
+      "sha256": "eab219b2f7f64607d67aeb80f3f35b4eb42ed29353ddea89c081518041d35c91"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/components/programme-timeline.tsx",
+      "sha256": "689f6b5428c8b311c31bc1cd8211e98af349322b66c2fc04e49efa97dcf434e6"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/components/proposal/proposal-document-view.tsx",
+      "sha256": "fb0ef001a05655926977dcadf91c139b9dbebea6a87e70485ea6460b56213d4e"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/proposal-document.ts",
+      "sha256": "d3b65ccf17ab09e7e39a81f14a07dd45197f54547c3b80dc871e544789c9004a"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/blank-project.ts",
+      "sha256": "a35192c650ce329603d3cad0989ca76a2f183c6234d17e564ee5089b3d74a992"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/index.cjs",
+      "sha256": "2a3455cecff4f7021c92d0a3e2e5fc170c0448dc5cc261160127e08f4888a9c2"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/classic/external.cjs",
+      "sha256": "88f600b7ec41204e625886c93864568e6dbda628c94db92bc928f8b2e163eec1"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/core/index.cjs",
+      "sha256": "cb40bcdacc990895d8ceaf0aeca2d92c73db7dc67094821560eea09186840093"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/core/core.cjs",
+      "sha256": "a1769923f84360c5e2c9cdba3404534df3a18a7ab976a9ec47551e7addb861e1"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/core/parse.cjs",
+      "sha256": "ea957a211bf66fd211842cfd2bcf4bea43aa27c643dc44da012ca63739672ef6"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/core/errors.cjs",
+      "sha256": "143fe7bbd15a123e7615a4fe62c6663b2e6c2e5ad16f5efa0cf7953c275b1d65"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/core/util.cjs",
+      "sha256": "6f189702e9e207141f331b9ab400bb2b27a5397e914979a7d427856586bc2633"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/core/schemas.cjs",
+      "sha256": "ee1a7cb1da1ab818424627a35ba14336334e6370633d2673d42c040caeb5fdec"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/core/checks.cjs",
+      "sha256": "d9b6a4b1d366015f4f2b7ca931f1a65cf787d7892f50d693350834b9a345f2e1"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/core/regexes.cjs",
+      "sha256": "443b0c212655df655a775748c060dbfb0ca5f070884ba32cbaad0e8c3057e9e9"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/core/doc.cjs",
+      "sha256": "ae6c5bfe9570d30c119cd6bc9dff33f6956858b4fa6887b2b1f9680f11d1b65d"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/core/versions.cjs",
+      "sha256": "dbe213fb4e3e5a4564ff42001d227e608a1ca2329901156c823e0b57dd19f511"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/index.cjs",
+      "sha256": "8012bfa49ee41cafc1ebfca8505e92503088d9d421bfee1e9fd601c8d8599894"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/ar.cjs",
+      "sha256": "9e6476e5237fdfa8ea07d30a8a725e484ebcb7fdc732eb55607815ee701f5177"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/az.cjs",
+      "sha256": "be8c72acf84df55f5fd0a673f9488543d95a201fa65e828f9142e0dc0fa87a28"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/be.cjs",
+      "sha256": "3071dee4104152c31a8130dd366870c32616c00f39b4bed4e565b5069d42acc9"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/bg.cjs",
+      "sha256": "6c8c8cfc221283ed7ee6039e1d9ba9b09c023e25764d4a3c769bb6a7799e3f2c"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/ca.cjs",
+      "sha256": "cc4f06062420bd95f9e57fa0e1a3531bad691f2259a6566402c2565e73e8017f"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/cs.cjs",
+      "sha256": "a018d1328a7be5e75a50bce168593f717efbfb183bea3fc57d90ef85719aff33"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/da.cjs",
+      "sha256": "aa67e238640b08a61bf4b293530577d63e5e492fd1f3e2becc3e4f58c86c1cf7"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/de.cjs",
+      "sha256": "2271ecd86ac9698136b633422c1049a7510b1470121adce607da3fc74e26d673"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/en.cjs",
+      "sha256": "ba4269302deae584b126d90f7219e1f2b88242d7f505fc6dcfdf444b4f131587"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/eo.cjs",
+      "sha256": "8cb3c550c5947d2ce3274608e2487d3ab166ec307a5ea67ef4990b9da74d296f"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/es.cjs",
+      "sha256": "d59637d0c9c319713fc21fac73ca9700154c2672da2b6c4bf23b6fd45abb0174"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/fa.cjs",
+      "sha256": "96a5dc859f85b89d3c49c859c8051887efee046c2e5393b60a2294e10a18596a"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/fi.cjs",
+      "sha256": "3736651f1edbf2af972e5a81ba240055414e1dc00dc79241462a7eeea7032b17"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/fr.cjs",
+      "sha256": "fbef9497be9a8035061c9d403dcf200c6d93777aa5b18e9d021c6be89b1741e3"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/fr-CA.cjs",
+      "sha256": "5fa4eecb16770c0a56fe176a0cfa41f8d3c3c421bc3f9c6182df3300c1fc0f12"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/he.cjs",
+      "sha256": "caa87c00543b915b13bfe7f0af67cc46f833c40f525d7302c3fc628bcb243b3d"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/hu.cjs",
+      "sha256": "fb3125c8c751902a2998fcfb7b2c1c3aa6722c1409cf4f997ee11db52ef5b8b0"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/hy.cjs",
+      "sha256": "9a22becbfb671b7a67141c753fdc81bde74f1ba853a8634462ee523a2e4c4d2d"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/id.cjs",
+      "sha256": "aa9cbd4d299b36a0a2f10b4fb612d287d63f82da5fe8b226ef642e624fbe579b"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/is.cjs",
+      "sha256": "62d9adfda6e5cb1d4f49af6bb9646eaa42e21fffe605786cc9cc7b7bbc9e3158"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/it.cjs",
+      "sha256": "931d0e4352d43d1a94b9ec59c98751f8e0e4b69d153839423a0acb184c0cb68f"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/ja.cjs",
+      "sha256": "fc485198da07908fdf412e23150d1a1e2977467aaa524cb506fe66b830bdd720"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/ka.cjs",
+      "sha256": "9e4f6ede9a9b89b11a4df7d10c05a49eeece6bc0ee318832c204ee273a06f98a"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/kh.cjs",
+      "sha256": "5a5f3a63e4e97a25b44692b0910f73cf15e54fc5b03c61f9d87e2a9eb6e2a098"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/km.cjs",
+      "sha256": "e448be8e315d2c722875690058ac56eaa85144b085021e865f66d3a3166dec56"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/ko.cjs",
+      "sha256": "db9ce154ae9778fa7785417230f4bb6aaa6ebc201eadf4bba1390e1a8cf64ae0"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/lt.cjs",
+      "sha256": "1bafea36bf6890030fa71df69c2666243c13fb66399cd5c94f346a7e18d03176"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/mk.cjs",
+      "sha256": "5db40799c29ac29a7c89e4b14d3b08938266b580ec1a845978f7b97861095fce"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/ms.cjs",
+      "sha256": "9b21835c0e797a98b44b9d7869c899c69adf0532fa6979b300a4f0ddfac90dc1"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/nl.cjs",
+      "sha256": "3018bb81ec0b95bf05ca997f68e393ebd0403b7434c1b7ec435ff7b21c64ee70"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/no.cjs",
+      "sha256": "f4ffc6925e0ff009fc253e52c7bf1195b41e0141359d86822930f89ee416135e"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/ota.cjs",
+      "sha256": "2cf89b0f9e8ec15010282e0cd33ab44b69f38f6e2bd7a67e4c909fd7f303f23c"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/ps.cjs",
+      "sha256": "d2bd29c361f664127599e66cfacb2ce63005a557d58293100d408ac045f032d7"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/pl.cjs",
+      "sha256": "013076bb5458e33e21bb3486537fa819b4d55a960a17c125afab9878fe734969"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/pt.cjs",
+      "sha256": "27c2005bd63e25301f277b1a326bd64d1c4af5d7714760ac07f8460f835a11bc"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/ru.cjs",
+      "sha256": "d3bb2d4f2a62569f7b48aee4c06283b55bc9cc9fa7a0fd4c3adf740d9bc149e6"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/sl.cjs",
+      "sha256": "a596863bd1e2fbbf15d8a8a65d0d7491896c57c0a286ba3b3a24a8f35ad3dc57"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/sv.cjs",
+      "sha256": "8d3e57e9e9c316b13685195391d32914c3bfaf33bb1279983c0ebc65ec44c6a8"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/ta.cjs",
+      "sha256": "8f66c3ade923ffc374efefa326cfbc4fbb8d3ab40a811088e3382e495974322a"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/th.cjs",
+      "sha256": "f142afb29f948d8ae28f0ac7ec6a14b5afe662ea6974b9eb76c4d4a61143b7ba"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/tr.cjs",
+      "sha256": "a7bc91118509dbd965268972c67703fe0a0e628c768a16a8104bc118e134fda9"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/ua.cjs",
+      "sha256": "0565126e33d30fd26046fd5399fe6293e8827fa846c3a7ff414e4e63acbfbf0a"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/uk.cjs",
+      "sha256": "2f3b10a8255f54a28fa31c1783c86e1fc1744370c5b5cddee02ba476e0ecc406"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/ur.cjs",
+      "sha256": "822f8dfde3eaa1d5962cc4b606e69bff750ffbe3bf5f4927a61d79c22ddd1644"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/uz.cjs",
+      "sha256": "3d8fb6f6afa190c5da0937c77e1e1422eb8fd31a74d8ddd27a5c51ff4a8dc0bf"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/vi.cjs",
+      "sha256": "f3ccad01b00f0501e6e0b332a8d9f36a49b717b7d9439fc8d1cf23188f2ed245"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/zh-CN.cjs",
+      "sha256": "3a2a1f8914fec65cc60f66611758db1e0d205797a54b2ea67767808861211f2d"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/zh-TW.cjs",
+      "sha256": "e534adb851ef96b0678bfa755a4d4440453245fcc8137f801500cbe05e47d491"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/locales/yo.cjs",
+      "sha256": "f4ea0b4741b203f344fbcd3e6ef6d2960096139ad93fdb9e98d01bef6978ddb8"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/core/registries.cjs",
+      "sha256": "674a7d7f25a3db1589776b868bbb07116974198ad159ca28e66fb20616946bbd"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/core/api.cjs",
+      "sha256": "e51d74f3d81c633d0e52cc96c8b898a095c2103370979939ba6488cfbd5310f2"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/core/to-json-schema.cjs",
+      "sha256": "36ea47f6596aa6cb5961f471b1fb39774b2a85cd0e4e4a9d6a902dfe91e987b8"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/core/json-schema-processors.cjs",
+      "sha256": "de82b7ed029933f0b7d23cd658f0513d17c05839e5494023de100c89cd953032"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/core/json-schema-generator.cjs",
+      "sha256": "7b685f409c6ca5f76bd2184470c9fb80decfb1ce7592f3b72d4af3cfd7e52c6f"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/core/json-schema.cjs",
+      "sha256": "d43aa81f5bc89faa359e0f97c814ba25155591ff078fbb9bfd40f8c7c9683230"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/classic/schemas.cjs",
+      "sha256": "071570f4fe89da6d545af4465ce1719914b1cccc1a6929ecbf8f5d83c10cde9a"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/classic/checks.cjs",
+      "sha256": "df8f7d3f808b226719e1a23a0303ff75c450c9037a82cc137ef6592decda3d31"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/classic/iso.cjs",
+      "sha256": "f5d840d941b87a868da63fba9e4eb5917cadd87100af4940113f0ddd75dd9043"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/classic/parse.cjs",
+      "sha256": "0fb97825ed1c15a1f6a238df9506e23f2e720edeae4774aa46a60ce7b2a75319"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/classic/errors.cjs",
+      "sha256": "f704ed9292288d685a33123242399179eba77f1190299bc83042b434c1ae8cd6"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/classic/compat.cjs",
+      "sha256": "dcd3c3b05fbc82ed0241ec7e015071a528a1e2e8025e96259be932e7340608e7"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/classic/from-json-schema.cjs",
+      "sha256": "9950682bd6c7bad0e8638d71ee54bed561aa81b2e8d70311d6cc8ed3968cced8"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/zod/v4/classic/coerce.cjs",
+      "sha256": "d25b07eead67ff339c3e2a6d5b7364647e11f57fff3e82055d49575304dce057"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/job-type-options.ts",
+      "sha256": "27f1112d825ead9c5b56d7ea1766934379ed4d8a025d54f5c81793614e818989"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/financial.ts",
+      "sha256": "10cca4edf88d3ea376fdf72107d24e6220ef1e0873b6747f997c4eac2d157f1f"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/estimate-line-type.ts",
+      "sha256": "5f7ab23b31551f48dc9b13be7f95fe6c7c10fb8edf17878091c9ddaad3e3f61a"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/pdf/pdf-money.ts",
+      "sha256": "a22dd4737b0c6fea5a10a3e6a6130d7689cde4ad57e1a65e774df7e3cdadb078"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/proposal-publication.ts",
+      "sha256": "fbdb3fc38c537774b2dc9a7185db2238bb0d64deb04ebb71b082e9ec0f7ae4d3"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/programme-inclusion.ts",
+      "sha256": "a1fd0b70ad82bfe4992521055bd55e1f4d616a272bd497b14ab2b0e4763cf22d"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/proposal-response.ts",
+      "sha256": "6176b3533adab0f234299bccdb6d0b30783be790646ba6481852f72f8f2aeb7d"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/case-library/resolve.ts",
+      "sha256": "d492171ae8d3a90f7786c0242f74dad65886f42db7fce87be89b4838b1726c9c"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/case-library/content.ts",
+      "sha256": "458e41978ca779b09323308074df0c53e505850fd0cdc2c7458cedd509304dc5"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/case-library/photos.ts",
+      "sha256": "53e5b895801c36a5c54f66da2e39db0d1f7979546d846437fb0a379d7853a192"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/case-library/case-study-photo-behaviour.ts",
+      "sha256": "58e02bfc2eee2fde702d841648f5f352eae96deec858a52ca5bbdcf52823beae"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/proposal-cover-photo.ts",
+      "sha256": "b7600135ef81655f6ed0b239ffd32d8aa3470e3b213293ea2e6d9d3fe349a7ac"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/proposal-site-photos.ts",
+      "sha256": "44c08e19942bd39cb472da5f3ecb290730209b355d9a617d5a860d6041b8ba16"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/case-study-value.ts",
+      "sha256": "ebaaed1f8c412465206408c8690570ff2b4011cabcd95ef7615b1a95dd243739"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/components/proposal/proposal-document-dialog.tsx",
+      "sha256": "7ca0a84d02b78d76c8cd48b34bafdc3f90a0b793424ab4f89853782ac976b1af"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/components/proposal/proposal-document-dialog.module.css",
+      "sha256": "36061366ea0d918f042aee802ebf501523e08fab5fae6d023e8bc1fc1673b6bc"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/components/proposal/company-credentials-summary.tsx",
+      "sha256": "1e48d5f46e5f6e7f78acd9cd9c530bec5fdfaef80369e05f6007d0d2cabd3893"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/components/proposal/proposal-document-reader.tsx",
+      "sha256": "ac27e4065838ee9963806d221248a0524d560700998685d631b90b93287f11c2"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/components/proposal/proposal-document-reader.module.css",
+      "sha256": "08c042131e5c8cb0c75e1bb34a61d063a80e3e5df9561edcdeb1d5915e79eebc"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/components/proposal/proposal-web-pages.tsx",
+      "sha256": "ba3d347364242c7a0cafc914274a22caf0fbc1413403df3980de332fb34bcc66"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/components/proposal/proposal-web-pages.module.css",
+      "sha256": "56b3e3ec1ba53e1d90e87f9c5d7a1a5eed6dc5ccd7563a0dd3ff50c0fc888f1c"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/components/proposal/proposal-stage-switcher.tsx",
+      "sha256": "e7e2d8f8445fb68c830e6d553408c52b1a776885e9e48d28f12083189faf7536"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/components/proposal/proposal-stage-switcher.module.css",
+      "sha256": "0869db74c3db9647516fd72f1bdda9d721d1d827c4fbc4ebd7560f57cf11b9dc"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/components/proposal/current-terms-review.tsx",
+      "sha256": "9cfcafd9e5980758caa38c2b27e7ffc8f34cb93b95e4a0c1888bf1cb191de9de"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/components/save-status.tsx",
+      "sha256": "d9be97ec14f4e3505dd303b68836b733d2f93e6e4b9e567c848dc802714bf378"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/components/proposal-workspace-heading.tsx",
+      "sha256": "54f838ee5663bf193c49e835ab881b5aa1492a0a4ae275d04f5259b3fb7cc533"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/client-id.ts",
+      "sha256": "221ec4cdaee55962a5627acf32f956c406b5c0991fed4e603fced08a4dacc653"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/clipboard-copy.ts",
+      "sha256": "95e30bcc55a793de8b89391b02afb3aac9e35967dcc2ba0393d1aba4f09c1a57"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/proposal-payment-save.ts",
+      "sha256": "340246756fb812dc11a6d81081b81d93a39bdeaba1e5bb509bcafe132f1c7a5d"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/proposal-review.ts",
+      "sha256": "bef7ccb8e1b23e821307ffc1c8354128945e8fdcd1cb97b8c632d032976244fe"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/case-library/past-jobs.ts",
+      "sha256": "b68de3a567d9de6c3c7440fe305bb4150e0a25c387c5619d9282f4cd504e26a5"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/case-library/legacy.ts",
+      "sha256": "9f3f25028fe14c7d5e5147bc9839abd337d1bbec0e9d835eee8736856d997df8"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/case-library/messages.ts",
+      "sha256": "ed34f1c0729bc6126acc6a426fc4e762b79373f3dba745080549fa86e59f67d7"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/proposal-payment-percentages.ts",
+      "sha256": "e657e2bb30c293d9d1b7e85f50a4bc1ab4164242d55eca7512e362fecaa303a0"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/guided-brief.ts",
+      "sha256": "762d332c43efd2a28e3a4a678e2db38b7d6be9cd73eb411886bc4ea752eaeb7e"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/proposal-readiness.ts",
+      "sha256": "8040abe5614963941eb011134241200817772b322b3263b0aef6c1fb65c86933"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/proposal-terms.ts",
+      "sha256": "4e7ea35e580425fa065b6227f570bed62803fdfe85707d4c42c54b903a9dd3ce"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/use-reducer-store.ts",
+      "sha256": "264c1a6a75d3bd2ad427ba6a2a8086dd31dcdd0db9abf46ab6866ec3dcd30bae"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/use-unsaved-guard.ts",
+      "sha256": "d38a4a05bcb52b361fa68448820a7d8bf20c9d93217bbf114fe75763a4fe9338"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/project-navigation.ts",
+      "sha256": "9e6f53b5178b3755b42c546bb0d676623229ee36de77ba205041674a5f942d7c"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/core-editing-palette.ts",
+      "sha256": "843056b8809b2b05a9bb5a742d01d0094a19ff25c4e5a7c1f0f9e7adc97dd512"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/workspace-styles.ts",
+      "sha256": "98504026c8b8596eebcf3c9c2a6b0f8dc281cbafbaf31392f55b6640d9eca5fd"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/app/dashboard/projects/proposal/publication-history-panel.tsx",
+      "sha256": "0037d2965e117f7023b897526f9e7ee60414d14ce93f66804aa841767c0dd086"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/pdf/proposal-brochure.ts",
+      "sha256": "84369f0b5b37f3873d3912b7f8c3dbe6aadddbddb4487d551dadd59ac6b3bd5c"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/app/dashboard/projects/proposal/past-jobs-extras.tsx",
+      "sha256": "baad4301965705bffe783d272deb3e6c9ff4d24b84334ac621ddad78e5cc1c75"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/lib/proposal-figure-consistency.ts",
+      "sha256": "fd6f861884a3db2bb38f2ce76a7446b15e144f9f7197f513fc9893b09fdcfc80"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/jspdf/dist/jspdf.umd.min.js",
+      "sha256": "e6551fcdc32f09d6853b2c5126d18d01d9447e0da618a41a11ebeee0f6c20d54"
+    },
+    {
+      "path": "/agent/repos/Constructa/src/app/globals.css",
+      "sha256": "64f8658e0b7ecada227dcdf2ec2c20741af64b6cb83e030d83821095e47644d0"
+    },
+    {
+      "path": "/agent/repos/Constructa/tailwind.config.js",
+      "sha256": "50bcf070f36d77b99395a9f41679c514b00cd5bcfbbe1f62e3d11d966444319e"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/tailwindcss/lib/cli.js",
+      "sha256": "bd94afd40f508342f052c36998f53e1d9f60ec19c18c40d5120eb97d297b88f4"
+    },
+    {
+      "path": "/agent/repos/Constructa/node_modules/tailwindcss/package.json",
+      "sha256": "56330837214a14ffcf0faba46f0f94fb23209778f5d4cc0a2bed7d775108c8d1"
+    },
+    {
+      "path": "/tmp/constructa-d124-fixture-bundles/proposal/tailwind.css",
+      "sha256": "e075292716301c67f2236b6939899c23305e425fa901fab671f62a836db39a2d"
+    }
+  ],
+  "modules": 161,
+  "scope": "Actual ReviewSendClient+ThemeProvider under compiled Tailwind+CSSmodules (D124 visual only);proposal-view default unchanged;synthetic data/MOCK actions;no Auth/DB/hosted journey"
+}

@@ -1,5 +1,98 @@
 # Cursor change log
 
+## 2026-11-28 — Proposal native radio accent (coreFormAccent, PR 281)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `review-send-client.tsx` | `coreFormAccent` on 8× `type=radio/checkbox` (`mt-1 w-5 h-5`) | Fix observed browser-blue payment/response/cover controls |
+| `proposal-review-selection-palette.test.ts` | Source guard: 8 accented natives, no bare classNames | Bounded A001 |
+| `review-send-client.test.ts` | Render guard: `accent-emerald-600` on sized natives | Bounded render proof |
+| `docs/evidence/d124-brand-review/png/proposal_*.png` | Recaptured | D124 visual after source fix |
+| `fixture-bundles/proposal/*` | provenance `nativeRadio`, bundle hash | SHA + entry hash recorded |
+
+## 2026-11-28 — D124 fixture root body matches layout.tsx
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `docs/temp-files/d124-brand-visual-capture.spec.ts` | `FIXTURE_HTML` body `bg-black text-white antialiased`; provenance `fixtureRootContext` + `theme` | Programme white-body defect = missing root layout context |
+| `docs/evidence/d124-brand-review/png/programme_*.png` | Recaptured | Black root body after harness fix |
+| `docs/evidence/d124-brand-review/png/proposal_*.png` | Recaptured | Same root context + Tailwind proposal bundle |
+| `docs/evidence/d124-brand-review/fixture-bundles/*/capture-provenance-*.json` | body rgb(0,0,0), theme explicit | R1 computed provenance |
+| `manifest.json` / `synth-capture-receipt.json` | dashboard/estimate reuse notes | Honest context without unnecessary re-run |
+
+## 2026-11-28 — D124 proposal SYNTH capture fixture (Tailwind provenance)
+
+| File | Lines / area | Change | Intent |
+| --- | --- | --- | --- |
+| `e2e/local-phase1/d124-brand-proposal-entry.tsx` | new | ReviewSendClient + ThemeProvider dark + same MOCK as proposal-view | D124-only scenario; legacy `proposal-view` unchanged |
+| `e2e/local-phase1/build-brief-price.mjs` | ~23–25, ~87–90, ~249, pdfScenario | `d124-brand-proposal` in scenario list, theme virtual delete, Tailwind gate, jspdf | Include compiled globals/Tailwind in proposal SYNTH bundle |
+| `docs/temp-files/d124-build-fixture-bundles.mjs` | 20 | proposal → `d124-brand-proposal` | Fixture build mapping |
+| `docs/temp-files/d124-brand-visual-capture.spec.ts` | provenance evaluate ~92–134 | `appShell` / link / button computed styles | R1 stylesheet provenance on proposal + programme |
+| `docs/evidence/d124-brand-review/png/proposal_*.png` | binary | Recaptured | Correct Avenir/sage/dark shell vs prior serif/blue defect |
+| `docs/evidence/d124-brand-review/fixture-bundles/proposal/capture-provenance-*.json` | new | Computed styles @ 375/1440 | Confirm fix (no production palette change) |
+| `docs/evidence/d124-brand-review/contactsheet-synth-workflow-*.png` | binary | Regenerated | Workflow contact sheets include new proposal frames |
+| `docs/evidence/d124-brand-review/synth-capture-receipt.json` | proposal + programme notes | Root cause + limitations | Bounded receipt for R1 |
+| `docs/delivery/2026-11-28/d124-brand-visual-review.md` | tables + limitations | Capture defect doc | Name actual limitations; no whole-app PASS |
+
+## 2026-11-28 — D124 SYNTH receipt (programme bundle fix documented)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `docs/evidence/d124-brand-review/synth-capture-receipt.json` | Programme prior blocker + verify | No retry loop; N2.6 Rob-gated note |
+
+## 2026-11-28 — D124 public capture timing + limitations (PR 281)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `docs/temp-files/d124-public-capture.ts` | reveal + lazy img wait | Distinguish capture timing from held CSS spacing |
+| `docs/temp-files/d124-brand-visual-capture.spec.ts` | public prep hook | Re-capture landing/product/pricing/login PNGs |
+| `docs/evidence/d124-brand-review/capture-notes.json` | per-route blockers | R1 asset/load vs -29% held layout |
+| `docs/evidence/d124-brand-review/png/landing_*.png` | larger loaded captures | Review-capture images decoded |
+| `docs/delivery/2026-11-28/d124-brand-visual-review.md` | limitations table | No blanket whole-app PASS |
+
+## 2026-11-28 — D124 workflow SYNTH component visuals (PR 281)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `e2e/local-phase1/d124-brand-home-entry.tsx` | HomeClient fixture | Offline brand capture without auth/DB |
+| `e2e/local-phase1/build-brief-price.mjs` | `d124-brand-home`, radix for a003/home, sessionStorage fix path | Reuse compiler |
+| `e2e/local-phase1/detailed-geometry-entry.tsx` | `sessionStorage` shim | Planner render on `about:blank` |
+| `docs/temp-files/d124-*.` | Fixture build + capture + contact sheets | Local-only harness |
+| `docs/evidence/d124-brand-review/png/*workflow*` | 8 SYNTH_COMPONENT_VISUAL PNGs | R1 inspect actual components |
+| `docs/evidence/d124-brand-review/fixture-bundles/*/source-manifest.json` | Compiler scope metadata | Repro without committing JS bundles |
+
+## 2026-11-28 — D122 F2792 local integration gate (no false PASS)
+
+## 2026-11-28 — D123 R1 follow-up: root Avenir + charcoal theme + font/heading guard
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/app/layout.tsx` | Drop Inter; theme-color `#0d0d0d` | Whole-app Avenir via globals |
+| `src/app/globals.css` | Body Avenir stack | Canonical sans (scoped modules keep serif/mono) |
+| `public/manifest.json` | `theme_color` charcoal | PWA chrome off brand blue |
+| `src/app/global-error.tsx` | Avenir + sage Try again | Root fallback matches palette |
+| `src/lib/a001-brand-consistency-guard.ts` | Font/theme/heading patterns; line exceptions | No whole-file admin skip |
+| `src/lib/a001-brand-consistency-guard.test.ts` | Root pins, negatives, admin inclusive scan | Catches drift without CSS module noise |
+
+**Intentional exceptions (evidence):** Contract Shield purple primaries — `client-contract-editor.tsx` lines matching `bg-purple-600`…`hover:bg-purple-700`. Proposal PDF preview serif — `review-send-client.tsx` `h2#doc-response` `font-serif`. Data-vis — `portfolio-client.tsx` `#2563eb` in chart colour array only.
+
+## 2026-11-28 — D123 A001 whole-app brand consistency (item 2)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/a001-brand-consistency-guard.ts` | New drift patterns + scoped solid-primary exceptions | One source-level guard for marketing + app |
+| `src/lib/a001-brand-consistency-guard.test.ts` | Whole-tree scans (purple marketing decor, blue orbs, primaries) | Catches new drift without giant allowlist |
+| `src/lib/a001-palette-audit.ts` | Reuse guard regex helper | Single definition of forbidden primary pair |
+| `src/components/marketing/full-features.tsx` | Purple Track-it accents → emerald | Off-palette marketing decoration |
+| `src/app/dashboard/library/library-management.tsx` | Blue callout orb/icon → emerald | Decorative chrome |
+| `src/app/dashboard/mobile/mobile-hub-client.tsx` | Blue/violet tiles + chips → emerald/teal | Field hub matches sage brand |
+| `src/app/dashboard/projects/contract-admin/components/DelayAnalysisTab.tsx` | AI narrative CTA → `corePrimaryButton` | Off-brand purple primary |
+| `src/app/dashboard/projects/lessons-learned/lessons-client.tsx` | Generate CTA → core palette | Same |
+| `src/app/dashboard/projects/brief/video-walkthrough.tsx` | Apply CTA → core palette | Same |
+| `src/app/dashboard/projects/change-management/change-management-client.tsx` | Modal primaries → core palette | Same |
+
+**Scope exceptions (guard):** Contract Shield (`client-contract-editor.tsx`) and contract-admin purple AI drafts (`contract-admin-client.tsx`) only.
+
 ## 2026-11-27 — D116 public enquiry email on cohort footer and pricing
 
 | File | Change | Intent |

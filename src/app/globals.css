@@ -66,6 +66,9 @@ html {
 }
   
   @layer base {
+  body {
+    font-family: "Avenir Next", Avenir, "Gill Sans", "Trebuchet MS", sans-serif;
+  }
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;

@@ -2,18 +2,15 @@
  * Static checks for A001 brand palette: primary actions must not use legacy brand-blue CTAs.
  */
 
-/** Legacy primary-action pattern that must not appear on dashboard / shared app surfaces. */
-export const FORBIDDEN_PRIMARY_ACTION_RE =
-    /bg-blue-600\s+hover:bg-blue-700/;
+import {
+    FORBIDDEN_PRIMARY_ACTION_RE,
+    findLinesMatching,
+} from "./a001-brand-consistency-guard";
+
+export { FORBIDDEN_PRIMARY_ACTION_RE };
 
 export function findForbiddenPrimaryActionLines(source: string): string[] {
-    const hits: string[] = [];
-    for (const line of source.split("\n")) {
-        if (FORBIDDEN_PRIMARY_ACTION_RE.test(line)) {
-            hits.push(line.trim());
-        }
-    }
-    return hits;
+    return findLinesMatching(source, FORBIDDEN_PRIMARY_ACTION_RE);
 }
 
 export function assertNoForbiddenPrimaryActions(source: string, label: string): void {

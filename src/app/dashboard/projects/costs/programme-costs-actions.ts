@@ -61,7 +61,7 @@ function lineId(estimateId: string, signature: string, key: string): string {
 
 const UNIQUE_VIOLATION = "23505";
 const PROGRAMME_COSTS_ALREADY_APPLIED =
-    "Programme costs are already on this estimate. This version cannot replace them in one step: delete the existing programme cost lines from the estimate first, then apply the new figures. Until then the estimate keeps the lines it has.";
+    "Programme costs are already on this estimate. This version adds programme costs once and cannot update or replace them. The lines on the estimate stay unchanged.";
 
 /**
  * First apply only: adds the programme-cost Preliminaries lines the saved

@@ -1,0 +1,101 @@
+{
+  "sourceBase": "c7452b06213af7d853e26735b0533586458036a4",
+  "scope": "Actual OverviewTab SSR + built CSS, bounded one-class reversal before control; SYNTH no routing/auth",
+  "measurement": "DOM Range glyph bounds; initial element-box probe did not measure overflowing text and was corrected without source changes",
+  "record": [
+    {
+      "width": 375,
+      "mode": "before",
+      "card": {
+        "x": 252.65625,
+        "y": 958,
+        "width": 106.34375,
+        "height": 239.5
+      },
+      "glyph": {
+        "x": 269.65625,
+        "y": 1158,
+        "width": 99.8125,
+        "height": 21,
+        "right": 369.46875
+      },
+      "glyphFits": false,
+      "grid": {
+        "cols": "106.328px 106.328px 106.344px",
+        "scrollWidth": 116,
+        "clientWidth": 104
+      }
+    },
+    {
+      "width": 375,
+      "mode": "after",
+      "card": {
+        "x": 16,
+        "y": 1292,
+        "width": 343,
+        "height": 207.5
+      },
+      "glyph": {
+        "x": 33,
+        "y": 1460,
+        "width": 99.8125,
+        "height": 21,
+        "right": 132.8125
+      },
+      "glyphFits": true,
+      "grid": {
+        "cols": "343px",
+        "scrollWidth": 341,
+        "clientWidth": 341
+      }
+    },
+    {
+      "width": 1440,
+      "mode": "before",
+      "card": {
+        "x": 962.65625,
+        "y": 581,
+        "width": 461.34375,
+        "height": 207.5
+      },
+      "glyph": {
+        "x": 979.65625,
+        "y": 749,
+        "width": 99.8125,
+        "height": 21,
+        "right": 1079.46875
+      },
+      "glyphFits": true,
+      "grid": {
+        "cols": "461.328px 461.328px 461.344px",
+        "scrollWidth": 459,
+        "clientWidth": 459
+      }
+    },
+    {
+      "width": 1440,
+      "mode": "after",
+      "card": {
+        "x": 962.65625,
+        "y": 581,
+        "width": 461.34375,
+        "height": 207.5
+      },
+      "glyph": {
+        "x": 979.65625,
+        "y": 749,
+        "width": 99.8125,
+        "height": 21,
+        "right": 1079.46875
+      },
+      "glyphFits": true,
+      "grid": {
+        "cols": "461.328px 461.328px 461.344px",
+        "scrollWidth": 459,
+        "clientWidth": 459
+      }
+    }
+  ],
+  "candidateSourceSha256": "bbb63acbf1d2ebd069daeb7759123c1ec45af099d689eeffcef547318548edeb",
+  "baseSourceSha256": "fca6fa60c1cee814c568161777ce1074b00dd6c8ae9de16b757bc0c0107cffb9"
+}

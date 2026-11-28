@@ -5,13 +5,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/supabase/admin-auth";
 import AdminClient from "./admin-client";
 import { signupConversionRatePct, sumSignupPoints } from "@/lib/admin-dashboard-metrics";
+import { grossMarginPct as marginFromRevenue, revenueWithoutVerifiedBilling, ruleOf40Score as ruleOf40From } from "./revenue";
 import {
-    PLAN_PRICE_GBP,
     AdminData,
     SubscriberRow,
     ActivationStatus,
     DataPoint,
-    MrrMonth,
     CohortRow,
     FeatureAdoptionRow,
     GeoRow,
@@ -503,87 +502,11 @@ export default async function AdminPage() {
         value: monthlySignupCounts.get(key) ?? 0,
     }));
 
-    // ── 6. MRR by month ──────────────────────────────────────────────────────
-
-    const mrrByMonth: MrrMonth[] = monthKeys.map((key) => {
-        const endOfMonth = new Date(`${key}-01T00:00:00Z`);
-        endOfMonth.setUTCMonth(endOfMonth.getUTCMonth() + 1);
-
-        const cumulativeUsers = subscribers.filter(
-            (s) => new Date(s.created_at) < endOfMonth
-        ).length;
-
-        const newUsers = monthlySignupCounts.get(key) ?? 0;
-        const mrr = cumulativeUsers * PLAN_PRICE_GBP;
-        const newMrr = newUsers * PLAN_PRICE_GBP;
-
-        return {
-            month: key,
-            label: monthLabel(key),
-            cumulativeUsers,
-            newUsers,
-            mrr,
-            newMrr,
-            churnedMrr: 0,
-            netNewMrr: newMrr,
-        };
-    });
-
-    // ── 7. Revenue metrics ───────────────────────────────────────────────────
-
-    const mrr = totalSubscribers * PLAN_PRICE_GBP;
-    const arr = mrr * 12;
-    const arpu = totalSubscribers > 0 ? mrr / totalSubscribers : 0;
-
-    const thisMonthKey = toMonthKey(now.toISOString());
-    const lastMonthKey = toMonthKey(
-        new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString()
-    );
-    const thisMonthMrrEntry = mrrByMonth.find((m) => m.month === thisMonthKey);
-    const lastMonthMrrEntry = mrrByMonth.find((m) => m.month === lastMonthKey);
-
-    const thisMonthMrr = thisMonthMrrEntry?.mrr ?? 0;
-    const lastMonthMrr = lastMonthMrrEntry?.mrr ?? 0;
-
-    const momGrowthPct: number | null =
-        lastMonthMrr > 0 ? ((thisMonthMrr - lastMonthMrr) / lastMonthMrr) * 100 : null;
-
-    // QoQ: current quarter cumulative vs last quarter cumulative
-    const lastQuarterStart = new Date(
-        Date.UTC(now.getUTCFullYear(), currentQuarter * 3 - 3, 1)
-    );
-    const thisQuarterCumulative = subscribers.filter(
-        (s) => new Date(s.created_at) < now
-    ).length;
-    const lastQuarterCumulative = subscribers.filter(
-        (s) => new Date(s.created_at) < lastQuarterStart
-    ).length;
-    const qoqGrowthPct: number | null =
-        lastQuarterCumulative > 0
-            ? ((thisQuarterCumulative - lastQuarterCumulative) / lastQuarterCumulative) * 100
-            : null;
-
-    // YoY: this month's cumulative vs same month last year
-    const sameMonthLastYearEnd = new Date(
-        Date.UTC(now.getUTCFullYear() - 1, now.getUTCMonth() + 1, 1)
-    );
-    const sameMonthLastYearCumulative = subscribers.filter(
-        (s) => new Date(s.created_at) < sameMonthLastYearEnd
-    ).length;
-    const yoyGrowthPct: number | null =
-        sameMonthLastYearCumulative > 0
-            ? ((totalSubscribers - sameMonthLastYearCumulative) / sameMonthLastYearCumulative) * 100
-            : null;
-
-    // Projected ARR EoY: extrapolate from current growth rate to Dec 31
-    const monthsRemaining =
-        11 - now.getUTCMonth() + (now.getUTCDate() < 31 ? (31 - now.getUTCDate()) / 31 : 0);
-    const growthRate = momGrowthPct !== null ? momGrowthPct / 100 : 0;
-    const projectedSubscribersEoy =
-        growthRate > 0
-            ? totalSubscribers * Math.pow(1 + growthRate, monthsRemaining)
-            : totalSubscribers;
-    const projectedArrEoy = projectedSubscribersEoy * PLAN_PRICE_GBP * 12;
+    // ── 6–7. Revenue ─────────────────────────────────────────────────────────
+    // D124 N5.1: revenue comes only from verified billing data. There is none,
+    // so every revenue figure is unavailable. Signups are never multiplied by
+    // an assumed plan price and reported as MRR/ARR/ARPU/LTV or growth.
+    const revenue = revenueWithoutVerifiedBilling();
 
     // ── 8. Churn ─────────────────────────────────────────────────────────────
 
@@ -598,8 +521,6 @@ export default async function AdminPage() {
         const daysSinceActive = daysDiff(new Date(s.last_sign_in_at), now);
         return daysSinceActive >= 30 && daysSinceActive < 60;
     }).length;
-
-    const ltv = churnRate > 0 ? (arpu / churnRate) * 100 : arpu * 24;
 
     // ── 9. Activation & active user counts ───────────────────────────────────
 
@@ -870,16 +791,14 @@ export default async function AdminPage() {
 
     const totalMonthlyCostGbp = currentMonthManualCosts + openaiResult.mtdCostGbp;
 
-    const grossMarginPct =
-        mrr > 0 ? ((mrr - totalMonthlyCostGbp) / mrr) * 100 : 0;
+    const grossMarginPct = marginFromRevenue(revenue.mrr, totalMonthlyCostGbp);
 
     const costPerUserGbp =
         totalSubscribers > 0 ? totalMonthlyCostGbp / totalSubscribers : 0;
 
     // ── 16. Rule of 40 ───────────────────────────────────────────────────────
 
-    const ruleOf40Score: number | null =
-        mrr > 0 && momGrowthPct !== null ? momGrowthPct + grossMarginPct : null;
+    const ruleOf40Score = ruleOf40From(revenue.momGrowthPct, grossMarginPct);
 
     // ── 17. Website — calendar-month signups vs rolling 30d visitors (not attributed) ─
 
@@ -907,17 +826,7 @@ export default async function AdminPage() {
         weeklySignups,
         monthlySignups,
 
-        revenue: {
-            mrr,
-            arr,
-            arpu,
-            ltv,
-            mrrByMonth,
-            momGrowthPct,
-            qoqGrowthPct,
-            yoyGrowthPct,
-            projectedArrEoy,
-        },
+        revenue,
 
         retention: {
             dau,

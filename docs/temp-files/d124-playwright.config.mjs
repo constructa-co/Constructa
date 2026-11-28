@@ -9,6 +9,7 @@ export default defineConfig({
     testMatch: "d124-brand-visual-capture.spec.ts",
     retries: 0,
     workers: 1,
+    timeout: 120_000,
     use: {
         baseURL: process.env.D124_BASE_URL ?? "http://127.0.0.1:3010",
         browserName: "chromium",

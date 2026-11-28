@@ -1,15 +1,15 @@
 # Cursor change log
 
-## 2026-11-28 — D124 brand evidence pack (PR 281 @ 5a65d1b4)
+## 2026-11-28 — D124 workflow SYNTH component visuals (PR 281)
 
 | File | Change | Intent |
 | --- | --- | --- |
-| `docs/evidence/d124-brand-review/png/*.png` | 16 frames 375/1440 | Committed SYNTH pack for R1 image inspect |
-| `docs/evidence/d124-brand-review/manifest.json` | SHA/viewports/route class | REAL_RENDER vs SYNTHETIC_* per route |
-| `docs/evidence/d124-brand-review/contactsheet-*.png` | Bounded composites | Quick review; pixel truth in `png/` |
-| `docs/delivery/2026-11-28/d124-brand-visual-review.md` | Per-route class table | Blocked ≠ coverage; no auth redirect credit |
-| `docs/temp-files/d124-brand-visual-capture.spec.ts` | Output → `docs/evidence/.../png` | Local/test-only harness |
-| `docs/temp-files/d124-build-contact-sheets.py` | Pillow contact sheets | Local rebuild helper |
+| `e2e/local-phase1/d124-brand-home-entry.tsx` | HomeClient fixture | Offline brand capture without auth/DB |
+| `e2e/local-phase1/build-brief-price.mjs` | `d124-brand-home`, radix for a003/home, sessionStorage fix path | Reuse compiler |
+| `e2e/local-phase1/detailed-geometry-entry.tsx` | `sessionStorage` shim | Planner render on `about:blank` |
+| `docs/temp-files/d124-*.` | Fixture build + capture + contact sheets | Local-only harness |
+| `docs/evidence/d124-brand-review/png/*workflow*` | 8 SYNTH_COMPONENT_VISUAL PNGs | R1 inspect actual components |
+| `docs/evidence/d124-brand-review/fixture-bundles/*/source-manifest.json` | Compiler scope metadata | Repro without committing JS bundles |
 
 ## 2026-11-28 — D122 F2792 local integration gate (no false PASS)
 

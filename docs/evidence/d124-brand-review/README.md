@@ -8,4 +8,4 @@ Committed SYNTH screenshot pack for R1 image inspection. **Source SHA:** `5a65d1
 - **Narrative report:** `docs/delivery/2026-11-28/d124-brand-visual-review.md`
 - **Re-run harness (local/test only):** `docs/temp-files/d124-*.` — not a product route; does not bypass auth
 
-Login redirect does **not** qualify as dashboard/estimate/programme/proposal coverage.
+Public routes are **REAL_RENDER**; workflow PNGs are **SYNTH_COMPONENT_VISUAL** (offline `local-phase1` fixtures). Login redirect does **not** qualify as authenticated route coverage.

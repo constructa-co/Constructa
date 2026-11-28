@@ -5,25 +5,19 @@
   "pr": 281,
   "capturedAt": "2026-11-28",
   "captureMode": "SYNTH_LOCAL_UNPUBLISHED",
-  "baseUrl": "http://127.0.0.1:3010",
-  "harness": [
-    "docs/temp-files/d124-brand-visual-capture.spec.ts",
-    "docs/temp-files/d124-playwright.config.mjs"
-  ],
   "exclusions": [
     "No private identities or client data",
-    "No authenticated session screenshots counted as coverage",
-    "No secrets or .env values",
-    "Pricing page local-only; not production publication"
+    "No authenticated route screenshots as workflow coverage",
+    "No secrets or .env values"
   ],
   "viewports": [
     { "tag": "375", "width": 375, "height": 812 },
     { "tag": "1440", "width": 1440, "height": 900 }
   ],
   "renderClasses": {
-    "REAL_RENDER": "Full page capture of the requested public route; counts toward brand visual review.",
-    "SYNTHETIC_RUNTIME_BLOCKED": "Capture taken but workflow surface did not render (missing local Supabase/runtime). Does not count as brand coverage; PNG retained for R1 inspection only.",
-    "SYNTHETIC_AUTH_BLOCKED": "Would apply if middleware redirected away from requested path (e.g. login). Not claimed as dashboard/programme coverage."
+    "REAL_RENDER": "Public marketing/login routes via local dev server.",
+    "SYNTH_COMPONENT_VISUAL": "Actual React components + compiled CSS via offline local-phase1 fixtures; brand review only — not signed-in route or persistence coverage.",
+    "SYNTHETIC_RENDER_ERROR": "Fixture failed; PNG labelled not coverage."
   },
   "routes": [
     {
@@ -53,46 +47,53 @@
       "path": "/login",
       "renderClass": "REAL_RENDER",
       "coverage": true,
-      "notes": "Public sign-in form only; no credentials entered",
+      "notes": "Public sign-in form only",
       "png": { "375": "png/login_375.png", "1440": "png/login_1440.png" }
     },
     {
       "id": "dashboard",
       "path": "/dashboard/home",
-      "renderClass": "SYNTHETIC_RUNTIME_BLOCKED",
-      "coverage": false,
-      "blockedReason": "Local dev missing Supabase/env; page did not render authenticated home",
+      "renderClass": "SYNTH_COMPONENT_VISUAL",
+      "coverage": true,
+      "fixture": { "scenario": "d124-brand-home", "component": "HomeClient", "manifest": "fixture-bundles/dashboard/source-manifest.json" },
       "png": { "375": "png/dashboard_375.png", "1440": "png/dashboard_1440.png" }
     },
     {
       "id": "estimate",
       "path": "/dashboard/projects/costs",
-      "renderClass": "SYNTHETIC_RUNTIME_BLOCKED",
-      "coverage": false,
-      "blockedReason": "Same as dashboard",
+      "renderClass": "SYNTH_COMPONENT_VISUAL",
+      "coverage": true,
+      "fixture": { "scenario": "a003-palette", "component": "EstimateClient", "manifest": "fixture-bundles/estimate/source-manifest.json" },
       "png": { "375": "png/estimate_375.png", "1440": "png/estimate_1440.png" }
     },
     {
       "id": "programme",
       "path": "/dashboard/projects/schedule",
-      "renderClass": "SYNTHETIC_RUNTIME_BLOCKED",
-      "coverage": false,
-      "blockedReason": "Same as dashboard",
+      "renderClass": "SYNTH_COMPONENT_VISUAL",
+      "coverage": true,
+      "fixture": { "scenario": "detailed-geometry", "component": "ClientSchedulePage", "manifest": "fixture-bundles/programme/source-manifest.json" },
       "png": { "375": "png/programme_375.png", "1440": "png/programme_1440.png" }
     },
     {
       "id": "proposal",
       "path": "/dashboard/projects/proposal",
-      "renderClass": "SYNTHETIC_RUNTIME_BLOCKED",
-      "coverage": false,
-      "blockedReason": "Same as dashboard",
+      "renderClass": "SYNTH_COMPONENT_VISUAL",
+      "coverage": true,
+      "fixture": { "scenario": "proposal-view", "component": "ReviewSendClient", "manifest": "fixture-bundles/proposal/source-manifest.json" },
       "png": { "375": "png/proposal_375.png", "1440": "png/proposal_1440.png" }
     }
   ],
   "contactSheets": [
     "contactsheet-real-routes-375.png",
     "contactsheet-real-routes-1440.png",
-    "contactsheet-synthetic-blocked-workflow.png"
+    "contactsheet-synth-workflow-375.png",
+    "contactsheet-synth-workflow-1440.png"
+  ],
+  "harness": [
+    "docs/temp-files/d124-brand-visual-capture.spec.ts",
+    "docs/temp-files/d124-playwright.config.mjs",
+    "docs/temp-files/d124-build-fixture-bundles.mjs",
+    "docs/temp-files/d124-build-contact-sheets.py"
   ],
   "report": "docs/delivery/2026-11-28/d124-brand-visual-review.md"
 }

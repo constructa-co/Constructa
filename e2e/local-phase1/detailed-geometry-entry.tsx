@@ -41,15 +41,29 @@ const PROJECT_ID = "local-detailed-geometry-job";
 // about:blank has no storage origin. The planner reads its working week from
 // localStorage; this in-memory stand-in holds an explicit 5-day week only.
 // For "saved7" the saved job pattern must win over this stand-in.
+const memoryStorage = (): Storage => {
+    const values = new Map<string, string>();
+    return {
+        get length() { return values.size; },
+        clear: () => values.clear(),
+        key: (index: number) => [...values.keys()][index] ?? null,
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => { values.set(String(key), String(value)); },
+        removeItem: (key: string) => { values.delete(key); },
+    };
+};
+
 const storedValues = new Map<string, string>([[`prog_dpw_${PROJECT_ID}`, "5"]]);
-Object.defineProperty(window, "localStorage", { value: {
+const storageShim = {
     get length() { return storedValues.size; },
     clear: () => storedValues.clear(),
     key: (index: number) => [...storedValues.keys()][index] ?? null,
     getItem: (key: string) => storedValues.get(key) ?? null,
     setItem: (key: string, value: string) => { storedValues.set(String(key), String(value)); },
     removeItem: (key: string) => { storedValues.delete(key); },
-} satisfies Storage });
+} satisfies Storage;
+Object.defineProperty(window, "localStorage", { value: storageShim });
+Object.defineProperty(window, "sessionStorage", { value: memoryStorage() });
 
 const phase = (name: string, workingDays: number, startOffset: number): PlannerPhase =>
     ({ name, calculatedDays: workingDays, manualDays: null, manhours: 0, startOffset });

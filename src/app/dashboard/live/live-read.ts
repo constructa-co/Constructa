@@ -20,11 +20,16 @@
  * long read, or more rows than the safe limit) returns `ok: false`, and the
  * page shows that figure as unavailable or throws, never a partial total.
  *
- * Limits, stated rather than hidden: a source with more than
- * LIVE_READ_MAX_ROWS rows, or needing more than LIVE_READ_MAX_PAGES requests,
- * is reported as unavailable instead of being read. A concurrent insert plus
- * delete between pages that leaves the count unchanged cannot be detected by a
- * count check; any other change while reading fails the read.
+ * Limits, stated rather than hidden:
+ *  - a source with more than LIVE_READ_MAX_ROWS rows, or needing more than
+ *    LIVE_READ_MAX_PAGES requests in all (shared across every id chunk), is
+ *    reported as unavailable instead of being read;
+ *  - this proves a counted, paged read is complete while the data is stable.
+ *    It is not a transactional snapshot: pages are separate requests, and an
+ *    edit between them that keeps the count the same (an update, an insert
+ *    plus a delete, or a change to an ordering column) may evade these checks.
+ *    Only edits that change the count, or that repeat or drop a row in a way
+ *    the count or duplicate check sees, fail the read.
  */
 
 /** Rows asked for per request; equal to the configured database API cap. */
@@ -98,8 +103,10 @@ export async function readComplete<T extends { id: string }>(page: PageQuery<T>,
 
 /**
  * `readComplete` over a list of ids, a chunk at a time, under one shared row
- * limit. Each chunk's page gets only its own ids; the chunks never overlap.
- * No ids means nothing to read, which is a genuine empty result.
+ * limit and one shared request budget: LIVE_READ_MAX_PAGES counts every
+ * request made for this source, across all chunks, not per chunk. Each chunk's
+ * page gets only its own ids; the chunks never overlap. No ids means nothing
+ * to read, which is a genuine empty result.
  */
 export async function readCompleteForIds<T extends { id: string }>(
     ids: readonly string[],
@@ -109,11 +116,16 @@ export async function readCompleteForIds<T extends { id: string }>(
     const unique = [...new Set(ids)];
     const chunkSize = options.chunkSize ?? LIVE_READ_ID_CHUNK;
     const maxRows = options.maxRows ?? LIVE_READ_MAX_ROWS;
+    const maxPages = options.maxPages ?? LIVE_READ_MAX_PAGES;
 
     const rows: T[] = [];
+    let requests = 0;
     for (let start = 0; start < unique.length; start += chunkSize) {
         const chunk = unique.slice(start, start + chunkSize);
-        const read = await readComplete<T>((from, to) => page(chunk, from, to), { ...options, maxRows: maxRows - rows.length });
+        const read = await readComplete<T>(
+            (from, to) => { requests += 1; return page(chunk, from, to); },
+            { ...options, maxRows: maxRows - rows.length, maxPages: maxPages - requests },
+        );
         if (!read.ok) return read;
         rows.push(...read.rows);
     }

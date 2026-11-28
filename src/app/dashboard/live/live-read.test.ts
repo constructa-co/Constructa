@@ -116,6 +116,20 @@ describe("readCompleteForIds", () => {
         expect(read).toEqual({ ok: false, reason: "error", detail: dbError });
     });
 
+    it("shares one request budget across chunks and stops at it, with no further query", async () => {
+        const ids = Array.from({ length: 250 }, (_, i) => `job-${i}`);
+        const requested: string[] = [];
+        // One row per request, three rows per chunk: each chunk alone needs three requests.
+        const read = await readCompleteForIds(ids, async (chunk, from) => {
+            requested.push(`${chunk[0]}@${from}`);
+            const all = rows(3, chunk[0]);
+            return { data: all.slice(from, from + 1), error: null, count: all.length };
+        }, { maxPages: 5 });
+        expect(read).toMatchObject({ ok: false, reason: "too-large" });
+        // Three for the first chunk, the two left for the second, none for the third.
+        expect(requested).toEqual(["job-0@0", "job-0@1", "job-0@2", "job-100@0", "job-100@1"]);
+    });
+
     it("shares one row limit across chunks", async () => {
         const ids = Array.from({ length: 150 }, (_, i) => `job-${i}`);
         const read = await readCompleteForIds(ids, async (chunk, from, to) => {

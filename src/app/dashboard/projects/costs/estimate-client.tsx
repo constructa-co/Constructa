@@ -1695,9 +1695,9 @@ function TotalCard({
                     <dt className={`text-sm ${s.muted}`}>{summary.vatRatePct === 0 ? "VAT (domestic reverse charge, 0%)" : `VAT (${summary.vatRatePct}%)`}</dt>
                     <dd className={`text-sm ${s.muted}`}>{formatGBP(summary.vat)}</dd>
                 </div>
-                <div className={row}>
-                    <dt className={`text-sm ${s.muted}`}>Total including VAT</dt>
-                    <dd className={`text-sm font-semibold ${s.body}`}>{formatGBP(summary.totalIncVat)}</dd>
+                <div className={`${row} ${ui.priceTotalIncVat}`} data-total-inc-vat>
+                    <dt className="text-base font-bold">Total including VAT</dt>
+                    <dd className="text-2xl font-bold tabular-nums">{formatGBP(summary.totalIncVat)}</dd>
                 </div>
             </dl>
 

@@ -1,5 +1,11 @@
 # Cursor change log
 
+## 2026-11-28 — D124 SYNTH receipt (programme bundle fix documented)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `docs/evidence/d124-brand-review/synth-capture-receipt.json` | Programme prior blocker + verify | No retry loop; N2.6 Rob-gated note |
+
 ## 2026-11-28 — D124 public capture timing + limitations (PR 281)
 
 | File | Change | Intent |

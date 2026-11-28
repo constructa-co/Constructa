@@ -65,6 +65,15 @@ Diagnostic log: `docs/evidence/d124-brand-review/capture-notes.json`
 
 Palette spot-check on committed PNGs + SYNTH workflow frames only. No additional palette commits from this pass; landing capture timing fix does not alter shipped CSS.
 
+## SYNTH workflow receipt (bounded)
+
+| Workflow | Status | Notes |
+| --- | --- | --- |
+| dashboard / estimate / proposal | **SYNTH OK** | Committed `png/*.png` + contact sheets |
+| programme | **SYNTH OK** (post-bundle fix) | Was blank: `sessionStorage` denied on `about:blank` until `detailed-geometry-entry` shim (`e554a466`); not a Supabase/auth issue. Prior identical blocked PNGs **not** workflow coverage. Detail: `synth-capture-receipt.json` |
+
+**N2.6 / Home:** No UI repair on 281 for unused enriched contract display; `fa9e4919` branch preserved per R1.
+
 ## Re-run (local only)
 
 ```bash

@@ -1,0 +1,30 @@
+{
+  "id": "d124-synth-workflow-receipt",
+  "branch": "codex/d123-brand-consistency-20261128",
+  "sourceSha": "5a65d1b45cea73ea068a9fcf77dc1dc87410aaca",
+  "status": "COMPLETE_BOUNDED",
+  "verifiedAt": "2026-11-28",
+  "synthPngCount": 8,
+  "programme": {
+    "scenario": "detailed-geometry",
+    "component": "ClientSchedulePage",
+    "renderClass": "SYNTH_COMPONENT_VISUAL",
+    "coverage": true,
+    "priorFailure": {
+      "symptom": "Playwright timeout; empty #app; 3× identical blocked PNGs",
+      "technicalBlocker": "ClientSchedulePage reads sessionStorage on mount; about:blank CSP fixture had no sessionStorage shim (only localStorage in entry until e554a466 detailed-geometry-entry fix)",
+      "notCoverageLabel": "Prior RUNTIME_BLOCKED route screenshots superseded; not retained as workflow coverage"
+    },
+    "bundleFix": "e2e/local-phase1/detailed-geometry-entry.tsx — in-memory sessionStorage + localStorage before mount",
+    "verification": "playwright --grep 'programme — component' 2/2 passed (375, 1440); png/programme_*.png present (~80–88KB)"
+  },
+  "otherWorkflow": {
+    "dashboard": "d124-brand-home → HomeClient",
+    "estimate": "a003-palette → EstimateClient",
+    "proposal": "proposal-view → ReviewSendClient"
+  },
+  "outOfScopeThisLane": {
+    "n26_home_enrichedContractValue": "Independent review: helper may compute value not surfaced in Home UI; no visible repair on 281; Rob-gated; preserve codex/d124-home-canonical-sum-20261128 @ fa9e4919",
+    "pr284_285_286": "R1 triage only; no builder changes here"
+  }
+}

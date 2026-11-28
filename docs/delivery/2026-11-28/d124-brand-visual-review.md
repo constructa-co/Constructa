@@ -22,8 +22,8 @@
 | login | `/login` | **REAL_RENDER** | Yes | Same |
 | dashboard | `/dashboard/home` | **SYNTH_COMPONENT_VISUAL** | Yes (component) | Offline `d124-brand-home` → **HomeClient** |
 | estimate | `/dashboard/projects/costs` | **SYNTH_COMPONENT_VISUAL** | Yes (component) | Offline `a003-palette` → **EstimateClient** |
-| programme | `/dashboard/projects/schedule` | **SYNTH_COMPONENT_VISUAL** | Yes (component) | Offline `detailed-geometry` → **ClientSchedulePage** |
-| proposal | `/dashboard/projects/proposal` | **SYNTH_COMPONENT_VISUAL** | Yes (component) | Offline `proposal-view` → **ReviewSendClient** |
+| programme | `/dashboard/projects/schedule` | **SYNTH_COMPONENT_VISUAL** | Yes (component) | Offline `detailed-geometry` → **ClientSchedulePage** (no `ThemeProvider`; light planner chrome **pre-existing** — see provenance) |
+| proposal | `/dashboard/projects/proposal` | **SYNTH_COMPONENT_VISUAL** | Yes (component) | Offline **`d124-brand-proposal`** → **ReviewSendClient** + `ThemeProvider` + compiled Tailwind |
 
 ### Distinctions
 
@@ -38,7 +38,7 @@
 | dashboard | `d124-brand-home` | `e2e/local-phase1/d124-brand-home-entry.tsx` |
 | estimate | `a003-palette` | `e2e/local-phase1/a003-palette-entry.tsx` |
 | programme | `detailed-geometry` | `e2e/local-phase1/detailed-geometry-entry.tsx` |
-| proposal | `proposal-view` | `e2e/local-phase1/proposal-view-entry.tsx` |
+| proposal | **`d124-brand-proposal`** (D124 only) | `e2e/local-phase1/d124-brand-proposal-entry.tsx` — `proposal-view` **unchanged** (still no Tailwind per legacy scope) |
 
 Bundle metadata (no committed JS): `docs/evidence/d124-brand-review/fixture-bundles/*/source-manifest.json`  
 Build: `node docs/temp-files/d124-build-fixture-bundles.mjs` → `/tmp/constructa-d124-fixture-bundles/`
@@ -61,18 +61,37 @@ Build: `node docs/temp-files/d124-build-fixture-bundles.mjs` → `/tmp/construct
 
 Diagnostic log: `docs/evidence/d124-brand-review/capture-notes.json`
 
+## Capture defects fixed / remaining (not whole-app PASS)
+
+| Item | Root cause | D124 action |
+| --- | --- | --- |
+| **Proposal SYNTH** (R1 e554) | `build-brief-price.mjs` Tailwind gate (line ~249) included `a003` / `detailed-geometry` / `d124-brand-home` but **not** `proposal-view` → CSS modules only → serif/blue/native chrome in PNG | New scenario **`d124-brand-proposal`** + Tailwind compile; recaptured `proposal_375/1440.png`; provenance JSON |
+| **Programme SYNTH** | `detailed-geometry` never mounts `ThemeProvider` (same as A059); planner lane can read light grey on white | **No fixture paint-over**; labelled pre-existing; `capture-provenance-*.json` for computed lane/bg |
+| **Landing public** | lazy `img` + `data-reveal` | Harness timing fix (`capture-notes.json`) — bounded, not marketing CSS change |
+
 ## Brand drift inspection (281 @ 5a65d1b4) — bounded
 
-Palette spot-check on committed PNGs + SYNTH workflow frames only. No additional palette commits from this pass; landing capture timing fix does not alter shipped CSS.
+Spot-check only on corrected PNGs. Proposal fixture defect was **capture/compiler**, not production palette authority.
 
 ## SYNTH workflow receipt (bounded)
 
 | Workflow | Status | Notes |
 | --- | --- | --- |
-| dashboard / estimate / proposal | **SYNTH OK** | Committed `png/*.png` + contact sheets |
-| programme | **SYNTH OK** (post-bundle fix) | Was blank: `sessionStorage` denied on `about:blank` until `detailed-geometry-entry` shim (`e554a466`); not a Supabase/auth issue. Prior identical blocked PNGs **not** workflow coverage. Detail: `synth-capture-receipt.json` |
+| dashboard / estimate / proposal | **SYNTH OK** | Proposal recaptured via `d124-brand-proposal` (Tailwind); provenance JSON on disk |
+| programme | **SYNTH OK** (post-bundle fix) | Blank render fixed (`sessionStorage` shim). **Contrast:** light planner chrome is **pre-existing** `detailed-geometry` scope — see programme `capture-provenance-*.json`; not a D124 palette commit |
 
 **N2.6 / Home:** No UI repair on 281 for unused enriched contract display; `fa9e4919` branch preserved per R1.
+
+## Actual limitations (final report)
+
+| Limitation | Detail |
+| --- | --- |
+| Scope | Bounded D124 evidence on **these** PNGs + fixtures — **not** whole-app brand PASS, not production palette authority |
+| Proposal prior defect | Capture/compiler omission (no Tailwind on `proposal-view`) — **fixed in fixture only** |
+| Programme contrast | SYNTH uses A059 planner without dark `ThemeProvider`; low-contrast lanes may remain in captures — **labelled pre-existing**, no fixture paint-over |
+| Public routes | Lazy/reveal timing handled in harness (`capture-notes.json`); marketing CSS held values (-29% / 62.5%) unchanged |
+| Provenance | `body` may be transparent on `about:blank`; read `appShell` / `sampleLink` / `sampleButton` in `capture-provenance-*.json` |
+| Bundles | Full `components.js` not committed; rebuild via `d124-build-fixture-bundles.mjs` |
 
 ## Re-run (local only)
 

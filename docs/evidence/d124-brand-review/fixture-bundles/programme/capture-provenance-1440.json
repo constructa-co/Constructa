@@ -1,0 +1,29 @@
+{
+  "viewport": "1440",
+  "routeId": "programme",
+  "body": {
+    "fontFamily": "\"Avenir Next\", Avenir, \"Gill Sans\", \"Trebuchet MS\", sans-serif",
+    "backgroundColor": "rgba(0, 0, 0, 0)",
+    "color": "rgb(0, 0, 0)"
+  },
+  "appShell": {
+    "backgroundColor": "rgba(0, 0, 0, 0)",
+    "color": "rgb(0, 0, 0)",
+    "fontFamily": "\"Avenir Next\", Avenir, \"Gill Sans\", \"Trebuchet MS\", sans-serif"
+  },
+  "plannerLane": {
+    "backgroundColor": "rgba(0, 0, 0, 0)",
+    "color": "rgb(0, 0, 0)"
+  },
+  "sampleLink": null,
+  "sampleButton": {
+    "backgroundColor": "rgb(30, 41, 59)",
+    "color": "rgb(203, 213, 225)",
+    "fontFamily": "\"Avenir Next\", Avenir, \"Gill Sans\", \"Trebuchet MS\", sans-serif"
+  },
+  "stylesheetHints": {
+    "styleTags": 2,
+    "hasSynthBanner": false,
+    "tailwindCompiled": true
+  }
+}

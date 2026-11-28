@@ -79,7 +79,13 @@
       "path": "/dashboard/projects/proposal",
       "renderClass": "SYNTH_COMPONENT_VISUAL",
       "coverage": true,
-      "fixture": { "scenario": "proposal-view", "component": "ReviewSendClient", "manifest": "fixture-bundles/proposal/source-manifest.json" },
+      "fixture": {
+        "scenario": "d124-brand-proposal",
+        "component": "ReviewSendClient",
+        "manifest": "fixture-bundles/proposal/source-manifest.json",
+        "provenance": "fixture-bundles/proposal/capture-provenance-{375,1440}.json",
+        "stylesheet": "compiled Tailwind (globals.css) + CSS modules; proposal-view default unchanged (no Tailwind)"
+      },
       "png": { "375": "png/proposal_375.png", "1440": "png/proposal_1440.png" }
     }
   ],

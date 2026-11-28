@@ -1,5 +1,19 @@
 # Cursor change log
 
+## 2026-11-28 — D124 proposal SYNTH capture fixture (Tailwind provenance)
+
+| File | Lines / area | Change | Intent |
+| --- | --- | --- | --- |
+| `e2e/local-phase1/d124-brand-proposal-entry.tsx` | new | ReviewSendClient + ThemeProvider dark + same MOCK as proposal-view | D124-only scenario; legacy `proposal-view` unchanged |
+| `e2e/local-phase1/build-brief-price.mjs` | ~23–25, ~87–90, ~249, pdfScenario | `d124-brand-proposal` in scenario list, theme virtual delete, Tailwind gate, jspdf | Include compiled globals/Tailwind in proposal SYNTH bundle |
+| `docs/temp-files/d124-build-fixture-bundles.mjs` | 20 | proposal → `d124-brand-proposal` | Fixture build mapping |
+| `docs/temp-files/d124-brand-visual-capture.spec.ts` | provenance evaluate ~92–134 | `appShell` / link / button computed styles | R1 stylesheet provenance on proposal + programme |
+| `docs/evidence/d124-brand-review/png/proposal_*.png` | binary | Recaptured | Correct Avenir/sage/dark shell vs prior serif/blue defect |
+| `docs/evidence/d124-brand-review/fixture-bundles/proposal/capture-provenance-*.json` | new | Computed styles @ 375/1440 | Confirm fix (no production palette change) |
+| `docs/evidence/d124-brand-review/contactsheet-synth-workflow-*.png` | binary | Regenerated | Workflow contact sheets include new proposal frames |
+| `docs/evidence/d124-brand-review/synth-capture-receipt.json` | proposal + programme notes | Root cause + limitations | Bounded receipt for R1 |
+| `docs/delivery/2026-11-28/d124-brand-visual-review.md` | tables + limitations | Capture defect doc | Name actual limitations; no whole-app PASS |
+
 ## 2026-11-28 — D124 SYNTH receipt (programme bundle fix documented)
 
 | File | Change | Intent |

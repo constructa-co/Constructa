@@ -17,7 +17,7 @@ const BUILDS = [
     ["dashboard", "d124-brand-home"],
     ["estimate", "a003-palette"],
     ["programme", "detailed-geometry"],
-    ["proposal", "proposal-view"],
+    ["proposal", "d124-brand-proposal"],
 ];
 
 for (const [id, scenario] of BUILDS) {

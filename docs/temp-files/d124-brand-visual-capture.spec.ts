@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { test } from "@playwright/test";
 import {
@@ -55,7 +55,7 @@ const SYNTH_COMPONENT_ROUTES = [
         init: () => {
             window.__documentViewOptions = { theme: "dark" };
         },
-        ready: (page) => page.getByRole("button", { name: "2. Review document", exact: true }).waitFor({ state: "visible" }),
+        ready: (page) => page.locator("[data-d124-synth-banner]").waitFor({ state: "visible" }),
     },
 ] as const;
 
@@ -88,6 +88,50 @@ async function captureSynthComponent(
     await page.addScriptTag({ content: js });
     await route.ready(page);
     await page.screenshot({ path: pngPath, fullPage: true });
+
+    if (route.id === "proposal" || route.id === "programme") {
+        const provenance = await page.evaluate((id) => {
+            const body = document.body;
+            const bs = getComputedStyle(body);
+            const app = document.getElementById("app");
+            const appChild = app?.firstElementChild as HTMLElement | null;
+            const acs = appChild ? getComputedStyle(appChild) : null;
+            const planner = document.querySelector("[data-planner-grid-week]")?.parentElement as HTMLElement | null;
+            const ps = planner ? getComputedStyle(planner) : null;
+            const sampleLink = document.querySelector("a") as HTMLAnchorElement | null;
+            const ls = sampleLink ? getComputedStyle(sampleLink) : null;
+            const primaryBtn = document.querySelector("button") as HTMLButtonElement | null;
+            const pbs = primaryBtn ? getComputedStyle(primaryBtn) : null;
+            return {
+                routeId: id,
+                body: { fontFamily: bs.fontFamily, backgroundColor: bs.backgroundColor, color: bs.color },
+                appShell: appChild
+                    ? { backgroundColor: acs!.backgroundColor, color: acs!.color, fontFamily: acs!.fontFamily }
+                    : null,
+                plannerLane: planner
+                    ? { backgroundColor: ps!.backgroundColor, color: ps!.color }
+                    : null,
+                sampleLink: sampleLink
+                    ? { color: ls!.color, textDecoration: ls!.textDecorationLine }
+                    : null,
+                sampleButton: primaryBtn
+                    ? { backgroundColor: pbs!.backgroundColor, color: pbs!.color, fontFamily: pbs!.fontFamily }
+                    : null,
+                stylesheetHints: {
+                    styleTags: document.querySelectorAll("style").length,
+                    hasSynthBanner: !!document.querySelector("[data-d124-synth-banner]"),
+                    tailwindCompiled: document.querySelectorAll("style").length > 0,
+                },
+            };
+        }, route.id);
+        const provPath = path.join(
+            process.cwd(),
+            "docs/evidence/d124-brand-review/fixture-bundles",
+            route.id,
+            `capture-provenance-${vp.tag}.json`,
+        );
+        writeFileSync(provPath, JSON.stringify({ viewport: vp.tag, ...provenance }, null, 2));
+    }
 }
 
 for (const vp of VIEWPORTS) {

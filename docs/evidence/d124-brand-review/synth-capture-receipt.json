@@ -18,10 +18,28 @@
     "bundleFix": "e2e/local-phase1/detailed-geometry-entry.tsx — in-memory sessionStorage + localStorage before mount",
     "verification": "playwright --grep 'programme — component' 2/2 passed (375, 1440); png/programme_*.png present (~80–88KB)"
   },
+  "proposalCaptureDefect": {
+    "symptom": "SYNTH PNGs: serif stack, default blue links, native buttons on white body",
+    "rootCause": "e2e/local-phase1/build-brief-price.mjs Tailwind compile gate (~249) included a003/detailed-geometry/d124-brand-home but not legacy proposal-view",
+    "fix": "D124-only scenario d124-brand-proposal + d124-brand-proposal-entry.tsx; proposal-view semantics unchanged",
+    "provenance": "fixture-bundles/proposal/capture-provenance-{375,1440}.json",
+    "verifiedComputed": {
+      "fontFamily": "Avenir Next stack",
+      "appShellBackground": "rgb(13, 13, 13)",
+      "sampleLinkColor": "rgb(201, 239, 207)",
+      "componentsCssBytes": 175455
+    }
+  },
+  "programmeContrastLimitation": {
+    "fixture": "detailed-geometry (A059) — Tailwind yes, no ThemeProvider",
+    "observation": "Planner lane can present light grey-on-white in SYNTH frame; product chrome not repainted for D124",
+    "provenance": "fixture-bundles/programme/capture-provenance-{375,1440}.json",
+    "label": "Pre-existing fixture/theme scope — not claimed as whole-app zero drift"
+  },
   "otherWorkflow": {
     "dashboard": "d124-brand-home → HomeClient",
     "estimate": "a003-palette → EstimateClient",
-    "proposal": "proposal-view → ReviewSendClient"
+    "proposal": "d124-brand-proposal → ReviewSendClient + ThemeProvider + compiled Tailwind"
   },
   "outOfScopeThisLane": {
     "n26_home_enrichedContractValue": "Independent review: helper may compute value not surfaced in Home UI; no visible repair on 281; Rob-gated; preserve codex/d124-home-canonical-sum-20261128 @ fa9e4919",

@@ -1,6 +1,6 @@
 {
   "sourceHashes": {
-    "/agent/repos/Constructa/e2e/local-phase1/proposal-view-entry.tsx": "d9b2ca4025d6841c1ae210fdc90553695b1fc8d09e6806b0317373ae9d745b77",
+    "/agent/repos/Constructa/e2e/local-phase1/d124-brand-proposal-entry.tsx": "72942b186b4f2577e2c39676fa707bf8a6f24981290e4cbc5b305f64791bd380",
     "/agent/repos/Constructa/node_modules/react/jsx-runtime.js": "b392951a77d0a2e6a6bd017e49d768481ae5b63c4109c6c31f622cf7b2433edc",
     "/agent/repos/Constructa/node_modules/react/cjs/react-jsx-runtime.production.js": "1e46f15002696985e80c61d47aaa30dabb03c954270a690f5f7dfbbacfa9002b",
     "/agent/repos/Constructa/node_modules/react/cjs/react-jsx-runtime.development.js": "706e324b21fcd94fb728da71b374694d0727d0baee4126011cea583f54e09106",
@@ -16,6 +16,7 @@
     "/agent/repos/Constructa/node_modules/react-dom/cjs/react-dom.production.js": "fd016e2c887f97b82f466ca435ae259d08cf7d4e7fef37e087963336d4770c01",
     "/agent/repos/Constructa/node_modules/react-dom/cjs/react-dom.development.js": "e4ca31557a0d93a3750438e2f78905d0ce39eff1391a6ff6df12de3a2c332f11",
     "/agent/repos/Constructa/node_modules/react-dom/cjs/react-dom-client.development.js": "c10b5e5ad37ca22c88b58bf4ada9a3b655ab79934c0b5cc6bad26f42c774584f",
+    "/agent/repos/Constructa/src/lib/theme-context.tsx": "8e629be9d83a2743feca9ee42a150a5f747422c4d9418a8dfca50b578046bcf2",
     "/agent/repos/Constructa/src/app/dashboard/projects/proposal/review-send-client.tsx": "b2aced4ba451eef8bb7f9d4711c78bef610809d25aeb9b146d028184ee2774cf",
     "/agent/repos/Constructa/src/components/proposal-workspace.module.css": "ba5b1b6824b21461d2088fcacfdbe882eee6966e1fbff8858dc6f8f2a8ff766f",
     "/agent/repos/Constructa/node_modules/lucide-react/dist/cjs/lucide-react.js": "dc77f398272c9d6ad3fe5716df0d7291ee673f9e542ba07991150f67384f55a3",
@@ -156,8 +157,13 @@
     "/agent/repos/Constructa/src/lib/pdf/proposal-brochure.ts": "84369f0b5b37f3873d3912b7f8c3dbe6aadddbddb4487d551dadd59ac6b3bd5c",
     "/agent/repos/Constructa/src/app/dashboard/projects/proposal/past-jobs-extras.tsx": "baad4301965705bffe783d272deb3e6c9ff4d24b84334ac621ddad78e5cc1c75",
     "/agent/repos/Constructa/src/lib/proposal-figure-consistency.ts": "fd6f861884a3db2bb38f2ce76a7446b15e144f9f7197f513fc9893b09fdcfc80",
-    "/agent/repos/Constructa/node_modules/jspdf/dist/jspdf.umd.min.js": "e6551fcdc32f09d6853b2c5126d18d01d9447e0da618a41a11ebeee0f6c20d54"
+    "/agent/repos/Constructa/node_modules/jspdf/dist/jspdf.umd.min.js": "e6551fcdc32f09d6853b2c5126d18d01d9447e0da618a41a11ebeee0f6c20d54",
+    "/agent/repos/Constructa/src/app/globals.css": "64f8658e0b7ecada227dcdf2ec2c20741af64b6cb83e030d83821095e47644d0",
+    "/agent/repos/Constructa/tailwind.config.js": "50bcf070f36d77b99395a9f41679c514b00cd5bcfbbe1f62e3d11d966444319e",
+    "/agent/repos/Constructa/node_modules/tailwindcss/lib/cli.js": "bd94afd40f508342f052c36998f53e1d9f60ec19c18c40d5120eb97d297b88f4",
+    "/agent/repos/Constructa/node_modules/tailwindcss/package.json": "56330837214a14ffcf0faba46f0f94fb23209778f5d4cc0a2bed7d775108c8d1",
+    "/tmp/constructa-d124-fixture-bundles/proposal/tailwind.css": "e075292716301c67f2236b6939899c23305e425fa901fab671f62a836db39a2d"
   },
   "modules": 161,
-  "scope": "Actual proposal review/document dialog/native Edge modal;synthetic data/mock actions/router/theme;no save/send/download/Auth/DB/provider/hosted journey"
+  "scope": "Actual ReviewSendClient+ThemeProvider under compiled Tailwind+CSSmodules (D124 visual only);proposal-view default unchanged;synthetic data/MOCK actions;no Auth/DB/hosted journey"
 }

@@ -66,7 +66,8 @@ Diagnostic log: `docs/evidence/d124-brand-review/capture-notes.json`
 | Item | Root cause | D124 action |
 | --- | --- | --- |
 | **Proposal SYNTH** (R1 e554) | `build-brief-price.mjs` Tailwind gate (line ~249) included `a003` / `detailed-geometry` / `d124-brand-home` but **not** `proposal-view` → CSS modules only → serif/blue/native chrome in PNG | New scenario **`d124-brand-proposal`** + Tailwind compile; recaptured `proposal_375/1440.png`; provenance JSON |
-| **Programme SYNTH** | `detailed-geometry` never mounts `ThemeProvider` (same as A059); planner lane can read light grey on white | **No fixture paint-over**; labelled pre-existing; `capture-provenance-*.json` for computed lane/bg |
+| **Programme SYNTH (375)** | Bare `FIXTURE_HTML` `<body>` omitted `layout.tsx` `bg-black text-white antialiased` → white canvas, grey panels looked like drift | Harness root body classes + recapture programme/proposal; **not** production palette |
+| **Programme inner chrome** | `detailed-geometry` no `ThemeProvider` (A059) | Inner slate planner tokens remain product truth; provenance `theme` + `body` explicit |
 | **Landing public** | lazy `img` + `data-reveal` | Harness timing fix (`capture-notes.json`) — bounded, not marketing CSS change |
 
 ## Brand drift inspection (281 @ 5a65d1b4) — bounded
@@ -90,7 +91,8 @@ Spot-check only on corrected PNGs. Proposal fixture defect was **capture/compile
 | Proposal prior defect | Capture/compiler omission (no Tailwind on `proposal-view`) — **fixed in fixture only** |
 | Programme contrast | SYNTH uses A059 planner without dark `ThemeProvider`; low-contrast lanes may remain in captures — **labelled pre-existing**, no fixture paint-over |
 | Public routes | Lazy/reveal timing handled in harness (`capture-notes.json`); marketing CSS held values (-29% / 62.5%) unchanged |
-| Provenance | `body` may be transparent on `about:blank`; read `appShell` / `sampleLink` / `sampleButton` in `capture-provenance-*.json` |
+| Provenance | `fixtureRootContext` + `theme` + computed `body` bg/font in `capture-provenance-*.json` (programme + proposal) |
+| Home / Estimate PNGs | **Reused** without recapture; prior captures may have used bare `<body>` — see `manifest.json` `fixtureRootContext.pngReuseWithoutRecapture` |
 | Bundles | Full `components.js` not committed; rebuild via `d124-build-fixture-bundles.mjs` |
 
 ## Re-run (local only)

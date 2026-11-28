@@ -1,19 +1,35 @@
 {
   "viewport": "375",
+  "capturedAt": "2026-11-28T05:49:16.442Z",
   "routeId": "programme",
+  "fixtureRootContext": {
+    "source": "src/app/layout.tsx",
+    "bodyClassAttribute": "bg-black text-white antialiased",
+    "bodyClassList": [
+      "bg-black",
+      "text-white",
+      "antialiased"
+    ]
+  },
+  "theme": {
+    "provider": "none",
+    "requested": null,
+    "effective": "detailed-geometry (ClientSchedulePage only; no ThemeProvider)"
+  },
   "body": {
     "fontFamily": "\"Avenir Next\", Avenir, \"Gill Sans\", \"Trebuchet MS\", sans-serif",
-    "backgroundColor": "rgba(0, 0, 0, 0)",
-    "color": "rgb(0, 0, 0)"
+    "backgroundColor": "rgb(0, 0, 0)",
+    "color": "rgb(255, 255, 255)",
+    "webkitFontSmoothing": "antialiased"
   },
   "appShell": {
     "backgroundColor": "rgba(0, 0, 0, 0)",
-    "color": "rgb(0, 0, 0)",
+    "color": "rgb(255, 255, 255)",
     "fontFamily": "\"Avenir Next\", Avenir, \"Gill Sans\", \"Trebuchet MS\", sans-serif"
   },
   "plannerLane": {
     "backgroundColor": "rgba(0, 0, 0, 0)",
-    "color": "rgb(0, 0, 0)"
+    "color": "rgb(255, 255, 255)"
   },
   "sampleLink": null,
   "sampleButton": {

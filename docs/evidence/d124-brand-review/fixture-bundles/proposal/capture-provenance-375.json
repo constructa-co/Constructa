@@ -1,10 +1,26 @@
 {
   "viewport": "375",
+  "capturedAt": "2026-11-28T05:49:17.287Z",
   "routeId": "proposal",
+  "fixtureRootContext": {
+    "source": "src/app/layout.tsx",
+    "bodyClassAttribute": "bg-black text-white antialiased",
+    "bodyClassList": [
+      "bg-black",
+      "text-white",
+      "antialiased"
+    ]
+  },
+  "theme": {
+    "provider": "ThemeProvider",
+    "requested": "dark",
+    "effective": "dark"
+  },
   "body": {
     "fontFamily": "\"Avenir Next\", Avenir, \"Gill Sans\", \"Trebuchet MS\", sans-serif",
-    "backgroundColor": "rgba(0, 0, 0, 0)",
-    "color": "rgb(0, 0, 0)"
+    "backgroundColor": "rgb(0, 0, 0)",
+    "color": "rgb(255, 255, 255)",
+    "webkitFontSmoothing": "antialiased"
   },
   "appShell": {
     "backgroundColor": "rgb(13, 13, 13)",

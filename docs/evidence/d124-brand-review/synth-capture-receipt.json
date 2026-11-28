@@ -30,11 +30,21 @@
       "componentsCssBytes": 175455
     }
   },
+  "fixtureRootBodyContext": {
+    "finding": "Programme 375 white body + grey translucent panels traced to FIXTURE_HTML bare <body> (no layout.tsx classes)",
+    "fix": "Harness body class bg-black text-white antialiased matches src/app/layout.tsx — local fixture only",
+    "not": "Not a System C palette rollback or production change",
+    "recaptured": ["programme_375", "programme_1440", "proposal_375", "proposal_1440"],
+    "reusedPngs": {
+      "dashboard": "No recapture — appearance expected unchanged; note bare-body prior capture in manifest",
+      "estimate": "No recapture — same"
+    }
+  },
   "programmeContrastLimitation": {
     "fixture": "detailed-geometry (A059) — Tailwind yes, no ThemeProvider",
-    "observation": "Planner lane can present light grey-on-white in SYNTH frame; product chrome not repainted for D124",
+    "observation": "Inner planner panels may still use product slate/grey tokens on black root; not repainted for D124",
     "provenance": "fixture-bundles/programme/capture-provenance-{375,1440}.json",
-    "label": "Pre-existing fixture/theme scope — not claimed as whole-app zero drift"
+    "label": "Fixture root now matches app layout; inner contrast is product chrome — not whole-app zero drift"
   },
   "otherWorkflow": {
     "dashboard": "d124-brand-home → HomeClient",

@@ -1,5 +1,15 @@
 # Cursor change log
 
+## 2026-11-28 — D124 fixture root body matches layout.tsx
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `docs/temp-files/d124-brand-visual-capture.spec.ts` | `FIXTURE_HTML` body `bg-black text-white antialiased`; provenance `fixtureRootContext` + `theme` | Programme white-body defect = missing root layout context |
+| `docs/evidence/d124-brand-review/png/programme_*.png` | Recaptured | Black root body after harness fix |
+| `docs/evidence/d124-brand-review/png/proposal_*.png` | Recaptured | Same root context + Tailwind proposal bundle |
+| `docs/evidence/d124-brand-review/fixture-bundles/*/capture-provenance-*.json` | body rgb(0,0,0), theme explicit | R1 computed provenance |
+| `manifest.json` / `synth-capture-receipt.json` | dashboard/estimate reuse notes | Honest context without unnecessary re-run |
+
 ## 2026-11-28 — D124 proposal SYNTH capture fixture (Tailwind provenance)
 
 | File | Lines / area | Change | Intent |

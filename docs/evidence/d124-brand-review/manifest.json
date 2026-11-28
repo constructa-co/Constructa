@@ -5,6 +5,15 @@
   "pr": 281,
   "capturedAt": "2026-11-28",
   "captureMode": "SYNTH_LOCAL_UNPUBLISHED",
+  "fixtureRootContext": {
+    "source": "src/app/layout.tsx",
+    "bodyClass": "bg-black text-white antialiased",
+    "appliedFrom": "2026-11-28 programme+proposal recapture",
+    "pngReuseWithoutRecapture": {
+      "dashboard": "Likely unchanged (full-bleed dark HomeClient); prior captures used bare <body> without layout classes — honest limitation if margin differs",
+      "estimate": "Likely unchanged (dark a003 fixture); same bare-body caveat"
+    }
+  },
   "exclusions": [
     "No private identities or client data",
     "No authenticated route screenshots as workflow coverage",
@@ -71,7 +80,13 @@
       "path": "/dashboard/projects/schedule",
       "renderClass": "SYNTH_COMPONENT_VISUAL",
       "coverage": true,
-      "fixture": { "scenario": "detailed-geometry", "component": "ClientSchedulePage", "manifest": "fixture-bundles/programme/source-manifest.json" },
+      "fixture": {
+        "scenario": "detailed-geometry",
+        "component": "ClientSchedulePage",
+        "manifest": "fixture-bundles/programme/source-manifest.json",
+        "provenance": "fixture-bundles/programme/capture-provenance-{375,1440}.json",
+        "theme": "no ThemeProvider (A059 scope)"
+      },
       "png": { "375": "png/programme_375.png", "1440": "png/programme_1440.png" }
     },
     {

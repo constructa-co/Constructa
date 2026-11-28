@@ -64,8 +64,11 @@ const VIEWPORTS = [
     { tag: "1440", width: 1440, height: 900 },
 ] as const;
 
+/** Root body classes match live app shell: src/app/layout.tsx */
+const LAYOUT_BODY_CLASS = "bg-black text-white antialiased";
+
 const FIXTURE_HTML = (title: string) =>
-    `<!doctype html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; form-action 'none'"><title>${title}</title></head><body><div id="app"></div></body></html>`;
+    `<!doctype html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; form-action 'none'"><title>${title}</title></head><body class="${LAYOUT_BODY_CLASS}"><div id="app"></div></body></html>`;
 
 mkdirSync(OUT, { recursive: true });
 
@@ -90,47 +93,79 @@ async function captureSynthComponent(
     await page.screenshot({ path: pngPath, fullPage: true });
 
     if (route.id === "proposal" || route.id === "programme") {
-        const provenance = await page.evaluate((id) => {
-            const body = document.body;
-            const bs = getComputedStyle(body);
-            const app = document.getElementById("app");
-            const appChild = app?.firstElementChild as HTMLElement | null;
-            const acs = appChild ? getComputedStyle(appChild) : null;
-            const planner = document.querySelector("[data-planner-grid-week]")?.parentElement as HTMLElement | null;
-            const ps = planner ? getComputedStyle(planner) : null;
-            const sampleLink = document.querySelector("a") as HTMLAnchorElement | null;
-            const ls = sampleLink ? getComputedStyle(sampleLink) : null;
-            const primaryBtn = document.querySelector("button") as HTMLButtonElement | null;
-            const pbs = primaryBtn ? getComputedStyle(primaryBtn) : null;
-            return {
-                routeId: id,
-                body: { fontFamily: bs.fontFamily, backgroundColor: bs.backgroundColor, color: bs.color },
-                appShell: appChild
-                    ? { backgroundColor: acs!.backgroundColor, color: acs!.color, fontFamily: acs!.fontFamily }
-                    : null,
-                plannerLane: planner
-                    ? { backgroundColor: ps!.backgroundColor, color: ps!.color }
-                    : null,
-                sampleLink: sampleLink
-                    ? { color: ls!.color, textDecoration: ls!.textDecorationLine }
-                    : null,
-                sampleButton: primaryBtn
-                    ? { backgroundColor: pbs!.backgroundColor, color: pbs!.color, fontFamily: pbs!.fontFamily }
-                    : null,
-                stylesheetHints: {
-                    styleTags: document.querySelectorAll("style").length,
-                    hasSynthBanner: !!document.querySelector("[data-d124-synth-banner]"),
-                    tailwindCompiled: document.querySelectorAll("style").length > 0,
-                },
-            };
-        }, route.id);
+        const provenance = await page.evaluate(
+            ([id, layoutBodyClass]) => {
+                const body = document.body;
+                const bs = getComputedStyle(body);
+                const app = document.getElementById("app");
+                const appChild = app?.firstElementChild as HTMLElement | null;
+                const acs = appChild ? getComputedStyle(appChild) : null;
+                const planner = document.querySelector("[data-planner-grid-week]") as HTMLElement | null;
+                const ps = planner ? getComputedStyle(planner) : null;
+                const sampleLink = document.querySelector("a") as HTMLAnchorElement | null;
+                const ls = sampleLink ? getComputedStyle(sampleLink) : null;
+                const primaryBtn = document.querySelector("button") as HTMLButtonElement | null;
+                const pbs = primaryBtn ? getComputedStyle(primaryBtn) : null;
+                const themeContext =
+                    id === "proposal"
+                        ? {
+                              provider: "ThemeProvider",
+                              requested: (window as Window & { __documentViewOptions?: { theme?: string } })
+                                  .__documentViewOptions?.theme,
+                              effective: (window as Window & { __documentViewOptions?: { theme?: string } })
+                                  .__documentViewOptions?.theme === "system-c"
+                                  ? "system-c"
+                                  : "dark",
+                          }
+                        : id === "programme"
+                          ? {
+                                provider: "none",
+                                requested: null,
+                                effective: "detailed-geometry (ClientSchedulePage only; no ThemeProvider)",
+                            }
+                          : null;
+                return {
+                    routeId: id,
+                    fixtureRootContext: {
+                        source: "src/app/layout.tsx",
+                        bodyClassAttribute: layoutBodyClass,
+                        bodyClassList: Array.from(body.classList),
+                    },
+                    theme: themeContext,
+                    body: {
+                        fontFamily: bs.fontFamily,
+                        backgroundColor: bs.backgroundColor,
+                        color: bs.color,
+                        webkitFontSmoothing: bs.getPropertyValue("-webkit-font-smoothing"),
+                    },
+                    appShell: appChild
+                        ? { backgroundColor: acs!.backgroundColor, color: acs!.color, fontFamily: acs!.fontFamily }
+                        : null,
+                    plannerLane: planner
+                        ? { backgroundColor: ps!.backgroundColor, color: ps!.color }
+                        : null,
+                    sampleLink: sampleLink
+                        ? { color: ls!.color, textDecoration: ls!.textDecorationLine }
+                        : null,
+                    sampleButton: primaryBtn
+                        ? { backgroundColor: pbs!.backgroundColor, color: pbs!.color, fontFamily: pbs!.fontFamily }
+                        : null,
+                    stylesheetHints: {
+                        styleTags: document.querySelectorAll("style").length,
+                        hasSynthBanner: !!document.querySelector("[data-d124-synth-banner]"),
+                        tailwindCompiled: document.querySelectorAll("style").length > 0,
+                    },
+                };
+            },
+            [route.id, LAYOUT_BODY_CLASS] as const,
+        );
         const provPath = path.join(
             process.cwd(),
             "docs/evidence/d124-brand-review/fixture-bundles",
             route.id,
             `capture-provenance-${vp.tag}.json`,
         );
-        writeFileSync(provPath, JSON.stringify({ viewport: vp.tag, ...provenance }, null, 2));
+        writeFileSync(provPath, JSON.stringify({ viewport: vp.tag, capturedAt: new Date().toISOString(), ...provenance }, null, 2));
     }
 }
 

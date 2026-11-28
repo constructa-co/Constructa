@@ -233,7 +233,7 @@ export default function OverviewTab({ data }: { data: AdminData }) {
             </div>
 
             {/* 4. Three-column quick stats */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {/* Today */}
                 <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 flex flex-col gap-3">
                     <span className="text-zinc-400 text-xs font-semibold uppercase tracking-widest">Today</span>

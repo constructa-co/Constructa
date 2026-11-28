@@ -77,7 +77,7 @@ const ACTIONS = [
     label: "Log Cost",
     description: "Record labour, materials or plant",
     icon: PoundSterling,
-    color: "bg-blue-600",
+    color: "bg-emerald-700",
     href: (projectId: string | null) =>
       projectId ? `/dashboard/projects/p-and-l?projectId=${projectId}` : "/dashboard/projects/p-and-l",
   },
@@ -86,7 +86,7 @@ const ACTIONS = [
     label: "Raise Variation",
     description: "Log a change to scope or price",
     icon: GitBranch,
-    color: "bg-violet-600",
+    color: "bg-teal-700",
     href: (projectId: string | null) =>
       projectId ? `/dashboard/projects/variations?projectId=${projectId}` : "/dashboard/projects/variations",
   },
@@ -169,7 +169,7 @@ export default function MobileHubClient({ projects, recentCosts, recentVars }: P
                 onClick={() => setSelectedId(p.id)}
                 className={`shrink-0 text-left px-3 py-2.5 rounded-xl border text-xs font-medium transition-all max-w-[160px] ${
                   selectedId === p.id
-                    ? "bg-blue-600/20 border-blue-500/50 text-blue-300"
+                    ? "bg-emerald-600/20 border-emerald-500/50 text-emerald-300"
                     : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
                 }`}
               >
@@ -328,7 +328,7 @@ export default function MobileHubClient({ projects, recentCosts, recentVars }: P
                     onClick={() => setFabType(ct)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors capitalize ${
                       fabType === ct
-                        ? "bg-blue-600 text-white"
+                        ? "bg-emerald-700 text-white"
                         : "bg-slate-800 text-slate-400 border border-slate-700 hover:border-slate-600"
                     }`}
                   >

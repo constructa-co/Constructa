@@ -90,7 +90,7 @@ export default function LibraryManagement({ items }: Props) {
         <div className="space-y-6">
             <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm overflow-hidden">
                 <div className="flex items-center gap-2 mb-6 text-black">
-                    <Tag className="w-5 h-5 text-blue-500" />
+                    <Tag className="w-5 h-5 text-emerald-600" />
                     <h2 className="text-sm font-black uppercase tracking-widest text-slate-900">Items Registry</h2>
                 </div>
                 <div className="text-black">
@@ -100,9 +100,9 @@ export default function LibraryManagement({ items }: Props) {
 
             {/* Lean MVP Premium Callout */}
             <div className="bg-slate-900 rounded-2xl overflow-hidden shadow-2xl relative p-8">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[120px] opacity-20 translate-x-1/2 -translate-y-1/2"></div>
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-600 rounded-full blur-[120px] opacity-20 translate-x-1/2 -translate-y-1/2"></div>
                 <div className="relative z-10 flex items-center gap-4">
-                    <Hash className="w-8 h-8 text-blue-400" />
+                    <Hash className="w-8 h-8 text-emerald-400" />
                     <div>
                         <h3 className="text-xl font-bold text-white uppercase tracking-tighter italic">Secured by RLS</h3>
                         <p className="text-slate-400 text-xs">Standard rates are managed centrally to ensure commercial consistency across your pipeline.</p>

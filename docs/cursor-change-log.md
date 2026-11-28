@@ -1,5 +1,22 @@
 # Cursor change log
 
+## 2026-11-28 — D123 A001 whole-app brand consistency (item 2)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/a001-brand-consistency-guard.ts` | New drift patterns + scoped solid-primary exceptions | One source-level guard for marketing + app |
+| `src/lib/a001-brand-consistency-guard.test.ts` | Whole-tree scans (purple marketing decor, blue orbs, primaries) | Catches new drift without giant allowlist |
+| `src/lib/a001-palette-audit.ts` | Reuse guard regex helper | Single definition of forbidden primary pair |
+| `src/components/marketing/full-features.tsx` | Purple Track-it accents → emerald | Off-palette marketing decoration |
+| `src/app/dashboard/library/library-management.tsx` | Blue callout orb/icon → emerald | Decorative chrome |
+| `src/app/dashboard/mobile/mobile-hub-client.tsx` | Blue/violet tiles + chips → emerald/teal | Field hub matches sage brand |
+| `src/app/dashboard/projects/contract-admin/components/DelayAnalysisTab.tsx` | AI narrative CTA → `corePrimaryButton` | Off-brand purple primary |
+| `src/app/dashboard/projects/lessons-learned/lessons-client.tsx` | Generate CTA → core palette | Same |
+| `src/app/dashboard/projects/brief/video-walkthrough.tsx` | Apply CTA → core palette | Same |
+| `src/app/dashboard/projects/change-management/change-management-client.tsx` | Modal primaries → core palette | Same |
+
+**Scope exceptions (guard):** Contract Shield (`client-contract-editor.tsx`) and contract-admin purple AI drafts (`contract-admin-client.tsx`) only.
+
 ## 2026-11-27 — D116 public enquiry email on cohort footer and pricing
 
 | File | Change | Intent |

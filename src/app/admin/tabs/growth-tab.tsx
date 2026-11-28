@@ -88,19 +88,23 @@ function PeriodBtn({
     );
 }
 
+/** Sum of recorded daily signup points (rolling window from admin page, not inferred). */
+function signupsRolling30d(data: AdminData): number {
+    return data.dailySignups.reduce((sum, d) => sum + d.value, 0);
+}
+
+const NO_PRIOR_WEEK_SIGNUPS = "Prior week unavailable (not enough weekly history)";
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 export default function GrowthTab({ data }: { data: AdminData }) {
     const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("monthly");
 
     // ── 1. KPI headline counts ────────────────────────────────────────────────
-    // Prior-period equivalents for deltas
-    const prevWeekSignups =
-        data.weeklySignups.length >= 2
+    const hasPriorWeekSeries = data.weeklySignups.length >= 2;
+    const prevWeekSignups = hasPriorWeekSeries
             ? data.weeklySignups[data.weeklySignups.length - 2]?.value ?? 0
-            : 0;
+            : null;
     const prevMonthSignups = data.signupsPrevMonth;
-    const prevQuarterSignups = 0; // not in AdminData, show N/A
-    const prevYearSignups = 0;    // not in AdminData, show N/A
 
     function deltaLabel(current: number, prev: number): string | null {
         if (prev === 0) return null;
@@ -173,12 +177,20 @@ export default function GrowthTab({ data }: { data: AdminData }) {
                         <span className="text-zinc-500 text-xs uppercase tracking-wide">This Week</span>
                         <span className="text-zinc-100 text-2xl font-bold">{data.signupsThisWeek}</span>
                         {(() => {
+                            if (prevWeekSignups === null) {
+                                return (
+                                    <span className="text-zinc-500 text-xs">{NO_PRIOR_WEEK_SIGNUPS}</span>
+                                );
+                            }
                             const d = deltaLabel(data.signupsThisWeek, prevWeekSignups);
                             return d ? (
                                 <span
-                                    className={`text-xs font-medium ${deltaColour(data.signupsThisWeek, prevWeekSignups)}`}
+                                    className={`text-xs font-medium ${deltaColour(
+                                        data.signupsThisWeek,
+                                        prevWeekSignups
+                                    )}`}
                                 >
-                                    {d} vs last week
+                                    {d} vs prior ISO week ({prevWeekSignups} signups)
                                 </span>
                             ) : (
                                 <span className="text-zinc-600 text-xs">signups</span>
@@ -371,36 +383,30 @@ export default function GrowthTab({ data }: { data: AdminData }) {
 
                             {/* Activated */}
                             <div className="flex flex-col items-center gap-1 flex-1">
-                                <span className="text-zinc-400 text-xs uppercase tracking-wide">Activated</span>
+                                <span className="text-zinc-400 text-xs uppercase tracking-wide">
+                                    Activated (est., all accounts)
+                                </span>
                                 <span className="text-zinc-100 text-3xl font-black">
                                     {Math.round(
                                         (data.totalSubscribers * data.retention.activationRate) / 100
                                     )}
                                 </span>
-                                <span className="text-zinc-600 text-xs">created a project</span>
+                                <span className="text-zinc-600 text-xs">activation rate × accounts, not monthly</span>
                             </div>
 
                             {/* Arrow */}
                             <div className="flex flex-col items-center gap-0.5 px-2">
-                                {data.totalSubscribers > 0 ? (
-                                    <span className="text-xs font-semibold text-amber-400">
-                                        {data.totalProposalsSent > 0
-                                            ? (
-                                                (data.totalProposalsSent /
-                                                    Math.max(data.totalSubscribers, 1)) *
-                                                100
-                                            ).toFixed(0) + "%"
-                                            : "0%"}
-                                    </span>
-                                ) : (
-                                    <span className="text-zinc-600 text-xs">—</span>
-                                )}
+                                <span className="text-zinc-500 text-xs text-center max-w-[5rem]">
+                                    Lifetime mix — not weekly/monthly conversion
+                                </span>
                                 <span className="text-zinc-600 text-lg">→</span>
                             </div>
 
                             {/* Sent proposal */}
                             <div className="flex flex-col items-center gap-1 flex-1">
-                                <span className="text-zinc-400 text-xs uppercase tracking-wide">Sent Proposal</span>
+                                <span className="text-zinc-400 text-xs uppercase tracking-wide">
+                                    Proposals sent (lifetime)
+                                </span>
                                 <span className="text-zinc-100 text-3xl font-black">
                                     {data.totalProposalsSent}
                                 </span>
@@ -463,11 +469,16 @@ export default function GrowthTab({ data }: { data: AdminData }) {
                         <div className="mt-2 pt-4 border-t border-zinc-800 flex flex-col sm:flex-row items-center gap-2 sm:gap-0">
                             <div className="flex flex-col items-center gap-1 flex-1">
                                 <span className="text-zinc-500 text-xs uppercase tracking-wide">Signups (30d)</span>
-                                <span className="text-zinc-100 text-2xl font-bold">{data.signupsThisMonth}</span>
+                                <span className="text-zinc-100 text-2xl font-bold">{signupsRolling30d(data)}</span>
+                                <span className="text-zinc-600 text-[10px] text-center">
+                                    Sum of recorded daily signups (not calendar month)
+                                </span>
                             </div>
                             <span className="text-zinc-600 text-lg px-2">→</span>
                             <div className="flex flex-col items-center gap-1 flex-1">
-                                <span className="text-zinc-500 text-xs uppercase tracking-wide">Activated</span>
+                                <span className="text-zinc-500 text-xs uppercase tracking-wide">
+                                    Activated (est., lifetime)
+                                </span>
                                 <span className="text-zinc-100 text-2xl font-bold">
                                     {Math.round(
                                         (data.totalSubscribers * data.retention.activationRate) / 100
@@ -476,7 +487,9 @@ export default function GrowthTab({ data }: { data: AdminData }) {
                             </div>
                             <span className="text-zinc-600 text-lg px-2">→</span>
                             <div className="flex flex-col items-center gap-1 flex-1">
-                                <span className="text-zinc-500 text-xs uppercase tracking-wide">Sent Proposal</span>
+                                <span className="text-zinc-500 text-xs uppercase tracking-wide">
+                                    Proposals sent (lifetime)
+                                </span>
                                 <span className="text-zinc-100 text-2xl font-bold">{data.totalProposalsSent}</span>
                             </div>
                         </div>

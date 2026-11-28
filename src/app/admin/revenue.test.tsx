@@ -17,6 +17,7 @@ import type { AdminData } from "./types";
 import OverviewTab from "./tabs/overview-tab";
 import RevenueTab from "./tabs/revenue-tab";
 import CostsTab from "./tabs/costs-tab";
+import GrowthTab from "./tabs/growth-tab";
 import { generateReportText, type ReportType } from "./tabs/reports-tab";
 
 const NOW = new Date();
@@ -148,4 +149,46 @@ describe("admin surfaces show unavailable revenue, never an assumed price", () =
             expect(text).toMatch(/MRR:\s+Unavailable/);
         },
     );
+});
+
+describe("growth tab signup and funnel labels", () => {
+    const signups30dValuePattern = (value: number) =>
+        new RegExp(
+            `Signups \\(30d\\)</span>\\s*<span class="text-zinc-100 text-2xl font-bold">${value}</span>`
+        );
+
+    it("puts the daily-series 30d sum in the Signups (30d) slot, not signupsThisMonth", async () => {
+        const base = await adminData(25);
+        const dailyOnlySum = 7;
+        const calendarMonthCount = 99;
+        const data: AdminData = {
+            ...base,
+            signupsThisMonth: calendarMonthCount,
+            dailySignups: base.dailySignups.map((d, i) =>
+                i === 0 ? { ...d, value: dailyOnlySum } : { ...d, value: 0 }
+            ),
+        };
+        expect(data.dailySignups.reduce((sum, d) => sum + d.value, 0)).toBe(dailyOnlySum);
+        expect(data.signupsThisMonth).toBe(calendarMonthCount);
+
+        const html = renderToStaticMarkup(<GrowthTab data={data} />);
+        expect(html).toMatch(signups30dValuePattern(dailyOnlySum));
+        expect(html).not.toMatch(signups30dValuePattern(calendarMonthCount));
+        expect(html).toMatch(
+            /This Month<\/span>\s*<span class="text-amber-400 text-2xl font-bold">99<\/span>/
+        );
+        expect(html).toContain("Proposals sent (lifetime)");
+        expect(html).toContain("Sum of recorded daily signups (not calendar month)");
+    });
+
+    it("shows prior-week unavailable when weekly signup history has fewer than two points", async () => {
+        const base = await adminData(8);
+        const data: AdminData = {
+            ...base,
+            weeklySignups: base.weeklySignups.slice(0, 1),
+        };
+        const html = renderToStaticMarkup(<GrowthTab data={data} />);
+        expect(html).toContain("Prior week unavailable (not enough weekly history)");
+        expect(html).not.toMatch(/vs prior ISO week/);
+    });
 });

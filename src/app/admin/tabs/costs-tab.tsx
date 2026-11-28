@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { AdminData, CostEntry } from "../types";
-import { PLAN_PRICE_GBP } from "../types";
+import { gbpOrUnavailable, grossMarginPct, NO_VERIFIED_BILLING_DETAIL, NO_VERIFIED_BILLING_LABEL } from "../revenue";
 import { saveCostEntryAction } from "../actions";
 
 interface Props {
@@ -25,6 +25,11 @@ function fmt(n: number) {
 
 function fmtDecimal(n: number, digits = 2) {
   return `£${n.toLocaleString("en-GB", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
+}
+
+/** Percentage, or "Unavailable" when it needs revenue that is not verified. */
+function pctOrUnavailable(n: number | null, digits = 1) {
+  return n === null ? NO_VERIFIED_BILLING_LABEL : `${n.toFixed(digits)}%`;
 }
 
 function currentYYYYMM() {
@@ -56,7 +61,8 @@ export default function CostsTab({ data }: Props) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // P&L figures
+  // P&L figures. Revenue is null without verified billing, and so is every
+  // figure that needs it: none of them is shown as £0 or from an assumed price.
   const mrr = revenue.mrr;
   const infraCost =
     costs.manualCosts
@@ -68,8 +74,8 @@ export default function CostsTab({ data }: Props) {
       .reduce((s, e) => s + e.amount_gbp, 0) || 0;
   const openaiMtd = costs.openaiMtdCostGbp;
   const totalCogs = openaiMtd + infraCost;
-  const grossProfit = mrr - totalCogs;
-  const grossMargin = mrr > 0 ? (grossProfit / mrr) * 100 : 0;
+  const grossProfit = mrr === null ? null : mrr - totalCogs;
+  const grossMargin = grossMarginPct(mrr, totalCogs);
   const otherSaasCosts =
     costs.manualCosts
       .filter(
@@ -78,16 +84,15 @@ export default function CostsTab({ data }: Props) {
           !["Supabase", "Vercel", "OpenAI"].includes(e.category)
       )
       .reduce((s, e) => s + e.amount_gbp, 0) || 0;
-  const ebitda = grossProfit - otherSaasCosts;
+  const ebitda = grossProfit === null ? null : grossProfit - otherSaasCosts;
   const monthlyBurn = totalCogs + otherSaasCosts;
-  const runway = mrr > 0 && monthlyBurn > 0 ? monthlyBurn / (mrr - monthlyBurn) : null;
 
   // Cost per user
   const costPerUser =
     totalSubscribers > 0 ? costs.totalMonthlyCostGbp / totalSubscribers : 0;
-  const grossProfitPerUser = PLAN_PRICE_GBP - costPerUser;
-  const contributionMargin =
-    PLAN_PRICE_GBP > 0 ? (grossProfitPerUser / PLAN_PRICE_GBP) * 100 : 0;
+  const revenuePerUser = revenue.arpu;
+  const grossProfitPerUser = revenuePerUser === null ? null : revenuePerUser - costPerUser;
+  const contributionMargin = grossMarginPct(revenuePerUser, costPerUser);
 
   // Daily bar chart
   const maxDailyCost = Math.max(
@@ -137,10 +142,15 @@ export default function CostsTab({ data }: Props) {
           <tbody>
             <tr className="text-zinc-100">
               <td className="py-1 font-medium">Revenue (MRR)</td>
-              <td className="py-1 text-right tabular-nums font-semibold text-emerald-400">
-                {fmt(mrr)}
+              <td className={`py-1 text-right tabular-nums font-semibold ${mrr === null ? "text-zinc-400" : "text-emerald-400"}`}>
+                {gbpOrUnavailable(mrr, fmt)}
               </td>
             </tr>
+            {mrr === null && (
+              <tr className="text-zinc-500" data-admin-revenue-unavailable>
+                <td colSpan={2} className="py-1 text-xs">{NO_VERIFIED_BILLING_DETAIL}</td>
+              </tr>
+            )}
             <tr>
               <td colSpan={2} className="py-1">
                 <div className="border-t border-zinc-600" />
@@ -178,13 +188,13 @@ export default function CostsTab({ data }: Props) {
                 <div className="border-t border-zinc-600" />
               </td>
             </tr>
-            <tr className={grossProfit >= 0 ? "text-emerald-400" : "text-red-400"}>
+            <tr className={grossProfit === null ? "text-zinc-400" : grossProfit >= 0 ? "text-emerald-400" : "text-red-400"}>
               <td className="py-1 font-semibold">Gross Profit</td>
               <td className="py-1 text-right tabular-nums font-semibold">
-                {fmt(grossProfit)}{" "}
-                <span className="text-xs font-normal opacity-80">
-                  {grossMargin.toFixed(0)}% margin
-                </span>
+                {gbpOrUnavailable(grossProfit, fmt)}
+                {grossMargin !== null && (
+                  <span className="text-xs font-normal opacity-80"> {grossMargin.toFixed(0)}% margin</span>
+                )}
               </td>
             </tr>
             <tr>
@@ -210,7 +220,7 @@ export default function CostsTab({ data }: Props) {
             </tr>
             <tr className="text-zinc-100 font-semibold">
               <td className="py-1">EBITDA (est.)</td>
-              <td className="py-1 text-right tabular-nums">{fmt(ebitda)}</td>
+              <td className="py-1 text-right tabular-nums">{gbpOrUnavailable(ebitda, fmt)}</td>
             </tr>
             <tr>
               <td colSpan={2} className="py-1">
@@ -224,9 +234,8 @@ export default function CostsTab({ data }: Props) {
             <tr className="text-zinc-300">
               <td className="py-1">Runway (at current burn)</td>
               <td className="py-1 text-right tabular-nums">
-                {mrr > 0 && runway !== null
-                  ? `${runway.toFixed(0)} months`
-                  : "N/A"}
+                {/* Runway needs a cash balance and verified revenue; neither is recorded here. */}
+                {NO_VERIFIED_BILLING_LABEL}
               </td>
             </tr>
           </tbody>
@@ -240,7 +249,7 @@ export default function CostsTab({ data }: Props) {
           { label: "Cost Per User", value: fmtDecimal(costPerUser) },
           {
             label: "Gross Margin",
-            value: `${costs.grossMarginPct.toFixed(1)}%`,
+            value: pctOrUnavailable(costs.grossMarginPct),
           },
         ].map((kpi) => (
           <div
@@ -439,12 +448,12 @@ export default function CostsTab({ data }: Props) {
       {/* ── Unit Economics ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Revenue per user", value: `£${PLAN_PRICE_GBP}/mo` },
+          { label: "Revenue per user", value: revenuePerUser === null ? NO_VERIFIED_BILLING_LABEL : `${fmtDecimal(revenuePerUser)}/mo` },
           { label: "COGS per user", value: fmtDecimal(costPerUser) },
-          { label: "Gross profit per user", value: fmtDecimal(grossProfitPerUser) },
+          { label: "Gross profit per user", value: gbpOrUnavailable(grossProfitPerUser, (n) => fmtDecimal(n)) },
           {
             label: "Contribution margin",
-            value: `${contributionMargin.toFixed(1)}%`,
+            value: pctOrUnavailable(contributionMargin),
           },
         ].map((card) => (
           <div

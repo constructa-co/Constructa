@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import type { AdminData } from "../types";
-import { PLAN_PRICE_GBP } from "../types";
+import { gbpOrUnavailable, NO_VERIFIED_BILLING_NOTE } from "../revenue";
 import { sendReportEmailAction } from "../actions";
 
 interface Props {
   data: AdminData;
 }
 
-type ReportType = "daily" | "weekly" | "monthly" | "quarterly" | "annual";
+export type ReportType = "daily" | "weekly" | "monthly" | "quarterly" | "annual";
 
 const REPORT_TYPES: { key: ReportType; label: string }[] = [
   { key: "daily", label: "Daily" },
@@ -21,6 +21,11 @@ const REPORT_TYPES: { key: ReportType; label: string }[] = [
 
 function fmtGBP(n: number) {
   return `£${n.toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
+/** Revenue lines in reports: "Unavailable" without verified billing, never £0. */
+function revenueGBP(n: number | null) {
+  return gbpOrUnavailable(n, fmtGBP);
 }
 
 function pct(n: number | null | undefined, digits = 1) {
@@ -73,7 +78,7 @@ function generateDailyReport(data: AdminData): string {
   if (retention.churnRate > 5) redMetrics.push(`Churn rate elevated: ${retention.churnRate.toFixed(1)}%`);
   if (retention.atRiskUsers.length > 0)
     redMetrics.push(`${retention.atRiskUsers.length} at-risk users`);
-  if (revenue.mrr === 0) redMetrics.push("No MRR yet — billing not live");
+  if (revenue.mrr === null) redMetrics.push(`Revenue unavailable: ${NO_VERIFIED_BILLING_NOTE}`);
 
   return `📊 Constructa Daily Digest — ${todayStr()}
 
@@ -81,7 +86,7 @@ SUBSCRIBERS
 Total: ${data.totalSubscribers} | New today: ${data.signupsToday} | Active (DAU): ${retention.dau}
 
 REVENUE
-MRR: ${fmtGBP(revenue.mrr)} | ARR: ${fmtGBP(revenue.arr)}
+MRR: ${revenueGBP(revenue.mrr)} | ARR: ${revenueGBP(revenue.arr)}
 
 PLATFORM ACTIVITY
 Projects created today: ~${Math.round(data.totalProjects / 30)}
@@ -118,8 +123,8 @@ New signups this week: ${data.signupsThisWeek} (vs ~${prevWeekSignups} last week
 Cumulative subscribers: ${data.totalSubscribers}
 
 REVENUE
-MRR: ${fmtGBP(revenue.mrr)} | New MRR this week: ${fmtGBP(Math.round(data.signupsThisWeek * PLAN_PRICE_GBP))}
-MoM growth: ${pct(revenue.momGrowthPct)}
+MRR: ${revenueGBP(revenue.mrr)}
+MoM revenue growth: ${pct(revenue.momGrowthPct)}${revenue.mrr === null ? `\n${NO_VERIFIED_BILLING_NOTE}` : ""}
 
 ENGAGEMENT
 WAU: ${retention.wau} | Proposals sent this week: ~${Math.round(data.totalProposalsSent / 52)}
@@ -146,16 +151,16 @@ function generateMonthlyReport(data: AdminData): string {
   return `📅 Constructa Monthly Report — ${currentMonthStr()}
 
 ═══ P&L SUMMARY ═══
-Revenue (MRR):           ${fmtGBP(revenue.mrr)}
+Revenue (MRR):           ${revenueGBP(revenue.mrr)}
 Cost of Revenue (COGS):  £${costs.totalMonthlyCostGbp.toFixed(0)}
-Gross Profit:            ${fmtGBP(revenue.mrr - costs.totalMonthlyCostGbp)} (${costs.grossMarginPct.toFixed(0)}% margin)
-EBITDA (est.):           ${fmtGBP(revenue.mrr - costs.totalMonthlyCostGbp)}
-
+Gross Profit:            ${revenueGBP(revenue.mrr === null ? null : revenue.mrr - costs.totalMonthlyCostGbp)} (margin ${pct(costs.grossMarginPct, 0)})
+EBITDA (est.):           ${revenueGBP(revenue.mrr === null ? null : revenue.mrr - costs.totalMonthlyCostGbp)}
+${revenue.mrr === null ? `${NO_VERIFIED_BILLING_NOTE}\n` : ""}
 ═══ SAAS METRICS ═══
-MRR:              ${fmtGBP(revenue.mrr)}
-ARR:              ${fmtGBP(revenue.arr)}
-ARPU:             ${fmtGBP(revenue.arpu)}
-LTV (est.):       ${fmtGBP(revenue.ltv)}
+MRR:              ${revenueGBP(revenue.mrr)}
+ARR:              ${revenueGBP(revenue.arr)}
+ARPU:             ${revenueGBP(revenue.arpu)}
+LTV (est.):       ${revenueGBP(revenue.ltv)}
 MoM Growth:       ${pct(revenue.momGrowthPct)}
 Churn Rate:       ${pct(retention.churnRate)}
 
@@ -198,14 +203,14 @@ CAC Payback (months):   ${data.cacPaybackMonths != null ? data.cacPaybackMonths.
 Burn Multiple:          ${data.burnMultiple != null ? data.burnMultiple.toFixed(2) + "x" : "N/A"}
 
 ═══ REVENUE (QoQ) ═══
-Current MRR:         ${fmtGBP(revenue.mrr)}
-Current ARR:         ${fmtGBP(revenue.arr)}
+Current MRR:         ${revenueGBP(revenue.mrr)}
+Current ARR:         ${revenueGBP(revenue.arr)}
 QoQ Growth:          ${pct(revenue.qoqGrowthPct)}
-Projected ARR (EoY): ${fmtGBP(revenue.projectedArrEoy)}
-
+Projected ARR (EoY): ${revenueGBP(revenue.projectedArrEoy)}
+${revenue.mrr === null ? `${NO_VERIFIED_BILLING_NOTE}\n` : ""}
 ═══ UNIT ECONOMICS ═══
-ARPU:             ${fmtGBP(revenue.arpu)}
-LTV (est.):       ${fmtGBP(revenue.ltv)}
+ARPU:             ${revenueGBP(revenue.arpu)}
+LTV (est.):       ${revenueGBP(revenue.ltv)}
 Gross Margin:     ${pct(costs.grossMarginPct)}
 Cost per User:    £${costs.costPerUserGbp.toFixed(2)}
 
@@ -233,23 +238,24 @@ function generateAnnualReport(data: AdminData): string {
   return `📗 Constructa Annual Review — ${currentYearStr()}
 
 ═══ EXECUTIVE SUMMARY ═══
-Constructa ended the year with ${data.totalSubscribers} total subscribers,
-${fmtGBP(revenue.mrr)} MRR, and ${fmtGBP(revenue.arr)} ARR.
-YoY growth: ${pct(revenue.yoyGrowthPct)}.
+Constructa ended the year with ${data.totalSubscribers} signed-up accounts.
+MRR: ${revenueGBP(revenue.mrr)}. ARR: ${revenueGBP(revenue.arr)}.
+YoY revenue growth: ${pct(revenue.yoyGrowthPct)}.
 
 ═══ REVENUE ═══
-Current MRR:         ${fmtGBP(revenue.mrr)}
-ARR:                 ${fmtGBP(revenue.arr)}
-ARPU:                ${fmtGBP(revenue.arpu)}
+Current MRR:         ${revenueGBP(revenue.mrr)}
+ARR:                 ${revenueGBP(revenue.arr)}
+ARPU:                ${revenueGBP(revenue.arpu)}
 YoY MRR Growth:      ${pct(revenue.yoyGrowthPct)}
-Projected ARR (EoY): ${fmtGBP(revenue.projectedArrEoy)}
+Projected ARR (EoY): ${revenueGBP(revenue.projectedArrEoy)}
+${revenue.mrr === null ? `${NO_VERIFIED_BILLING_NOTE}\n` : ""}
 
 ═══ GROWTH ═══
 New subscribers this year: ${data.signupsThisYear}
 Total subscribers:         ${data.totalSubscribers}
 
 ═══ UNIT ECONOMICS ═══
-LTV (est.):       ${fmtGBP(revenue.ltv)}
+LTV (est.):       ${revenueGBP(revenue.ltv)}
 LTV:CAC:          ${data.ltvCacRatio != null ? data.ltvCacRatio.toFixed(1) + "x" : "N/A"}
 Gross Margin:     ${pct(costs.grossMarginPct)}
 
@@ -274,8 +280,23 @@ Constructa has established product-market fit in the UK construction SME sector.
 Key priorities for ${Number(currentYearStr()) + 1}:
   • Convert free-tier pipeline to paid subscriptions
   • Expand enterprise / team plan features
-  • Grow MRR to £${(revenue.mrr * 12).toLocaleString("en-GB")} ARR target via organic and paid acquisition
   • Maintain gross margin above 70%`;
+}
+
+/** The text of one report. Exported so its revenue lines can be checked. */
+export function generateReportText(type: ReportType, data: AdminData): string {
+  switch (type) {
+    case "daily":
+      return generateDailyReport(data);
+    case "weekly":
+      return generateWeeklyReport(data);
+    case "monthly":
+      return generateMonthlyReport(data);
+    case "quarterly":
+      return generateQuarterlyReport(data);
+    case "annual":
+      return generateAnnualReport(data);
+  }
 }
 
 function subjectForReport(type: ReportType): string {
@@ -297,20 +318,7 @@ export default function ReportsTab({ data }: Props) {
   >("idle");
   const [emailError, setEmailError] = useState<string | null>(null);
 
-  const reportText = (() => {
-    switch (selectedReport) {
-      case "daily":
-        return generateDailyReport(data);
-      case "weekly":
-        return generateWeeklyReport(data);
-      case "monthly":
-        return generateMonthlyReport(data);
-      case "quarterly":
-        return generateQuarterlyReport(data);
-      case "annual":
-        return generateAnnualReport(data);
-    }
-  })();
+  const reportText = generateReportText(selectedReport, data);
 
   async function handleSendEmail(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

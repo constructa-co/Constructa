@@ -1,6 +1,8 @@
 // ─── Constructa Admin BI — Shared Types ──────────────────────────────────────
 
-export const PLAN_PRICE_GBP = 49; // Monthly plan price — update when Stripe goes live
+// D124 N5.1: there is no plan price constant. Revenue is never derived from
+// signups × an assumed price; it is unavailable until verified billing data
+// exists (see ./revenue.ts).
 export const PLAN_NAME = "Starter";
 
 // ─── Subscriber ───────────────────────────────────────────────────────────────
@@ -46,16 +48,22 @@ export interface MrrMonth {
     netNewMrr: number;
 }
 
+/**
+ * Revenue comes only from verified billing data. There is none yet, so the
+ * status is "no_verified_billing" and every figure is null (unknown), never 0
+ * and never signups × an assumed price.
+ */
 export interface RevenueMetrics {
-    mrr: number;
-    arr: number;
-    arpu: number;
-    ltv: number;
+    status: "no_verified_billing";
+    mrr: number | null;
+    arr: number | null;
+    arpu: number | null;
+    ltv: number | null;
     mrrByMonth: MrrMonth[];
-    momGrowthPct: number | null;   // month-on-month growth
+    momGrowthPct: number | null;   // month-on-month revenue growth
     qoqGrowthPct: number | null;
     yoyGrowthPct: number | null;
-    projectedArrEoy: number;       // projected ARR end-of-year at current growth
+    projectedArrEoy: number | null;
 }
 
 // ─── Engagement ───────────────────────────────────────────────────────────────
@@ -144,7 +152,9 @@ export interface CostMetrics {
     openaiMtdCostGbp: number;
     openaiDailyCosts: OpenAIUsageDay[];
     totalMonthlyCostGbp: number;
-    grossMarginPct: number;
+    /** Null without verified revenue: a margin needs real revenue. */
+    grossMarginPct: number | null;
+    /** Monthly platform cost ÷ signed-up accounts. A cost figure, not revenue. */
     costPerUserGbp: number;
 }
 
@@ -256,7 +266,7 @@ export interface AdminData {
     totalProposalsAccepted: number;
 
     // Investor KPIs
-    ruleOf40Score: number | null;    // growth% + margin% (null if no revenue yet)
+    ruleOf40Score: number | null;    // revenue growth% + margin% (null without verified revenue)
     ltvCacRatio: number | null;
     cacPaybackMonths: number | null;
     burnMultiple: number | null;

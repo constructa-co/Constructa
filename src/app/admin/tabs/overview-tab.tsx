@@ -3,10 +3,15 @@
 import KpiCard from "../components/kpi-card";
 import BarChart from "../components/bar-chart";
 import type { AdminData } from "../types";
-import { PLAN_PRICE_GBP } from "../types";
+import { gbpOrUnavailable, NO_VERIFIED_BILLING_LABEL, NO_VERIFIED_BILLING_NOTE } from "../revenue";
 
 function fmtGbp(n: number): string {
     return "£" + Math.round(n).toLocaleString("en-GB");
+}
+
+/** Revenue figures: "Unavailable" without verified billing, never £0. */
+function revenueGbp(n: number | null): string {
+    return gbpOrUnavailable(n, fmtGbp);
 }
 
 function fmtPct(n: number, decimals = 1): string {
@@ -60,7 +65,7 @@ function AlertStrip({ data }: { data: AdminData }) {
 // ─── Rule of 40 hero ──────────────────────────────────────────────────────────
 function RuleOf40Hero({ data }: { data: AdminData }) {
     const score = data.ruleOf40Score;
-    const growthPct = data.revenue.momGrowthPct ?? 0;
+    const growthPct = data.revenue.momGrowthPct;
     const marginPct = data.costs.grossMarginPct;
 
     const scoreColour =
@@ -109,7 +114,7 @@ function RuleOf40Hero({ data }: { data: AdminData }) {
                         </span>
                         <span className="text-zinc-600">+</span>
                         <span className="text-zinc-400">Margin:</span>
-                        <span className="text-amber-400 font-bold">{fmtPct(marginPct)}</span>
+                        <span className="text-amber-400 font-bold">{marginPct !== null ? fmtPct(marginPct) : "N/A"}</span>
                         <span className="text-zinc-600">=</span>
                         <span className={`font-extrabold ${scoreColour}`}>
                             {score === null ? "N/A" : score}
@@ -117,7 +122,7 @@ function RuleOf40Hero({ data }: { data: AdminData }) {
                     </div>
                     <span className="text-xs text-zinc-600">
                         {score === null
-                            ? "Score unavailable — no revenue data yet"
+                            ? "Score unavailable — no verified billing data"
                             : score >= 40
                             ? "Excellent — top-quartile SaaS performance"
                             : score >= 20
@@ -155,22 +160,11 @@ function InvestorKpi({ label, value, sub }: { label: string; value: string; sub?
 export default function OverviewTab({ data }: { data: AdminData }) {
     const { revenue, retention, costs } = data;
 
-    // Spark data: last 6 months MRR values
-    const mrrSparkData = revenue.mrrByMonth
-        .slice(-6)
-        .map((m) => m.mrr);
-
     // MAU delta %
     const mauDelta =
         retention.mauPrev > 0
             ? ((retention.mau - retention.mauPrev) / retention.mauPrev) * 100
             : null;
-
-    // Revenue bar chart data
-    const revenueChartData = revenue.mrrByMonth.map((m) => ({
-        label: m.label,
-        value: m.mrr,
-    }));
 
     // Signup bar chart data
     const signupChartData = data.monthlySignups.map((d) => ({
@@ -190,17 +184,15 @@ export default function OverviewTab({ data }: { data: AdminData }) {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <KpiCard
                     label="MRR"
-                    value={fmtGbp(revenue.mrr)}
+                    value={revenueGbp(revenue.mrr)}
                     delta={revenue.momGrowthPct}
                     deltaLabel="MoM"
-                    sparkData={mrrSparkData}
-                    accent={true}
-                    sublabel="Monthly recurring revenue"
+                    sublabel={revenue.mrr === null ? NO_VERIFIED_BILLING_NOTE : "Monthly recurring revenue"}
                 />
                 <KpiCard
                     label="ARR"
-                    value={fmtGbp(revenue.arr)}
-                    sublabel="Annualised recurring revenue"
+                    value={revenueGbp(revenue.arr)}
+                    sublabel={revenue.arr === null ? "No verified billing data" : "Annualised recurring revenue"}
                 />
                 <KpiCard
                     label="Active Users (MAU)"
@@ -224,13 +216,13 @@ export default function OverviewTab({ data }: { data: AdminData }) {
                 />
                 <KpiCard
                     label="ARPU"
-                    value={fmtGbp(revenue.arpu) + "/mo"}
-                    sublabel="Avg revenue per user"
+                    value={revenue.arpu === null ? NO_VERIFIED_BILLING_LABEL : fmtGbp(revenue.arpu) + "/mo"}
+                    sublabel={revenue.arpu === null ? "No verified billing data" : "Avg revenue per user"}
                 />
                 <KpiCard
                     label="LTV (est.)"
-                    value={fmtGbp(revenue.ltv)}
-                    sublabel="Lifetime value estimate"
+                    value={revenueGbp(revenue.ltv)}
+                    sublabel={revenue.ltv === null ? "No verified billing data" : "Lifetime value estimate"}
                 />
                 <KpiCard
                     label="Stickiness"
@@ -261,7 +253,7 @@ export default function OverviewTab({ data }: { data: AdminData }) {
                     <span className="text-zinc-400 text-xs font-semibold uppercase tracking-widest">This Month</span>
                     <QuickStat label="New signups" value={data.signupsThisMonth} />
                     <QuickStat label="MAU" value={retention.mau} />
-                    <QuickStat label="MRR" value={fmtGbp(revenue.mrr)} />
+                    <QuickStat label="MRR" value={revenueGbp(revenue.mrr)} />
                 </div>
             </div>
 
@@ -277,13 +269,19 @@ export default function OverviewTab({ data }: { data: AdminData }) {
                 </div>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 flex flex-col gap-3">
                     <span className="text-zinc-300 text-sm font-semibold">Revenue Trend (12mo)</span>
-                    <BarChart
-                        data={revenueChartData}
-                        height={80}
-                        showValues={false}
-                        formatValue={(v) => fmtGbp(v)}
-                        color="bg-emerald-600"
-                    />
+                    {revenue.mrrByMonth.length === 0 ? (
+                        <p className="text-zinc-500 text-sm" data-admin-revenue-unavailable>
+                            {NO_VERIFIED_BILLING_LABEL}: {NO_VERIFIED_BILLING_NOTE}
+                        </p>
+                    ) : (
+                        <BarChart
+                            data={revenue.mrrByMonth.map((m) => ({ label: m.label, value: m.mrr }))}
+                            height={80}
+                            showValues={false}
+                            formatValue={(v) => fmtGbp(v)}
+                            color="bg-emerald-600"
+                        />
+                    )}
                 </div>
             </div>
 
@@ -322,7 +320,7 @@ export default function OverviewTab({ data }: { data: AdminData }) {
                                     : data.ruleOf40Score >= 20
                                     ? "Acceptable"
                                     : "Below benchmark"
-                                : "Insufficient data"
+                                : "No verified billing data"
                         }
                     />
                 </div>

@@ -1,33 +1,53 @@
-# Pilot article — checking an estimate before sharing (DRAFT — UNPUBLISHED)
+# Check the scope before you price the job
 
-**Status:** Private repository draft for Rob editorial review. Not for publication until owner approval.
+**Proposed, Rob to review — unpublished**
 
-**Source guide (verify on hosted app):** [Checking an estimate before sharing](https://constructa-nu.vercel.app/guides/estimate-review)
+Kimi draft, 28 November 2026; R1 editorial review. Revision of the preserved A103 pilot, not a new public guide route.
 
-**Review links:** `https://constructa-nu.vercel.app/guides/estimate-review`. Intended `www.constructa.co` canonical unverified pending D89 domain handoff.
+A rate is only useful when you know what it has to cover. Before pricing, read the brief, drawings and specifications together and write down what is included, what is assumed and who is responsible for each part of the work.
 
----
+Do not assume that a list of items is a complete bill of quantities. Drawing measurement and scope review still need a person who understands the job. A first-principles build-up can help organise labour, materials, plant and other costs, but it cannot supply missing scope information.
 
-## Start with what you entered — not what you hope is there
+## Access and working arrangements
 
-Constructa organises the figures you save on Estimating; it does not measure drawings or price the job for you. Before anything goes to a client-facing preview, walk the estimate line by line: read each description, unit, quantity and rate against the work you intend to include. If a line describes the wrong trade, scope or unit of measure, fix it in the estimate — do not assume the proposal will “sort itself out” later.
+Check how the workforce, materials and plant will reach the work area. Look for restricted working hours, occupied premises, delivery limits, parking arrangements, welfare facilities and protection requirements. Consider whether access must be maintained for the client or other trades.
 
-## Credits versus allowances — different jobs in the sheet
+An apparently simple task may need additional supervision, temporary protection or shorter working periods. Record these as explicit assumptions or costs rather than leaving them hidden in a general allowance.
 
-Keep credits and allowances separate when checking the estimate.
+## Room clearance and preparation
 
-**Credits** are deductions or adjustments that reduce the price. They are not the same as a nominated-supplier allowance. For every credit, check the sign, the wording and what it does to the section total and the job total. Confirm it appears where you mean it to in the proposal preview, not buried where a client might miss it.
+Establish who clears each room and what “clear” means. Furniture, stored items, existing fittings and waste may all have different arrangements. Check whether items are being removed, relocated or protected in place.
 
-**Prime-cost and provisional-sum allowances** are separate entries with their own descriptions and exclusions. The product does not decide their contractual treatment for you. Read the descriptions you wrote, check the figures you entered, and make sure exclusions are explicit enough that you can stand behind the allowance in conversation.
+Also identify preparation needed before the measured work starts, such as isolations, making safe, removing obstructions or protecting finished surfaces. If the client is responsible, state what must be complete before your work begins.
 
-## Prelims, margins and the programme you have not checked yet
+## Client-supplied fittings
 
-Read preliminaries, overheads, risk and profit alongside the direct work items. Note whether preliminaries are explicit lines or percentage-based. The programme tab may move later; changing dates or durations does **not** automatically reprice time-related preliminaries. If access, duration or site set-up changes, revisit those lines yourself and check the revised scope and total before you open the proposal preview.
+List client-supplied items separately and describe the division of responsibility. Check who selects, orders, receives, stores and inspects them, and who is responsible for suitable quantities, compatible components and missing parts.
 
-## Finish on the actual preview — not a mental model
+Clarify whether your price includes unloading, handling, assembly, fixings, connections, testing or disposal of packaging. A fitting described as “supplied by client” does not explain any of these tasks by itself.
 
-Scope consistency is a manual check: does the estimate narrative match the brief and any detailed scope you saved? Read the proposal preview and draft PDF with the same scepticism you would apply to a spreadsheet export. Check section totals and the final total independently. Review VAT treatment against the job and information you have verified yourself — this is practical checking guidance, not tax or legal advice.
+## Quantities and rates
 
-Downloading a draft PDF sends nothing to the client. When you are satisfied, your closing check is simple: credits, allowances and the final total reflect the work you priced.
+For each quantity, record its source and whether it is measured, stated by others or assumed. Check the unit, the extent of work and any allowance for waste, laps, cutting or repeat visits. Keep provisional quantities visible so they can be reviewed when better information arrives.
 
-AI-assisted draft guidance, not human-expert reviewed.
+For each rate, check that the build-up matches the actual task. Labour should reflect handling, preparation and working conditions, not just the main installation activity. Materials and plant should cover the required ancillaries, consumables and standing time where applicable.
+
+## Exclusions and the company profile
+
+Use exclusions to identify work that is genuinely outside the price, such as alterations by others or repairs to undisclosed defects. Avoid broad wording that contradicts the brief or leaves normal parts of the described work unclear.
+
+Keep the company profile factual and relevant. Include only experience, competence, insurance and accreditations that can be supported. Explain the type of work the business is set up to deliver without inventing clients or overstating resources.
+
+Downloading a draft PDF in Constructa sends nothing to the client. Constructa’s receipt and intention-to-proceed response options are non-binding and do not accept the proposal. This guide does not settle contract formation or replace a review of the relevant wording.
+
+### Scope checklist
+
+- Access, working hours and protection agreed or stated as assumptions
+- Clearance, preparation and waste responsibilities identified
+- Client-supplied items and related tasks defined
+- Quantity sources, units and assumptions recorded
+- Rates matched to the actual work and conditions
+- Exclusions specific and consistent with the brief
+- Company profile accurate and supportable
+
+**Practical read-through:** Read the finished scope as if you were arriving to do the work. For every item, ask who provides it, who moves it, where it goes and what must happen before and after. Resolve or state every unclear answer before relying on the price.

@@ -148,4 +148,24 @@ describe("admin surfaces show unavailable revenue, never an assumed price", () =
             expect(text).toMatch(/MRR:\s+Unavailable/);
         },
     );
+
+    it("daily and weekly reports do not infer period activity from lifetime totals", async () => {
+        const data = await adminData(120);
+        const daily = generateReportText("daily", data);
+        const weekly = generateReportText("weekly", data);
+        expect(daily).not.toMatch(/Projects created today: ~\d+/);
+        expect(daily).not.toMatch(/AI calls today: ~\d+/);
+        expect(daily).toContain("Projects created today: Unavailable");
+        expect(weekly).not.toMatch(/vs ~\d+ last week/);
+        expect(weekly).not.toMatch(/Proposals sent this week: ~\d+/);
+        expect(weekly).toContain(`New signups this week: ${data.signupsThisWeek}`);
+    });
+
+    it("annual report omits unsupported product-market fit and margin-target narrative", async () => {
+        const text = generateReportText("annual", await adminData(40));
+        expect(text).not.toMatch(/(?:established|achieved|demonstrated) product-market fit/i);
+        expect(text).not.toMatch(/gross margin above 70%/i);
+        expect(text).not.toMatch(/ARR target via organic/i);
+        expect(text).toContain("No automated strategic narrative");
+    });
 });

@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-11-28 — D129 admin report period-activity truth (N5.1 residual)
+
+| File | Lines (approx) | Change | Intent |
+| --- | --- | --- | --- |
+| `src/app/admin/tabs/reports-tab.tsx` | daily/weekly/annual generators | Remove `/30`, `/4`, `/52` lifetime→period fabrications; label Unavailable; drop PMF/margin-target narrative | Honest admin emailed reports without inferred daily/weekly activity |
+| `src/app/admin/revenue.test.tsx` | report truth describe | Assert no fabricated period splits; annual has no PMF copy | Lock D129 behaviour in existing Vitest suite |
+
 ## 2026-11-28 — D124 N2.6 home contract value (estimate-first)
 
 | File | Change | Intent |
@@ -1163,3 +1170,5 @@ D78 R1: actual disposable journey reached estimating and found first-line save r
 ## 22 November — D92/D94 combined contractor critique
 
 Sonnet source critique plus independently reproduced pricing mismatch, top-down contractor pricing and programme metric maps, graded findings and reuse recommendations. Only must-fix is held schema draft #238. No new original-Grok closure or runtime/release claims. Existing detailed programme features explicitly reused rather than rebuilt.
+
+D129 R1 CI repair: narrow annual-report regression to unsupported affirmative product-market-fit claims; retain the explicit disclaimer. Initial cloud shard 2 caught an overbroad assertion matching that disclaimer. No local tests/builds run; normal follow-up commit, CI-only validation.

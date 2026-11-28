@@ -1,5 +1,15 @@
 # Cursor change log
 
+## 2026-11-28 — D124 brand visual review (PR 281 @ 5a65d1b4)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `temp-files/d124-brand-review/*.png` | 16 screenshots 375/1440 | Local SYNTH visual pack |
+| `docs/delivery/2026-11-28/d124-brand-visual-review.md` | Route matrix + drift notes | R1 evidence |
+| `docs/temp-files/d124-brand-visual-capture.spec.ts` | Playwright capture harness | Reproducible local capture |
+
+## 2026-11-28 — D122 F2792 local integration gate (no false PASS)
+
 ## 2026-11-28 — D123 R1 follow-up: root Avenir + charcoal theme + font/heading guard
 
 | File | Change | Intent |

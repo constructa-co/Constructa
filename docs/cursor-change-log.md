@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-11-28 — D122 F2792 local integration gate (no false PASS)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/boq-local-regression.local.test.ts` | Single `skipIf(!env)` integration; uncaught load on missing path | Exit 1 when path set but absent |
+| `src/lib/boq-local-regression.ts` | Validate FILE tab counts + 64-hex digest | `expectation_missing` on bad shapes |
+
 ## 2026-11-28 — D122 pack R1 (#279): FILE tab expectations + manifest gate
 
 | File | Change | Intent |

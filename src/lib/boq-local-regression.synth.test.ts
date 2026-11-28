@@ -146,6 +146,27 @@ describe("D122 — BOQ local regression SYNTH controls (CI)", () => {
         expect(rBlocker.codes_failed).toContain("blockers");
     });
 
+    it("negative: FILE tab with invalid digest or negative count fails expectation_missing", () => {
+        const entry = {
+            id: "bad-file-shape",
+            source: { kind: "file" as const, path: "/private/does-not-matter.xlsx" },
+            sha256: "00".repeat(32),
+            tab_count: 1,
+            sheets: [
+                {
+                    name: "Tab1",
+                    source_rows: 1,
+                    nonempty_rows: 1,
+                    numeric_cell_count: -1,
+                    numeric_cells_sha256: "not-hex",
+                },
+            ],
+        };
+        expect(fileManifestExpectationGaps(entry)).toBe(true);
+        const [result] = runBoqLocalRegression({ schema_version: 1, workbooks: [entry] });
+        expect(result.codes_failed).toContain("expectation_missing");
+    });
+
     it("negative: thin FILE manifest (name-only tab) fails expectation_missing before IO", () => {
         const entry = {
             id: "thin-file",

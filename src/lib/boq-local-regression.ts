@@ -127,17 +127,19 @@ export function loadBoqLocalManifest(path: string): BoqLocalManifest {
     return raw;
 }
 
-const REQUIRED_TAB_EXPECTATION_KEYS = [
-    "source_rows",
-    "nonempty_rows",
-    "numeric_cell_count",
-    "numeric_cells_sha256",
-] as const satisfies readonly (keyof BoqLocalSheetExpectation)[];
+function isValidNonNegativeInteger(n: unknown): boolean {
+    return typeof n === "number" && Number.isFinite(n) && Number.isInteger(n) && n >= 0;
+}
+
+function isValidNumericDigestHex(s: unknown): boolean {
+    return typeof s === "string" && /^[0-9a-f]{64}$/i.test(s.trim());
+}
 
 function sheetExpectationMissing(exp: BoqLocalSheetExpectation): boolean {
-    if (exp.source_rows === undefined || exp.nonempty_rows === undefined) return true;
-    if (exp.numeric_cell_count === undefined) return true;
-    if (typeof exp.numeric_cells_sha256 !== "string" || !exp.numeric_cells_sha256.trim()) return true;
+    if (!isValidNonNegativeInteger(exp.source_rows)) return true;
+    if (!isValidNonNegativeInteger(exp.nonempty_rows)) return true;
+    if (!isValidNonNegativeInteger(exp.numeric_cell_count)) return true;
+    if (!isValidNumericDigestHex(exp.numeric_cells_sha256)) return true;
     return false;
 }
 

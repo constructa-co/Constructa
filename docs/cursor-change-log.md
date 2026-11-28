@@ -1,5 +1,18 @@
 # Cursor change log
 
+## 2026-11-28 — D123 R1 follow-up: root Avenir + charcoal theme + font/heading guard
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/app/layout.tsx` | Drop Inter; theme-color `#0d0d0d` | Whole-app Avenir via globals |
+| `src/app/globals.css` | Body Avenir stack | Canonical sans (scoped modules keep serif/mono) |
+| `public/manifest.json` | `theme_color` charcoal | PWA chrome off brand blue |
+| `src/app/global-error.tsx` | Avenir + sage Try again | Root fallback matches palette |
+| `src/lib/a001-brand-consistency-guard.ts` | Font/theme/heading patterns; line exceptions | No whole-file admin skip |
+| `src/lib/a001-brand-consistency-guard.test.ts` | Root pins, negatives, admin inclusive scan | Catches drift without CSS module noise |
+
+**Intentional exceptions (evidence):** Contract Shield purple primaries — `client-contract-editor.tsx` lines matching `bg-purple-600`…`hover:bg-purple-700`. Proposal PDF preview serif — `review-send-client.tsx` `h2#doc-response` `font-serif`. Data-vis — `portfolio-client.tsx` `#2563eb` in chart colour array only.
+
 ## 2026-11-28 — D123 A001 whole-app brand consistency (item 2)
 
 | File | Change | Intent |

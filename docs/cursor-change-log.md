@@ -1,5 +1,15 @@
 # Cursor change log
 
+## 2026-11-28 — D124 N2.6 home contract value (estimate-first)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/home-project-contract-value.ts` | New helper | Canonical when estimate exists; potential only without estimate |
+| `src/app/dashboard/home/home-client.tsx` | Use helper | Fix zero/negative estimate replaced by pipeline potential |
+| `src/lib/home-project-contract-value.test.ts` | zero / negative / no-estimate | N2.6 regression |
+
+## 2026-11-28 — D124 brand visual review (PR 281 @ 5a65d1b4)
+
 ## 2026-11-27 — D116 public enquiry email on cohort footer and pricing
 
 | File | Change | Intent |

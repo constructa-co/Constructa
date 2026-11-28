@@ -11,6 +11,25 @@ import ProjectLiveClient from "./project-live-client";
 // prelims rows, PC/provisional sums, credits and the legacy total_cost
 // fallback behave exactly as on the P&L and billing pages.
 import { computeBudgetCost, computeContractSumValue } from "@/lib/financial";
+import { liveFigures, totalOrUnavailable, type LiveUnavailable } from "./live-data";
+
+// D124 N2.5: a failed read must never render as an empty or £0 position.
+// Critical reads (the project list, the project, its estimates) throw to the
+// dashboard error boundary. Secondary reads (cost entries, invoices,
+// variations) are reported as unavailable, and every figure that depends on
+// them shows as unavailable rather than zero.
+function failed(scope: string, error: unknown): never {
+    console.error(`[live] ${scope} query failed`, error);
+    throw new Error(`Live Projects could not load ${scope}.`);
+}
+
+function secondary<T>(scope: string, result: { data: T[] | null; error: unknown }): T[] | null {
+    if (result.error) {
+        console.error(`[live] ${scope} query failed`, result.error);
+        return null;
+    }
+    return result.data ?? [];
+}
 
 export default async function LiveProjectsPage(props: { searchParams: Promise<{ projectId?: string }> }) {
     const searchParams = await props.searchParams;
@@ -23,13 +42,7 @@ export default async function LiveProjectsPage(props: { searchParams: Promise<{ 
 
     // ── Per-project live view ─────────────────────────────────────────────────
     if (projectId) {
-        const [
-            { data: project },
-            { data: estimates },
-            { data: expenses },
-            { data: invoices },
-            { data: variations },
-        ] = await Promise.all([
+        const [projectResult, estimatesResult, expensesResult, invoicesResult, variationsResult] = await Promise.all([
             supabase.from("projects").select("id, name, client_name, site_address, start_date, project_type").eq("id", projectId).eq("user_id", user.id).single(),
             supabase.from("estimates").select("*, estimate_lines(*)").eq("project_id", projectId),
             supabase.from("project_expenses").select("*").eq("project_id", projectId).order("expense_date", { ascending: false }),
@@ -37,36 +50,35 @@ export default async function LiveProjectsPage(props: { searchParams: Promise<{ 
             supabase.from("variations").select("*").eq("project_id", projectId).order("created_at", { ascending: false }),
         ]);
 
+        // PGRST116 is "no row": the project is not this user's or does not exist.
+        if (projectResult.error && projectResult.error.code !== "PGRST116") failed("this project", projectResult.error);
+        const project = projectResult.data;
         if (!project) redirect("/dashboard/live");
+        if (estimatesResult.error) failed("this project's estimates", estimatesResult.error);
 
-        const activeEstimate = estimates?.find((e: any) => e.is_active) ?? estimates?.[0] ?? null;
+        const estimates = estimatesResult.data ?? [];
+        const expenses = secondary("cost entries", expensesResult);
+        const invoices = secondary("invoices", invoicesResult);
+        const variations = secondary("variations", variationsResult);
+
+        const activeEstimate = estimates.find((e: any) => e.is_active) ?? estimates[0] ?? null;
         const lines: any[] = activeEstimate?.estimate_lines ?? [];
-        const budgetCost = activeEstimate ? computeBudgetCost(activeEstimate, lines) : 0;
-        const contractValue = activeEstimate ? computeContractSumValue(activeEstimate, lines) : 0;
-
-        const costsPosted      = (expenses ?? []).reduce((s: number, e: any) => s + Number(e.amount), 0);
-        const invoicedTotal    = (invoices ?? []).reduce((s: number, i: any) => s + Number(i.amount), 0);
-        const receivedTotal    = (invoices ?? []).filter((i: any) => i.status === "Paid").reduce((s: number, i: any) => s + Number(i.amount), 0);
-        const approvedVarTotal = (variations ?? []).filter((v: any) => v.status === "Approved").reduce((s: number, v: any) => s + Number(v.amount), 0);
-        const revisedValue     = contractValue + approvedVarTotal;
-        const budgetBurnPct    = budgetCost > 0 ? Math.min((costsPosted / budgetCost) * 100, 150) : 0;
-        const completionPct    = revisedValue > 0 ? Math.min((invoicedTotal / revisedValue) * 100, 100) : 0;
-        const estimatedMarginPct = contractValue > 0 ? ((contractValue - budgetCost) / contractValue) * 100 : 0;
+        const figures = liveFigures({
+            contractValue: activeEstimate ? computeContractSumValue(activeEstimate, lines) : 0,
+            budgetCost: activeEstimate ? computeBudgetCost(activeEstimate, lines) : 0,
+            expenses,
+            invoices,
+            variations,
+        });
+        const unavailable: LiveUnavailable = { costs: expenses === null, invoices: invoices === null, variations: variations === null };
 
         return (
             <div className="max-w-5xl mx-auto px-6 py-8 min-h-screen">
                 <ProjectLiveClient
                     projectId={projectId}
                     project={project}
-                    contractValue={contractValue}
-                    budgetCost={budgetCost}
-                    costsPosted={costsPosted}
-                    invoicedTotal={invoicedTotal}
-                    receivedTotal={receivedTotal}
-                    approvedVarTotal={approvedVarTotal}
-                    budgetBurnPct={budgetBurnPct}
-                    completionPct={completionPct}
-                    estimatedMarginPct={estimatedMarginPct}
+                    figures={figures}
+                    unavailable={unavailable}
                     costs={expenses ?? []}
                     invoices={invoices ?? []}
                     variations={variations ?? []}
@@ -76,13 +88,16 @@ export default async function LiveProjectsPage(props: { searchParams: Promise<{ 
     }
 
     // ── Portfolio overview ────────────────────────────────────────────────────
-    const { data: projects } = await supabase
+    const { data: projectRows, error: projectsError } = await supabase
         .from("projects")
         .select("id, name, client_name, project_type, site_address, proposal_status, potential_value, start_date, created_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-    if (!projects || projects.length === 0) {
+    if (projectsError) failed("your projects", projectsError);
+    const projects = projectRows ?? [];
+
+    if (projects.length === 0) {
         return (
             <div className="max-w-7xl mx-auto px-6 py-8 min-h-screen">
                 <div className="mb-6">
@@ -99,12 +114,7 @@ export default async function LiveProjectsPage(props: { searchParams: Promise<{ 
 
     const projectIds = projects.map(p => p.id);
 
-    const [
-        { data: allExpenses },
-        { data: allInvoices },
-        { data: allVariations },
-        { data: allEstimates },
-    ] = await Promise.all([
+    const [expensesResult, invoicesResult, variationsResult, estimatesResult] = await Promise.all([
         supabase.from("project_expenses").select("project_id, amount").in("project_id", projectIds),
         supabase.from("invoices").select("project_id, amount, status").in("project_id", projectIds),
         supabase.from("variations").select("project_id, amount, status").in("project_id", projectIds),
@@ -113,9 +123,17 @@ export default async function LiveProjectsPage(props: { searchParams: Promise<{ 
             .in("project_id", projectIds),
     ]);
 
+    // Without estimates every contract value and margin would fall back to a guess.
+    if (estimatesResult.error) failed("your estimates", estimatesResult.error);
+    const allEstimates = estimatesResult.data ?? [];
+    const allExpenses = secondary("cost entries", expensesResult);
+    const allInvoices = secondary("invoices", invoicesResult);
+    const allVariations = secondary("variations", variationsResult);
+    const unavailable: LiveUnavailable = { costs: allExpenses === null, invoices: allInvoices === null, variations: allVariations === null };
+
     // Build enriched project data
     const enriched = projects.map(proj => {
-        const estimates = (allEstimates ?? []).filter(e => e.project_id === proj.id);
+        const estimates = allEstimates.filter(e => e.project_id === proj.id);
         const activeEst = estimates.find(e => e.is_active) ?? estimates[0] ?? null;
 
         let contractValue = Number(proj.potential_value) || 0;
@@ -126,20 +144,13 @@ export default async function LiveProjectsPage(props: { searchParams: Promise<{ 
             budgetCost = computeBudgetCost(activeEst, activeEst.estimate_lines ?? []);
         }
 
-        const expenses    = (allExpenses ?? []).filter(e => e.project_id === proj.id);
-        const invoices    = (allInvoices ?? []).filter(i => i.project_id === proj.id);
-        const variations  = (allVariations ?? []).filter(v => v.project_id === proj.id);
-
-        const costsPosted        = expenses.reduce((s, e) => s + Number(e.amount), 0);
-        const invoicedTotal      = invoices.reduce((s, i) => s + Number(i.amount), 0);
-        const receivedTotal      = invoices.filter(i => i.status === "Paid").reduce((s, i) => s + Number(i.amount), 0);
-        const approvedVariations = variations.filter(v => v.status === "Approved").reduce((s, v) => s + Number(v.amount), 0);
-        const revisedValue       = contractValue + approvedVariations;
-
-        const estimatedMarginPct = contractValue > 0 ? ((contractValue - budgetCost) / contractValue) * 100 : 0;
-        const completionPct      = revisedValue > 0 ? Math.min((invoicedTotal / revisedValue) * 100, 100) : 0;
-        const budgetBurnPct      = budgetCost > 0 ? Math.min((costsPosted / budgetCost) * 100, 150) : 0;
-        const hasActivity        = costsPosted > 0 || invoicedTotal > 0 || variations.length > 0;
+        const figures = liveFigures({
+            contractValue,
+            budgetCost,
+            expenses: allExpenses && allExpenses.filter(e => e.project_id === proj.id),
+            invoices: allInvoices && allInvoices.filter(i => i.project_id === proj.id),
+            variations: allVariations && allVariations.filter(v => v.project_id === proj.id),
+        });
 
         return {
             id: proj.id,
@@ -150,24 +161,14 @@ export default async function LiveProjectsPage(props: { searchParams: Promise<{ 
             proposal_status: proj.proposal_status,
             start_date: proj.start_date,
             updated_at: proj.created_at,
-            contractValue,
-            budgetCost,
-            revisedValue,
-            costsPosted,
-            invoicedTotal,
-            receivedTotal,
-            approvedVariations,
-            estimatedMarginPct,
-            completionPct,
-            budgetBurnPct,
-            hasActivity,
+            ...figures,
         };
     });
 
     const totalContractValue = enriched.reduce((s, p) => s + p.contractValue, 0);
-    const totalCosts         = enriched.reduce((s, p) => s + p.costsPosted, 0);
-    const totalInvoiced      = enriched.reduce((s, p) => s + p.invoicedTotal, 0);
-    const totalOutstanding   = enriched.reduce((s, p) => s + (p.invoicedTotal - p.receivedTotal), 0);
+    const totalCosts         = totalOrUnavailable(enriched.map(p => p.costsPosted));
+    const totalInvoiced      = totalOrUnavailable(enriched.map(p => p.invoicedTotal));
+    const totalOutstanding   = totalOrUnavailable(enriched.map(p => p.outstanding));
 
     return (
         <div className="max-w-7xl mx-auto px-6 py-8 min-h-screen">
@@ -184,6 +185,7 @@ export default async function LiveProjectsPage(props: { searchParams: Promise<{ 
                 totalCosts={totalCosts}
                 totalInvoiced={totalInvoiced}
                 totalOutstanding={totalOutstanding}
+                unavailable={unavailable}
             />
         </div>
     );

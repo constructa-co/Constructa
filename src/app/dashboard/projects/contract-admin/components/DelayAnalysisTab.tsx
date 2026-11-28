@@ -298,7 +298,7 @@ export function DelayAnalysisTab({ projectId, projectName, contractType }: Props
                     <div className="pt-3 border-t border-white/10 flex items-center gap-3">
                         <button
                             onClick={handleNarrative} disabled={drafting}
-                            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                            className={`flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                         >
                             {drafting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
                             {drafting ? "Drafting..." : "Generate AI Narrative"}

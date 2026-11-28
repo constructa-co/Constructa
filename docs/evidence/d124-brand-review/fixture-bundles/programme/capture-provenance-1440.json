@@ -1,0 +1,45 @@
+{
+  "viewport": "1440",
+  "capturedAt": "2026-11-28T05:49:17.851Z",
+  "routeId": "programme",
+  "fixtureRootContext": {
+    "source": "src/app/layout.tsx",
+    "bodyClassAttribute": "bg-black text-white antialiased",
+    "bodyClassList": [
+      "bg-black",
+      "text-white",
+      "antialiased"
+    ]
+  },
+  "theme": {
+    "provider": "none",
+    "requested": null,
+    "effective": "detailed-geometry (ClientSchedulePage only; no ThemeProvider)"
+  },
+  "body": {
+    "fontFamily": "\"Avenir Next\", Avenir, \"Gill Sans\", \"Trebuchet MS\", sans-serif",
+    "backgroundColor": "rgb(0, 0, 0)",
+    "color": "rgb(255, 255, 255)",
+    "webkitFontSmoothing": "antialiased"
+  },
+  "appShell": {
+    "backgroundColor": "rgba(0, 0, 0, 0)",
+    "color": "rgb(255, 255, 255)",
+    "fontFamily": "\"Avenir Next\", Avenir, \"Gill Sans\", \"Trebuchet MS\", sans-serif"
+  },
+  "plannerLane": {
+    "backgroundColor": "rgba(0, 0, 0, 0)",
+    "color": "rgb(255, 255, 255)"
+  },
+  "sampleLink": null,
+  "sampleButton": {
+    "backgroundColor": "rgb(30, 41, 59)",
+    "color": "rgb(203, 213, 225)",
+    "fontFamily": "\"Avenir Next\", Avenir, \"Gill Sans\", \"Trebuchet MS\", sans-serif"
+  },
+  "stylesheetHints": {
+    "styleTags": 2,
+    "hasSynthBanner": false,
+    "tailwindCompiled": true
+  }
+}

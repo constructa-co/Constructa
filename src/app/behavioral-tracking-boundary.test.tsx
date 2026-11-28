@@ -5,7 +5,6 @@ import RootLayout from './layout';
 import FullLandingPage from '@/components/marketing/full-landing';
 import PublicAnalytics from '@/components/public-analytics';
 
-vi.mock('next/font/google', () => ({ Inter: () => ({ className: 'test-font' }) }));
 vi.mock('@/components/public-chrome', () => ({ default: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 vi.mock('next/script', () => ({ default: ({ children, id, src }: { children?: React.ReactNode; id?: string; src?: string }) => <script async id={id} src={src}>{children}</script> }));
 vi.mock('next/image', () => ({ default: () => null }));

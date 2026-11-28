@@ -2,6 +2,7 @@
 
 import { useRef, useState, useCallback } from "react";
 import { Video, Upload, Loader2, AlertTriangle, X, CheckCircle, Eye, ChevronDown, ChevronRight } from "lucide-react";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 import { analyzeVideoAction, transcribeAudioAction, type VideoAnalysisResult } from "./actions";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -387,7 +388,7 @@ export default function VideoWalkthrough({ onApply }: Props) {
                             ) : (
                                 <button
                                     onClick={handleApply}
-                                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition-colors"
+                                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                                 >
                                     Apply to Brief
                                 </button>

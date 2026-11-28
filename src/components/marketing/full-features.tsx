@@ -145,7 +145,7 @@ export default function FullFeaturesPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-12 text-center items-center mb-16">
             <div className="mb-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-purple-500 mb-2 block font-sans">Part 03 — Tracking</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-2 block font-sans">Part 03 — Tracking</span>
               <h2 className="text-4xl md:text-6xl font-black tracking-normal text-white uppercase">Track &nbsp;it</h2>
             </div>
             <p className="text-gray-300 text-lg md:text-xl max-w-3xl leading-relaxed font-medium">
@@ -163,7 +163,7 @@ export default function FullFeaturesPage() {
                   className="object-contain mix-blend-screen brightness-95 [mask-image:radial-gradient(ellipse_at_center,black_70%,transparent_100%)] transition-transform duration-700 group-hover:scale-[1.02]"
                 />
               </div>
-              <div className="absolute -inset-4 bg-purple-500/10 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+              <div className="absolute -inset-4 bg-emerald-500/10 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
             </div>
             
             <div className="order-1 lg:order-2">
@@ -176,8 +176,8 @@ export default function FullFeaturesPage() {
                   { title: "Centralised Cost Tracking", desc: "Avoid spreadsheet chaos with centralised tracking" }
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-4 p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/[0.08] transition-colors group/item shadow-sm">
-                    <div className="mt-1 w-5 h-5 rounded-full bg-purple-500/20 flex items-center justify-center border border-purple-500/30 group-hover/item:bg-purple-500/40 transition-colors">
-                      <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                    <div className="mt-1 w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 group-hover/item:bg-emerald-500/40 transition-colors">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                     </div>
                     <div>
                       <div className="font-bold text-white text-sm uppercase tracking-tight mb-0.5">{item.title}</div>

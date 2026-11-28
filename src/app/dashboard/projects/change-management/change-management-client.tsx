@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Trash2, Loader2, ChevronDown, ChevronUp, Pencil } from "lucide-react";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 import { createChangeEventAction, updateChangeEventAction, deleteChangeEventAction } from "./actions";
 
 const gbp = (n: number | null | undefined) =>
@@ -247,7 +248,7 @@ export default function ChangeManagementClient({ projectId, project, initialEven
                 <div className="flex-1" />
                 <button
                     onClick={() => setShowCreate(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold hover:bg-violet-500 transition-colors"
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}
                 >
                     <Plus className="w-4 h-4" />
                     New Change Event
@@ -467,7 +468,7 @@ export default function ChangeManagementClient({ projectId, project, initialEven
                                 Cancel
                             </button>
                             <button type="submit" disabled={isPending}
-                                className="flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold hover:bg-violet-500 disabled:opacity-50 transition-colors">
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50 transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
                                 {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                                 Create Event
                             </button>
@@ -574,7 +575,7 @@ export default function ChangeManagementClient({ projectId, project, initialEven
                                 Cancel
                             </button>
                             <button type="submit" disabled={isPending}
-                                className="flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold hover:bg-violet-500 disabled:opacity-50 transition-colors">
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50 transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
                                 {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                                 Save Changes
                             </button>

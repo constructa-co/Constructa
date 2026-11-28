@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Trash2, Loader2, Star, Sparkles, Copy, Pencil } from "lucide-react";
+import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
 import {
     upsertLessonsLearnedAction,
     createLessonItemAction,
@@ -445,7 +446,7 @@ export default function LessonsClient({ projectId, project, review, initialItems
                         <p className="text-xs text-slate-500 mt-0.5">Auto-generated summary based on your review data and lesson items</p>
                     </div>
                     <button onClick={handleGenerate} disabled={isGenerating || initialItems.length === 0}
-                        className="flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold hover:bg-violet-500 disabled:opacity-50 transition-colors">
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50 transition-colors ${corePrimaryButton} hover:bg-[#e0f9e3] ${coreFocusVisibleRing}`}>
                         {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                         {isGenerating ? "Generating…" : aiNarrative ? "Regenerate" : "Generate"}
                     </button>

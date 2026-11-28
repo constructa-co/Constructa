@@ -1,0 +1,110 @@
+{
+  "sourceSha": "5a65d1b45cea73ea068a9fcf77dc1dc87410aaca",
+  "capturedAt": "2026-11-28",
+  "records": [
+    {
+      "routeId": "landing",
+      "viewport": "375",
+      "revealForced": true,
+      "blockers": [],
+      "reviewCaptures": {
+        "present": true,
+        "heldViewportBoxOnHome": false,
+        "note": "Home uses direct <img> in figure (no .viewport padding-top box). Large blanks in uncorrected full-page shots were lazy below-fold decode / unrevealed sections, not product-page 62.5% held spacing.",
+        "images": [
+          {
+            "complete": true,
+            "naturalWidth": 330,
+            "naturalHeight": 804,
+            "displayHeight": 804.890625,
+            "currentSrcTail": "_next/image?url=%2F_next%2Fstatic%2Fmedia%2F01-estimate-price-adjustments-390x844.0to1lkggvxuv_.jpg&w=640&q=75"
+          },
+          {
+            "complete": true,
+            "naturalWidth": 330,
+            "naturalHeight": 715,
+            "displayHeight": 715.171875,
+            "currentSrcTail": "_next/image?url=%2F_next%2Fstatic%2Fmedia%2F02-programme-saved-stages-390x844.1pmq6uy0dpzuu.jpg&w=640&q=75"
+          }
+        ]
+      }
+    },
+    {
+      "routeId": "product",
+      "viewport": "375",
+      "revealForced": true,
+      "blockers": [],
+      "productScreenshots": {
+        "viewportPaddingTopPercent": "62.5% (estimate 70%)",
+        "programmeZoomTranslateY": "-29%",
+        "note": "Intentional held layout from product-screenshots.module.css (.viewport padding-top + programme zoom). Distinguish from blank lazy-load failures inside the box."
+      }
+    },
+    {
+      "routeId": "pricing",
+      "viewport": "375",
+      "revealForced": true,
+      "blockers": []
+    },
+    {
+      "routeId": "login",
+      "viewport": "375",
+      "revealForced": true,
+      "blockers": []
+    },
+    {
+      "routeId": "landing",
+      "viewport": "1440",
+      "revealForced": true,
+      "blockers": [],
+      "reviewCaptures": {
+        "present": true,
+        "heldViewportBoxOnHome": false,
+        "note": "Home uses direct <img> in figure (no .viewport padding-top box). Large blanks in uncorrected full-page shots were lazy below-fold decode / unrevealed sections, not product-page 62.5% held spacing.",
+        "images": [
+          {
+            "complete": true,
+            "naturalWidth": 1080,
+            "naturalHeight": 1775,
+            "displayHeight": 2104,
+            "currentSrcTail": "_next/image?url=%2F_next%2Fstatic%2Fmedia%2F01-estimate-price-adjustments-1440x900.0egjwiav8bu92.jpg&w=1920&q=75"
+          },
+          {
+            "complete": true,
+            "naturalWidth": 1080,
+            "naturalHeight": 1594,
+            "displayHeight": 1889.765625,
+            "currentSrcTail": "_next/image?url=%2F_next%2Fstatic%2Fmedia%2F02-programme-saved-stages-1440x900.17dg04friy1nt.jpg&w=1920&q=75"
+          }
+        ]
+      }
+    },
+    {
+      "routeId": "product",
+      "viewport": "1440",
+      "revealForced": true,
+      "blockers": [],
+      "productScreenshots": {
+        "viewportPaddingTopPercent": "62.5% (estimate 70%)",
+        "programmeZoomTranslateY": "-29%",
+        "note": "Intentional held layout from product-screenshots.module.css (.viewport padding-top + programme zoom). Distinguish from blank lazy-load failures inside the box."
+      }
+    },
+    {
+      "routeId": "pricing",
+      "viewport": "1440",
+      "revealForced": true,
+      "blockers": []
+    },
+    {
+      "routeId": "login",
+      "viewport": "1440",
+      "revealForced": true,
+      "blockers": []
+    }
+  ],
+  "interpretation": {
+    "heldSpacingCss": "Product page .viewport reserves height via padding-top 62.5–70%; programme crop uses translateY(-29%). This is existing layout, not a D124 spacing fix.",
+    "homeReviewCaptures": "Landing #review-captures has no viewport box; uncorrected empties were capture-timing (data-reveal + lazy img), corrected by reveal-all + scroll/wait."
+  }
+}

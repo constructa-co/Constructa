@@ -1,0 +1,64 @@
+{
+  "id": "d124-synth-workflow-receipt",
+  "branch": "codex/d123-brand-consistency-20261128",
+  "sourceSha": "5a65d1b45cea73ea068a9fcf77dc1dc87410aaca",
+  "status": "COMPLETE_BOUNDED",
+  "verifiedAt": "2026-11-28",
+  "synthPngCount": 8,
+  "programme": {
+    "scenario": "detailed-geometry",
+    "component": "ClientSchedulePage",
+    "renderClass": "SYNTH_COMPONENT_VISUAL",
+    "coverage": true,
+    "priorFailure": {
+      "symptom": "Playwright timeout; empty #app; 3× identical blocked PNGs",
+      "technicalBlocker": "ClientSchedulePage reads sessionStorage on mount; about:blank CSP fixture had no sessionStorage shim (only localStorage in entry until e554a466 detailed-geometry-entry fix)",
+      "notCoverageLabel": "Prior RUNTIME_BLOCKED route screenshots superseded; not retained as workflow coverage"
+    },
+    "bundleFix": "e2e/local-phase1/detailed-geometry-entry.tsx — in-memory sessionStorage + localStorage before mount",
+    "verification": "playwright --grep 'programme — component' 2/2 passed (375, 1440); png/programme_*.png present (~80–88KB)"
+  },
+  "proposalCaptureDefect": {
+    "symptom": "SYNTH PNGs: serif stack, default blue links, native buttons on white body",
+    "rootCause": "e2e/local-phase1/build-brief-price.mjs Tailwind compile gate (~249) included a003/detailed-geometry/d124-brand-home but not legacy proposal-view",
+    "fix": "D124-only scenario d124-brand-proposal + d124-brand-proposal-entry.tsx; proposal-view semantics unchanged",
+    "provenance": "fixture-bundles/proposal/capture-provenance-{375,1440}.json",
+    "verifiedComputed": {
+      "fontFamily": "Avenir Next stack",
+      "appShellBackground": "rgb(13, 13, 13)",
+      "sampleLinkColor": "rgb(201, 239, 207)",
+      "componentsCssBytes": 175455,
+      "nativeRadioAccentColor": "rgb(5, 150, 105) (accent-emerald-600)"
+    },
+    "sourceColourFix": {
+      "file": "review-send-client.tsx",
+      "change": "coreFormAccent on 8 native radio/checkbox controls",
+      "not": "No wording/price/math/handler changes"
+    }
+  },
+  "fixtureRootBodyContext": {
+    "finding": "Programme 375 white body + grey translucent panels traced to FIXTURE_HTML bare <body> (no layout.tsx classes)",
+    "fix": "Harness body class bg-black text-white antialiased matches src/app/layout.tsx — local fixture only",
+    "not": "Not a System C palette rollback or production change",
+    "recaptured": ["programme_375", "programme_1440", "proposal_375", "proposal_1440"],
+    "reusedPngs": {
+      "dashboard": "No recapture — appearance expected unchanged; note bare-body prior capture in manifest",
+      "estimate": "No recapture — same"
+    }
+  },
+  "programmeContrastLimitation": {
+    "fixture": "detailed-geometry (A059) — Tailwind yes, no ThemeProvider",
+    "observation": "Inner planner panels may still use product slate/grey tokens on black root; not repainted for D124",
+    "provenance": "fixture-bundles/programme/capture-provenance-{375,1440}.json",
+    "label": "Fixture root now matches app layout; inner contrast is product chrome — not whole-app zero drift"
+  },
+  "otherWorkflow": {
+    "dashboard": "d124-brand-home → HomeClient",
+    "estimate": "a003-palette → EstimateClient",
+    "proposal": "d124-brand-proposal → ReviewSendClient + ThemeProvider + compiled Tailwind"
+  },
+  "outOfScopeThisLane": {
+    "n26_home_enrichedContractValue": "Independent review: helper may compute value not surfaced in Home UI; no visible repair on 281; Rob-gated; preserve codex/d124-home-canonical-sum-20261128 @ fa9e4919",
+    "pr284_285_286": "R1 triage only; no builder changes here"
+  }
+}

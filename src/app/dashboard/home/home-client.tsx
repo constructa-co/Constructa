@@ -11,7 +11,7 @@ import { isActiveProject, isPipelineProject, isClosedProject } from "@/lib/proje
 // compound calculation that hard-coded a 5% risk rate and ignored the
 // estimate's risk_pct. Pulled from the shared financial library so Home's
 // "contract value" agrees with every other surface.
-import { computeContractSumValue } from "@/lib/financial";
+import { homeProjectContractValue } from "@/lib/home-project-contract-value";
 import { totalHomePipelineValue } from "@/lib/pipeline-value";
 import { calendarDayDiff } from "@/lib/dates";
 import { getHomePresentation } from "@/lib/first-session";
@@ -288,8 +288,7 @@ export default function HomeClient({ projects, profile, estimates, invoices, var
         // proposal / final-account / management-accounts.
         const est = estimates.find(e => e.project_id === p.id);
         const lines = Array.isArray(est?.estimate_lines) ? est.estimate_lines : [];
-        const canonical = est ? computeContractSumValue(est, lines) : 0;
-        const contractValue = canonical > 0 ? canonical : (p.potential_value ?? 0);
+        const contractValue = homeProjectContractValue(est, lines, p.potential_value);
 
         return { ...p, projOutstanding, projOverdue, projPendingVars, projOpenRfis, projOpenCEs, progDelay, contractValue };
     });

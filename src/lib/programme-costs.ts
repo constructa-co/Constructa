@@ -188,6 +188,35 @@ export function parseProgrammeCostInputs(raw: unknown): { ok: true; inputs: Prog
     return errors.length ? { ok: false, errors } : { ok: true, inputs };
 }
 
+/**
+ * Problems with settings sent to be applied (checked on the server before
+ * anything is priced or written). Settings sent to be applied must be the
+ * current version, and every stage anchor must carry the name of the stage
+ * it was set against, so a renamed or moved stage is refused rather than
+ * followed. A stage anchor without a name (a D121 form, or a hand-built
+ * request) is refused here: it is never bound to whichever stage holds that
+ * position now. Stored D121 notes and settings are still read, unchanged, by
+ * parseProgrammeCostInputs.
+ */
+export function programmeCostApplyProblems(raw: unknown): string[] {
+    const settings = raw as { version?: unknown; hires?: unknown } | null;
+    if (!settings || typeof settings !== "object" || settings.version !== 2) {
+        return ["These programme cost settings are from an earlier version of this page. Reload the estimate and review the programme costs again."];
+    }
+    if (!Array.isArray(settings.hires)) return [];
+    return settings.hires.flatMap((hire: unknown) => {
+        const entry = hire as { description?: unknown; onHire?: unknown; offHire?: unknown } | null;
+        if (!entry || typeof entry !== "object") return [];
+        const unnamed = [entry.onHire, entry.offHire].some((anchor) => {
+            const value = anchor as { kind?: unknown; stageName?: unknown } | null;
+            return !!value && typeof value === "object" && (value.kind === "stage_start" || value.kind === "stage_finish") && typeof value.stageName !== "string";
+        });
+        if (!unnamed) return [];
+        const label = typeof entry.description === "string" && entry.description.trim() ? entry.description.trim().slice(0, 200) : "A plant hire";
+        return [`"${label}": its hire stages were set without the stage name. Choose its on-hire and off-hire stages again, then review the costs.`];
+    });
+}
+
 // ── The programme, as working shift-days ─────────────────────────────────────
 
 export interface ProgrammeCostSource {

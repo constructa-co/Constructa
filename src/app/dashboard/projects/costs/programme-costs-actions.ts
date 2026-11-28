@@ -13,6 +13,7 @@ import {
     hireDatesForNote,
     hireIdFromLineKey,
     planProgrammeCostApplication,
+    programmeCostApplyProblems,
     programmeCostLineNote,
 } from "@/lib/programme-costs";
 import { recalcEstimateTotal } from "./estimate-total";
@@ -93,6 +94,10 @@ export async function applyProgrammeCostsAction(request: ApplyProgrammeCostsRequ
     } catch (error) {
         return { ok: false, error: error instanceof Error ? error.message : "This estimate cannot be changed." };
     }
+
+    // Only current settings with named stage anchors are applied; an unnamed anchor is never matched to today's stages.
+    const settingsProblems = programmeCostApplyProblems(inputs);
+    if (settingsProblems.length > 0) return { ok: false, error: settingsProblems.join(" "), stale: true };
 
     try {
         // Read whole rows so an optional calendar column missing on an older target cannot block the read.

@@ -9,6 +9,7 @@ import { formatPlanDate } from "@/lib/programme-plan";
 import {
     CHARGEABLE_DAYS,
     HIRE_UNITS,
+    MAX_PROGRAMME_CREWS,
     OFF_HIRE_RULES,
     SHIFT_KEYS,
     alignStageInputs,
@@ -174,9 +175,24 @@ function crewsFromDraft(draft: ProgrammeCostsDraft): CrewInput[] {
     });
 }
 
+/**
+ * The planned crews saved with the costs: at most MAX_PROGRAMME_CREWS. A
+ * draft with more (for example one saved in this browser before the limit)
+ * keeps every crew and the crew check still uses them all; only the crews
+ * after the limit are left out of the saved settings, and crewDraftIssues
+ * says so. Crews never change the price, so this never blocks the costs.
+ */
+function savedCrews(crews: CrewInput[]): CrewInput[] {
+    return crews.slice(0, MAX_PROGRAMME_CREWS);
+}
+
 /** Problems with typed crew figures, shown beside the crews. They never block the costs. */
 export function crewDraftIssues(draft: ProgrammeCostsDraft): string[] {
-    return draft.crews.flatMap((crew, index) => {
+    const overLimit = draft.crews.slice(MAX_PROGRAMME_CREWS).map((crew, index) => crew.name.trim() || `Crew ${MAX_PROGRAMME_CREWS + index + 1}`);
+    const limitIssue = overLimit.length > 0
+        ? [`You can save up to ${MAX_PROGRAMME_CREWS} planned crews with the programme costs. ${overLimit.join(", ")} ${overLimit.length === 1 ? "is" : "are"} still in the crew check but will not be saved with the costs. Remove ${overLimit.length === 1 ? "a crew" : `${overLimit.length} crews`} to save them all.`]
+        : [];
+    return [...limitIssue, ...draft.crews.flatMap((crew, index) => {
         const label = crew.name.trim() || `Crew ${index + 1}`;
         const issues: string[] = [];
         const operatives = crew.operatives.trim();
@@ -184,7 +200,7 @@ export function crewDraftIssues(draft: ProgrammeCostsDraft): string[] {
         if (operatives && !(WHOLE.test(operatives) && Number(operatives) >= 1 && Number(operatives) <= 1000)) issues.push(`${label}: operatives must be a whole number from 1 to 1000.`);
         if (hoursText && !(DECIMAL.test(hoursText) && Number(hoursText) > 0 && Number(hoursText) <= 24)) issues.push(`${label}: productive hours per shift must be more than 0 and no more than 24.`);
         return issues;
-    });
+    })];
 }
 
 /** The stage's planned crew per shift: only a crew that exists, on a shift the stage works. */
@@ -215,7 +231,7 @@ export function crewCheckInputsFromDraft(draft: ProgrammeCostsDraft, stages: rea
 /** The draft as validated inputs, or the reasons it cannot be priced yet. */
 export function inputsFromDraft(draft: ProgrammeCostsDraft, stages: readonly Pick<ProgrammeCostStage, "name">[]): { ok: true; inputs: ProgrammeCostInputs } | { ok: false; errors: string[] } {
     const errors: string[] = [];
-    const crews = crewsFromDraft(draft);
+    const crews = savedCrews(crewsFromDraft(draft));
     const stageInputs = stageInputsFromDraft(draft, stages, crews);
     draft.stages.forEach((stage, index) => {
         if (stage.costed.trim() !== "" && !(Number(stage.costed) >= 0)) errors.push(`${stage.name || `Stage ${index + 1}`}: operatives already costed must be a number, or left blank.`);
@@ -496,9 +512,13 @@ export default function ProgrammeCostsPanel({
                                 {crewIssues.length > 0 && (
                                     <ul className={`text-sm ${s.errorText} list-disc pl-5`} data-programme-crew-issues>{crewIssues.map((issue) => <li key={issue}>{issue}</li>)}</ul>
                                 )}
-                                <button type="button" className={s.secondaryButton} onClick={() => update({ ...draft, stages: stageDrafts, crews: [...draft.crews, newCrew(draft.crews.length)] })}>
-                                    <Plus className="w-4 h-4" aria-hidden="true" /> Add a crew
-                                </button>
+                                {draft.crews.length >= MAX_PROGRAMME_CREWS ? (
+                                    <p className={`text-sm ${s.muted}`} data-programme-crew-limit>You can plan up to {MAX_PROGRAMME_CREWS} crews. Remove a crew to add another.</p>
+                                ) : (
+                                    <button type="button" className={s.secondaryButton} onClick={() => update({ ...draft, stages: stageDrafts, crews: [...draft.crews, newCrew(draft.crews.length)] })} data-programme-add-crew>
+                                        <Plus className="w-4 h-4" aria-hidden="true" /> Add a crew
+                                    </button>
+                                )}
                             </fieldset>
 
                             {crewCheck && <CrewCheckView check={crewCheck} stages={stages} s={s} scheduleHref={scheduleHref} />}

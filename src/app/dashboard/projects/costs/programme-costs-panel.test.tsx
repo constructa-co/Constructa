@@ -1,11 +1,12 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { workspaceStyles } from "@/lib/workspace-styles";
-import { computeProgrammeCosts, hireDatesForNote, programmeCostLineNote, type ProgrammeCostInputs } from "@/lib/programme-costs";
+import { MAX_PROGRAMME_CREWS, computeProgrammeCosts, hireDatesForNote, programmeCostLineNote, programmeStagesForCosts, type CrewInput, type ProgrammeCostInputs } from "@/lib/programme-costs";
+import { crewFeasibility } from "@/lib/programme-crew";
 import type { Estimate, EstimateLine } from "./types";
 
 vi.mock("./programme-costs-actions", () => ({ applyProgrammeCostsAction: vi.fn() }));
-import ProgrammeCostsPanel, { draftFromInputs, inputsFromDraft, upgradeStoredDraft } from "./programme-costs-panel";
+import ProgrammeCostsPanel, { crewCheckInputsFromDraft, crewDraftIssues, draftFromInputs, inputsFromDraft, upgradeStoredDraft } from "./programme-costs-panel";
 
 // Synthetic programme only.
 const PROGRAMME = {
@@ -69,6 +70,10 @@ const CREW_INPUTS: ProgrammeCostInputs = {
     crews: [{ id: "gang-a", name: "Gang A", shift: "day", operatives: 1, productiveHoursPerShift: 8 }],
 };
 
+function extraCrews(count: number): CrewInput[] {
+    return Array.from({ length: count }, (_, index) => ({ id: `extra-${index + 2}`, name: `Crew ${index + 2}`, shift: "day" as const, operatives: 2, productiveHoursPerShift: 8 }));
+}
+
 describe("programme costs draft", () => {
     it("round-trips applied settings through the editable draft", () => {
         const draft = draftFromInputs(INPUTS);
@@ -98,6 +103,56 @@ describe("programme costs draft", () => {
         draft.crews[0] = { ...draft.crews[0], operatives: "0", hours: "30" };
         const parsed = inputsFromDraft(draft, CREW_INPUTS.stages);
         expect(parsed.ok && parsed.inputs.crews[0]).toMatchObject({ operatives: null, productiveHoursPerShift: null });
+    });
+
+    it("keeps 20 planned crews and stops offering to add a 21st, with a plain message", () => {
+        const twenty: ProgrammeCostInputs = { ...CREW_INPUTS, crews: [...CREW_INPUTS.crews, ...extraCrews(MAX_PROGRAMME_CREWS - 1)] };
+        expect(MAX_PROGRAMME_CREWS).toBe(20);
+        const parsed = inputsFromDraft(draftFromInputs(twenty), twenty.stages);
+        expect(parsed.ok && parsed.inputs.crews.length).toBe(20);
+        const atLimit = render([LABOUR], { initialInputs: twenty });
+        expect(atLimit).toContain("You can plan up to 20 crews. Remove a crew to add another.");
+        expect(atLimit).not.toContain("data-programme-add-crew");
+        const below = render([LABOUR], { initialInputs: { ...twenty, crews: twenty.crews.slice(0, 19) } });
+        expect(below).toContain("data-programme-add-crew");
+        expect(below).not.toContain("data-programme-crew-limit");
+    });
+
+    it("keeps every crew of an oversized saved draft, still prices it unchanged, and says which crew is not saved with the costs", () => {
+        // A browser draft with 21 crews (saved before the limit): the 21st is the only night crew, planned on Drainage.
+        const draft = draftFromInputs(CREW_INPUTS);
+        draft.crews.push(...draftFromInputs({ ...CREW_INPUTS, crews: extraCrews(19) }).crews);
+        draft.crews.push({ id: "night-21", name: "Night gang U", shift: "night", operatives: "2", hours: "8" });
+        draft.stages[1] = { ...draft.stages[1], night: true, nightCrew: "night-21" };
+        const stored = upgradeStoredDraft(JSON.parse(JSON.stringify(draft)));
+        // No silent discard: the stored draft keeps all 21 crews.
+        expect(stored?.crews).toHaveLength(21);
+
+        const parsed = inputsFromDraft(stored!, CREW_INPUTS.stages);
+        expect(parsed.ok).toBe(true);
+        if (!parsed.ok) return;
+        expect(parsed.inputs.crews).toHaveLength(20);
+        expect(parsed.inputs.crews.some((crew) => crew.id === "night-21")).toBe(false);
+        expect(parsed.inputs.stages[1].crewByShift).toEqual({ day: "gang-a", night: null });
+        // Crews never change the price: same lines and signature as the same settings with no crews.
+        const priced = computeProgrammeCosts(PROGRAMME, parsed.inputs);
+        const noCrews = computeProgrammeCosts(PROGRAMME, { ...parsed.inputs, crews: [], stages: parsed.inputs.stages.map((stage) => ({ ...stage, crewByShift: { day: null, night: null } })) });
+        expect(priced.ok && noCrews.ok).toBe(true);
+        if (!priced.ok || !noCrews.ok) return;
+        expect(priced.result.signature).toBe(noCrews.result.signature);
+        expect(priced.result.lines).toEqual(noCrews.result.lines);
+
+        expect(crewDraftIssues(stored!)).toContain("You can save up to 20 planned crews with the programme costs. Night gang U is still in the crew check but will not be saved with the costs. Remove a crew to save them all.");
+        // The check still uses all 21 crews, and a short crew stays a warning only.
+        const stages = programmeStagesForCosts(PROGRAMME);
+        expect(stages.ok).toBe(true);
+        if (!stages.ok) return;
+        const checkInputs = crewCheckInputsFromDraft(stored!, stages.stages);
+        expect(checkInputs.crews).toHaveLength(21);
+        expect(checkInputs.stages[1].crewByShift).toEqual({ day: "gang-a", night: "night-21" });
+        const check = crewFeasibility(stages.stages, checkInputs);
+        expect(check.status).toBe("short");
+        expect(check.status).not.toBe("fits");
     });
 
     it("lists what is missing instead of pricing a half-stated hire", () => {

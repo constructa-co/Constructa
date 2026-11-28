@@ -1,0 +1,15 @@
+{
+  "screen": "estimate",
+  "viewport": {
+    "tag": "1440",
+    "width": 1440,
+    "height": 900
+  },
+  "pageScrollWidth": 1440,
+  "viewportWidth": 1440,
+  "pageHeight": 10820,
+  "nestedVerticalScroll": [],
+  "actionCalls": 0,
+  "requests": [],
+  "errors": []
+}

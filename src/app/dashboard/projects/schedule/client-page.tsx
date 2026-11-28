@@ -1026,7 +1026,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                     {/* Column headers */}
                     <div className="flex min-w-[444px] lg:min-w-[900px] border-b border-slate-700/50 bg-slate-900/40 lg:sticky lg:top-0 lg:z-40 lg:bg-slate-900">
                         <div className="flex shrink-0 w-full lg:w-auto lg:sticky lg:left-0 lg:z-10 lg:bg-slate-900">
-                            <div className="w-[216px] shrink-0 border-r border-slate-700/50 px-3 py-2.5">
+                            <div className="w-[216px] lg:w-[264px] shrink-0 border-r border-slate-700/50 px-3 py-2.5">
                                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-300">Phase / Trade</span>
                             </div>
                             <div className="w-14 shrink-0 border-r border-slate-700/50 text-center py-2 leading-tight">
@@ -1046,8 +1046,8 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                                 <div key={wk.weekIndex} data-planner-week-start={wk.weekIndex + 1} data-planner-week-span={wk.weeks}
                                     title={wk.range} aria-label={wk.range}
                                     className="shrink-0 min-w-0 text-center py-1.5 border-r border-slate-700/20 last:border-0" style={{ width: `${wk.weeks / totalWeeks * 100}%` }}>
-                                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-300 leading-tight truncate">{wk.label}</div>
-                                    <div className="text-[10px] text-slate-400 leading-tight truncate hidden md:block">{wk.date}</div>
+                                    <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-200 leading-tight truncate">{wk.label}</div>
+                                    <div className="text-[11px] text-slate-300 leading-tight truncate hidden md:block">{wk.date}</div>
                                     {wk.weeks === 1 && <div className="grid grid-cols-7 mt-1" aria-label="Calendar days Monday to Sunday">
                                         {[1, 2, 3, 4, 5, 6, 0].map(day => <span key={day} data-planner-calendar-day={day}
                                             data-working-day={workingPattern?.weekdays.includes(day) ? "true" : "false"}
@@ -1080,7 +1080,7 @@ export default function ClientSchedulePage({ project, estimate, projectId, plann
                                     <div key={idx} className="flex border-b border-slate-700/30 last:border-0 hover:bg-slate-700/10 transition-colors" style={{ height: ROW_H }}>
 
                                         {/* Name + dates */}
-                                        <div className="w-[216px] px-3 flex flex-col justify-center border-r border-slate-700/30">
+                                        <div className="w-[216px] lg:w-[264px] px-3 flex flex-col justify-center border-r border-slate-700/30">
                                             <div className="flex items-center gap-1.5">
                                                 <div className={`w-2 h-2 rounded-full shrink-0 ${tone.dot}${isFinalWeek ? " ring-1 ring-offset-1 ring-offset-slate-900 ring-yellow-400" : ""}`} />
                                                 <input
@@ -1332,10 +1332,18 @@ function PlannerPhonePhaseList({
     finalWeekMarkerSet: Set<number>;
     toneOf: (phase: Phase, index: number) => (typeof ACTIVITY_TONES)[ActivityTone];
 }) {
+    // Position bars use the same saved stage dates as the text, against the whole programme span.
+    const DAY_MS = 86_400_000;
+    const stageTimes = displayPlan.stages.map(stage => ({
+        start: new Date(stage.start_date + "T00:00:00").getTime(),
+        end: new Date(stage.end_date + "T00:00:00").getTime() + DAY_MS,
+    }));
+    const spanStart = Math.min(...stageTimes.map(t => t.start));
+    const spanMs = Math.max(...stageTimes.map(t => t.end)) - spanStart;
     return (
         <ol
             data-planner-phone-phase-list
-            className="lg:hidden space-y-3 rounded-xl border border-slate-700/50 bg-slate-800/50 p-4"
+            className="lg:hidden space-y-2 rounded-xl border border-slate-700/50 bg-slate-800/50 p-3"
             aria-label="Programme stages by date"
         >
             {phases.map((phase, idx) => {
@@ -1345,18 +1353,21 @@ function PlannerPhonePhaseList({
                 const start = new Date(stage.start_date + "T00:00:00");
                 const end = new Date(stage.end_date + "T00:00:00");
                 const pattern = displayPlan.basis === "job_working_days" ? displayPlan.working_pattern : undefined;
+                const time = stageTimes[idx];
+                const left = spanMs > 0 ? ((time.start - spanStart) / spanMs) * 100 : 0;
+                const width = spanMs > 0 ? Math.min(Math.max(((time.end - time.start) / spanMs) * 100, 2), 100 - left) : 100;
                 return (
-                    <li key={idx} data-planner-phone-phase={idx} className="min-w-0">
-                        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                            <div className="flex items-center gap-2 min-w-0">
-                                <span className={`h-2 w-2 rounded-full shrink-0 ${tone.dot}`} aria-hidden="true" />
+                    <li key={idx} data-planner-phone-phase={idx} className="min-w-0 rounded-lg border border-slate-700/40 bg-slate-900/60 px-3 py-2.5">
+                        <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-2 min-w-0">
+                                <span className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${tone.dot}`} aria-hidden="true" />
                                 <span className="text-sm font-semibold text-slate-100 break-words">{phase.name}</span>
                                 {finalWeekMarkerSet.has(idx) && <span className="text-yellow-500 text-xs" aria-hidden="true">★</span>}
                                 {reviewStages.includes(idx) && (
                                     <span data-planner-review-flag className="text-amber-400 text-xs font-semibold">Check days</span>
                                 )}
                             </div>
-                            <span className="text-xs text-slate-400 shrink-0" data-planner-phone-phase-duration>
+                            <span className="text-xs text-slate-300 shrink-0 text-right" data-planner-phone-phase-duration>
                                 {formatWorkingDuration(stage.working_days, pattern)}
                             </span>
                         </div>
@@ -1364,6 +1375,9 @@ function PlannerPhonePhaseList({
                             {fmtDate(start)} – {fmtDate(end)}
                             {phase.manhours > 0 && <span> · {Math.round(phase.manhours)}h</span>}
                         </p>
+                        <div className="relative mt-2 ml-4 h-1.5 rounded-full bg-slate-700/50" aria-hidden="true" data-planner-phone-phase-span>
+                            <div className={`absolute inset-y-0 rounded-full ${tone.dot}`} style={{ left: `${left}%`, width: `${width}%` }} />
+                        </div>
                     </li>
                 );
             })}

@@ -266,11 +266,13 @@
 /* Optional activity breakdown decorates the existing rows without moving them. */
 .priceLinesTable .priceActivityHeading td { padding: 12px; border-left: 3px solid var(--price-accent); background: color-mix(in srgb, var(--price-accent) 7%, transparent); font-size: 15px; overflow-wrap: anywhere; }
 .priceActivityHeading span { color: var(--price-muted); font-size: 14px; }
-.priceLinesTable .priceActivitySubtotal td { padding: 12px; }
+.priceLinesTable .priceActivitySubtotal td { padding: 14px 12px; border-top: 2px solid var(--price-accent); background: color-mix(in srgb, var(--price-accent) 5%, transparent); }
 .priceActivitySubtotal td > div { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; }
 .priceActivitySubtotal p { flex: 1 1 220px; min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
 .priceActivitySubtotal p span { display: block; margin-top: 4px; color: var(--price-muted); font-size: 13px; }
-.priceActivityAmount { min-width: 0; font-size: 16px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.priceActivityAmount { min-width: 0; font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+/* The client-facing figure in the running total: the brand total-bar colours, as the in-view total. */
+.priceTotalIncVat { margin-top: 8px; padding: 12px 14px; border-radius: 12px; background: var(--price-totalbar-bg); color: var(--price-totalbar-text); }
 .priceLineFinder { display: grid; gap: 10px; margin-block: 16px; padding: 16px; border: 1px solid var(--price-line); border-radius: 10px; }
 .priceLineFinder input { max-width: 560px; min-width: 0; }
 .priceLineFinder p { font-size: 14px; line-height: 1.6; }

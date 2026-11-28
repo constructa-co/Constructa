@@ -1,0 +1,15 @@
+{
+  "screen": "estimate",
+  "viewport": {
+    "tag": "375",
+    "width": 375,
+    "height": 812
+  },
+  "pageScrollWidth": 375,
+  "viewportWidth": 375,
+  "pageHeight": 18533,
+  "nestedVerticalScroll": [],
+  "actionCalls": 0,
+  "requests": [],
+  "errors": []
+}

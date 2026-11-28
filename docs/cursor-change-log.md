@@ -61,6 +61,43 @@
 
 **Checks:** `npm run typecheck`; vitest `a001-workflow-standalone-controls-brand` + `a001-palette-audit`. No semantic status blues changed.
 
+## 2026-11-23 — D100 D78 journey fixture on_net parity (`cursor/constructa-d100-pr176-normal-main-integration-68c5`)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `e2e/support/journey-data.ts` | `expectedPrice`, exports | Default `on_net` math on construction cost; optional `compound`; `JOURNEY_MARKUP_NOTE` | Match D36 default company/estimate behaviour; keep legacy compound pin |
+| `e2e/support/journey-data.test.ts` | (new) | Vitest pins on_net £10,515.40 and compound £10,754.13 totals | Regression without weakening browser assertions |
+| `e2e/d78-founding-journey.qa.ts` | ~160, ~203 | Assert running-total and draft-PDF calculation-method copy | Disposable D78 browser evidence |
+
+**Checks:** Cloud vitest `journey-data.test.ts` + full unit shards; hosted D38/D78 rerun pending R1 PR176 integration.
+
+## 2026-11-23 — D100 PR #176 normal main integration (`cursor/constructa-d100-pr176-normal-main-integration-68c5`)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/app/dashboard/projects/costs/boq-excel-export.ts` | imports, summary tail | Main `boqSummaryRows` + VAT via `vatFor`; retain D36 `MARKUP_METHOD_NOTE` row | BoQ export parity with proposal and markup wording |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | ~1698–1708 | Both markup-method note and programme prelims hint | Preserve D36 + main D96 hints |
+| `src/lib/simple-estimate.ts` | ~246–255 | `PriceVat` + `markup_method` on `EstimatePercentages` | Reverse-charge VAT + D36 summary |
+
+**Checks:** Cloud Node 24 lint/typecheck/build + SQL guards on merged head.
+
+## 2026-11-20 — PR #176 main integration merge conflict resolution (`codex/approved-176-integration-20261120`)
+
+| File | Lines (approx.) | Change | Intent |
+|------|-----------------|--------|--------|
+| `src/lib/financial.ts` | 36–99, 172–228 | D36 `on_net` / `compound` + main CON-016 inline comments | Single canonical contract sum |
+| `src/lib/simple-estimate.ts` | 15–19 | Both `evaluateDiscountSubmitGate` and `MarkupMethod` imports | Main discount gates + D36 summary |
+| `src/lib/proposal-publication.ts` | imports, fee items, case studies, site photos | `MARKUP_METHOD_NOTE`, `contractValueVatBasis`, main comments + D36 `calculation_note` | Publication snapshot parity |
+| `src/lib/case-library/proposal-wiring.test.ts` | 28–50 | Both main programme hash pin and D36 `calculation_note` pin | Preserve main wiring + D36 additive field |
+| `src/app/dashboard/projects/costs/estimate-client.tsx` | 1688–1696 | Markup note + main zero-adjustment guard | UI merge |
+| `src/app/dashboard/projects/costs/advanced-estimate.tsx` | 36–41 | Combined D36 + main imports | Advanced workspace |
+| `src/app/dashboard/projects/costs/boq-excel-export.ts` | 6–9 | Canonical sum + section grouping imports | BoQ export |
+| `src/lib/estimate-line-type.ts`, `proposal-site-photos.ts`, `proposal-site-photos.test.ts` | conflict tail | Marker cleanup only | Trivial UU |
+| `docs/delivery/2026-11-16/changelog.md` | whole | Merged delivery sections (no duplicate CON-073) | Both D36 and main notes |
+| `docs/delivery/2026-11-20/approved-176-integration.md` | rollback § | Safer rollback semantics | No blind column drop / old app |
+
+**Checks:** NOT RUN (source-only lane; R1 owns git commit, CI, Sonnet, preview).
+
 ## 2026-11-21 — D81 CON-012 profile isolation (ephemeral replay, draft unverified in CI)
 
 | File | Lines (approx.) | Change | Intent |
@@ -490,6 +527,7 @@
 | `src/app/dashboard/projects/costs/estimate-client.tsx` | advanced wrapper classes | Apply workspace layout classes | CON-032 |
 | `src/lib/*.test.ts`, `con-032-advanced-panel-layout.test.ts` | (new) | Focused CON-022/031/032 tests | No live data |
 | `package-lock.json` | revert | Restored to `868df15` main; drop accidental npm-install churn from first push | Keep P1 diff scoped to estimate work |
+
 ## 2026-11-16 — D46 P1 proposal CON-036/037/040 (cursor/d46-p1-proposal-con-036-037-040-445c)
 
 | File | Lines (approx.) | Change | Intent |

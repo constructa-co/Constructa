@@ -5,7 +5,15 @@ import { publicationRecords, savedProjectBrief, syntheticUserExists } from "./su
 import { pointerDriver } from "./support/driver";
 import { EPHEMERAL_REPLAY_PROJECT_REF, readEphemeralReplayEnv } from "./support/ephemeral-replay-env";
 import { SYNTHETIC_EMAIL_DOMAIN } from "./support/env";
-import { COMPANY, JOB, PAYMENT_STAGES, PRICE, expectedPrice, expectedProgramme } from "./support/journey-data";
+import {
+    COMPANY,
+    JOB,
+    JOURNEY_MARKUP_NOTE,
+    PAYMENT_STAGES,
+    PRICE,
+    expectedPrice,
+    expectedProgramme,
+} from "./support/journey-data";
 import { Recorder } from "./support/recorder";
 
 /**
@@ -159,6 +167,7 @@ test("D78: a founding user signs up, briefs, prices, plans and downloads the pro
             for (const figure of [money.lines, money.beforeVat, money.vat, money.includingVat]) {
                 await expect(total).toContainText(figure);
             }
+            await expect(page.locator("[data-markup-method-printed]")).toContainText(JOURNEY_MARKUP_NOTE.on_net);
             await expect(page.locator('[data-sonner-toast][data-type="error"]')).toHaveCount(0);
         });
 
@@ -203,6 +212,7 @@ test("D78: a founding user signs up, briefs, prices, plans and downloads the pro
             for (const fact of [money.beforeVat, money.vat, money.includingVat, programme.simpleFinish, money.deposit, money.balance, ...PAYMENT_STAGES.map((stage) => stage.name)]) {
                 expect(pdf.text, `the draft PDF states ${fact}`).toContain(fact);
             }
+            expect(pdf.text, "draft PDF states the on_net calculation method").toContain(JOURNEY_MARKUP_NOTE.on_net);
             expect(pdf.text).not.toMatch(/Overhead|Profit/);
             expect(await publicationRecords(projectId, env), "downloading the draft PDF publishes nothing").toEqual([]);
             recorder.results.parity.pdf = { pages: pdf.pages, includingVat: money.includingVat, finish: programme.simpleFinish, published: false, project_ref: EPHEMERAL_REPLAY_PROJECT_REF };

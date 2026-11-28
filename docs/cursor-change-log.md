@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-11-28 — D129 admin report period-activity truth (N5.1 residual)
+
+| File | Lines (approx) | Change | Intent |
+| --- | --- | --- | --- |
+| `src/app/admin/tabs/reports-tab.tsx` | daily/weekly/annual generators | Remove `/30`, `/4`, `/52` lifetime→period fabrications; label Unavailable; drop PMF/margin-target narrative | Honest admin emailed reports without inferred daily/weekly activity |
+| `src/app/admin/revenue.test.tsx` | report truth describe | Assert no fabricated period splits; annual has no PMF copy | Lock D129 behaviour in existing Vitest suite |
+
 ## 2026-11-28 — D124 N2.6 home contract value (estimate-first)
 
 | File | Change | Intent |

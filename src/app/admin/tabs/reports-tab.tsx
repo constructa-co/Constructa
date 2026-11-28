@@ -67,12 +67,14 @@ function currentYearStr() {
   return String(new Date().getFullYear());
 }
 
+/** Lifetime platform totals are not split into day/week buckets without verified period logs. */
+const NO_VERIFIED_PERIOD_ACTIVITY =
+  "Unavailable (no verified period activity data — lifetime totals are not divided by day or week)";
+
 function generateDailyReport(data: AdminData): string {
-  const { revenue, costs, retention, engagement } = data;
+  const { revenue, costs, retention } = data;
   const openaiToday =
     costs.openaiDailyCosts[costs.openaiDailyCosts.length - 1]?.cost_gbp ?? 0;
-  const aiCallsToday =
-    (engagement.aiUsage.briefsGenerated ?? 0) / 30; // rough daily estimate
 
   const redMetrics: string[] = [];
   if (retention.churnRate > 5) redMetrics.push(`Churn rate elevated: ${retention.churnRate.toFixed(1)}%`);
@@ -89,8 +91,8 @@ REVENUE
 MRR: ${revenueGBP(revenue.mrr)} | ARR: ${revenueGBP(revenue.arr)}
 
 PLATFORM ACTIVITY
-Projects created today: ~${Math.round(data.totalProjects / 30)}
-AI calls today: ~${Math.round(aiCallsToday)}
+Projects created today: ${NO_VERIFIED_PERIOD_ACTIVITY}
+AI calls today: ${NO_VERIFIED_PERIOD_ACTIVITY}
 OpenAI spend today: £${openaiToday.toFixed(2)}
 
 ALERTS
@@ -99,11 +101,6 @@ ${redMetrics.length > 0 ? redMetrics.map((m) => `• ${m}`).join("\n") : "All cl
 
 function generateWeeklyReport(data: AdminData): string {
   const { revenue, retention, engagement } = data;
-  const prevWeekSignups = Math.round(data.signupsThisMonth / 4);
-  const signupChangePct =
-    prevWeekSignups > 0
-      ? (((data.signupsThisWeek - prevWeekSignups) / prevWeekSignups) * 100).toFixed(1)
-      : "N/A";
 
   const atRiskList =
     retention.atRiskUsers.length > 0
@@ -119,16 +116,17 @@ function generateWeeklyReport(data: AdminData): string {
   return `📈 Constructa Weekly Report — Week of ${weekOfStr()}
 
 GROWTH
-New signups this week: ${data.signupsThisWeek} (vs ~${prevWeekSignups} last week: ${signupChangePct !== "N/A" ? `+${signupChangePct}%` : "N/A"})
+New signups this week: ${data.signupsThisWeek}
 Cumulative subscribers: ${data.totalSubscribers}
+Prior-week signup comparison: ${NO_VERIFIED_PERIOD_ACTIVITY}
 
 REVENUE
 MRR: ${revenueGBP(revenue.mrr)}
 MoM revenue growth: ${pct(revenue.momGrowthPct)}${revenue.mrr === null ? `\n${NO_VERIFIED_BILLING_NOTE}` : ""}
 
 ENGAGEMENT
-WAU: ${retention.wau} | Proposals sent this week: ~${Math.round(data.totalProposalsSent / 52)}
-Acceptance rate: ${pct(engagement.acceptanceRate)}
+WAU: ${retention.wau} | Proposals sent this week: ${NO_VERIFIED_PERIOD_ACTIVITY}
+Acceptance rate: ${pct(engagement.acceptanceRate)} (lifetime funnel, not weekly)
 
 AT-RISK USERS: ${retention.atRiskUsers.length} users need attention
 
@@ -183,7 +181,7 @@ ${featureAdoptionLines || "  No data yet"}
 Top countries:
 ${topCountries || "  No data yet"}
 
-═══ ENGAGEMENT ═══
+═══ ENGAGEMENT (lifetime platform totals — not monthly period splits) ═══
 Total projects:      ${data.totalProjects}
 Proposals sent:      ${data.totalProposalsSent}
 Proposals accepted:  ${data.totalProposalsAccepted}
@@ -276,11 +274,8 @@ AI briefs generated:    ${data.engagement.aiUsage.briefsGenerated}
 Contracts reviewed:     ${data.engagement.aiUsage.contractsReviewed}
 
 ═══ STRATEGIC SUMMARY ═══
-Constructa has established product-market fit in the UK construction SME sector.
-Key priorities for ${Number(currentYearStr()) + 1}:
-  • Convert free-tier pipeline to paid subscriptions
-  • Expand enterprise / team plan features
-  • Maintain gross margin above 70%`;
+No automated strategic narrative. Figures above are recorded signups, costs, and lifetime platform totals — not revenue, product-market fit, or margin targets.
+${revenue.mrr === null ? `• ${NO_VERIFIED_BILLING_NOTE}` : ""}`;
 }
 
 /** The text of one report. Exported so its revenue lines can be checked. */

@@ -35,9 +35,9 @@ const SOURCE = {
     ],
 };
 const INPUTS: ProgrammeCostInputs = {
-    version: 1,
-    stages: [{ name: "Groundworks", shifts: ["day"], costedOperatives: null }, { name: "Drainage", shifts: ["day"], costedOperatives: null }],
-    gangFloors: [], supervision: [{ shift: "day", ratePerShiftPence: 18_000 }], hires: [],
+    version: 2,
+    stages: [{ name: "Groundworks", shifts: ["day"], costedOperatives: null, crewByShift: { day: null, night: null } }, { name: "Drainage", shifts: ["day"], costedOperatives: null, crewByShift: { day: null, night: null } }],
+    gangFloors: [], supervision: [{ shift: "day", ratePerShiftPence: 18_000 }], hires: [], crews: [],
 };
 const LABOUR = { id: "labour", estimate_id: ESTIMATE, trade_section: "Groundworks", description: "Excavate trench", quantity: 1, unit_rate: 1000, line_total: 1000, notes: null };
 
@@ -102,6 +102,20 @@ describe("applying programme costs to the estimate (first apply only, insert onl
         expect(mocks.recalc).toHaveBeenCalledOnce();
     });
 
+    it("records the planned hire dates in each hire line's internal note", async () => {
+        const inputs = { ...INPUTS, hires: [{ id: "h1", description: "3 t dumper", unit: "week" as const, ratePence: 12_000, chargeableDays: null, partPeriodRule: "whole_period" as const, minimumPeriods: 1, onHire: { kind: "stage_start" as const, stage: 0, stageName: "Groundworks" }, offHire: { kind: "stage_finish" as const, stage: 1, stageName: "Drainage" }, offHireRule: "collection_date" as const, offHireDays: 2, deliveryPence: 5_000, collectionPence: 0 }] };
+        const outcome = computeProgrammeCosts(SOURCE, inputs);
+        if (!outcome.ok) throw new Error(outcome.errors.join());
+        const plan = planProgrammeCostApplication(mocks.estimate!, mocks.lines as never, outcome.result.lines);
+        const result = await applyProgrammeCostsAction({ projectId: PROJECT, estimateId: ESTIMATE, inputs, acknowledgement: { signature: outcome.result.signature, beforePence: plan.beforePence, afterPence: plan.afterPence } });
+        expect(result).toMatchObject({ ok: true });
+        const notes = Object.fromEntries(mocks.inserted[0].map((row) => { const note = JSON.parse(row.notes as string); return [note.key, note]; }));
+        const dates = { onHire: "2027-03-01", offHire: "2027-03-09", chargedTo: "2027-03-11" };
+        expect(notes["hire:h1"].hire).toEqual(dates);
+        expect(notes["hire:h1:transport"].hire).toEqual(dates);
+        expect(notes["supervision:day"].hire).toBeUndefined();
+    });
+
     it("gives a repeated request for the same reviewed set the same line ids, so the database rejects a second copy", async () => {
         const { acknowledgement } = reviewed();
         await applyProgrammeCostsAction({ projectId: PROJECT, estimateId: ESTIMATE, inputs: INPUTS, acknowledgement });
@@ -152,10 +166,45 @@ describe("applying programme costs to the estimate (first apply only, insert onl
     });
 
     it("refuses an unsupported hire basis instead of pricing it", async () => {
-        const inputs = { ...INPUTS, hires: [{ id: "h1", description: "Welfare unit", unit: "week", ratePence: 9000, chargeableDays: null, partPeriodRule: null, minimumPeriods: 1, onHire: { kind: "stage_start", stage: 0 }, offHire: { kind: "stage_finish", stage: 1 }, offHireRule: "collection_date", offHireDays: 0, deliveryPence: 0, collectionPence: 0 }] };
+        const inputs = { ...INPUTS, hires: [{ id: "h1", description: "Welfare unit", unit: "week", ratePence: 9000, chargeableDays: null, partPeriodRule: null, minimumPeriods: 1, onHire: { kind: "stage_start", stage: 0, stageName: "Groundworks" }, offHire: { kind: "stage_finish", stage: 1, stageName: "Drainage" }, offHireRule: "collection_date", offHireDays: 0, deliveryPence: 0, collectionPence: 0 }] };
         const { acknowledgement } = reviewed();
         const result = await applyProgrammeCostsAction({ projectId: PROJECT, estimateId: ESTIMATE, inputs, acknowledgement });
         expect(result.ok).toBe(false);
+        expect(result.ok ? "" : result.error).toMatch(/Welfare unit/);
+        expect(mocks.inserted).toEqual([]);
+    });
+
+    it("refuses a hire stage anchor sent without its stage name, and never matches it to today's stages", async () => {
+        // The programme was reordered (Drainage now first). A hand-built request aligned to today's order, with unnamed
+        // anchors, would otherwise price the on-hire from Drainage's start.
+        mocks.project = { ...SOURCE, programme_phases: [SOURCE.programme_phases[1], SOURCE.programme_phases[0]] };
+        const dumper = { id: "h1", description: "3 t dumper", unit: "week" as const, ratePence: 12_000, chargeableDays: null, partPeriodRule: "whole_period" as const, minimumPeriods: 1, offHireRule: "collection_date" as const, offHireDays: 2, deliveryPence: 0, collectionPence: 0 };
+        const unnamed = {
+            ...INPUTS,
+            stages: [{ ...INPUTS.stages[1] }, { ...INPUTS.stages[0] }],
+            hires: [{ ...dumper, onHire: { kind: "stage_start" as const, stage: 0 }, offHire: { kind: "stage_finish" as const, stage: 1 } }],
+        };
+        const priced = computeProgrammeCosts(mocks.project, unnamed);
+        if (!priced.ok) throw new Error(priced.errors.join());
+        const plan = planProgrammeCostApplication(mocks.estimate!, mocks.lines as never, priced.result.lines);
+        const acknowledgement = { signature: priced.result.signature, beforePence: plan.beforePence, afterPence: plan.afterPence };
+        const result = await applyProgrammeCostsAction({ projectId: PROJECT, estimateId: ESTIMATE, inputs: unnamed, acknowledgement });
+        expect(result).toEqual({ ok: false, stale: true, error: '"3 t dumper": its hire stages were set without the stage name. Choose its on-hire and off-hire stages again, then review the costs.' });
+        expect(mocks.inserted).toEqual([]);
+        expect(mocks.deleted).toEqual([]);
+
+        // The same hire named against the stages it was set on is refused for the moved stage, never silently re-dated.
+        const named = { ...unnamed, hires: [{ ...dumper, onHire: { kind: "stage_start" as const, stage: 0, stageName: "Groundworks" }, offHire: { kind: "stage_finish" as const, stage: 1, stageName: "Drainage" } }] };
+        const namedResult = await applyProgrammeCostsAction({ projectId: PROJECT, estimateId: ESTIMATE, inputs: named, acknowledgement });
+        expect(namedResult).toMatchObject({ ok: false, stale: true });
+        expect(mocks.inserted).toEqual([]);
+    });
+
+    it("refuses D121 (version 1) settings sent to be applied, without writing", async () => {
+        const { acknowledgement } = reviewed();
+        const v1 = { version: 1, stages: INPUTS.stages.map(({ name, shifts, costedOperatives }) => ({ name, shifts, costedOperatives })), gangFloors: [], supervision: INPUTS.supervision, hires: [] };
+        const result = await applyProgrammeCostsAction({ projectId: PROJECT, estimateId: ESTIMATE, inputs: v1, acknowledgement });
+        expect(result).toEqual({ ok: false, stale: true, error: "These programme cost settings are from an earlier version of this page. Reload the estimate and review the programme costs again." });
         expect(mocks.inserted).toEqual([]);
     });
 

@@ -9,6 +9,7 @@ import { formatPlanDate } from "@/lib/programme-plan";
 import {
     CHARGEABLE_DAYS,
     HIRE_UNITS,
+    MAX_PROGRAMME_CREWS,
     OFF_HIRE_RULES,
     SHIFT_KEYS,
     alignStageInputs,
@@ -22,8 +23,11 @@ import {
     poundsFromPence,
     programmeCostStatus,
     programmeStagesForCosts,
+    readAppliedHires,
     readAppliedProgrammeCosts,
     type ChargeableDays,
+    type CrewInput,
+    type GangFloorInput,
     type HireInput,
     type HireUnit,
     type OffHireRule,
@@ -31,26 +35,34 @@ import {
     type ProgrammeCostSource,
     type ProgrammeCostStage,
     type ShiftKey,
+    type StageShiftInput,
 } from "@/lib/programme-costs";
+import { crewFeasibility } from "@/lib/programme-crew";
+import { offHireSchedule } from "@/lib/programme-off-hire";
+import { CrewCheckView, crewCheckHeadline } from "./programme-crew-check";
+import { OffHireReview } from "./programme-off-hire-review";
 import { applyProgrammeCostsAction, type ApplyProgrammeCostsRequest, type ApplyProgrammeCostsResult } from "./programme-costs-actions";
 import type { Estimate, EstimateLine } from "./types";
 
 // ── The contractor's draft, as typed ─────────────────────────────────────────
 
-interface StageDraft { name: string; day: boolean; night: boolean; costed: string }
+interface StageDraft { name: string; day: boolean; night: boolean; costed: string; dayCrew: string; nightCrew: string }
 interface HireDraft {
     id: string; description: string; unit: HireUnit; rate: string;
     chargeableDays: ChargeableDays | ""; partPeriodRule: "whole_period" | ""; minimumPeriods: string;
-    onKind: "stage_start" | "date"; onStage: string; onDate: string;
-    offKind: "stage_finish" | "date"; offStage: string; offDate: string;
+    /** The stage names the anchors were set against, so a renamed or moved stage is refused rather than followed. */
+    onKind: "stage_start" | "date"; onStage: string; onStageName?: string; onDate: string;
+    offKind: "stage_finish" | "date"; offStage: string; offStageName?: string; offDate: string;
     offHireRule: OffHireRule | ""; offHireDays: string; delivery: string; collection: string;
 }
+interface CrewDraft { id: string; name: string; shift: ShiftKey; operatives: string; hours: string }
 export interface ProgrammeCostsDraft {
-    version: 1;
+    version: 2;
     stages: StageDraft[];
     gang: Record<ShiftKey, { min: string; rate: string }>;
     supervision: Record<ShiftKey, string>;
     hires: HireDraft[];
+    crews: CrewDraft[];
 }
 
 const SHIFT_NAME: Record<ShiftKey, string> = { day: "Day", night: "Night" };
@@ -68,30 +80,61 @@ const draftKey = (projectId: string) => `constructa:programme-costs-draft:v1:${p
 const penceText = (value: number) => (value ? poundsFromPence(value).toFixed(2) : "");
 
 function emptyDraft(): ProgrammeCostsDraft {
-    return { version: 1, stages: [], gang: { day: { min: "", rate: "" }, night: { min: "", rate: "" } }, supervision: { day: "", night: "" }, hires: [] };
+    return { version: 2, stages: [], gang: { day: { min: "", rate: "" }, night: { min: "", rate: "" } }, supervision: { day: "", night: "" }, hires: [], crews: [] };
 }
 
-function newHire(): HireDraft {
-    const id = `h-${Math.random().toString(36).slice(2, 10)}`;
+const randomId = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+
+function newHire(stages: readonly Pick<ProgrammeCostStage, "name">[]): HireDraft {
     return {
-        id, description: "", unit: "week", rate: "", chargeableDays: "", partPeriodRule: "", minimumPeriods: "1",
-        onKind: "stage_start", onStage: "0", onDate: "", offKind: "stage_finish", offStage: "0", offDate: "",
+        id: randomId("h"), description: "", unit: "week", rate: "", chargeableDays: "", partPeriodRule: "", minimumPeriods: "1",
+        onKind: "stage_start", onStage: "0", onStageName: stages[0]?.name, onDate: "",
+        offKind: "stage_finish", offStage: "0", offStageName: stages[0]?.name, offDate: "",
         offHireRule: "", offHireDays: "0", delivery: "", collection: "",
     };
 }
 
+function newCrew(index: number): CrewDraft {
+    return { id: randomId("c"), name: `Crew ${index + 1}`, shift: "day", operatives: "", hours: "" };
+}
+
+/**
+ * A D121 hire anchor stores only a stage position. Before the draft's stages
+ * are lined up with the current programme, bind each unnamed anchor to the
+ * name of the stage it was set against, from the settings' own stage list.
+ * A renamed, removed or reordered stage then no longer matches and the hire
+ * is refused until its stage is chosen again; it never follows the stage
+ * that now happens to be in that position. An anchor with no stage on record
+ * gets an empty name, which matches no stage, so it is refused too.
+ */
+function bindAnchorNames(hire: HireDraft, ownStageNames: readonly string[]): HireDraft {
+    const bound = { ...hire };
+    if (bound.onKind !== "date" && bound.onStageName === undefined) bound.onStageName = ownStageNames[Number(bound.onStage)] ?? "";
+    if (bound.offKind !== "date" && bound.offStageName === undefined) bound.offStageName = ownStageNames[Number(bound.offStage)] ?? "";
+    return bound;
+}
+
 export function draftFromInputs(inputs: ProgrammeCostInputs): ProgrammeCostsDraft {
     const draft = emptyDraft();
-    draft.stages = inputs.stages.map((stage) => ({ name: stage.name, day: stage.shifts.includes("day"), night: stage.shifts.includes("night"), costed: stage.costedOperatives === null ? "" : String(stage.costedOperatives) }));
+    draft.stages = inputs.stages.map((stage) => ({
+        name: stage.name, day: stage.shifts.includes("day"), night: stage.shifts.includes("night"), costed: stage.costedOperatives === null ? "" : String(stage.costedOperatives),
+        dayCrew: stage.crewByShift.day ?? "", nightCrew: stage.crewByShift.night ?? "",
+    }));
+    draft.crews = inputs.crews.map((crew) => ({
+        id: crew.id, name: crew.name, shift: crew.shift,
+        operatives: crew.operatives === null ? "" : String(crew.operatives), hours: crew.productiveHoursPerShift === null ? "" : String(crew.productiveHoursPerShift),
+    }));
     for (const floor of inputs.gangFloors) draft.gang[floor.shift] = { min: String(floor.minimumPaidGang), rate: penceText(floor.operativeDayRatePence) };
     for (const entry of inputs.supervision) draft.supervision[entry.shift] = penceText(entry.ratePerShiftPence);
-    draft.hires = inputs.hires.map((hire) => ({
+    draft.hires = inputs.hires.map((hire): HireDraft => ({
         id: hire.id, description: hire.description, unit: hire.unit, rate: penceText(hire.ratePence),
         chargeableDays: hire.chargeableDays ?? "", partPeriodRule: hire.partPeriodRule ?? "", minimumPeriods: String(hire.minimumPeriods),
         onKind: hire.onHire.kind === "date" ? "date" : "stage_start", onStage: hire.onHire.kind === "date" ? "0" : String(hire.onHire.stage), onDate: hire.onHire.kind === "date" ? hire.onHire.date : "",
+        ...(hire.onHire.kind !== "date" && hire.onHire.stageName !== undefined ? { onStageName: hire.onHire.stageName } : {}),
         offKind: hire.offHire.kind === "date" ? "date" : "stage_finish", offStage: hire.offHire.kind === "date" ? "0" : String(hire.offHire.stage), offDate: hire.offHire.kind === "date" ? hire.offHire.date : "",
+        ...(hire.offHire.kind !== "date" && hire.offHire.stageName !== undefined ? { offStageName: hire.offHire.stageName } : {}),
         offHireRule: hire.offHireRule ?? "", offHireDays: String(hire.offHireDays), delivery: penceText(hire.deliveryPence), collection: penceText(hire.collectionPence),
-    }));
+    })).map((hire) => bindAnchorNames(hire, inputs.stages.map((stage) => stage.name)));
     return draft;
 }
 
@@ -108,14 +151,88 @@ function parseWhole(text: string, label: string, errors: string[], min = 0): num
     return Number(value);
 }
 
-/** The draft as validated inputs, or the reasons it cannot be priced yet. */
-export function inputsFromDraft(draft: ProgrammeCostsDraft, stages: readonly Pick<ProgrammeCostStage, "name">[]): { ok: true; inputs: ProgrammeCostInputs } | { ok: false; errors: string[] } {
-    const errors: string[] = [];
-    const stageInputs = alignStageInputs(stages, draft.stages.map((stage) => ({
+const WHOLE = /^\d+$/;
+const DECIMAL = /^\d+(\.\d{1,2})?$/;
+
+/**
+ * Planned crews as typed. A size or hours figure that is blank or not valid
+ * is left unset (the crew check then says it cannot check that crew); it
+ * never stops the costs being worked out, and nothing is defaulted.
+ */
+function crewsFromDraft(draft: ProgrammeCostsDraft): CrewInput[] {
+    return draft.crews.map((crew, index) => {
+        const operatives = crew.operatives.trim();
+        const hoursText = crew.hours.trim();
+        const size = WHOLE.test(operatives) ? Number(operatives) : NaN;
+        const perShift = DECIMAL.test(hoursText) ? Number(hoursText) : NaN;
+        return {
+            id: crew.id,
+            name: crew.name.trim().slice(0, 80) || `Crew ${index + 1}`,
+            shift: crew.shift,
+            operatives: size >= 1 && size <= 1000 ? size : null,
+            productiveHoursPerShift: perShift > 0 && perShift <= 24 ? perShift : null,
+        };
+    });
+}
+
+/**
+ * The planned crews saved with the costs: at most MAX_PROGRAMME_CREWS. A
+ * draft with more (for example one saved in this browser before the limit)
+ * keeps every crew and the crew check still uses them all; only the crews
+ * after the limit are left out of the saved settings, and crewDraftIssues
+ * says so. Crews never change the price, so this never blocks the costs.
+ */
+function savedCrews(crews: CrewInput[]): CrewInput[] {
+    return crews.slice(0, MAX_PROGRAMME_CREWS);
+}
+
+/** Problems with typed crew figures, shown beside the crews. They never block the costs. */
+export function crewDraftIssues(draft: ProgrammeCostsDraft): string[] {
+    const overLimit = draft.crews.slice(MAX_PROGRAMME_CREWS).map((crew, index) => crew.name.trim() || `Crew ${MAX_PROGRAMME_CREWS + index + 1}`);
+    const limitIssue = overLimit.length > 0
+        ? [`You can save up to ${MAX_PROGRAMME_CREWS} planned crews with the programme costs. ${overLimit.join(", ")} ${overLimit.length === 1 ? "is" : "are"} still in the crew check but will not be saved with the costs. Remove ${overLimit.length === 1 ? "a crew" : `${overLimit.length} crews`} to save them all.`]
+        : [];
+    return [...limitIssue, ...draft.crews.flatMap((crew, index) => {
+        const label = crew.name.trim() || `Crew ${index + 1}`;
+        const issues: string[] = [];
+        const operatives = crew.operatives.trim();
+        const hoursText = crew.hours.trim();
+        if (operatives && !(WHOLE.test(operatives) && Number(operatives) >= 1 && Number(operatives) <= 1000)) issues.push(`${label}: operatives must be a whole number from 1 to 1000.`);
+        if (hoursText && !(DECIMAL.test(hoursText) && Number(hoursText) > 0 && Number(hoursText) <= 24)) issues.push(`${label}: productive hours per shift must be more than 0 and no more than 24.`);
+        return issues;
+    })];
+}
+
+/** The stage's planned crew per shift: only a crew that exists, on a shift the stage works. */
+function stageCrewFromDraft(stage: StageDraft, crews: readonly CrewInput[]): StageShiftInput["crewByShift"] {
+    const pick = (shift: ShiftKey, id: string) => (stage[shift] && crews.some((crew) => crew.id === id && crew.shift === shift) ? id : null);
+    return { day: pick("day", stage.dayCrew), night: pick("night", stage.nightCrew) };
+}
+
+function stageInputsFromDraft(draft: ProgrammeCostsDraft, stages: readonly Pick<ProgrammeCostStage, "name">[], crews: readonly CrewInput[]): StageShiftInput[] {
+    return alignStageInputs(stages, draft.stages.map((stage) => ({
         name: stage.name,
         shifts: SHIFT_KEYS.filter((shift) => stage[shift]),
         costedOperatives: stage.costed.trim() === "" ? null : Number(stage.costed),
+        crewByShift: stageCrewFromDraft(stage, crews),
     })));
+}
+
+/** What the crew check needs, read leniently so it works while cost settings are still being filled in. */
+export function crewCheckInputsFromDraft(draft: ProgrammeCostsDraft, stages: readonly Pick<ProgrammeCostStage, "name">[]): { stages: StageShiftInput[]; crews: CrewInput[]; gangFloors: GangFloorInput[] } {
+    const crews = crewsFromDraft(draft);
+    const gangFloors = SHIFT_KEYS.flatMap((shift) => {
+        const min = draft.gang[shift].min.trim();
+        return WHOLE.test(min) && Number(min) > 0 ? [{ shift, minimumPaidGang: Number(min), operativeDayRatePence: 0 }] : [];
+    });
+    return { stages: stageInputsFromDraft(draft, stages, crews), crews, gangFloors };
+}
+
+/** The draft as validated inputs, or the reasons it cannot be priced yet. */
+export function inputsFromDraft(draft: ProgrammeCostsDraft, stages: readonly Pick<ProgrammeCostStage, "name">[]): { ok: true; inputs: ProgrammeCostInputs } | { ok: false; errors: string[] } {
+    const errors: string[] = [];
+    const crews = savedCrews(crewsFromDraft(draft));
+    const stageInputs = stageInputsFromDraft(draft, stages, crews);
     draft.stages.forEach((stage, index) => {
         if (stage.costed.trim() !== "" && !(Number(stage.costed) >= 0)) errors.push(`${stage.name || `Stage ${index + 1}`}: operatives already costed must be a number, or left blank.`);
     });
@@ -144,8 +261,8 @@ export function inputsFromDraft(draft: ProgrammeCostsDraft, stages: readonly Pic
             chargeableDays: hire.unit === "day" ? (hire.chargeableDays || null) : null,
             partPeriodRule: hire.unit === "week" || hire.unit === "four_week" || hire.unit === "month" ? (hire.partPeriodRule || null) : null,
             minimumPeriods: parseWhole(hire.minimumPeriods, `${label} minimum hire`, errors, 1),
-            onHire: hire.onKind === "date" ? { kind: "date", date: hire.onDate } : { kind: "stage_start", stage: Number(hire.onStage) },
-            offHire: hire.offKind === "date" ? { kind: "date", date: hire.offDate } : { kind: "stage_finish", stage: Number(hire.offStage) },
+            onHire: hire.onKind === "date" ? { kind: "date", date: hire.onDate } : { kind: "stage_start", stage: Number(hire.onStage), ...(hire.onStageName !== undefined ? { stageName: hire.onStageName } : {}) },
+            offHire: hire.offKind === "date" ? { kind: "date", date: hire.offDate } : { kind: "stage_finish", stage: Number(hire.offStage), ...(hire.offStageName !== undefined ? { stageName: hire.offStageName } : {}) },
             offHireRule: hire.offHireRule || null,
             offHireDays: parseWhole(hire.offHireDays, `${label} days after off-hire`, errors),
             deliveryPence: parsePounds(hire.delivery, `${label} delivery`, errors),
@@ -153,21 +270,34 @@ export function inputsFromDraft(draft: ProgrammeCostsDraft, stages: readonly Pic
         };
     });
     if (errors.length) return { ok: false, errors };
-    return parseProgrammeCostInputs({ version: 1, stages: stageInputs, gangFloors, supervision, hires });
+    return parseProgrammeCostInputs({ version: 2, stages: stageInputs, gangFloors, supervision, hires, crews });
 }
 
 function alignStageDrafts(stages: readonly ProgrammeCostStage[], drafts: readonly StageDraft[]): StageDraft[] {
     return stages.map((stage, index) => {
         const match = drafts[index];
-        return match && match.name === stage.name ? match : { name: stage.name, day: true, night: false, costed: "" };
+        return match && match.name === stage.name ? match : { name: stage.name, day: true, night: false, costed: "", dayCrew: "", nightCrew: "" };
     });
+}
+
+/** A draft saved in this browser, including a D121 (version 1) draft, which gains empty crews. */
+export function upgradeStoredDraft(value: unknown): ProgrammeCostsDraft | null {
+    const parsed = value as (Omit<Partial<ProgrammeCostsDraft>, "version"> & { version?: number }) | null;
+    if (!parsed || (parsed.version !== 1 && parsed.version !== 2) || !Array.isArray(parsed.stages) || !Array.isArray(parsed.hires) || !parsed.gang || !parsed.supervision) return null;
+    return {
+        version: 2,
+        stages: parsed.stages.map((stage) => ({ ...stage, dayCrew: stage.dayCrew ?? "", nightCrew: stage.nightCrew ?? "" })),
+        gang: parsed.gang,
+        supervision: parsed.supervision,
+        hires: parsed.hires.map((hire) => bindAnchorNames(hire, parsed.stages!.map((stage) => stage.name))),
+        crews: Array.isArray(parsed.crews) ? parsed.crews : [],
+    };
 }
 
 function readStoredDraft(projectId: string): ProgrammeCostsDraft | null {
     try {
         const raw = window.localStorage.getItem(draftKey(projectId));
-        const parsed = raw ? (JSON.parse(raw) as ProgrammeCostsDraft) : null;
-        return parsed && parsed.version === 1 && Array.isArray(parsed.stages) && Array.isArray(parsed.hires) && parsed.gang && parsed.supervision ? parsed : null;
+        return raw ? upgradeStoredDraft(JSON.parse(raw)) : null;
     } catch {
         return null;
     }
@@ -216,11 +346,18 @@ export default function ProgrammeCostsPanel({
     const update = (next: ProgrammeCostsDraft) => { setDraft(next); storeDraft(projectId, next); setAck(false); };
 
     const stageDrafts = alignStageDrafts(stages, draft.stages);
+    const parsedDraft = useMemo(() => (stagesResult?.ok ? inputsFromDraft({ ...draft, stages: alignStageDrafts(stagesResult.stages, draft.stages) }, stagesResult.stages) : null), [stagesResult, draft]);
     const priced = useMemo(() => {
-        if (!programme || !stagesResult?.ok) return null;
-        const parsed = inputsFromDraft({ ...draft, stages: alignStageDrafts(stagesResult.stages, draft.stages) }, stagesResult.stages);
-        return parsed.ok ? computeProgrammeCosts(programme, parsed.inputs) : { ok: false as const, errors: parsed.errors };
-    }, [programme, stagesResult, draft]);
+        if (!programme || !parsedDraft) return null;
+        return parsedDraft.ok ? computeProgrammeCosts(programme, parsedDraft.inputs) : { ok: false as const, errors: parsedDraft.errors };
+    }, [programme, parsedDraft]);
+    // A check only: compares priced labour hours with the planned crews. Never changes dates or prices.
+    const crewCheck = useMemo(() => (stagesResult?.ok
+        ? crewFeasibility(stagesResult.stages, crewCheckInputsFromDraft({ ...draft, stages: alignStageDrafts(stagesResult.stages, draft.stages) }, stagesResult.stages))
+        : null), [stagesResult, draft]);
+    const appliedHires = useMemo(() => readAppliedHires(lines), [lines]);
+    const offHire = useMemo(() => (stagesResult && parsedDraft?.ok ? offHireSchedule(stagesResult, parsedDraft.inputs, appliedHires) : null), [stagesResult, parsedDraft, appliedHires]);
+    const crewHeadline = crewCheckHeadline(crewCheck);
 
     // What the applied lines would be now, from the settings they were applied with.
     const appliedNow = useMemo(() => (programme && applied.inputs ? computeProgrammeCosts(programme, applied.inputs) : null), [programme, applied.inputs]);
@@ -258,6 +395,8 @@ export default function ProgrammeCostsPanel({
     const scheduleHref = `/dashboard/projects/schedule?projectId=${encodeURIComponent(projectId)}`;
     const setStage = (index: number, patch: Partial<StageDraft>) => update({ ...draft, stages: stageDrafts.map((stage, i) => (i === index ? { ...stage, ...patch } : stage)) });
     const setHire = (index: number, patch: Partial<HireDraft>) => update({ ...draft, stages: stageDrafts, hires: draft.hires.map((hire, i) => (i === index ? { ...hire, ...patch } : hire)) });
+    const setCrew = (index: number, patch: Partial<CrewDraft>) => update({ ...draft, stages: stageDrafts, crews: draft.crews.map((crew, i) => (i === index ? { ...crew, ...patch } : crew)) });
+    const crewIssues = crewDraftIssues(draft);
     const field = `${s.input} mt-1`;
 
     return (
@@ -266,7 +405,7 @@ export default function ProgrammeCostsPanel({
                 className="w-full min-h-12 flex items-center justify-between gap-3 text-left">
                 <span>
                     <span id="programme-costs-title" className={`block text-lg font-bold ${s.heading}`}>Programme costs</span>
-                    <span className={`block text-sm ${s.muted}`}>Minimum paid gang, supervision and plant hire from your saved programme</span>
+                    <span className={`block text-sm ${s.muted}`}>Minimum paid gang, supervision, crew check and plant hire from your saved programme</span>
                 </span>
                 <ChevronDown className={`w-5 h-5 flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
             </button>
@@ -275,6 +414,7 @@ export default function ProgrammeCostsPanel({
                     ? "A programme cost line on the estimate was edited or deleted after it was applied, so it no longer matches the programme. The estimate keeps the price it has now."
                     : statusText[status]}
             </p>
+            {crewHeadline && <p className={`mt-1 text-sm ${s.errorText}`} data-crew-check-headline>{crewHeadline}</p>}
 
             {open && (
                 <div id="programme-costs-body" className="mt-4 space-y-6">
@@ -320,10 +460,68 @@ export default function ProgrammeCostsPanel({
                                                 <input inputMode="decimal" autoComplete="off" value={draftStage.costed} placeholder={derived.toFixed(2)}
                                                     onChange={(e) => setStage(index, { costed: e.target.value })} className={field} />
                                             </label>
+                                            {SHIFT_KEYS.some((shift) => draftStage[shift]) && (
+                                                <div className="sm:col-span-3 grid gap-2 sm:grid-cols-2">
+                                                    {SHIFT_KEYS.filter((shift) => draftStage[shift]).map((shift) => {
+                                                        const crewKey = shift === "day" ? "dayCrew" : "nightCrew";
+                                                        return (
+                                                            <label key={shift} className={`text-sm ${s.body}`}>Planned {SHIFT_NAME[shift].toLowerCase()} crew
+                                                                <select value={draftStage[crewKey]} onChange={(e) => setStage(index, { [crewKey]: e.target.value })} className={field} data-programme-cost-stage-crew={shift}>
+                                                                    <option value="">No crew planned</option>
+                                                                    {draft.crews.filter((crew) => crew.shift === shift).map((crew) => <option key={crew.id} value={crew.id}>{crew.name || "Unnamed crew"}</option>)}
+                                                                </select>
+                                                            </label>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}
                             </fieldset>
+
+                            <fieldset className="space-y-3" data-programme-crews>
+                                <legend className={`text-base font-semibold ${s.heading}`}>Planned crews</legend>
+                                <p className={`text-sm ${s.muted}`}>
+                                    The crews you plan to put on site, used only to check the programme length against your priced labour. They are not priced and do not change the minimum paid gang.
+                                    Enter each crew&apos;s own productive hours per shift: your working pattern gives {Math.round(stagesResult.hoursPerShift * 100) / 100} productive hours a day, which is not used as a per-shift figure.
+                                </p>
+                                {draft.crews.map((crew, index) => (
+                                    <div key={crew.id} className={`${s.inset} p-3 grid gap-2 sm:grid-cols-4 sm:items-end`} data-programme-crew>
+                                        <label className={`text-sm ${s.body}`}>Crew name
+                                            <input value={crew.name} maxLength={80} onChange={(e) => setCrew(index, { name: e.target.value })} className={field} />
+                                        </label>
+                                        <label className={`text-sm ${s.body}`}>Shift
+                                            <select value={crew.shift} onChange={(e) => setCrew(index, { shift: e.target.value as ShiftKey })} className={field}>
+                                                {SHIFT_KEYS.map((shift) => <option key={shift} value={shift}>{SHIFT_NAME[shift]}</option>)}
+                                            </select>
+                                        </label>
+                                        <label className={`text-sm ${s.body}`}>Operatives
+                                            <input inputMode="numeric" autoComplete="off" value={crew.operatives} onChange={(e) => setCrew(index, { operatives: e.target.value })} className={field} />
+                                        </label>
+                                        <label className={`text-sm ${s.body}`}>Productive hours per shift
+                                            <input inputMode="decimal" autoComplete="off" value={crew.hours} onChange={(e) => setCrew(index, { hours: e.target.value })} className={field} />
+                                        </label>
+                                        <div className="sm:col-span-4">
+                                            <button type="button" className={s.quietButton} onClick={() => update({ ...draft, stages: stageDrafts, crews: draft.crews.filter((_, i) => i !== index) })}>
+                                                <Trash2 className="w-4 h-4" aria-hidden="true" /> Remove this crew
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                                {crewIssues.length > 0 && (
+                                    <ul className={`text-sm ${s.errorText} list-disc pl-5`} data-programme-crew-issues>{crewIssues.map((issue) => <li key={issue}>{issue}</li>)}</ul>
+                                )}
+                                {draft.crews.length >= MAX_PROGRAMME_CREWS ? (
+                                    <p className={`text-sm ${s.muted}`} data-programme-crew-limit>You can plan up to {MAX_PROGRAMME_CREWS} crews. Remove a crew to add another.</p>
+                                ) : (
+                                    <button type="button" className={s.secondaryButton} onClick={() => update({ ...draft, stages: stageDrafts, crews: [...draft.crews, newCrew(draft.crews.length)] })} data-programme-add-crew>
+                                        <Plus className="w-4 h-4" aria-hidden="true" /> Add a crew
+                                    </button>
+                                )}
+                            </fieldset>
+
+                            {crewCheck && <CrewCheckView check={crewCheck} stages={stages} s={s} scheduleHref={scheduleHref} />}
 
                             <fieldset className="grid gap-3 sm:grid-cols-2">
                                 <legend className={`text-base font-semibold ${s.heading}`}>Minimum paid gang</legend>
@@ -405,7 +603,7 @@ export default function ProgrammeCostsPanel({
                                             </label>
                                             <label className={`text-sm ${s.body}`}>On hire
                                                 <select value={hire.onKind === "date" ? "date" : hire.onStage} className={field}
-                                                    onChange={(e) => setHire(index, e.target.value === "date" ? { onKind: "date" } : { onKind: "stage_start", onStage: e.target.value })}>
+                                                    onChange={(e) => setHire(index, e.target.value === "date" ? { onKind: "date" } : { onKind: "stage_start", onStage: e.target.value, onStageName: stages[Number(e.target.value)]?.name })}>
                                                     {stages.map((stage, i) => <option key={i} value={String(i)}>Start of {stage.name}</option>)}
                                                     <option value="date">A date</option>
                                                 </select>
@@ -413,7 +611,7 @@ export default function ProgrammeCostsPanel({
                                             </label>
                                             <label className={`text-sm ${s.body}`}>Off hire
                                                 <select value={hire.offKind === "date" ? "date" : hire.offStage} className={field}
-                                                    onChange={(e) => setHire(index, e.target.value === "date" ? { offKind: "date" } : { offKind: "stage_finish", offStage: e.target.value })}>
+                                                    onChange={(e) => setHire(index, e.target.value === "date" ? { offKind: "date" } : { offKind: "stage_finish", offStage: e.target.value, offStageName: stages[Number(e.target.value)]?.name })}>
                                                     {stages.map((stage, i) => <option key={i} value={String(i)}>End of {stage.name}</option>)}
                                                     <option value="date">A date</option>
                                                 </select>
@@ -442,10 +640,12 @@ export default function ProgrammeCostsPanel({
                                         </div>
                                     );
                                 })}
-                                <button type="button" className={s.secondaryButton} onClick={() => update({ ...draft, stages: stageDrafts, hires: [...draft.hires, newHire()] })}>
+                                <button type="button" className={s.secondaryButton} onClick={() => update({ ...draft, stages: stageDrafts, hires: [...draft.hires, newHire(stages)] })}>
                                     <Plus className="w-4 h-4" aria-hidden="true" /> Add a hire
                                 </button>
                             </fieldset>
+
+                            {offHire && <OffHireReview schedule={offHire} s={s} />}
 
                             <ProgrammeCostsReview priced={priced} plan={alreadyApplied ? null : plan} s={s} />
 
@@ -539,13 +739,6 @@ function ProgrammeCostsReview({ priced, plan, s }: {
                     </table>
                 </details>
             )}
-            {result.hires.map((hire) => (
-                <p key={hire.id} className={`text-sm ${s.muted}`} data-programme-cost-hire-basis>
-                    {hire.description}: on hire {formatPlanDate(hire.onHireDate, "short")}, charged to {formatPlanDate(hire.billingEndDate, "short")}
-                    {hire.chargeableDayCount !== null ? ` (${hire.chargeableDayCount} chargeable days)` : ` (${hire.calendarDays} calendar days)`}
-                    {" "}= {hire.periodsFromDates} × {hireUnitLabel(hire.unit)}{hire.minimumApplied ? `, minimum hire of ${hire.periods} applied` : ""}.
-                </p>
-            ))}
             {plan && (
                 <div className={`${s.inset} p-3 space-y-1 text-sm`} data-programme-costs-change>
                     <p className={s.body}>Total before VAT now: <strong>{formatGBP(poundsFromPence(plan.beforePence))}</strong></p>

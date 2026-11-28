@@ -149,7 +149,7 @@ export default function FullFeaturesPage() {
               <h2 className="text-4xl md:text-6xl font-black tracking-normal text-white uppercase">Track &nbsp;it</h2>
             </div>
             <p className="text-gray-300 text-lg md:text-xl max-w-3xl leading-relaxed font-medium">
-              Stay in control of your costs, changes, and margins as jobs progress. Know where you stand—before issues arise.
+              Review the costs, invoices and variations recorded against a job alongside its estimate. Figures depend on the entries saved and the information available.
             </p>
           </div>
 
@@ -169,11 +169,11 @@ export default function FullFeaturesPage() {
             <div className="order-1 lg:order-2">
               <ul className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
                 {[
-                  { title: "Budget Tracker", desc: "Monitor spend, changes, and updates in one place" },
-                  { title: "Change Log / Variations", desc: "Record client changes and protect your margin" },
-                  { title: "Margin Protection", desc: "Gain clear insight into financial performance" },
-                  { title: "Phase-by-Phase Insight", desc: "See where you are making or losing money" },
-                  { title: "Centralised Cost Tracking", desc: "Avoid spreadsheet chaos with centralised tracking" }
+                  { title: "Budget & Recorded Costs", desc: "Compare the estimate budget with cost entries recorded against the job" },
+                  { title: "Change Log / Variations", desc: "Review recorded variations and their status alongside the original work" },
+                  { title: "Cost & Value Overview", desc: "Review contract value, budget and recorded costs together" },
+                  { title: "Project Cost Review", desc: "Check the job-level position; unrecorded costs are not included" },
+                  { title: "Centralised Cost Tracking", desc: "Keep recorded costs and invoices together for review" }
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-4 p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/[0.08] transition-colors group/item shadow-sm">
                     <div className="mt-1 w-5 h-5 rounded-full bg-purple-500/20 flex items-center justify-center border border-purple-500/30 group-hover/item:bg-purple-500/40 transition-colors">

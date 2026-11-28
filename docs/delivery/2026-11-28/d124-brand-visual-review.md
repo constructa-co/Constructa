@@ -72,7 +72,7 @@ Diagnostic log: `docs/evidence/d124-brand-review/capture-notes.json`
 
 ## Brand drift inspection (281 @ 5a65d1b4) — bounded
 
-Spot-check only on corrected PNGs. Proposal fixture defect was **capture/compiler**, not production palette authority.
+Spot-check only on corrected PNGs. Proposal **native radio** browser-blue drift fixed in source via `coreFormAccent` (281); proposal PNGs recaptured with `accent-emerald-600` provenance. Not whole-app PASS.
 
 ## SYNTH workflow receipt (bounded)
 

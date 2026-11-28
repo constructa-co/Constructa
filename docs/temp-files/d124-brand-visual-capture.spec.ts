@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { test } from "@playwright/test";
+import { test, type Page } from "@playwright/test";
 import {
     CAPTURE_NOTES_PATH,
     preparePublicRouteForCapture,
@@ -28,7 +28,7 @@ const SYNTH_COMPONENT_ROUTES = [
         init: () => {
             window.__d124BrandHomeOptions = { theme: "dark" };
         },
-        ready: (page) => page.locator("[data-d124-synth-banner]").waitFor({ state: "visible" }),
+        ready: (page: Page) => page.locator("[data-d124-synth-banner]").waitFor({ state: "visible" }),
     },
     {
         id: "estimate",
@@ -37,7 +37,7 @@ const SYNTH_COMPONENT_ROUTES = [
         init: () => {
             window.__a003PaletteOptions = { theme: "dark" };
         },
-        ready: (page) => page.getByRole("link", { name: /Next: Programme/ }).waitFor({ state: "visible" }),
+        ready: (page: Page) => page.getByRole("link", { name: /Next: Programme/ }).waitFor({ state: "visible" }),
     },
     {
         id: "programme",
@@ -46,7 +46,7 @@ const SYNTH_COMPONENT_ROUTES = [
         init: () => {
             window.__detailedGeometryOptions = { plan: "short" };
         },
-        ready: (page) => page.locator('input[value^="TEST DATA"]').first().waitFor({ state: "visible", timeout: 90_000 }),
+        ready: (page: Page) => page.locator('input[value^="TEST DATA"]').first().waitFor({ state: "visible", timeout: 90_000 }),
     },
     {
         id: "proposal",
@@ -55,7 +55,7 @@ const SYNTH_COMPONENT_ROUTES = [
         init: () => {
             window.__documentViewOptions = { theme: "dark" };
         },
-        ready: (page) => page.locator("[data-d124-synth-banner]").waitFor({ state: "visible" }),
+        ready: (page: Page) => page.locator("[data-d124-synth-banner]").waitFor({ state: "visible" }),
     },
 ] as const;
 
@@ -106,6 +106,8 @@ async function captureSynthComponent(
                 const ls = sampleLink ? getComputedStyle(sampleLink) : null;
                 const primaryBtn = document.querySelector("button") as HTMLButtonElement | null;
                 const pbs = primaryBtn ? getComputedStyle(primaryBtn) : null;
+                const sampleRadio = document.querySelector('input[type="radio"]') as HTMLInputElement | null;
+                const rs = sampleRadio ? getComputedStyle(sampleRadio) : null;
                 const themeContext =
                     id === "proposal"
                         ? {
@@ -150,6 +152,12 @@ async function captureSynthComponent(
                     sampleButton: primaryBtn
                         ? { backgroundColor: pbs!.backgroundColor, color: pbs!.color, fontFamily: pbs!.fontFamily }
                         : null,
+                    nativeRadio: sampleRadio
+                        ? {
+                              accentColor: rs!.accentColor || rs!.getPropertyValue("accent-color"),
+                              className: sampleRadio.className,
+                          }
+                        : null,
                     stylesheetHints: {
                         styleTags: document.querySelectorAll("style").length,
                         hasSynthBanner: !!document.querySelector("[data-d124-synth-banner]"),
@@ -165,7 +173,27 @@ async function captureSynthComponent(
             route.id,
             `capture-provenance-${vp.tag}.json`,
         );
-        writeFileSync(provPath, JSON.stringify({ viewport: vp.tag, capturedAt: new Date().toISOString(), ...provenance }, null, 2));
+        const sourceManifest = JSON.parse(readFileSync(path.join(bundleDir, "source-manifest.json"), "utf8")) as {
+            sourceHashes?: Record<string, string>;
+        };
+        const reviewSendHash =
+            Object.entries(sourceManifest.sourceHashes ?? {}).find(([k]) =>
+                k.endsWith("review-send-client.tsx"),
+            )?.[1] ?? null;
+        writeFileSync(
+            provPath,
+            JSON.stringify(
+                {
+                    viewport: vp.tag,
+                    capturedAt: new Date().toISOString(),
+                    sourceSha: SHA,
+                    bundleEntryHash: { "review-send-client.tsx": reviewSendHash },
+                    ...provenance,
+                },
+                null,
+                2,
+            ),
+        );
     }
 }
 

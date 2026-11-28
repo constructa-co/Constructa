@@ -27,7 +27,13 @@
       "fontFamily": "Avenir Next stack",
       "appShellBackground": "rgb(13, 13, 13)",
       "sampleLinkColor": "rgb(201, 239, 207)",
-      "componentsCssBytes": 175455
+      "componentsCssBytes": 175455,
+      "nativeRadioAccentColor": "rgb(5, 150, 105) (accent-emerald-600)"
+    },
+    "sourceColourFix": {
+      "file": "review-send-client.tsx",
+      "change": "coreFormAccent on 8 native radio/checkbox controls",
+      "not": "No wording/price/math/handler changes"
     }
   },
   "fixtureRootBodyContext": {

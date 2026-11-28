@@ -1,6 +1,10 @@
 {
   "viewport": "1440",
-  "capturedAt": "2026-11-28T05:49:18.797Z",
+  "capturedAt": "2026-11-28T05:52:38.175Z",
+  "sourceSha": "f125195f699af1a7d43289c6e79b6f0732cdc2ee",
+  "bundleEntryHash": {
+    "review-send-client.tsx": "2de4e21521f6984c4ea86e5c2772c79af2dfca30eb1167e5eba5bdb605139101"
+  },
   "routeId": "proposal",
   "fixtureRootContext": {
     "source": "src/app/layout.tsx",
@@ -36,6 +40,10 @@
     "backgroundColor": "rgb(28, 41, 31)",
     "color": "rgb(165, 232, 184)",
     "fontFamily": "\"Avenir Next\", Avenir, \"Gill Sans\", \"Trebuchet MS\", sans-serif"
+  },
+  "nativeRadio": {
+    "accentColor": "rgb(5, 150, 105)",
+    "className": "mt-1 w-5 h-5 flex-shrink-0 accent-emerald-600"
   },
   "stylesheetHints": {
     "styleTags": 1,

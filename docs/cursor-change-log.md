@@ -1,5 +1,15 @@
 # Cursor change log
 
+## 2026-11-28 — Proposal native radio accent (coreFormAccent, PR 281)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `review-send-client.tsx` | `coreFormAccent` on 8× `type=radio/checkbox` (`mt-1 w-5 h-5`) | Fix observed browser-blue payment/response/cover controls |
+| `proposal-review-selection-palette.test.ts` | Source guard: 8 accented natives, no bare classNames | Bounded A001 |
+| `review-send-client.test.ts` | Render guard: `accent-emerald-600` on sized natives | Bounded render proof |
+| `docs/evidence/d124-brand-review/png/proposal_*.png` | Recaptured | D124 visual after source fix |
+| `fixture-bundles/proposal/*` | provenance `nativeRadio`, bundle hash | SHA + entry hash recorded |
+
 ## 2026-11-28 — D124 fixture root body matches layout.tsx
 
 | File | Change | Intent |

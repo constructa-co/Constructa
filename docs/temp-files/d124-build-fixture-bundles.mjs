@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { serializeSourceFingerprints } from "../../e2e/local-phase1/source-fingerprints.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
@@ -31,7 +32,13 @@ for (const [id, scenario] of BUILDS) {
     fs.mkdirSync(path.join(evidenceMeta, id), { recursive: true });
     const manifest = path.join(out, "source-manifest.json");
     if (fs.existsSync(manifest)) {
-        fs.copyFileSync(manifest, path.join(evidenceMeta, id, "source-manifest.json"));
+        // Commit fingerprints as { path, sha256 } entries, not the compiler's raw
+        // "<path>": "<hash>" map, which generic secret scanners misread as keys.
+        const bundleManifest = JSON.parse(fs.readFileSync(manifest, "utf8"));
+        fs.writeFileSync(
+            path.join(evidenceMeta, id, "source-manifest.json"),
+            serializeSourceFingerprints(bundleManifest),
+        );
     }
     console.log(JSON.stringify({ id, scenario, bundleOut: out, ok: true }));
 }

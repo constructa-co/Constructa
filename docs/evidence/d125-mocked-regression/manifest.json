@@ -1,0 +1,67 @@
+{
+  "id": "d125-mocked-regression",
+  "packagingOnly": true,
+  "packBranch": "codex/d125-mocked-regression-20261128",
+  "packBaseSha": "4c887d899243a85bcc5a80161fbcfb061a070188",
+  "packagedAt": "2026-11-28",
+  "captureMode": "SYNTH_OFFLINE_MOCKED",
+  "viewports": [
+    { "tag": "375", "width": 375, "height": 812 },
+    { "tag": "1440", "width": 1440, "height": 900 }
+  ],
+  "surfaces": {
+    "home": {
+      "sourceSha": "fa9e4919f18214778c5ab4ed088052ab5dd40e6b",
+      "component": "HomeClient",
+      "scenarios": ["d125-home-success", "d125-home-read-errors"]
+    },
+    "live": {
+      "sourceSha": "779549eb1183c9620ccb5cb8cfd00f9f75769c5d",
+      "component": "LiveProjectsClient",
+      "scenarios": ["d125-live-success", "d125-live-unavailable"]
+    },
+    "admin": {
+      "sourceSha": "9c0f28fc2493e9d032ea779815bc4602a46007f1",
+      "component": "AdminClient",
+      "scenarios": ["d125-admin-overview"]
+    }
+  },
+  "pngDelivered": [
+    { "id": "home_success", "375": "png/home_success_375.png", "1440": "png/home_success_1440.png" },
+    { "id": "home_read_errors", "375": "png/home_read_errors_375.png", "1440": "png/home_read_errors_1440.png" },
+    { "id": "live_success", "375": "png/live_success_375.png", "1440": "png/live_success_1440.png" },
+    { "id": "live_unavailable", "375": "png/live_unavailable_375.png", "1440": "png/live_unavailable_1440.png" },
+    { "id": "admin_overview", "375": "png/admin_overview_375.png", "1440": "png/admin_overview_1440.png" }
+  ],
+  "pngNotDelivered": [
+    {
+      "id": "admin_revenue",
+      "reason": "Optional Revenue-tab capture not completed; run halted after copy-limit breach — explicitly not returned"
+    }
+  ],
+  "copyBreach": {
+    "policyMaxFullCopies": 3,
+    "observedFullSourceTrees": 4,
+    "waived": false,
+    "haltedFurtherBuilds": true,
+    "worktreesNewThisRun": [
+      { "path": "/tmp/constructa-d125-wt-home", "head": "fa9e4919f18214778c5ab4ed088052ab5dd40e6b" },
+      { "path": "/tmp/constructa-d125-wt-live", "head": "779549eb1183c9620ccb5cb8cfd00f9f75769c5d" },
+      { "path": "/tmp/constructa-d125-wt-admin", "head": "9c0f28fc2493e9d032ea779815bc4602a46007f1" }
+    ],
+    "primaryCheckout": "/agent/repos/Constructa",
+    "preservedNotDeleted": true
+  },
+  "exclusions": [
+    "No private client data",
+    "No .env or secrets in pack",
+    "No whole-admin auth/session coverage",
+    "No integrated-main PASS",
+    "No admin Revenue tab PNGs"
+  ],
+  "limitations": [
+    "Branch-source components at listed SHAs only; 286/284 not on main",
+    "fixture-bundles commit manifests only — full components.js lives under /tmp on capture VM",
+    "4-copy breach documented; packaging used existing PNGs only"
+  ]
+}

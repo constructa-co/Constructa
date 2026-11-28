@@ -1,0 +1,22 @@
+{
+  "packId": "d125-mocked-regression",
+  "scannedAt": "2026-11-28T08:52:10Z",
+  "status": "CLEAN_BOUNDED",
+  "methods": [
+    {
+      "tool": "rg",
+      "pattern": "eyJ…|api_key|secret|password|SUPABASE_",
+      "path": "docs/evidence/d125-mocked-regression",
+      "matches": 1,
+      "note": "Single match is manifest exclusion text \"No .env or secrets in pack\" — not a credential"
+    },
+    {
+      "tool": "gitleaks",
+      "attempted": true,
+      "available": false,
+      "note": "gitleaks binary and npx gitleaks not available on VM; rg scan substituted for this packaging commit"
+    }
+  ],
+  "scope": "Evidence tree only — no .env, no private client data, TEST DATA emails only (@example.test)",
+  "newCommitRangePlanned": "4c887d89..<d125-packaging-commit> (single evidence commit, parent 4c887d89)"
+}

@@ -1,0 +1,29 @@
+{
+  "viewport": "375",
+  "capturedAt": "2026-11-28T08:43:45.579Z",
+  "packBranch": "codex/d125-mocked-regression-20261128",
+  "packBaseSha": "4c887d899243a85bcc5a80161fbcfb061a070188",
+  "componentSourceSha": "9c0f28fc2493e9d032ea779815bc4602a46007f1",
+  "scenario": "d125-admin-overview",
+  "bundleScope": "Actual Brief/pricing components and controllers;mock Brief save/router;price persistence refuses;Advanced/video excluded,not visited;no Auth/DB/provider/hosted journey",
+  "bundleModuleCount": 36,
+  "pngId": "admin_overview",
+  "fixtureRootContext": {
+    "source": "src/app/layout.tsx",
+    "bodyClassAttribute": "bg-black text-white antialiased",
+    "bodyClassList": [
+      "bg-black",
+      "text-white",
+      "antialiased"
+    ]
+  },
+  "body": {
+    "fontFamily": "ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+    "backgroundColor": "rgb(0, 0, 0)",
+    "color": "rgb(255, 255, 255)"
+  },
+  "stylesheetHints": {
+    "styleTags": 1,
+    "tailwindCompiled": true
+  }
+}

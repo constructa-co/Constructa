@@ -1,0 +1,140 @@
+{
+  "packId": "d125-mocked-regression",
+  "packBaseSha": "4c887d899243a85bcc5a80161fbcfb061a070188",
+  "generatedAt": "2026-11-28T08:53:00Z",
+  "algorithm": "sha256",
+  "files": [
+    {
+      "path": "docs/evidence/d125-mocked-regression/README.md",
+      "sha256": "b3d90bb436e1ef56229961dba2af274ff275f3880a5c512e0c47de9bcda14e5c"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/contactsheet-mocked-regression-1440.png",
+      "sha256": "ea10326903679363e5a0534dd11b07eb6a145eccb3cc800455cab03f96416304"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/contactsheet-mocked-regression-375.png",
+      "sha256": "d5ba162ec6230f61930be9edc240e63ab391492d312482efe0f898a6df52079b"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/d125-mocked-regression-pack.zip",
+      "sha256": "782b71e37f251313d2f90c0b416d70ef113cbf842783fa3e22da1d72151f8dfa"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/fixture-bundles/admin/d125-admin-overview/source-manifest.json",
+      "sha256": "0515e7b91a96d5af47fbdbe8f9369cc6440ef254cfa8c1b2f588032a3564daca"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/fixture-bundles/admin/d125-admin-revenue/source-manifest.json",
+      "sha256": "ccd21fc3ab67544146e27e58d265f8c06d6c92cb9fa2ac94e5c00ab11cabfbd5"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/fixture-bundles/home/d125-home-read-errors/source-manifest.json",
+      "sha256": "102d152ab05b3cfa22522fff6689d2a490a7ad99ed13769d195cc4e296601b22"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/fixture-bundles/home/d125-home-success/source-manifest.json",
+      "sha256": "62ca79896f0e0e1820a994ce86e5f574d2c768dc81af1002fba0b891e9fca00b"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/fixture-bundles/live/d125-live-success/source-manifest.json",
+      "sha256": "fd6bc4b1b49aea79368f27693a3dba6515663352cdb1fb90abef3204880a6c1b"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/fixture-bundles/live/d125-live-unavailable/source-manifest.json",
+      "sha256": "d391513399e6f5856112b58973c44ce258cc43b4097bf0fd560fbeba5c121ae3"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/gitleaks-receipt.json",
+      "sha256": "d0c04908eb8e9b22189dbd03d52e1e9284fc2bf621af76a8fb4b1cf58cf34b68"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/manifest.json",
+      "sha256": "0f7f1cdee2f2874210f08b9f7f70acdc069132a756e3c977214181393d0506a3"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/png/admin_overview_1440.png",
+      "sha256": "76a17113f8aaa59a221db5c7e0e210d18a30b30d39595fdfd43a3f443c7a7d11"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/png/admin_overview_375.png",
+      "sha256": "577e4dd9ac35eb2fa810fe8d1d7bdd1c18249aad5d34b9e432cf08676899ff08"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/png/home_read_errors_1440.png",
+      "sha256": "33d88429f975215a48da38238d6019b6f4b9210ef3a6a4ebfdbd2046c0f61f19"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/png/home_read_errors_375.png",
+      "sha256": "64a93b6fc445d324aa5f5a9cf75c35bb472b18f54f0614fc3d18d9adf856e45e"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/png/home_success_1440.png",
+      "sha256": "438ecfec6c996798fd10ce380c639219d7beca6560b08b7335a108baee806924"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/png/home_success_375.png",
+      "sha256": "aab3a7f4a2b476026e7d1fb40ab26a1fc56370b6aa5d40013ff83b97b1a45284"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/png/live_success_1440.png",
+      "sha256": "9014ae93b57d5a87747dfb0792d5c84a8164f5961b7fe862cdea32a1fe340304"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/png/live_success_375.png",
+      "sha256": "32640b4ce4e9807f9778061276f2bf9b477258755ec5a0d95aace5eb50cc65fc"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/png/live_unavailable_1440.png",
+      "sha256": "a667bcf7354e5510761b23de3be85efcf533de4046ee0e339fcee88582bac275"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/png/live_unavailable_375.png",
+      "sha256": "655c682fe251a10eddc232905577708783076579f7895f735c4169243debf785"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/provenance/admin_overview_1440.json",
+      "sha256": "e4745b7e0d420415e6e7b5dddcdca55a782c9e4eaf60339f5e2539609e36a380"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/provenance/admin_overview_375.json",
+      "sha256": "885eab4ea5ea5379f0dd1f02c58e02866d33cef69d5a2cd987db00f4701eb515"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/provenance/home_read_errors_1440.json",
+      "sha256": "f6101e6e1890f90d40153279d60c462601b9ebde9df2b574d6ae9d2753ad3074"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/provenance/home_read_errors_375.json",
+      "sha256": "bd2eed4d837aeed403bbda5f1cadcc5ac2898499a6e8cd5a9fc49f43be3d6d2d"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/provenance/home_success_1440.json",
+      "sha256": "57a99925dd824203f77014e8642ed69000c63fb513dcc47fb6a3e571761802a5"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/provenance/home_success_375.json",
+      "sha256": "e21f7eb7fd5f71dbd9a2fea4d7db39b7fdda2744780d0e83c83b2d7f7edb52fe"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/provenance/live_success_1440.json",
+      "sha256": "227d9748a84ba69d3159fc1272c330afc7255f3dc4bc186560601546b18cc46e"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/provenance/live_success_375.json",
+      "sha256": "facb5c051c9c4064b29899f44da70d54e85770adbec32c478dd5c68c500cb06a"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/provenance/live_unavailable_1440.json",
+      "sha256": "b533afa0f55163a6eb02cb6ad29daba04c90c2eab7f6b5507b89434c2f6fed5a"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/provenance/live_unavailable_375.json",
+      "sha256": "2d29ed1f2864420d9e962b25517b9fc7e68e3d4ebcf9d4b9ee78dc96e07b37e9"
+    },
+    {
+      "path": "docs/evidence/d125-mocked-regression/file-fingerprints.json",
+      "sha256": "68450888184c83c97a2ededf0d67f8e2fe2e0d3db67dcdd237b9ccff0f2a7f3e"
+    }
+  ]
+}

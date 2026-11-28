@@ -17,6 +17,7 @@ import type { AdminData } from "./types";
 import OverviewTab from "./tabs/overview-tab";
 import RevenueTab from "./tabs/revenue-tab";
 import CostsTab from "./tabs/costs-tab";
+import GrowthTab from "./tabs/growth-tab";
 import { generateReportText, type ReportType } from "./tabs/reports-tab";
 
 const NOW = new Date();
@@ -148,4 +149,16 @@ describe("admin surfaces show unavailable revenue, never an assumed price", () =
             expect(text).toMatch(/MRR:\s+Unavailable/);
         },
     );
+});
+
+describe("growth tab signup and funnel labels", () => {
+    it("uses rolling 30d daily signups and labels lifetime funnel steps", async () => {
+        const data = await adminData(25);
+        const rolling30 = data.dailySignups.reduce((sum, d) => sum + d.value, 0);
+        const html = renderToStaticMarkup(<GrowthTab data={data} />);
+        expect(html).toContain(String(rolling30));
+        expect(html).toContain("Proposals sent (lifetime)");
+        expect(html).toContain("Sum of recorded daily signups (not calendar month)");
+        expect(html).not.toMatch(/vs ~\d+ last week/);
+    });
 });

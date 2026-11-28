@@ -1,5 +1,12 @@
 # Cursor change log
 
+## 2026-11-28 — D130 admin Growth tab period/funnel truth (N5.1 residual)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/app/admin/tabs/growth-tab.tsx` | 30d partial funnel uses `dailySignups` sum; lifetime funnel labels; prior-week unavailable without series; drop lifetime→period proposal % | Honest Growth tab labels without mislabelled month-as-30d |
+| `src/app/admin/revenue.test.tsx` | GrowthTab render regression | Lock D130 funnel/30d labelling |
+
 ## 2026-11-28 — D124 N2.6 home contract value (estimate-first)
 
 | File | Change | Intent |

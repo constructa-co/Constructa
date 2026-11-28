@@ -99,7 +99,7 @@ export default function FullFeaturesPage() {
               <h2 className="text-4xl md:text-6xl font-black tracking-normal text-white uppercase">Plan &nbsp;it</h2>
             </div>
             <p className="text-gray-300 text-lg md:text-xl max-w-3xl leading-relaxed font-medium">
-              Map out your jobs with clarity—from key dates and milestones to a full programme overview. No spreadsheets needed.
+              Review stages, working days and dependencies on a visual programme, then check the cost implications alongside your price. Programme edits do not automatically change the estimate or preliminaries.
             </p>
           </div>
 
@@ -107,11 +107,11 @@ export default function FullFeaturesPage() {
             <div className="order-1">
               <ul className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
                 {[
-                  { title: "Visual Programme Editor", desc: "Create clear project timelines without spreadsheets" },
-                  { title: "Phase & Milestone Mapping", desc: "Break jobs into manageable chunks and key dates" },
-                  { title: "Job Overview Dashboard", desc: "See all active and upcoming jobs at a glance" },
-                  { title: "Shared Schedules", desc: "Clients see the programme alongside the price in the proposal" },
-                  { title: "Easy Adjustments", desc: "Update dates and stages as the job changes" }
+                  { title: "Visual Programme Editor", desc: "See stages, dates and working-day lengths on a Gantt timeline" },
+                  { title: "Phase & Dependency Mapping", desc: "Set stage durations and review how stages link together" },
+                  { title: "Programme Summary", desc: "Check the programme duration, start and completion dates" },
+                  { title: "Proposal Programme Review", desc: "Save the reviewed programme into the proposal alongside your priced work" },
+                  { title: "Review Time-Related Costs", desc: "Programme edits do not change prices or preliminaries; review time-related costs yourself" }
                 ].map((item, i) => (
                   <li key={i} className="flex items-start gap-4 p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/[0.08] transition-colors group/item shadow-sm">
                     <div className="mt-1 w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 group-hover/item:bg-emerald-500/40 transition-colors">

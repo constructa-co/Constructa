@@ -88,6 +88,8 @@ import { buildPricingReviewContext, prepareReviewedPriceDraft, pricingWorkFromSa
 import { useUnsavedGuard } from "@/lib/use-unsaved-guard";
 import { BEFORE_PROJECT_NAVIGATION } from "@/lib/project-navigation";
 import { ESTIMATE_LEAVE_WARNING, hasOpenEstimateWork } from "./estimate-navigation";
+import ProgrammeCostsPanel from "./programme-costs-panel";
+import type { ProgrammeCostSource } from "@/lib/programme-costs";
 
 // The full BoQ workspace and its import, take-off and build-up tools are only
 // downloaded when Advanced estimating is opened.
@@ -112,6 +114,8 @@ interface ProjectContext {
     is_vat_reverse_charge?: boolean | null;
     /** Saved programme length from the Programme tab's own calculation. Null when it cannot be stated reliably. */
     programme_duration?: string | null;
+    /** The saved programme, for the Programme costs review. Absent: the review is not offered. */
+    programme_cost_source?: ProgrammeCostSource | null;
 }
 
 type LoadAdvancedData = () => Promise<{ ok: true; data: AdvancedEstimatingData } | { ok: false; error: string }>;
@@ -987,6 +991,29 @@ export default function EstimateClient({
                 onChange={(patch) => store.dispatch({ type: "adjustments/change", patch })}
                 onSave={() => void saveAdjustmentsWithGate()}
             />
+
+            {project.programme_cost_source !== undefined && (
+                <ProgrammeCostsPanel
+                    projectId={project.id}
+                    estimate={estimate}
+                    lines={lines}
+                    programme={project.programme_cost_source}
+                    s={s}
+                    blockedReason={project.payment_lock_reason
+                        ?? (hasOpenWork || state.advancedOpen ? "Save or cancel your open estimate work (including Advanced estimating) before applying programme costs." : null)}
+                    onApplied={({ lines: added }) => {
+                        const estimateId = estimate?.id;
+                        const ids = new Set(added.map((line) => line.id));
+                        store.dispatch({
+                            type: "estimates/replace",
+                            update: (estimates) => estimates.map((item) => item.id !== estimateId ? item : {
+                                ...item,
+                                estimate_lines: [...item.estimate_lines.filter((line) => !ids.has(line.id)), ...added],
+                            }),
+                        });
+                    }}
+                />
+            )}
 
             {highDiscountConfirm && (
                 <HighDiscountConfirmDialog

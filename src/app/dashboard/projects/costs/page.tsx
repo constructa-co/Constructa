@@ -83,6 +83,13 @@ export default async function EstimatingPage(props: { searchParams: Promise<{ pr
                     proposal_introduction: project.proposal_introduction ?? null,
                     is_vat_reverse_charge: project.is_vat_reverse_charge ?? null,
                     programme_duration: savedProgrammeDuration(project),
+                    // Read-only programme facts for the Programme costs review; nothing here prices anything.
+                    programme_cost_source: {
+                        start_date: project.start_date ?? null,
+                        programme_phases: project.programme_phases ?? null,
+                        programme_working_pattern: project.programme_working_pattern ?? null,
+                        region: project.region ?? null,
+                    },
                     experience,
                     full_scope: { scope_text: project.scope_text ?? null, brief_scope: project.brief_scope ?? null },
                     payment_lock_reason: getPrecontractEditLockReason(project),

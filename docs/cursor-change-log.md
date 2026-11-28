@@ -1,5 +1,40 @@
 # Cursor change log
 
+## 2026-11-28 — D122 F2792 local integration gate (no false PASS)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/boq-local-regression.local.test.ts` | Single `skipIf(!env)` integration; uncaught load on missing path | Exit 1 when path set but absent |
+| `src/lib/boq-local-regression.ts` | Validate FILE tab counts + 64-hex digest | `expectation_missing` on bad shapes |
+
+## 2026-11-28 — D122 pack R1 (#279): FILE tab expectations + manifest gate
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/boq-local-regression.ts` | FILE requires 4 tab fields; `expectation_missing`; `selected`/`hidden` codes | No thin private PASS |
+| `src/lib/boq-local-regression.local.test.ts` | Missing path FAIL; unset skip NOT_RUN | Env gate |
+| `src/lib/boq-local-regression.synth.test.ts` | Known digest pin + thin/wrong negatives | CI controls |
+| `src/lib/__fixtures__/boq-local-manifest.synth.example.json` | Full numeric fields | Example matches contract |
+| `docs/delivery/2026-11-28/d122-local-boq-regression-manifest-contract.md` | Required FILE fields + codes | R1 contract |
+
+## 2026-11-28 — D122 runner false-PASS fixes + numeric digest contract
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/boq-local-regression.ts` | nonempty_rows, tab_coverage, expected_has_blockers, numeric digest, post-extract mtime | R1 review ca3fa85c |
+| `src/lib/boq-local-regression.synth.test.ts` | Negative SYNTH controls | Omitted tab, wrong nonempty, blockers |
+| `docs/delivery/2026-11-28/d122-local-boq-regression-manifest-contract.md` | Canonical digest + field table | R1 private manifest prep |
+
+## 2026-11-28 — D122 local BOQ regression pack (SYNTH only in CI)
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/boq-local-regression.ts` | Manifest loader, sha256/mtime, sanitized runner | Rob-local opt-in via `BOQ_LOCAL_MANIFEST_PATH` |
+| `src/lib/boq-local-regression.synth.test.ts` | CI SYNTH controls | No real workbook PASS from cloud |
+| `src/lib/boq-local-regression.local.test.ts` | Skipped unless env set | NOT_RUN never PASS |
+| `docs/delivery/2026-11-28/d122-local-boq-regression-manifest-contract.md` | Manifest API for R1 | Early contract |
+| `src/lib/__fixtures__/boq-local-manifest.synth.example.json` | SYNTH fixture manifest | Grid-derived counts only |
+
 ## 2026-11-28 — D120 source parser R1 regression repairs
 
 | File | Change | Intent |

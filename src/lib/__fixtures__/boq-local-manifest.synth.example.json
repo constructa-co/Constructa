@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "workbooks": [
+    {
+      "id": "synth-csv-single-tab-baseline",
+      "source": { "kind": "fixture", "scenario_id": "csv-single-tab-baseline" },
+      "tab_count": 1,
+      "require_all_tabs_listed": true,
+      "sheets": [
+        {
+          "name": "SYNTH-Tab-6",
+          "source_rows": 9,
+          "nonempty_rows": 9,
+          "numeric_cell_count": 0,
+          "numeric_cells_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "row_coverage_balanced": true,
+          "selected": true
+        }
+      ],
+      "expectations": {
+        "reconciliation_balanced": true,
+        "total_item_rows": 8,
+        "expected_has_blockers": false
+      }
+    },
+    {
+      "id": "synth-reconciliation-mismatch",
+      "source": { "kind": "fixture", "scenario_id": "reconciliation-mismatch" },
+      "tab_count": 1,
+      "require_all_tabs_listed": true,
+      "sheets": [
+        {
+          "name": "SYNTH-Mismatch",
+          "source_rows": 2,
+          "nonempty_rows": 2,
+          "numeric_cell_count": 0,
+          "numeric_cells_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "row_coverage_balanced": true,
+          "selected": true
+        }
+      ],
+      "expectations": {
+        "reconciliation_balanced": true,
+        "total_item_rows": 1,
+        "expected_has_blockers": false
+      }
+    }
+  ]
+}

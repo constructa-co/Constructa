@@ -1170,3 +1170,5 @@ D78 R1: actual disposable journey reached estimating and found first-line save r
 ## 22 November — D92/D94 combined contractor critique
 
 Sonnet source critique plus independently reproduced pricing mismatch, top-down contractor pricing and programme metric maps, graded findings and reuse recommendations. Only must-fix is held schema draft #238. No new original-Grok closure or runtime/release claims. Existing detailed programme features explicitly reused rather than rebuilt.
+
+D129 R1 CI repair: narrow annual-report regression to unsupported affirmative product-market-fit claims; retain the explicit disclaimer. Initial cloud shard 2 caught an overbroad assertion matching that disclaimer. No local tests/builds run; normal follow-up commit, CI-only validation.

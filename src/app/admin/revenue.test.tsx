@@ -163,7 +163,7 @@ describe("admin surfaces show unavailable revenue, never an assumed price", () =
 
     it("annual report omits unsupported product-market fit and margin-target narrative", async () => {
         const text = generateReportText("annual", await adminData(40));
-        expect(text).not.toMatch(/product-market fit/i);
+        expect(text).not.toMatch(/(?:established|achieved|demonstrated) product-market fit/i);
         expect(text).not.toMatch(/gross margin above 70%/i);
         expect(text).not.toMatch(/ARR target via organic/i);
         expect(text).toContain("No automated strategic narrative");

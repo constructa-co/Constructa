@@ -1,5 +1,15 @@
 # Cursor change log
 
+## 2026-11-28 — D122 pack R1 (#279): FILE tab expectations + manifest gate
+
+| File | Change | Intent |
+| --- | --- | --- |
+| `src/lib/boq-local-regression.ts` | FILE requires 4 tab fields; `expectation_missing`; `selected`/`hidden` codes | No thin private PASS |
+| `src/lib/boq-local-regression.local.test.ts` | Missing path FAIL; unset skip NOT_RUN | Env gate |
+| `src/lib/boq-local-regression.synth.test.ts` | Known digest pin + thin/wrong negatives | CI controls |
+| `src/lib/__fixtures__/boq-local-manifest.synth.example.json` | Full numeric fields | Example matches contract |
+| `docs/delivery/2026-11-28/d122-local-boq-regression-manifest-contract.md` | Required FILE fields + codes | R1 contract |
+
 ## 2026-11-28 — D122 runner false-PASS fixes + numeric digest contract
 
 | File | Change | Intent |

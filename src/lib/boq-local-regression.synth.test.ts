@@ -5,6 +5,7 @@ import type { BoQCellInput } from "./boq-workbook";
 import { extractBoQWorkbook } from "./boq-workbook";
 import {
     assertBoqLocalRegression,
+    fileManifestExpectationGaps,
     loadBoqLocalManifest,
     numericCellsDigestForSheet,
     runBoqLocalRegression,
@@ -15,6 +16,10 @@ import {
 import { encodeBoqWorkbookScenarioToXlsx } from "./__fixtures__/boq-workbook";
 
 const SYNTH_EXAMPLE = path.join(import.meta.dirname, "__fixtures__/boq-local-manifest.synth.example.json");
+
+/** Pinned by `numericCellsDigestForSheet` contract (firstRow 4, firstCol 1, values 9.5 and 3). */
+export const KNOWN_NUMERIC_DIGEST_SHA256 =
+    "e772431dc274fe5a37ff43cd5efc809605a64c272879d0697dc6ecd6f5553cf0";
 
 function sheet(rows: BoQCellInput[][]) {
     return extractBoQWorkbook({
@@ -47,6 +52,8 @@ describe("D122 — BOQ local regression SYNTH controls (CI)", () => {
             expect(wb.sheets.map((s) => s.name)).toEqual(grid.sheets.map((s) => s.name));
             expect(wb.sheets.map((s) => s.source_rows)).toEqual(grid.sheets.map((s) => s.source_rows));
             expect(wb.sheets.map((s) => s.nonempty_rows)).toEqual(grid.sheets.map((s) => s.nonempty_rows));
+            expect(wb.sheets.map((s) => s.numeric_cell_count)).toEqual(grid.sheets.map((s) => s.numeric_cell_count));
+            expect(wb.sheets.map((s) => s.numeric_cells_sha256)).toEqual(grid.sheets.map((s) => s.numeric_cells_sha256));
         }
     });
 
@@ -61,6 +68,7 @@ describe("D122 — BOQ local regression SYNTH controls (CI)", () => {
         const b = numericCellsDigestForSheet(sheet);
         expect(a.sha256).toBe(b.sha256);
         expect(a.count).toBe(2);
+        expect(a.sha256).toBe(KNOWN_NUMERIC_DIGEST_SHA256);
     });
 
     it("fixture bytes get sha256; mismatch scenario passes SYNTH manifest checks", () => {
@@ -136,5 +144,60 @@ describe("D122 — BOQ local regression SYNTH controls (CI)", () => {
         });
         expect(rBlocker.ok).toBe(false);
         expect(rBlocker.codes_failed).toContain("blockers");
+    });
+
+    it("negative: thin FILE manifest (name-only tab) fails expectation_missing before IO", () => {
+        const entry = {
+            id: "thin-file",
+            source: { kind: "file" as const, path: "/private/does-not-matter.xlsx" },
+            sha256: "00".repeat(32),
+            tab_count: 1,
+            sheets: [{ name: "Some-Tab" }],
+        };
+        expect(fileManifestExpectationGaps(entry)).toBe(true);
+        const [result] = runBoqLocalRegression({ schema_version: 1, workbooks: [entry] });
+        expect(result.ok).toBe(false);
+        expect(result.codes_failed).toContain("expectation_missing");
+    });
+
+    it("negative: wrong numeric_cells_sha256 and numeric_cell_count fail dedicated codes", () => {
+        const grid = synthManifestSheetRowsFromFixture("csv-single-tab-baseline");
+        const sh = { ...grid.sheets[0], numeric_cells_sha256: "f".repeat(64), numeric_cell_count: 99 };
+        const [r] = runBoqLocalRegression({
+            schema_version: 1,
+            workbooks: [
+                {
+                    id: "wrong-digest",
+                    source: { kind: "fixture", scenario_id: "csv-single-tab-baseline" },
+                    tab_count: 1,
+                    sheets: [sh],
+                },
+            ],
+        });
+        expect(r.ok).toBe(false);
+        expect(r.codes_failed).toContain("numeric_digest");
+        expect(r.codes_failed).toContain("numeric_count");
+    });
+
+    it("negative: wrong selected_line_total_sum_cents fails line_total_sum_cents", () => {
+        const grid = synthManifestSheetRowsFromFixture("csv-single-tab-baseline");
+        const [r] = runBoqLocalRegression({
+            schema_version: 1,
+            workbooks: [
+                {
+                    id: "wrong-sum",
+                    source: { kind: "fixture", scenario_id: "csv-single-tab-baseline" },
+                    tab_count: 1,
+                    sheets: grid.sheets,
+                    expectations: { selected_line_total_sum_cents: 1 },
+                },
+            ],
+        });
+        expect(r.ok).toBe(false);
+        expect(r.codes_failed).toContain("line_total_sum_cents");
+    });
+
+    it("negative: loadBoqLocalManifest throws when path is missing on disk", () => {
+        expect(() => loadBoqLocalManifest(path.join(import.meta.dirname, "no-such-manifest.json"))).toThrow(/not found/i);
     });
 });

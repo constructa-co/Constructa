@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import * as XLSX from "xlsx";
 import type { BoqWorkbookScenarioId } from "./__fixtures__/boq-workbook";
 import { encodeBoqWorkbookScenarioToXlsx, getBoqWorkbookScenario } from "./__fixtures__/boq-workbook";
@@ -90,7 +90,10 @@ export type BoqCheckCode =
     | "line_total_sum_cents"
     | "blockers"
     | "numeric_count"
-    | "numeric_digest";
+    | "numeric_digest"
+    | "expectation_missing"
+    | "selected"
+    | "hidden";
 
 export interface BoqWorkbookCheckResult {
     workbook_id: string;
@@ -115,10 +118,40 @@ export function sha256Buffer(data: ArrayBuffer | Buffer | string): string {
 }
 
 export function loadBoqLocalManifest(path: string): BoqLocalManifest {
+    if (!existsSync(path)) {
+        throw new Error(`BoQ local manifest not found: ${path}`);
+    }
     const raw = JSON.parse(readFileSync(path, "utf8")) as BoqLocalManifest;
     if (raw.schema_version !== 1) throw new Error(`Unsupported manifest schema_version: ${(raw as BoqLocalManifest).schema_version}`);
     if (!Array.isArray(raw.workbooks) || !raw.workbooks.length) throw new Error("Manifest has no workbooks");
     return raw;
+}
+
+const REQUIRED_TAB_EXPECTATION_KEYS = [
+    "source_rows",
+    "nonempty_rows",
+    "numeric_cell_count",
+    "numeric_cells_sha256",
+] as const satisfies readonly (keyof BoqLocalSheetExpectation)[];
+
+function sheetExpectationMissing(exp: BoqLocalSheetExpectation): boolean {
+    if (exp.source_rows === undefined || exp.nonempty_rows === undefined) return true;
+    if (exp.numeric_cell_count === undefined) return true;
+    if (typeof exp.numeric_cells_sha256 !== "string" || !exp.numeric_cells_sha256.trim()) return true;
+    return false;
+}
+
+/** FILE manifests must declare full per-tab inventory (R1 private 57-tab packs). */
+export function fileManifestExpectationGaps(entry: BoqLocalWorkbookEntry): boolean {
+    if (entry.source.kind !== "file") return false;
+    if (!entry.sheets.length) return true;
+    return entry.sheets.some(sheetExpectationMissing);
+}
+
+function addManifestExpectationGaps(entry: BoqLocalWorkbookEntry, failed: Set<BoqCheckCode>): void {
+    if (fileManifestExpectationGaps(entry)) {
+        failed.add("expectation_missing");
+    }
 }
 
 function isNonemptySourceCell(cell: BoQCellInput | undefined): boolean {
@@ -227,7 +260,49 @@ function assertAllTabsListed(
 
 function checkWorkbook(entry: BoqLocalWorkbookEntry): BoqWorkbookCheckResult {
     const failed = new Set<BoqCheckCode>();
-    const { bytes, filename, mtimeMsBefore, filePath } = resolveWorkbookBytes(entry);
+    addManifestExpectationGaps(entry, failed);
+    if (failed.has("expectation_missing")) {
+        return {
+            workbook_id: entry.id,
+            ok: false,
+            codes_failed: [...failed],
+            summary: {
+                tab_count: entry.tab_count,
+                source_rows_total: 0,
+                item_rows: 0,
+                unresolved_rows: 0,
+                warning_rows: 0,
+                uncached_formula_cells: 0,
+                error_cells: 0,
+                blocker_count: 0,
+            },
+        };
+    }
+
+    let bytes: Buffer;
+    let filename: string;
+    let mtimeMsBefore: number | null;
+    let filePath: string | null;
+    try {
+        ({ bytes, filename, mtimeMsBefore, filePath } = resolveWorkbookBytes(entry));
+    } catch (err) {
+        failed.add("sha256");
+        return {
+            workbook_id: entry.id,
+            ok: false,
+            codes_failed: [...failed],
+            summary: {
+                tab_count: entry.tab_count,
+                source_rows_total: 0,
+                item_rows: 0,
+                unresolved_rows: 0,
+                warning_rows: 0,
+                uncached_formula_cells: 0,
+                error_cells: 0,
+                blocker_count: 0,
+            },
+        };
+    }
 
     if (entry.source.kind === "file") {
         if (!entry.sha256) failed.add("sha256");
@@ -267,11 +342,11 @@ function checkWorkbook(entry: BoqLocalWorkbookEntry): BoqWorkbookCheckResult {
         }
         if (exp.used_range !== undefined && actual.usedRange !== exp.used_range) failed.add("used_range");
         if (exp.row_coverage_balanced !== undefined && actual.balanced !== exp.row_coverage_balanced) failed.add("balanced");
-        if (exp.selected !== undefined && actual.selected !== exp.selected) failed.add("source_rows");
+        if (exp.selected !== undefined && actual.selected !== exp.selected) failed.add("selected");
         if (exp.expected_item_rows !== undefined && actual.itemRows !== exp.expected_item_rows) failed.add("item_rows");
-        if (exp.hidden !== undefined && actual.hidden !== exp.hidden) failed.add("source_rows");
-        if (exp.numeric_cell_count !== undefined || exp.numeric_cells_sha256 !== undefined) {
-            const digest = numericCellsDigestForSheet(srcSheet);
+        if (exp.hidden !== undefined && actual.hidden !== exp.hidden) failed.add("hidden");
+        const digest = numericCellsDigestForSheet(srcSheet);
+        if (entry.source.kind === "file" || exp.numeric_cell_count !== undefined || exp.numeric_cells_sha256 !== undefined) {
             if (exp.numeric_cell_count !== undefined && digest.count !== exp.numeric_cell_count) failed.add("numeric_count");
             if (exp.numeric_cells_sha256 !== undefined && digest.sha256 !== exp.numeric_cells_sha256.toLowerCase()) {
                 failed.add("numeric_digest");

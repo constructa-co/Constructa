@@ -14,10 +14,10 @@
 | `workbooks[].tab_count` | yes | Must equal adapter tab count. |
 | `workbooks[].require_all_tabs_listed` | default true | When true, `sheets[]` must name **every** tab exactly once (`tab_coverage` if any omit/extra). |
 | `workbooks[].sheets[].name` | yes | Tab name. |
-| `workbooks[].sheets[].source_rows` | optional | Used-range row count from parser reconciliation. |
-| `workbooks[].sheets[].nonempty_rows` | optional | **Source-input** rows with any non-empty cell (formulas, errors, text, `0`, `false` — not parser `blankRows`). |
-| `workbooks[].sheets[].numeric_cell_count` | optional | Count of finite numeric cached values on tab. |
-| `workbooks[].sheets[].numeric_cells_sha256` | optional | Canonical digest (below). |
+| `workbooks[].sheets[].source_rows` | **required for `file`** | Used-range row count from parser reconciliation. |
+| `workbooks[].sheets[].nonempty_rows` | **required for `file`** | **Source-input** rows with any non-empty cell (formulas, errors, text, `0`, `false` — not parser `blankRows`). |
+| `workbooks[].sheets[].numeric_cell_count` | **required for `file`** | Count of finite numeric cached values on tab. |
+| `workbooks[].sheets[].numeric_cells_sha256` | **required for `file`** | Canonical digest (below). Thin/name-only tabs → `expectation_missing`. |
 | `workbooks[].expectations.expected_has_blockers` | optional | **Boolean only:** `true` if `boqWorkbookImportBlockers` non-empty; `false` if clean. |
 | `workbooks[].expectations.selected_line_total_sum_cents` | optional | Sum of selected import line totals in pence (independent bill). Mismatch → `line_total_sum_cents` (no amounts logged). |
 
@@ -44,7 +44,7 @@ Implementation: `numericCellsDigestForSheet()` in `src/lib/boq-local-regression.
 
 ## Check codes
 
-`sha256`, `mtime`, `tab_count`, `tab_coverage`, `source_rows`, `nonempty_rows`, `used_range`, `balanced`, `ledger_unique`, `item_rows`, `line_count`, `line_ref`, `line_qty`, `line_unit`, `line_total`, `line_total_sum_cents`, `blockers`, `numeric_count`, `numeric_digest`
+`sha256`, `mtime`, `tab_count`, `tab_coverage`, `source_rows`, `nonempty_rows`, `used_range`, `balanced`, `ledger_unique`, `item_rows`, `line_count`, `line_ref`, `line_qty`, `line_unit`, `line_total`, `line_total_sum_cents`, `blockers`, `numeric_count`, `numeric_digest`, `expectation_missing`, `selected`, `hidden`
 
 ## Local run
 
@@ -53,7 +53,7 @@ export BOQ_LOCAL_MANIFEST_PATH=/absolute/path/private-manifest.json
 npm run test -- src/lib/boq-local-regression.local.test.ts
 ```
 
-Unset env → `NOT_RUN`, never PASS.
+Unset env → vitest `skip` (`NOT_RUN`), never PASS. Set env but missing file → **FAIL** (`loadBoqLocalManifest` throws).
 
 ## SYNTH example
 

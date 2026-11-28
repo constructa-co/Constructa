@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
+import { unavailableLabels, type LiveFigures, type LiveUnavailable } from "./live-data";
 import {
     PoundSterling,
     Hammer,
@@ -22,7 +23,7 @@ import {
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface ProjectRow {
+interface ProjectRow extends LiveFigures {
     id: string;
     name: string;
     client_name?: string | null;
@@ -31,25 +32,16 @@ interface ProjectRow {
     proposal_status?: string | null;
     start_date?: string | null;
     updated_at?: string | null;
-    contractValue: number;
-    budgetCost: number;
-    revisedValue: number;
-    costsPosted: number;
-    invoicedTotal: number;
-    receivedTotal: number;
-    approvedVariations: number;
-    estimatedMarginPct: number;
-    completionPct: number;
-    budgetBurnPct: number;
-    hasActivity: boolean;
 }
 
 interface Props {
     projects: ProjectRow[];
     totalContractValue: number;
-    totalCosts: number;
-    totalInvoiced: number;
-    totalOutstanding: number;
+    /** Null when cost entries or invoices could not be loaded: never shown as £0. */
+    totalCosts: number | null;
+    totalInvoiced: number | null;
+    totalOutstanding: number | null;
+    unavailable: LiveUnavailable;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -61,6 +53,8 @@ function gbp(n: number, compact = false): string {
     }
     return "£" + n.toLocaleString("en-GB", { maximumFractionDigits: 0 });
 }
+
+const UNAVAILABLE = "Unavailable";
 
 function timeAgo(date: string | null | undefined): string {
     if (!date) return "";
@@ -75,9 +69,12 @@ function timeAgo(date: string | null | undefined): string {
 
 // RAG status based on budget burn & margin
 function ragStatus(p: ProjectRow): { label: string; color: string; icon: React.ElementType } {
+    const unknown = { label: "Status unavailable", color: "text-slate-400", icon: AlertTriangle };
+    if (p.budgetBurnPct === null || p.costsPosted === null) return unknown;
     if (p.budgetBurnPct > 110) return { label: "Over Budget",  color: "text-red-400",   icon: AlertTriangle };
     if (p.budgetBurnPct > 85)  return { label: "At Risk",      color: "text-amber-400", icon: AlertTriangle };
-    if (p.costsPosted > 0 || p.invoicedTotal > 0) return { label: "On Track", color: "text-green-400", icon: CheckCircle2 };
+    if (p.costsPosted > 0 || (p.invoicedTotal ?? 0) > 0) return { label: "On Track", color: "text-green-400", icon: CheckCircle2 };
+    if (p.invoicedTotal === null) return unknown;
     return { label: "Not Started", color: "text-slate-400", icon: CircleDot };
 }
 
@@ -110,7 +107,8 @@ function KpiCard({ label, value, sub, icon: Icon, color = "slate" }: {
 type FilterKey = "all" | "active" | "accepted";
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function LiveProjectsClient({ projects, totalContractValue, totalCosts, totalInvoiced, totalOutstanding }: Props) {
+export default function LiveProjectsClient({ projects, totalContractValue, totalCosts, totalInvoiced, totalOutstanding, unavailable }: Props) {
+    const missing = unavailableLabels(unavailable);
     const [query, setQuery]   = useState("");
     const [filter, setFilter] = useState<FilterKey>("all");
 
@@ -121,19 +119,29 @@ export default function LiveProjectsClient({ projects, totalContractValue, total
         const matchFilter =
             filter === "all" ? true :
             filter === "accepted" ? p.proposal_status === "accepted" :
-            p.hasActivity;
+            // Unknown activity (a source could not be loaded) is kept in view, not hidden.
+            p.hasActivity !== false;
         return matchSearch && matchFilter;
     });
 
     return (
         <div className="space-y-6">
 
+            {missing.length > 0 && (
+                <div role="alert" data-live-unavailable className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                    <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0 text-amber-400" />
+                    <span>
+                        Some figures could not be loaded: {missing.join(", ")}. They show as Unavailable, not £0. Refresh to try again.
+                    </span>
+                </div>
+            )}
+
             {/* ── Portfolio KPIs ───────────────────────────────────────────── */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <KpiCard label="Portfolio Value"  value={gbp(totalContractValue, true)}  sub={`${projects.length} projects`}    icon={PoundSterling} color="blue" />
-                <KpiCard label="Costs to Date"    value={gbp(totalCosts, true)}           sub="Actual spend logged"              icon={Hammer} />
-                <KpiCard label="Invoiced"         value={gbp(totalInvoiced, true)}        sub="All applications"                 icon={Receipt} color="blue" />
-                <KpiCard label="Outstanding"      value={gbp(totalOutstanding, true)}     sub="Invoiced not yet paid"            icon={Clock} color={totalOutstanding > 0 ? "amber" : "slate"} />
+                <KpiCard label="Costs to Date"    value={totalCosts === null ? UNAVAILABLE : gbp(totalCosts, true)}  sub={totalCosts === null ? "Cost entries could not be loaded" : "Actual spend logged"} icon={Hammer} />
+                <KpiCard label="Invoiced"         value={totalInvoiced === null ? UNAVAILABLE : gbp(totalInvoiced, true)}  sub={totalInvoiced === null ? "Invoices could not be loaded" : "All applications"} icon={Receipt} color="blue" />
+                <KpiCard label="Outstanding"      value={totalOutstanding === null ? UNAVAILABLE : gbp(totalOutstanding, true)}  sub={totalOutstanding === null ? "Invoices could not be loaded" : "Invoiced not yet paid"} icon={Clock} color={totalOutstanding !== null && totalOutstanding > 0 ? "amber" : "slate"} />
             </div>
 
             {/* ── Filter + Search bar ──────────────────────────────────────── */}
@@ -178,7 +186,7 @@ export default function LiveProjectsClient({ projects, totalContractValue, total
                     {filtered.map(proj => {
                         const rag = ragStatus(proj);
                         const RagIcon = rag.icon;
-                        const outstandingAmt = proj.invoicedTotal - proj.receivedTotal;
+                        const outstandingAmt = proj.outstanding;
                         return (
                             <div key={proj.id} className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 hover:border-slate-600 transition-colors">
                                 {/* Top row */}
@@ -189,7 +197,7 @@ export default function LiveProjectsClient({ projects, totalContractValue, total
                                             <span className={`flex items-center gap-1 text-[10px] font-semibold ${rag.color}`}>
                                                 <RagIcon className="w-3 h-3" /> {rag.label}
                                             </span>
-                                            {proj.approvedVariations > 0 && (
+                                            {proj.approvedVariations !== null && proj.approvedVariations > 0 && (
                                                 <span className="text-[10px] text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded-full">
                                                     +{gbp(proj.approvedVariations, true)} variations
                                                 </span>
@@ -215,34 +223,34 @@ export default function LiveProjectsClient({ projects, totalContractValue, total
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
                                     <div>
                                         <div className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">Costs Posted</div>
-                                        <div className={`text-sm font-semibold font-mono ${proj.budgetBurnPct > 110 ? "text-red-400" : "text-slate-200"}`}>
-                                            {proj.costsPosted > 0 ? gbp(proj.costsPosted, true) : "—"}
+                                        <div className={`text-sm font-semibold font-mono ${proj.budgetBurnPct !== null && proj.budgetBurnPct > 110 ? "text-red-400" : "text-slate-200"}`}>
+                                            {proj.costsPosted === null ? UNAVAILABLE : proj.costsPosted > 0 ? gbp(proj.costsPosted, true) : "—"}
                                         </div>
-                                        {proj.budgetCost > 0 && (
+                                        {proj.budgetCost > 0 && proj.budgetBurnPct !== null && (
                                             <ProgressMini pct={proj.budgetBurnPct} color={proj.budgetBurnPct > 110 ? "bg-red-500" : proj.budgetBurnPct > 85 ? "bg-amber-400" : "bg-green-500"} />
                                         )}
-                                        {proj.budgetCost > 0 && (
+                                        {proj.budgetCost > 0 && proj.budgetBurnPct !== null && (
                                             <div className="text-[10px] text-slate-600 mt-0.5">{proj.budgetBurnPct.toFixed(0)}% of {gbp(proj.budgetCost, true)} budget</div>
                                         )}
                                     </div>
                                     <div>
                                         <div className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">Invoiced</div>
                                         <div className="text-sm font-semibold font-mono text-blue-400">
-                                            {proj.invoicedTotal > 0 ? gbp(proj.invoicedTotal, true) : "—"}
+                                            {proj.invoicedTotal === null ? UNAVAILABLE : proj.invoicedTotal > 0 ? gbp(proj.invoicedTotal, true) : "—"}
                                         </div>
-                                        {proj.revisedValue > 0 && (
+                                        {proj.revisedValue !== null && proj.revisedValue > 0 && proj.completionPct !== null && (
                                             <ProgressMini pct={proj.completionPct} color="bg-blue-500" />
                                         )}
-                                        {proj.revisedValue > 0 && (
+                                        {proj.revisedValue !== null && proj.revisedValue > 0 && proj.completionPct !== null && (
                                             <div className="text-[10px] text-slate-600 mt-0.5">{proj.completionPct.toFixed(0)}% complete</div>
                                         )}
                                     </div>
                                     <div>
                                         <div className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">Received</div>
                                         <div className="text-sm font-semibold font-mono text-green-400">
-                                            {proj.receivedTotal > 0 ? gbp(proj.receivedTotal, true) : "—"}
+                                            {proj.receivedTotal === null ? UNAVAILABLE : proj.receivedTotal > 0 ? gbp(proj.receivedTotal, true) : "—"}
                                         </div>
-                                        {outstandingAmt > 0 && (
+                                        {outstandingAmt !== null && outstandingAmt > 0 && (
                                             <div className="text-[10px] text-amber-400 mt-0.5">{gbp(outstandingAmt, true)} outstanding</div>
                                         )}
                                     </div>

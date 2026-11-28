@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { logCostAction, updateInvoiceStatusAction } from "../projects/p-and-l/actions";
 import { coreFocusRing, coreFocusVisibleRing, corePrimaryButton } from "@/lib/core-editing-palette";
+import { unavailableLabels, type LiveFigures, type LiveUnavailable } from "./live-data";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface CostEntry {
@@ -59,15 +60,8 @@ interface Props {
         start_date?: string | null;
         project_type?: string | null;
     };
-    contractValue: number;
-    budgetCost: number;
-    costsPosted: number;
-    invoicedTotal: number;
-    receivedTotal: number;
-    approvedVarTotal: number;
-    budgetBurnPct: number;
-    completionPct: number;
-    estimatedMarginPct: number;
+    figures: LiveFigures;
+    unavailable: LiveUnavailable;
     costs: CostEntry[];
     invoices: Invoice[];
     variations: Variation[];
@@ -80,10 +74,20 @@ function gbp(n: number): string {
     return `£${n.toFixed(0)}`;
 }
 
-function ragStatus(budgetBurnPct: number, costsPosted: number, invoicedTotal: number) {
+const UNAVAILABLE = "Unavailable";
+
+/** A figure that could not be loaded reads "Unavailable", never £0. */
+function money(n: number | null): string {
+    return n === null ? UNAVAILABLE : gbp(n);
+}
+
+function ragStatus(budgetBurnPct: number | null, costsPosted: number | null, invoicedTotal: number | null) {
+    const unknown = { label: "Status unavailable", color: "text-slate-400", bg: "bg-slate-400/10 border-slate-400/20", icon: AlertTriangle };
+    if (budgetBurnPct === null || costsPosted === null) return unknown;
     if (budgetBurnPct > 110) return { label: "Over Budget", color: "text-red-400", bg: "bg-red-400/10 border-red-400/20", icon: AlertTriangle };
     if (budgetBurnPct > 85) return { label: "At Risk", color: "text-amber-400", bg: "bg-amber-400/10 border-amber-400/20", icon: AlertTriangle };
-    if (costsPosted > 0 || invoicedTotal > 0) return { label: "On Track", color: "text-green-400", bg: "bg-green-400/10 border-green-400/20", icon: CheckCircle2 };
+    if (costsPosted > 0 || (invoicedTotal ?? 0) > 0) return { label: "On Track", color: "text-green-400", bg: "bg-green-400/10 border-green-400/20", icon: CheckCircle2 };
+    if (invoicedTotal === null) return unknown;
     return { label: "Not Started", color: "text-slate-400", bg: "bg-slate-400/10 border-slate-400/20", icon: CircleDot };
 }
 
@@ -206,18 +210,20 @@ function AddCostForm({ projectId, onDone }: { projectId: string; onDone: () => v
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function ProjectLiveClient({
-    projectId, project, contractValue, budgetCost, costsPosted,
-    invoicedTotal, receivedTotal, approvedVarTotal,
-    budgetBurnPct, completionPct, estimatedMarginPct,
+    projectId, project, figures, unavailable,
     costs, invoices, variations,
 }: Props) {
+    const {
+        contractValue, budgetCost, costsPosted, invoicedTotal,
+        approvedVariations: approvedVarTotal, budgetBurnPct, completionPct, estimatedMarginPct,
+        outstanding: outstandingAmt, revisedValue,
+    } = figures;
+    const missing = unavailableLabels(unavailable);
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [showAddCost, setShowAddCost] = useState(false);
     const rag = ragStatus(budgetBurnPct, costsPosted, invoicedTotal);
     const RagIcon = rag.icon;
-    const outstandingAmt = invoicedTotal - receivedTotal;
-    const revisedValue = contractValue + approvedVarTotal;
 
     const handleInvoiceStatus = (id: string, status: string) => {
         startTransition(async () => {
@@ -253,12 +259,21 @@ export default function ProjectLiveClient({
                 </Link>
             </div>
 
+            {missing.length > 0 && (
+                <div role="alert" data-live-unavailable className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                    <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0 text-amber-400" />
+                    <span>
+                        Some figures could not be loaded: {missing.join(", ")}. They show as Unavailable, not £0. Refresh to try again.
+                    </span>
+                </div>
+            )}
+
             {/* ── KPI Strip ────────────────────────────────────────────── */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <KpiCard label="Contract Value" value={gbp(contractValue)} sub={approvedVarTotal > 0 ? `+${gbp(approvedVarTotal)} variations` : undefined} icon={PoundSterling} color="blue" />
-                <KpiCard label="Costs to Date" value={gbp(costsPosted)} sub={budgetCost > 0 ? `${budgetBurnPct.toFixed(0)}% of ${gbp(budgetCost)} budget` : "No budget set"} icon={Hammer} color={budgetBurnPct > 110 ? "red" : budgetBurnPct > 85 ? "amber" : "slate"} />
-                <KpiCard label="Invoiced" value={gbp(invoicedTotal)} sub={revisedValue > 0 ? `${completionPct.toFixed(0)}% complete` : undefined} icon={Receipt} color="blue" />
-                <KpiCard label="Outstanding" value={gbp(outstandingAmt)} sub="Invoiced not yet paid" icon={Clock} color={outstandingAmt > 0 ? "amber" : "slate"} />
+                <KpiCard label="Contract Value" value={gbp(contractValue)} sub={approvedVarTotal === null ? "Variations unavailable" : approvedVarTotal > 0 ? `+${gbp(approvedVarTotal)} variations` : undefined} icon={PoundSterling} color="blue" />
+                <KpiCard label="Costs to Date" value={money(costsPosted)} sub={budgetBurnPct === null ? "Cost entries could not be loaded" : budgetCost > 0 ? `${budgetBurnPct.toFixed(0)}% of ${gbp(budgetCost)} budget` : "No budget set"} icon={Hammer} color={budgetBurnPct === null ? "slate" : budgetBurnPct > 110 ? "red" : budgetBurnPct > 85 ? "amber" : "slate"} />
+                <KpiCard label="Invoiced" value={money(invoicedTotal)} sub={invoicedTotal === null ? "Invoices could not be loaded" : completionPct !== null && revisedValue !== null && revisedValue > 0 ? `${completionPct.toFixed(0)}% complete` : undefined} icon={Receipt} color="blue" />
+                <KpiCard label="Outstanding" value={money(outstandingAmt)} sub={outstandingAmt === null ? "Invoices could not be loaded" : "Invoiced not yet paid"} icon={Clock} color={outstandingAmt !== null && outstandingAmt > 0 ? "amber" : "slate"} />
             </div>
 
             {/* ── Progress bars ─────────────────────────────────────────── */}
@@ -266,24 +281,34 @@ export default function ProjectLiveClient({
                 <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 space-y-3">
                     <div className="flex items-center justify-between text-xs">
                         <span className="font-semibold text-slate-400 uppercase tracking-wide">Budget Burn</span>
-                        <span className={budgetBurnPct > 110 ? "text-red-400 font-bold" : budgetBurnPct > 85 ? "text-amber-400 font-bold" : "text-slate-300"}>
-                            {gbp(costsPosted)} / {gbp(budgetCost)}
+                        <span className={budgetBurnPct === null ? "text-slate-400" : budgetBurnPct > 110 ? "text-red-400 font-bold" : budgetBurnPct > 85 ? "text-amber-400 font-bold" : "text-slate-300"}>
+                            {money(costsPosted)} / {gbp(budgetCost)}
                         </span>
                     </div>
-                    <ProgressBar pct={budgetBurnPct} color={budgetBurnPct > 110 ? "bg-red-500" : budgetBurnPct > 85 ? "bg-amber-400" : "bg-green-500"} />
-                    <div className="flex items-center justify-between text-[11px] text-slate-500">
-                        <span>{budgetBurnPct.toFixed(1)}% of budget used</span>
-                        {budgetCost > costsPosted && <span>{gbp(budgetCost - costsPosted)} remaining</span>}
-                    </div>
+                    {budgetBurnPct === null || costsPosted === null ? (
+                        <p className="text-[11px] text-slate-500">Budget used is unavailable because cost entries could not be loaded.</p>
+                    ) : (
+                        <>
+                            <ProgressBar pct={budgetBurnPct} color={budgetBurnPct > 110 ? "bg-red-500" : budgetBurnPct > 85 ? "bg-amber-400" : "bg-green-500"} />
+                            <div className="flex items-center justify-between text-[11px] text-slate-500">
+                                <span>{budgetBurnPct.toFixed(1)}% of budget used</span>
+                                {budgetCost > costsPosted && <span>{gbp(budgetCost - costsPosted)} remaining</span>}
+                            </div>
+                        </>
+                    )}
                 </div>
                 <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4 space-y-3">
                     <div className="flex items-center justify-between text-xs">
                         <span className="font-semibold text-slate-400 uppercase tracking-wide">Completion</span>
-                        <span className="text-slate-300">{gbp(invoicedTotal)} / {gbp(revisedValue || contractValue)}</span>
+                        <span className="text-slate-300">{money(invoicedTotal)} / {revisedValue === null ? UNAVAILABLE : gbp(revisedValue || contractValue)}</span>
                     </div>
-                    <ProgressBar pct={completionPct} color="bg-blue-500" />
+                    {completionPct === null ? (
+                        <p className="text-[11px] text-slate-500">Completion is unavailable because {unavailable.invoices ? "invoices" : "variations"} could not be loaded.</p>
+                    ) : (
+                        <ProgressBar pct={completionPct} color="bg-blue-500" />
+                    )}
                     <div className="flex items-center justify-between text-[11px] text-slate-500">
-                        <span>{completionPct.toFixed(1)}% invoiced</span>
+                        <span>{completionPct === null ? "Invoiced share unavailable" : `${completionPct.toFixed(1)}% invoiced`}</span>
                         <span className={estimatedMarginPct >= 15 ? "text-green-400" : estimatedMarginPct >= 8 ? "text-amber-400" : "text-orange-400"}>
                             {estimatedMarginPct.toFixed(1)}% est. margin
                         </span>
@@ -312,7 +337,7 @@ export default function ProjectLiveClient({
                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/30">
                     <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
                         <Hammer className="w-4 h-4 text-slate-400" /> Costs Posted
-                        <span className="text-[11px] font-normal text-slate-500">({costs.length})</span>
+                        <span className="text-[11px] font-normal text-slate-500">({unavailable.costs ? "unavailable" : costs.length})</span>
                     </h2>
                     <div className="flex items-center gap-2">
                         <button
@@ -331,7 +356,9 @@ export default function ProjectLiveClient({
                         <AddCostForm projectId={projectId} onDone={() => setShowAddCost(false)} />
                     </div>
                 )}
-                {costs.length === 0 ? (
+                {unavailable.costs ? (
+                    <div className="px-4 py-6 text-center text-xs text-amber-300">Cost entries could not be loaded. Refresh to try again.</div>
+                ) : costs.length === 0 ? (
                     <div className="px-4 py-6 text-center text-xs text-slate-500">No costs posted yet</div>
                 ) : (
                     <div className="divide-y divide-slate-700/20">
@@ -363,13 +390,15 @@ export default function ProjectLiveClient({
                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/30">
                     <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
                         <Receipt className="w-4 h-4 text-slate-400" /> Invoices
-                        <span className="text-[11px] font-normal text-slate-500">({invoices.length})</span>
+                        <span className="text-[11px] font-normal text-slate-500">({unavailable.invoices ? "unavailable" : invoices.length})</span>
                     </h2>
                     <Link href={`/dashboard/projects/billing?projectId=${projectId}`} className="text-[10px] text-slate-500 hover:text-blue-400 transition-colors">
                         Manage →
                     </Link>
                 </div>
-                {invoices.length === 0 ? (
+                {unavailable.invoices ? (
+                    <div className="px-4 py-6 text-center text-xs text-amber-300">Invoices could not be loaded. Refresh to try again.</div>
+                ) : invoices.length === 0 ? (
                     <div className="px-4 py-6 text-center text-xs text-slate-500">No invoices yet</div>
                 ) : (
                     <div className="divide-y divide-slate-700/20">
@@ -405,8 +434,8 @@ export default function ProjectLiveClient({
                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/30">
                     <h2 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
                         <GitBranch className="w-4 h-4 text-slate-400" /> Variations
-                        <span className="text-[11px] font-normal text-slate-500">({variations.length})</span>
-                        {approvedVarTotal > 0 && (
+                        <span className="text-[11px] font-normal text-slate-500">({unavailable.variations ? "unavailable" : variations.length})</span>
+                        {approvedVarTotal !== null && approvedVarTotal > 0 && (
                             <span className="text-[10px] text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded-full">
                                 +{gbp(approvedVarTotal)} approved
                             </span>
@@ -416,7 +445,9 @@ export default function ProjectLiveClient({
                         Manage →
                     </Link>
                 </div>
-                {variations.length === 0 ? (
+                {unavailable.variations ? (
+                    <div className="px-4 py-6 text-center text-xs text-amber-300">Variations could not be loaded. Refresh to try again.</div>
+                ) : variations.length === 0 ? (
                     <div className="px-4 py-6 text-center text-xs text-slate-500">No variations logged</div>
                 ) : (
                     <div className="divide-y divide-slate-700/20">

@@ -1,6 +1,6 @@
 {
   "id": "d124-brand-review",
-  "sourceSha": "f125195f699af1a7d43289c6e79b6f0732cdc2ee",
+  "sourceSha": "08a0179e192471e2b3cb4e167b1de28a322ac29f",
   "branch": "codex/d123-brand-consistency-20261128",
   "pr": 281,
   "capturedAt": "2026-11-28",
@@ -161,7 +161,7 @@
   "limitations": "Public landing corrected for reveal/lazy-load timing; product held -29% zoom / 62.5% viewport spacing is intentional CSS. See capture-notes interpretation. Not a whole-app brand PASS.",
   "report": "docs/delivery/2026-11-28/d124-brand-visual-review.md",
   "proposalNativeAccentFix": {
-    "commit": "f125195f699af1a7d43289c6e79b6f0732cdc2ee",
+    "commit": "08a0179e192471e2b3cb4e167b1de28a322ac29f",
     "note": "programme/public PNG blobs unchanged — identity in git"
   }
 }
